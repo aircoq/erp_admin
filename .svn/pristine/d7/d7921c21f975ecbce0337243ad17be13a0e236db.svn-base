@@ -1,0 +1,309 @@
+<?php
+
+namespace app\report\service;
+
+use app\common\cache\Cache;
+use app\common\model\Account;
+use app\common\model\account\AccountOperationAnalysis;
+use app\common\traits\Export;
+use app\report\model\ReportExportFiles;
+use app\report\validate\FileExportValidate;
+use think\Exception;
+use think\Loader;
+
+Loader::import('phpExcel.PHPExcel', VENDOR_PATH);
+
+/**
+ * Created by PhpStorm.
+ * User: ZhouFurong
+ * Date: 2019/4/20
+ * Time: 14:24
+ */
+class AccountOperationAnalysisService
+{
+
+	use Export;
+
+	private $accountOperationModel;
+
+
+	protected $colMap = [
+		'title' => [
+			'A' => ['title' => '平台', 'width' => 20],
+			'B' => ['title' => '账号', 'width' => 10],
+			'C' => ['title' => '站点', 'width' => 15],
+			'D' => ['title' => '销售员', 'width' => 10],
+			'E' => ['title' => '部门', 'width' => 20],
+			'F' => ['title' => 'listing目标数量', 'width' => 10],
+			'G' => ['title' => '激活时间', 'width' => 15],
+			'H' => ['title' => '预估数量', 'width' => 15],
+			'I' => ['title' => '实际数量', 'width' => 10],
+
+		],
+		'data' => [
+			'name' => ['col' => 'A', 'type' => 'time'],
+			'account_name' => ['col' => 'B', 'type' => 'str'],
+			'site' => ['col' => 'C', 'type' => 'str'],
+			'user_name' => ['col' => 'D', 'type' => 'int'],
+			'department' => ['col' => 'E', 'type' => 'str'],
+			'list_num' => ['col' => 'F', 'type' => 'str'],
+			'create_time' => ['col' => 'G', 'type' => 'str'],
+			'estimate_num' => ['col' => 'H', 'type' => 'str'],
+			'real_quantity' => ['col' => 'I', 'type' => 'str'],
+		]
+
+	];
+
+	public function __construct()
+	{
+		if (is_null($this->accountOperationModel)) {
+			$this->accountOperationModel = new AccountOperationAnalysis();
+		}
+
+
+	}
+
+
+	/**
+	 * 导出申请
+	 * @param $params
+	 * @return bool
+	 * @throws Exception
+	 * @throws \Exception
+	 */
+	public function applyExport($params)
+	{
+		$userId = Common::getUserInfo()->toArray()['user_id'];
+		$cache = Cache::handler();
+		$lastApplyTime = $cache->hget('hash:export_goods_apply', $userId);
+		if ($lastApplyTime && time() - $lastApplyTime < 5) {
+			throw new JsonErrorException('请求过于频繁', 400);
+		} else {
+			$cache->hset('hash:export_account_monitor', $userId, time());
+		}
+		try {
+			$model = new ReportExportFiles();
+			$data['applicant_id'] = $userId;
+			$data['apply_time'] = time();
+			$data['export_file_name'] = $this->createExportFileName();
+			$data['status'] = 0;
+			$data['applicant_id'] = $userId;
+			$model->allowField(true)->isUpdate(false)->save($data);
+			$params['file_name'] = $data['export_file_name'];
+			$params['apply_id'] = $model->id;
+			(new CommonQueuer(AmazonAccountMonitorExportQueue::class))->push($params);
+			return true;
+		} catch (\Exception $ex) {
+			throw new JsonErrorException('申请导出失败');
+		}
+	}
+
+	/**
+	 * 创建导出文件名
+	 *
+	 * @param array $params
+	 * @param [string] $date_b
+	 * @param [string] $date_e
+	 * @return string
+	 */
+	protected function createExportFileName()
+	{
+		$fileName = '亚马逊账号监控报表' . '(' . date('Y-m-d', time()) . ')' . '.xlsx';
+		return $fileName;
+	}
+
+	/**
+	 * 导出数据至excel文件
+	 * @param array $params
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function export(array $params)
+	{
+		set_time_limit(0);
+		try {
+			ini_set('memory_limit', '4096M');
+			$validate = new FileExportValidate();
+			if (!$validate->scene('export')->check($params)) {
+				throw new Exception($validate->getError());
+			}
+			$fileName = $params['file_name'];
+			$downLoadDir = '/download/report_amazon/';
+			$saveDir = ROOT_PATH . 'public' . $downLoadDir;
+			if (!is_dir($saveDir) && !mkdir($saveDir, 0777, true)) {
+				throw new Exception('导出目录创建失败');
+			}
+			$fullName = $saveDir . $fileName;
+			//创建excel对象
+			$writer = new \XLSXWriter();
+			$titleMap = $this->colMap['title'];
+			$title = [];
+			$titleData = $this->colMap['data'];
+			foreach ($titleData as $k => $v) {
+				array_push($title, $k);
+			}
+			$titleOrderData = [];
+			foreach ($titleMap as $t => $tt) {
+				$titleOrderData[$tt['title']] = 'string';
+			}
+			//统计需要导出的数据行
+			$where = [];
+			$count = $this->searchCount($where);
+			$pageSize = 10000;
+			$loop = ceil($count / $pageSize);
+			$writer->writeSheetHeader('Sheet1', $titleOrderData);
+			//分批导出
+			for ($i = 0; $i < $loop; $i ++) {
+				$data = $this->assemblyDate($this->doSearch($where, $i + 1, $pageSize), $title);
+
+				foreach ($data as $r) {
+					$writer->writeSheetRow('Sheet1', $r);
+				}
+				unset($data);
+			}
+			$writer->writeToFile($fullName);
+
+			if (is_file($fullName)) {
+				$applyRecord = ReportExportFiles::get($params['apply_id']);
+				$applyRecord['exported_time'] = time();
+				$applyRecord['download_url'] = $downLoadDir . $fileName;
+				$applyRecord['status'] = 1;
+				$applyRecord->isUpdate()->save();
+			} else {
+				throw new Exception('文件写入失败');
+			}
+		} catch (\Exception $ex) {
+			$applyRecord = ReportExportFiles::get($params['apply_id']);
+			$applyRecord['status'] = 2;
+			$applyRecord['error_message'] = $ex->getMessage();
+			$applyRecord->isUpdate()->save();
+			Cache::handler()->hset(
+				'hash:report_export',
+				$params['apply_id'] . '_' . time(),
+				'申请id: ' . $params['apply_id'] . ',导出失败:' . $ex->getMessage());
+		}
+	}
+
+	/**
+	 * 列表详情
+	 * @param int $page
+	 * @param int $pageSize
+	 * @param array $params
+	 * @return array
+	 */
+	public function search($params)
+	{
+		$page = param($params, 'page', 1);
+		$pageSite = param($params, 'pageSite', 10);
+
+		$count = $this->searchCount($params);
+		$data = $this->assemblyDate($this->doSearch($params, $page, $pageSite));
+
+		return [
+			'page' => $page,
+			'pageSize' => $pageSite,
+			'count' => $count,
+			'data' => $data
+		];
+	}
+
+	public function searchCount($param)
+	{
+		return $this->accountOperationModel->where($this->getSearchCondition($param))->count();
+	}
+
+	public function assemblyDate($datas ,$title = [])
+	{
+		if (!empty($datas)) {
+			$data = [];
+			//dump($datas);
+			foreach ($datas as $key => $value) {
+				$data[$key]['dateline'] = $value['dateline'];
+				$data[$key]['channel_name'] = Cache::store('channel')->getChannelName($value['channel_id']);
+				$data[$key]['channel_id'] = $value['channel_id'];
+				$data[$key]['account_id'] = $value['account_id'];
+				$data[$key]['seller_id'] = $value['seller_id'];
+				$data[$key]['site'] = '';
+				$data[$key]['account_name'] = '';
+				$data[$key]['seller_name'] = '';
+				$data[$key]['team_leader_name'] = '';
+				$data[$key]['supervisor_name'] = '';
+				$data[$key]['department_name'] = '';
+				$data[$key]['account_status'] = 1;
+				$data[$key]['is_vat'] = 1;
+				$data[$key]['can_send_fba'] = 1;
+				$data[$key]['publish_quantity'] = $value['publish_quantity'];
+				$data[$key]['online_listing_quantity'] = $value['online_listing_quantity'];
+				$data[$key]['sale_amount'] = $value['sale_amount'];
+				$data[$key]['order_quantity'] = $value['order_quantity'];
+				$data[$key]['odr'] = $value['odr'];
+				$data[$key]['virtual_order_quantity'] = $value['virtual_order_quantity'];
+				$data[$key]['average_retail_rate'] = 0;
+				$data[$key]['online_asin_quantity'] = $value['online_asin_quantity'];
+				$data[$key]['account_register_time'] = 1;
+				$data[$key]['account_transition_time'] = 1;
+			}
+			return $data;
+		}
+
+	}
+
+	public function getSearchCondition($params)
+	{
+		date_default_timezone_set("PRC");
+		$condition = [];
+		$channel_id = param($params, 'channel_id', 0);
+		$site = param($params, 'site', '');
+		$seller_field = param($params, 'seller_field', '');
+		$seller_id = param($params, 'seller_id', '');
+		$quantity_type = param($params, 'quantity_type', 1);
+		$quantity_sort = param($params, 'quantity_sort', '1-1');
+		$min_value = param($params, 'min_value', 0);
+		$max_value = param($params, 'max_value', 0);
+		$time_type = param($params, 'time_type', 1);
+		$time_sort = param($params, 'time_field', '1-1');
+		$date_from = param($params, 'date_from', strtotime('-1 day'));
+		$date_to = param($params, 'date_to', strtotime('-1 day'));
+
+		return $condition;
+	}
+
+	public function doSearch(array $params = [], $page = 1, $pageSite = 10)
+	{
+		$condition = $this->getSearchCondition($params);
+		$order = '';
+		$this->accountOperationModel->field(true)
+			->where($condition);
+		//	->order($order);
+		//dump( $this->accountOperationModel->page($page, $pageSite)->select());
+		return $this->accountOperationModel->page($page, $pageSite)->select();
+
+	}
+
+
+	/**
+	 *
+	 * 获取字段信息
+	 * @return string
+	 */
+	protected function field()
+	{
+		$field = ['c.id', 'a.site', 'a.id as account_id', 'cu.seller_id',
+			' cu.update_time'];
+		return $field;
+	}
+
+	/**
+	 * 关联数据
+	 * @return array
+	 */
+	protected function join()
+	{
+		$join[] = ['channel_user_account_map cu', 'cu.account_id = a.id', 'left'];
+		$join[] = [' channel c', 'c.id = cu.channel_id', 'left'];
+		return $join;
+	}
+
+
+
+}

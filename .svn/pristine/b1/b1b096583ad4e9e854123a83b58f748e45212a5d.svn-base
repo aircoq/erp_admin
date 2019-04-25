@@ -1,0 +1,762 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\model\ebay\EbayOrder;
+use app\common\model\Order;
+use app\common\model\OrderDetail;
+use app\common\model\OrderSourceDetail;
+use service\shipping\operation\ShippingMethodBase;
+use think\Exception;
+use app\common\cache\Cache;
+use org\Curl;
+use app\order\service\OrderService;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+/**
+ * 万邑通邮选
+ * Class WinitISP
+ * @package service\shipping\operation
+ */
+class WinitISP
+{
+    private $config = [
+        'sandbox'       => false,
+        'token'         => '',  // '3D73F69AE2990EC65DBBC0C887EDE4D9',
+        'app_key'       => '', //  '770749325@qq.com', 
+        'sandboxUrl'    => 'http://openapi.sandbox.winit.com.cn/openapi/service',
+        'productionUrl' => 'http://openapi.winit.com.cn/openapi/service',
+    ];
+    
+    private $shippingAddrCode = '';
+
+    private $post_data = [
+        'action'      => '',
+        'app_key'     => '',
+        'data'        => '',
+        'format'      => 'json',
+        'platform'    => 'SELLERERP',
+        'sign'        => '',
+        'sign_method' => 'md5',
+        'timestamp'   => '',
+        'version'     => "1.0"
+    ];
+    
+    private $result = ['data' => [], 'error' => [], 'success' => false];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    // 仓库列表
+    private $warehouses = [
+        'YW10000005' => '北京ISP仓',
+        'YW10000006' => '上海ISP仓',
+        'YW10000007' => '义乌ISP仓',
+        'YW10000008' => '深圳ISP仓',
+        'YW10000009' => '广州ISP仓',
+        'YW10000010' => '杭州ISP仓',
+        'YW10000011' => '苏州ISP仓',
+        'YW10000012' => '金华ISP仓',
+        'YW10000013' => '宁波ISP仓',
+        'YW10000014' => '香港ISP仓',
+        'YW10000016' => '深圳ISP仓转香港',
+        'YW10000015' => '台湾仓',
+        'YW10000017' => '广州ISP仓转香港',
+        'YW10000018' => '温州ISP仓',
+        'YW10000019' => '东莞ISP仓',
+        'YW10000020' => '南京ISP仓',
+        'YW10000021' => '无锡ISP仓',
+        'YW10000022' => '佛山ISP仓',
+        'YW10000023' => '郑州ISP仓',
+        'YW10000024' => 'DHL香港ISP仓',
+        'YW10000025' => '泉州ISP仓',
+        'YW10000026' => '武汉ISP仓',
+        'YW10000028' => '东莞ISP仓转香港',
+        'YW10000029' => '成都ISP仓',
+        'YW10000030' => '保定ISP仓',
+        'YW10000031' => '葫芦岛ISP仓',
+        'CPSZS'      => '深圳e仓',
+        'YW10000027' => '佛山ISP仓转香港',
+        'Tran_Store_702578' => '广州e仓',
+    ];
+    
+    private $taking_method = [
+        'P' => 'Winit揽收',
+        'T' => '卖家自送',
+        'S' => '自发快递',
+        'C' => '中邮揽收',
+        'D' => 'DHL揽收（限香港）'
+    ];
+    
+    // 邮寄方式列表
+    private $shipping_methods = [
+        ['code' => 'ISP1014',   'name' => '线上中国邮政平常小包+（上海）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 4],
+        ['code' => 'ISP031279', 'name' => '线上中国邮政平常小包+（深圳）-winit揽收', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 4],
+        ['code' => 'WP-HKP101', 'name' => 'eDS易递宝 –   香港渠道(平邮) – eBay', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 8],
+        ['code' => 'WP-MYP101', 'name' => 'eDS易递宝-马来西亚渠道（平邮）-eBay', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 1],
+        ['code' => 'WP-DEP102', 'name' => 'eDS易递宝-DHL跨境电商包裹（香港）-eBay', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 1],
+        // ['code' => 'WP-DEP103', 'name' => 'eDS易递宝-DHL跨境电商包裹（上海）-eBay', 'warehouses' => [], 'label' => 1],
+        ['code' => 'ISP0339', 'name' => '优邑专线-英国达（轻小件）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'ISP1006', 'name' => '优邑专线-英国达（可跟踪）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'ISP1005', 'name' => '优邑专线-英国达（包裹）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'ISP041243', 'name' => '优邑专线-英国达（小包裹）-   含电', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'ISP041249', 'name' => '优邑专线-美国达（可跟踪）-含电', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'ISP0277', 'name' => '快邑速递-UPS速快（经香港，3-9自然日）', 'warehouses' => ['YW10000014', 'YW10000017','YW10000027', 'YW10000016', 'YW10000028'], 'label' => 6],
+        ['code' => 'ISP0276', 'name' => '快邑速递-UPS快捷（经香港，5-11自然日）', 'warehouses' => ['YW10000014', 'YW10000017','YW10000027', 'YW10000016', 'YW10000028'], 'label' => 6],
+        ['code' => 'ISP0274', 'name' => '快邑速递-UPS速快（标准型，2-7自然日）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 6],
+        ['code' => 'ISP0280', 'name' => '快邑速递-UPS快捷（标准型，4-9自然日）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 6],
+        ['code' => 'ISP011189', 'name' => '快邑速递-DHL环球快递', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 7],
+        ['code' => 'WP-HKP002', 'name' => '万邑邮选-香港渠道（挂号）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-HKP001', 'name' => '万邑邮选-香港渠道（平邮）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 8],
+        ['code' => 'ISP0312', 'name' => '万邑邮选 –   DHL跨境电商可追踪包裹（香港）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'ISP0314', 'name' => '万邑邮选 –   DHL跨境电商包裹（香港）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-NLP001', 'name' => '万邑邮选-荷兰渠道（挂号）-含电', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-NLP011', 'name' => '万邑邮选-荷兰渠道（挂号）-不含电', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-NLP002', 'name' => '万邑邮选-荷兰渠道（平邮）-含电', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-NLP012', 'name' => '万邑邮选-荷兰渠道（平邮）-不含电', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-CNP007', 'name' => '万邑邮选-普通渠道（挂号）-北京', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-CNP004', 'name' => '万邑邮选-普通渠道（平邮）-北京', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-CNP005', 'name' => '万邑邮选-普通渠道（挂号）-上海', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-CNP006', 'name' => '万邑邮选-普通渠道（平邮）-上海', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-MYP002', 'name' => '万邑邮选-马来西亚渠道（挂号）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-MYP001', 'name' => '万邑邮选-马来西亚渠道（平邮）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019', 'YW10000007'], 'label' => 2],
+        ['code' => 'WP-SGP003', 'name' => '万邑邮选-新加坡渠道（挂号）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-SGP004', 'name' => '万邑邮选-新加坡渠道（平邮）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'WP-SRP001', 'name' => '万邑邮选-俄罗斯SPSR渠道（挂号）', 'warehouses' => ['YW10000008', 'YW10000009', 'YW10000019'], 'label' => 2],
+        ['code' => 'ISP031040', 'name' => '线上中国邮政平常小包+（中邮揽收）', 'warehouses' => ['CPSZS', 'Tran_Store_702578'], 'label' => 5]
+    ];
+
+    /**
+     * 获取授权信息
+     * @param array $token
+     * @return bool
+     * @throws Exception
+     */
+    private function getToken($token)
+    {
+        if (!empty($token) && $token['client_id'] && $token['accessToken']) {
+            $this->config['token']   = $token['accessToken'];
+            $this->config['app_key'] = $token['client_id'];
+            isset($token['client_secret']) ? $this->shippingAddrCode = $token['client_secret'] : '';
+            return true;
+        }
+        throw new Exception('仓库不存在或者缺少授权信息');
+    }
+    
+    /**
+     * 获取提交数据
+     * @param string $action
+     * @param  $data
+     * @return array
+     */
+    private function getPostData($action, $data)
+    {
+        $this->post_data['app_key']   = $this->config['app_key'];
+        $this->post_data['timestamp'] = date('Y-m-d H:i:s');
+        $this->post_data['action']    = $action;
+        $this->post_data['data']      = $data;
+        $this->post_data['sign']      = $this->getSign($this->post_data, $this->config['token']);
+        return $this->post_data;
+    }
+
+    /**
+     * 获取运输方式信息
+     * @param string $warehouse_code
+     * @return array (code, name, label, has_trackingNumber)
+     */
+    public function getExpress($config)
+    {
+//        $action = 'winitProduct.list';
+//        $this->getToken($config);
+//        $obj = new \stdClass();
+//        $post_data = $this->getPostData($action,$obj);
+//        $info = $this->callOperation($post_data);
+//        foreach ($info['data'] as $item){
+//            $this->getWarehouses($config,$item['productCode']);
+//        }
+        try {
+            $rows = [];
+            foreach($this->shipping_methods as $shippingMethod) {
+                foreach ($shippingMethod['warehouses'] as $warehouse) {
+                    $rows[] = [
+                        'code' => $shippingMethod['code'] . '|' . $warehouse,
+                        'name' => $shippingMethod['name'] . '|' . $this->warehouses[$warehouse],
+                        'has_trackingNumber' => true,
+                        'label' => $shippingMethod['label']
+                    ];
+                }
+            }
+            $this->result['success'] = true;
+            $this->result['data'] = $rows;
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result;
+    }
+    
+    /**
+     * 生成签名
+     * @param array consist of generating sgin parameter
+     * @param string token
+     * @return string  the string is winit sign
+     */
+    private function getSign($info, $token)
+    {
+        $str  = $token;
+        foreach($info as $key=>$value) {
+            if ($key == 'sign') {
+                continue;
+            }
+            if ($key == 'data') {
+                $str .= $key . json_encode($value,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+                continue;
+            }
+            $str .= $key . $value;
+        }        
+        $str .= $token;
+        $sign = $info['sign_method']($str);        
+        return strtoupper($sign);
+    }
+    
+    /**
+     * 创建出库单
+     * @param array
+     * @param array $order
+     * @return array
+     */
+    public function createOrder(array $token, array $order, $confirm)
+    {
+        if (!isset($order['number'])) {
+            $order = $order[0];
+        }
+        $action = 'isp.order.createOrder';
+        try {
+            $this->result['number'] = $order['number']; // 订单包裹号
+            $this->getToken($token);
+            $order_info = $this->formatPackageInfo($order);
+            $post_data = $this->getPostData($action, $order_info['data']);
+            $result = $this->callOperation($post_data);
+            //日志记录
+            $arr_log = [
+                'url' => $this->config['productionUrl'],
+                'request' => json_encode($post_data),
+                'response' => json_encode($result)
+            ];
+            if ($result['code'] == 0) {
+                $this->result['success'] = true;
+                $this->result['data']['package_code'] = $result['data']['orderNo'];    // ISP 订单号
+                $this->result['data']['trackingNumber'] = $result['data']['trackingNo']; // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $token['has_trackingNumber'];  // 是否内获取跟踪号
+                $this->result['data']['confirm'] = false;                         // 是否交运
+                $this->result['data']['label'] = true;                         // 是否有pdf
+                $this->result['data']['label_url'] = '';                            // 是否有pdf
+                $this->result['data']['is_weight'] = true;                          // 是否能查询实际重量
+                $this->result['data']['is_fee'] = true;                          // 是否能查询实际费用
+                $this->result['data']['send'] = true;                          // 是否能查询物流订单状态
+            } else {
+                if ("01030241012" == $result['code']) {
+                    //已下过单的，但是没有将数据回传到系统，再拉一次
+                    $this->regetData($token, $order,$result['msg']);
+                } else {
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+                    $this->result['error'] = [
+                        'error_msg' => $result['msg'],
+                        'error_code' => 1
+                    ];
+                }
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 2
+            ];
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * @desc 重新获取订单数据
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-21 17:11:11
+     */
+    private function regetData(array $token, array $order,$msg)
+    {
+        try {
+            $processCode=[];
+            preg_match('/ID.*CN/',$msg,$processCode);
+            $order['process_code']=$processCode[0];
+            $this->getPackageDetails($token, $order);
+            if ($this->result['success']) {
+                $this->result['success']                    = true;
+                $this->result['data']['package_code']       = $order['process_code'];    // ISP 订单号
+                $this->result['data']['trackingNumber']     = $this->result['data']['expressNo']; // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $token['has_trackingNumber'];  // 是否内获取跟踪号
+                $this->result['data']['confirm']            = false;                         // 是否交运
+                $this->result['data']['label']              = true;                         // 是否有pdf
+                $this->result['data']['label_url']          = '';                            // 是否有pdf
+                $this->result['data']['is_weight']          = true;                          // 是否能查询实际重量
+                $this->result['data']['is_fee']             = true;                          // 是否能查询实际费用
+                $this->result['data']['send']               = true;                          // 是否能查询物流订单状态
+            }
+            
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * 当出库单处于草稿状态时,可用此接口作废
+     *
+     * @param string $order_code
+     * @return array
+     */
+    public function voidOutboundOrder($order_code = '')
+    {
+        $json = $this->manageOutboundOrder($order_code, 'voidOutboundOrder');
+        return $json;
+    }
+    
+    /**
+     * 确认发货接口
+     * @param array $token
+     * @param array $order
+     * @return array
+     */
+    public function confirm(array $token, $order)
+    {
+        $action = 'isp.delivery.confirm';
+        try {
+            $this->result['number'] = $order['number'];
+            $this->getToken($token);
+            $post_data  = $this->getPostData($action, ['orderNo' => $order['process_code']]);
+            $result     = $this->callOperation($post_data);
+            //日志记录
+            $arr_log = [
+                'url' => $this->config['productionUrl'],
+                'request' => $post_data,
+                'response' => $result
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+            if($result['code'] == 0 && $result['data']['success']) {
+                $this->result['success'] = true;
+                $this->result['data']['number']             = '';
+                $this->result['data']['package_code']       = '';
+                $this->result['data']['has_trackingNumber'] = $token['has_trackingNumber'];
+                $this->result['data']['confirm']            = true;
+                $this->result['data']['label']              = true;                         // 是否有pdf
+                $this->result['data']['label_url']          = '';                            // 是否有pdf
+                $this->result['data']['is_weight']          = true;                          // 是否能查询实际重量
+                $this->result['data']['is_fee']             = true;                          // 是否能查询实际费用
+                $this->result['data']['send']               = true;                          // 是否能查询物流订单状态
+                $this->result['data']['trackingNumber']     = '';                           // 跟踪号
+                $this->result['data']['warehouse_id']       = $order['warehouse_id'];
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => $result['msg'],
+                    'error_code'=> 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 2
+            ];
+        }
+
+        return $this->result;
+    }
+    
+    /**
+     * 查询出库单详情
+     * @param array $params search
+     * @return array
+     */
+    public function getPackageDetails($token, $order)
+    {       
+        $action = 'isp.order.query';
+        try {
+            $this->getToken($token);
+            $post_data = $this->getPostData($action, ['orderNo' => $order['process_code']]);
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code']) {
+                $this->result['success'] = true;
+                $this->result['data'] = $info['data'];
+            } else {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $info['msg']
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result; 
+    }
+    
+    /**
+     * 删除包裹信息
+     * @param unknown $name
+     */
+    public function cancel($token, $order)
+    {
+        $action = 'isp.order.disable';
+        try {
+            $this->result['number'] = $order['number'];
+            $this->getToken($token);
+            $post_data = $this->getPostData($action, [['orderNo' => $order['process_code']]]);
+            $info = $this->callOperation($post_data);
+            //日志记录
+            $arr_log = [
+                'url' => $this->config['productionUrl'],
+                'request' => $post_data,
+                'response' => $info
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+            if (0 == $info['code'] && $info['data']['successCount'] == 1) {
+                $this->result['success'] = true;
+                $this->result['data'] = $info['data'];
+            } else {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $info['msg']
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result; 
+    }
+    
+    /**
+     * 获取跟踪号
+     * @param array $token
+     * @param array $order
+     */
+    public function getOrderFee($token, $order)
+    {
+        $action = 'isp.order.getOrderRevenue';
+        try {
+            $this->getToken($token);
+            $post_data = $this->getPostData($action, ['orderNo' => $order['process_code']]);
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code'] && $info['data']) {
+                $this->result['success'] = true;
+                $this->result['data'] = [
+                    'amount' => $info['data']['totalAmount'],
+                    'currency_code' => $info['data']['standardCurrencyCode'],
+                    'weight'  => $info['data']['cfmGrossWeight'] * 1000
+                ];
+            } else {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $info['msg']
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result;
+    }
+
+    /**
+     * 获取面单
+     * @param array $token
+     * @param array $order
+     * @return array
+     */
+    public function getLabel($token, $order)
+    {
+        $action = 'winitLable.query';
+        try {
+            if($order['label_source_type']=='1'  && !empty($order['process_code']) ){
+
+                if(isset($order['package_id'])){
+                    (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+                }
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+                ];
+                $this->result['number'] = $order['number'];
+                return $this->result;
+            }
+            $this->getToken($token);
+            $post_data = $this->getPostData($action, ['orderNo' => $order['process_code']]);
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code'] && $info['data']) {
+//                if (!is_dir($order['path'])){
+//                    mkdir($order['path'],0777);  // 创建文件夹test,并给777的权限（所有权限）
+//                }
+//                $filename = $order['path'] . '/'.$order['process_code']. '.pdf';
+//                file_put_contents($filename, base64_decode($info['data']['files'][0]));
+
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'],$info['data']['files'][0],'pdf');
+                //$this->result['data']['body'] = $info['data']['files'][0];
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['data']['tracking_number'] = $info['data']['trackingNo'][0];
+                $this->result['success']     = true;
+            } else {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $info['msg']
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result;
+    }
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     * @return array
+     * 订单状态
+     * WFD:已提交 WFR:确认发货 CFS:已揽收 WFI:收货验货 PC:已打包 AO:已出库 HPO:移交邮局 DLI:派送中 DLC:派送完成 DLF:派送失败 VO:作废 PUF:货物未收到 EX:订单异常
+     */
+    public function getPackageStatus($config, $order)
+    {
+        $result = $this->getPackageDetails($config,$order);
+        if($result['success']){
+            $this->result['data'] = [
+                'is_send'=>$result['data']['status']=='DLI'?true:false
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取真实重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config,$order)
+    {
+        $action = 'isp.order.getOrderRevenue';
+        try {
+            $this->getToken($config);
+            $post_data = $this->getPostData($action, ['orderNo' => $order['process_code']]);
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code']&&!empty($info['data'])) {
+                $total_fee = 0;
+                $currency = '';
+                foreach ($info['data']['chargeItemList'] as $item){
+                    $total_fee += $item['amount'];
+                    $currency = $item['currencyCode'];
+                }
+                $this->result['data'] = [
+                    'real_weight'=>$info['data']['cfmGrossWeight'],
+                    'real_fee'=>$total_fee,
+                    'currency'=>$currency
+                ];
+                $this->result['success'] = true;
+            } else {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $info['msg']
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+
+        return $this->result;
+    }
+    
+    /**
+     * 发送请求
+     *
+     * @param array $data 发送数据
+     * @return object json decode.
+     */
+    private function callOperation($data)
+    {
+        $url = $this->getUrl(); 
+        $post_data = json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        $headers[] = 'Content-Type:application/json';
+        $headers[] = 'Content-Length:' . strlen($post_data);
+	    $response = Curl::curlPost($url, $post_data, $headers);
+        $result = json_decode($response, true);
+        if (!$result) {                                       
+            throw new Exception('系统错误!!');
+        }
+        return $result;
+    }
+
+    /**
+     * 组织请求url及参数
+     *
+     * @param string $path
+     * @return string $url
+     */
+    private function getUrl()
+    {
+        $url = $this->config['sandbox'] ? $this->config['sandboxUrl'] : $this->config['productionUrl'];       
+        return $url;
+    }
+    
+    /**
+     * 组织包裹信息
+     * @param array $order
+     * @return array order info
+     */
+    public function formatPackageInfo($order)
+    {
+        $result = ['errorCode' => 0, 'errorMsg' => '', 'data' => []];       
+        do {
+            $sellerId = '';
+//            if ($order['channel_id'] == 1) {
+//                $orderService = new OrderService();
+//                $oriOrderInfo = $orderService->synchronousPackageInfo($order['order_id'], true);
+//                foreach($oriOrderInfo['items'] as $item) {
+//                    $oriOrderInfo['items'][$item['id']] = $item;
+//                }
+//                if(isset($oriOrderInfo['channel_order_id'])&&!empty($oriOrderInfo['channel_order_id'])){
+//                    // $ebayOrder = EbayOrder::get($oriOrderInfo['channel_order_id']);
+//                    $ebayOrder = EbayOrder::where(['id' => $oriOrderInfo['channel_order_id']])->find();
+//                    $sellerId = $ebayOrder['seller_user_id'];
+//                }
+//            }
+            $items=[];
+            foreach($order['product'] as $sku_id => $list) {
+                $transactionId = '';
+                $itemId        = '';
+                //获取订单明细来源信息
+                if($order['channel_id'] == 1){
+                    $source_info = OrderSourceDetail::get($list['order_source_detail_id']);
+                    $transactionId = $source_info['transaction_id'];
+                    $itemId        = $source_info['channel_item_id'];
+                    $orderInfo = Order::get($order['order_id']);
+                    $ebayOrder = EbayOrder::where(['order_id' => $orderInfo['channel_order_number']])->find();
+                    $sellerId = $ebayOrder['seller_user_id'];
+                }
+
+
+//                if (isset($oriOrderInfo) && isset($oriOrderInfo['items'][$list['order_source_detail_id']])) {
+//                    $transactionId = $oriOrderInfo['items'][$list['order_source_detail_id']]['transaction_id'];
+//                    $itemId = $oriOrderInfo['items'][$list['order_source_detail_id']]['channel_item_id'];
+//                } else {
+//                    $transactionId = '';
+//                    $itemId        = '';
+//                }
+                if (isset($order['declared_info'][$sku_id])) {
+                    if ($order['declared_info'][$sku_id]['declared_value_currency'] == 'USD' ) {
+                        $declaredValue = $order['declared_info'][$sku_id]['declared_value'];
+                    } else {
+                        $declaredInfo = Cache::store('currency')->getCurrency($order['declared_info'][$sku_id]['declared_value_currency']);
+                        $usdInfo      = Cache::store('currency')->getCurrency('USD');
+                        $declaredValue = $order['declared_info'][$sku_id]['declared_value'] * $declaredInfo['system_rate'] / $usdInfo['system_rate'];
+                    }
+                    $declaredNameCn = $order['declared_info'][$sku_id]['declared_name_cn'];
+                    $declaredNameEn = $order['declared_info'][$sku_id]['declared_name_en'];
+                } else {
+                    $declaredValue = 0;
+                    $declaredNameCn = '';
+                    $declaredNameEn = '';
+                }
+                $item = [
+                    'transactionID'  => $transactionId , // 交易id（ebay订单必填）
+                    'itemID'         => $itemId, //条目id（ebay订单必填）
+                    'declaredValue'  => number_format($declaredValue,2),
+                    'declaredNameCn' => $declaredNameCn,
+                    'declaredNameEn' => $declaredNameEn,
+                    'merchandiseQuantity' => $list['qty'],
+                ];
+                ksort($item);
+                $items[] = $item;
+            }
+
+            $packageList = [
+                'packageDesc' => $order['number'],
+                'weight' => $order['estimated_weight']<10?'0.01':number_format($order['estimated_weight'] / 1000, 2, '.', ''),
+               /* 'length' => number_format($order['length'] / 10, 2, '.',''),
+                'width'  => number_format($order['width'] / 10, 2, '.', ''),
+                'height' => number_format($order['height'] / 10, 2, '.', ''),*/
+                'length' => 0,
+                'width'  => 0,
+                'height' => 0,
+                'merchandiseList' => $items
+            ];
+            ksort($packageList);
+            
+            $winitCode = explode('|', $order['shipping_method_code']);
+            $data = [
+                'refNo'            => isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number'] : $order['number'], // 卖家订单号
+                'winitProductCode' => $winitCode[0],
+                'warehouseCode'    => $winitCode[1],
+                'dispatchType'     => $this->getDispatchType($order['delivery_mode']), // winit 揽收
+                'shipperAddrCode'  => $this->shippingAddrCode,  // $order['sender']['sender_code'],
+                'ebaySellerId'     => $sellerId, // eBay卖家ID(eBay订单必填)
+                'buyerName'        => $order['name'],  // 收件人名字
+                'buyerContactNo'   => $order['phone'], // 收件人电话
+                'buyerEmail'       => $order['email'], // 收件人邮件
+                'buyerZipCode'     => $order['zip'],   // 收件人邮编
+                'buyerCountry'     => $order['country_code'], // 国家编码
+                'buyerState'       => $order['province'],    // 所在的州
+                'buyerCity'        => $order['city'],
+                'buyerAddress1'    => $order['street'],
+                'buyerAddress2'    => $order['street2'],
+                'buyerHouseNo'     => '', // 收件人Id
+                'pickUpCode'       => '', // 检货条码
+                'packageList'      => [$packageList]
+            ];
+            ksort($data);
+            $result['data'] = $data;
+        } while(false);
+        return $result;
+    }
+
+    /**
+     * @desc 揽收模式
+     */
+    private function getDispatchType($model)
+    {
+        switch($model){
+            case 1:
+                $type = 'S';//卖家自送
+                break;
+            case 2:
+                $type = 'C'; //中邮揽收
+                break;
+            default:
+                $type = 'P';//上门揽收
+        }
+        return $type;
+    }
+}

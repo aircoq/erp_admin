@@ -1,0 +1,202 @@
+<?php
+
+/**
+ * Description of AliexpressProductTemplate
+ * @datetime 2017-6-13  14:19:59
+ * @author joy
+ */
+
+namespace app\common\model\aliexpress;
+use think\Model;
+class AliexpressProductTemplate extends Model{
+    /**
+     * 初始化数据
+     */
+    protected function initialize()
+    {
+        //需要调用 mdoel 的 initialize 方法
+        parent::initialize();
+    }
+    public  function getTypeAttr($v)
+    {
+        switch ($v){
+            case 'relation':
+                return '关联产品模块';
+            case 'custom':
+                return '自定义模块';
+            case 'embed':
+                return '嵌入式营销模块';
+
+        }
+    }
+    
+    public  function getGmtCreateAttr($v)
+    {
+        if($v)
+        {
+            return substr($v, 0,4).'-'.substr($v, 4,2).'-'.substr($v, 6,2).' '.substr($v, 8,2).':'.substr($v, 10,2).':'.substr($v, 12,2);
+        }else{
+            return '';
+        }
+    }
+    public  function getGmtModifiedAttr($v)
+    {
+        if($v)
+        {
+            return substr($v, 0,4).'-'.substr($v, 4,2).'-'.substr($v, 6,2).' '.substr($v, 8,2).':'.substr($v, 10,2).':'.substr($v, 12,2);
+        }else{
+            return '';
+        }
+    }
+    
+    /**
+     * 根据where条件查询是否存在
+     * @param type $where
+     * @return boolean
+     */
+    public  function check($where)
+    {
+        if($this->get($where))
+        {
+            return true;
+        }else{
+            return false;
+        }
+    }
+    /**
+     * 新增一个信息模板
+     * @param type $data
+     * @return type
+     */
+    public  function addOne($data)
+    {
+        $where=[
+            'name'=>['eq',$data['name']],
+            //'module_contents'=>['eq',$data['module_contents']],
+            //'account_id'=>['eq',$data['account_id']],
+        ];
+        if($this->check($where))
+        {
+            return ['result'=>FALSE,'message'=>'已经存在同内容的信息模板'];
+        }else{
+            $data['id']=\Nette\Utils\Random::generate(8,'0-9');
+            $data['gmt_create']=date('YmdHis',microtime(true));
+            $data['ali_member_id']=0;
+            $res = $this->save($data);
+            if($res)
+            {
+	            $data['gmt_create']=date('Y-m-d H:i:s',microtime(true));
+                return ['data'=>$data,'result'=>true,'message'=>'创建信息模板'.$data['name'].'成功'];
+            }else{
+                return ['data'=>'','result'=>false,'message'=>$this->getError()];
+            }
+        }
+    }
+    
+    /**
+     * 生成关联信息模板
+     */
+    public  function create_relation_template($products)
+    {
+        if(empty($products))return false;
+        $template='<div style="max-width: 650.0px;overflow: hidden;font-size: 0;clear: both;">';
+        if(is_array($products))
+        {
+            foreach ($products as $key => $product) 
+            {
+                $subject = $product['subject'];
+                $product_id = $product['product_id'];
+                $imges = explode(';', $product['imageurls']);
+                $main_image =array_shift($imges); 
+                 
+                $currency_code = $product['currency_code'];
+                $productPrice= $product['product_price'];
+                
+                $arrProductUnit = AliexpressProduct::PRODUCT_UNIT;
+                
+                $arrProductUnitKey = array_flip($arrProductUnit);
+                if(in_array($product['product_unit'], $arrProductUnitKey))
+                {
+                     preg_match('/(\w+)/', $arrProductUnit[$product['product_unit']],$aa);
+                    $product_unit = $aa[1];
+                }else{
+                    $product_unit = '';
+                }
+               
+                $str = <<<EOD
+                    <div style="border: 1.0px solid #dedede;vertical-align: top;text-align: left;color: #666666;width: 120.0px;padding: 10.0px 15.0px;margin: 10.0px 10.0px 0 0;word-break: break-all;display: inline-block;">
+                       <a target="_blank" href="http://www.aliexpress.com/item/{$subject}/{$product_id}.html" name="productDetailUrl" style="display: table-cell;vertical-align: middle;width: 120.0px;height: 120.0px;text-align: center;cursor: pointer;display: inline-block"><img width="120"  src="{$main_image}" style="vertical-align: middle;max-width: 120.0px;max-height: 120.0px;border: 0 none;display: inline-block;">
+                       </a>
+                       <span style="display: block;line-height: 14.0px;height: 28.0px;width: 100.0%;overflow: hidden;margin: 4.0px 0;font-size: 11.0px;">
+                               <a target="_blank" href="http://www.aliexpress.com/item/{$subject}/{$product_id}.html" title="{$subject}" style="color: #666666;cursor: pointer;" name="productSubject">{$subject}</a>
+                       </span>
+                       <span style="color: #999999;font-size: 12.0px;line-height: 1;"><em style="color: #bd1a1d;font-style: normal;font-weight: 700;">{$currency_code} {$productPrice}</em>/{$product_unit}</span>
+                    </div>           
+EOD;
+                $template = $template.$str;
+            }
+        }
+        $template=$template.'</div>';
+        return $template;
+    }
+    
+    /**
+     * 账号关联
+     * @return type
+     */
+    
+    public  function account()
+    {
+        return $this->hasOne(AliexpressAccount::class,'id','account_id');
+    }
+    
+    /**
+     * 商品信息模板列表
+     * @param type $param
+     * @param type $page
+     * @param type $pageSize
+     * @param type $field
+     */
+    public  function lists($param,$page,$pageSize,$field="*")
+    {
+        $where=$this->getWhere($param);
+        $total=$this->where($where)->count();
+        $data = $this->where($where)->with(['account'=>function($query) {
+            return $query->field('id,code');
+        }])->order('gmt_create desc')->page($page,$pageSize)->select();
+
+        return ['data'=>$data,'page'=>$page,'pageSize'=>$pageSize,'total'=>$total];
+    }
+    /**
+     * 查询条件
+     * @param array $param
+     * @return array
+     */
+    public  function getWhere($param)
+    {
+        $where=[];
+        //name
+        if(isset($param['scontent']) &&  $param['scontent']) {
+            $param['scontent']=trim($param['scontent']);
+            $where['name'] = ['like','%'.$param['scontent'].'%'];
+        }
+
+        //type
+        if(isset($param['type']) && $param['type']) {
+            $where['type'] = ['=',$param['type']];
+        }
+
+        //account_id
+        if(isset($param['account_id']) && $param['account_id']) {
+            $where['account_id'] = ['=',$param['account_id']];
+        }
+
+        //custom:自定义模块  relation:关联产品模块 embed:嵌入营销模块
+        if($param['type']) {
+            $where['type'] = ['in', $param['type']];
+        }
+
+        return $where;
+        
+    }
+}

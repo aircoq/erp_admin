@@ -1,0 +1,92 @@
+<?php
+
+namespace service\ali1688;
+
+use think\Exception;
+
+/**
+ * 1688 平台API:单例模式
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-01-22 15:42:11
+ */
+class Ali1688Api
+{
+
+    private static $config = [];     //配置
+    private static $instance = null; //本身
+    private static $object = [];     //实例化的对象
+
+    /**
+     * @desc 禁止克隆
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-22 15:46:11
+     */
+
+    private function __clone(){}
+
+    /**
+     * @desc 禁止实例化
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-22 15:48:11
+     */
+    private function __construct(){}
+
+    /**
+     * @desc 获取实例:单例模式
+     * @return object 实例化对象本身
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-22 15:50:11
+     */
+    public static function instance($config = [])
+    {
+        if (!isset(self::$instance) || is_null(self::$instance)) {
+            self::$instance = new self();
+        }
+        self::$config = $config;
+        return self::$instance;
+    }
+
+    /**
+     * @desc 获取实例化的类:工厂模式+单例模式
+     * @param type $name
+     * @return object 具体实例化的类
+     * @throws Exception
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-22 16:25:11
+     */
+    public static function loader($name)
+    {
+        try {
+            $class = false !== strpos($name, '\\') ? $name : "\\service\\ali1688\\operation\\" . ucwords($name);
+            return self::getOperation($name, $class);
+        } catch (Exception $ex) {
+            throw new Exception('Error Processing Request' . $ex->getFile() . $ex->getLine() . $ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 获取实例:工厂模式
+     * @param string $name 类名
+     * @param string $class 具体的类，含地址
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-22 16:25:35
+     */
+    private static function getOperation($name, $class)
+    {
+        try {
+            //检测类是否存在
+            if (!$class || !class_exists($class)) {
+                throw new Exception("The cache $class is not find \n", 1);
+            }
+            //检测之前是否实例化过
+            if (!isset(self::$object[$name]) || !is_null(self::$object[$name])) {
+                self::$object[$name] = new $class($name);
+            }
+            //返回实例化的对象
+            return self::$object[$name];
+        } catch (Exception $ex) {
+            throw new Exception('Error Processing Request' . $ex->getFile() . $ex->getLine() . $ex->getMessage());
+        }
+    }
+
+}

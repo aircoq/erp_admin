@@ -1,0 +1,223 @@
+<?php
+
+namespace service\ebay;
+
+use think\Loader;
+use service\ebay\EbayBaseApi;
+use app\common\cache\Cache;
+
+/**
+ * 评价API
+ * @author tanbin
+ *
+ */
+class EbayFeedbackApi extends EbayBaseApi
+{
+
+    protected $config;
+
+    /**
+     *  初始化
+     * @param array $config
+     */
+    public function __construct($config = [])
+    {
+        parent::__construct($config, 1);
+    }
+
+    /**
+     * 获取评价列表
+     * @param unknown $FeedbackType
+     */
+    function getFeedbackScore()
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetFeedbackRequestType');
+        $request = new \GetFeedbackRequestType();
+
+        $pagination = new \PaginationType();
+        $pagination->setEntriesPerPage(10);
+        $pagination->setPageNumber(1);
+        $request->setPagination($pagination);
+
+        $response = $this->_proxy->GetFeedback($request);
+
+        $resultArr = parent::xmlToArraySDK($response);
+        print_r($resultArr);
+        exit;
+
+    }
+
+
+    /**
+     * 获取评价列表
+     * @param unknown $FeedbackType
+     */
+    function getFeedback($FeedbackType, $page = 1)
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetFeedbackRequestType');
+        $request = new \GetFeedbackRequestType();
+        $request->setDetailLevel('ReturnAll');
+        $request->setFeedbackType($FeedbackType);
+
+        $pagination = new \PaginationType();
+        $pagination->setEntriesPerPage(200);
+        $pagination->setPageNumber($page);
+        $request->setPagination($pagination);
+
+        $response = $this->_proxy->GetFeedback($request);
+
+        $resultArr = parent::xmlToArraySDK($response);
+
+        return $resultArr;
+    }
+
+
+    /**
+     * 评价API
+     * @param array $data
+     */
+    function leaveFeedback($data = [])
+    {
+
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        Loader::import('trading.LeaveFeedbackRequestType');
+        $request = new \LeaveFeedbackRequestType();
+        $request->setTransactionID($data['transaction_id']);
+        $request->setTargetUser($data['target_user']);
+        $request->setCommentText($data['text']);
+        $request->setCommentType('Positive');
+        $request->setItemID($data['item_id']);
+
+
+        $response = $this->_proxy->LeaveFeedback($request);
+
+        //***********s 写入缓存日志********************
+        $logs = [
+            'time' => date('Y-m-d H:i:s'),
+            'message' => $data,
+            'response' => $response
+        ];
+        $cache_key = time();
+        Cache::store('EbayFeedback')->addLeaveFeedbackLogs($cache_key, $logs);
+        //***********e 写入缓存日志********************
+
+        $resultArr = $this->xmlToArraySDK($response);
+
+        if ($resultArr && $resultArr['Ack'] == 'Success') {
+            return true;
+        } elseif ($resultArr['Ack'] == 'Failure') {
+            //$errorCode==55  属于重复评论
+            $errorCode = isset($resultArr['Errors']['ErrorCode']) ? $resultArr['Errors']['ErrorCode'] : '';
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * 回评/追评API
+     * @param array $data
+     */
+    function respondFeedback($data = [])
+    {
+
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        Loader::import('trading.RespondToFeedbackRequestType');
+        $request = new \RespondToFeedbackRequestType();
+        $request->setTransactionID($data['transaction_id']);
+        $request->setItemID($data['item_id']);
+        $request->setTargetUserID($data['target_user']);
+        $request->setResponseType($data['response_type']);
+        $request->setResponseText($data['text']);
+
+
+        $response = $this->_proxy->RespondToFeedback($request);
+
+        //***********s 写入缓存日志********************
+        $logs = [
+            'time' => date('Y-m-d H:i:s'),
+            'message' => $data,
+            'response' => $response
+        ];
+        $cache_key = time();
+        Cache::store('EbayFeedback')->addRespondFeedbackLogs($cache_key, $logs);
+        //***********e 写入缓存日志********************
+
+        $resultArr = $this->xmlToArraySDK($response);
+
+        if ($resultArr && $resultArr['Ack'] == 'Success') {
+            return true;
+        } elseif ($resultArr['Ack'] == 'Failure') {
+            return false;
+        }
+
+        return false;
+    }
+
+
+    /**
+     * 获取等待买家评价
+     */
+    function getItemsAwaitingFeedback()
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetItemsAwaitingFeedbackRequestType');
+        $request = new \GetItemsAwaitingFeedbackRequestType();
+
+        $request->setWarningLevel("High");
+
+        $pagination = new \PaginationType();
+        $pagination->setEntriesPerPage(20);
+        $pagination->setPageNumber(1);
+        $request->setPagination($pagination);
+
+        $response = $this->_proxy->GetItemsAwaitingFeedback($request);
+
+        $resultArr = $this->xmlToArraySDK($response);
+
+    }
+
+
+    /**
+     * 获取ebay分类
+     * @return unknown
+     */
+    function getCategories()
+    {
+
+        set_time_limit(0);
+
+        //本地文件
+        $result = require 'E:\work\ebay-cate-arr.php';
+        return $result['CategoryArray']['Category'];
+        print_r($result['CategoryArray']['Category']);
+        exit;
+
+
+        set_time_limit(0);
+        Loader::import('trading.GetCategoriesRequestType');
+        $request = new \GetCategoriesRequestType();
+        $request->setWarningLevel("High");
+        $request->setCategorySiteID(0);
+        $request->setDetailLevel('ReturnAll');
+        $response = $this->_proxy->GetCategories($request);
+
+        $resultArr = $this->xmlToArraySDK($response);
+        \think\Log::write($resultArr);
+        return $resultArr['CategoryArray']['Category'];
+    }
+
+
+}

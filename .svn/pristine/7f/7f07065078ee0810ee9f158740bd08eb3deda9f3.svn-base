@@ -1,0 +1,176 @@
+<?php
+
+/**
+ * Description of Common
+ * @datetime 2017-6-21  16:54:58
+ * @author joy
+ */
+
+namespace service\ebay;
+use org\Xml;
+class Common 
+{
+        protected $userToken;
+	protected $devID;
+	protected $appID;
+	protected $certID;
+	protected $serverUrl;
+	protected $compatLevel;
+	protected $siteID;
+	protected $verb;
+        protected $ErrorLanguage='zh_CN';
+        protected $Version=1021;
+        protected $WarningLevel='High';
+        protected $xmlObject;
+        /**
+	 *  初始化 
+	 * @param unknown $userRequestToken
+	 * @param unknown $developerID
+	 * @param unknown $applicationID
+	 * @param unknown $certificateID
+	 * @param unknown $serverUrl
+	 * @param number  $compatabilityLevel
+	 * @param number  $siteToUseID
+	 * @param unknown $callName 
+	 */
+	public function __construct($userRequestToken, $developerID='96a1eee5-e4cb-43bb-89ff-1943863b91a4', $applicationID='ShenYanh-FastLine-PRD-b57734100-aaa0fbc8', $certificateID='PRD-577341007be2-2627-488b-8a70-5c62', $serverUrl='https://api.ebay.com/ws/api.dll',$compatabilityLevel=1021, $siteToUseID=0)
+	{	
+		$this->userToken    = $userRequestToken;
+		$this->devID        = $developerID;
+		$this->appID        = $applicationID;
+		$this->certID       = $certificateID;
+		$this->compatLevel  = $compatabilityLevel;
+		$this->siteID       = $siteToUseID;
+		//$this->verb         = $callName;
+		$this->serverUrl    = $serverUrl;
+		$this->xmlObject = new Xml();
+	}
+        /**
+         * 设置接口名称
+         * @param type $verb
+         */
+        public  function setVerb($verb)
+        {
+            $this->verb = $verb;
+        }
+        
+        /**
+         * 设置接口名称
+         * @param type $verb
+         */
+        public  function setSiteID($siteID)
+        {
+            $this->siteID = $siteID;
+        }
+        
+        /**
+         * 获取接口名称
+         * @param type $verb
+         */
+        public  function getVerb()
+        {
+            return $this->verb;
+        }
+        /**
+	 * xml  转成数组 
+	 * @param unknown $xml
+	 * @return unknown[]
+	 */
+	public function xmlToArray($xml,$parse = false)
+	{	
+                return $this->xmlObject->xmlToArray($xml,$parse);
+	}
+	/**
+        * array 转xml
+        * @param unknown $data : 数据
+        * @param unknown $rootElement ：根节点
+        * @param unknown $rootAttributes ：根节点属性
+        * @param string $flag
+        * @param string is_attribute : true : 将元素作为属性, 否则为节点. $data中
+        * 包含is_attribute 此元素
+        * example : $data['order'] = [
+               'username' => 'tom',
+               'password' => 123456,
+               'is_attribute' => true,
+               'cargo' => [
+                   'width' => 12,  
+                   'height' => 12,  
+               ],
+           ];
+        */
+        public  function arrayToXml($data, $rootElement, $rootAttributes = [], $flag = false)
+        {
+            return $this->xmlObject->arrayToXml($data, $rootElement, $rootAttributes,$flag);
+        }
+        /**
+	 * 
+	 * @param unknown $xmlobject
+	 * @return unknown[]|unknown[][]
+	 */
+	function xmlToArrayElement($xmlobject) 
+	{	
+		$data = array();
+		foreach ((array) $xmlobject as $key => $value) {
+			$data[$key] = !is_string($value) ?$this->xmlToArrayElement($value) : $value;
+		}
+		return $data;
+	}
+	
+	
+	/**	sendHttpRequest
+	 Sends a HTTP request to the server for this session
+	 Input:	$requestBody
+	 Output:	The HTTP Response as a String
+	 */
+	public function sendHttpRequest($requestBody)
+	{   
+	    //build eBay headers using variables passed via constructor
+	    $headers = $this->buildEbayHeaders();
+	    //initialise a CURL session
+	    $connection = curl_init();
+	    //set the server we are using (could be Sandbox or Production server)
+	    curl_setopt($connection, CURLOPT_URL, $this->serverUrl);
+	    //stop CURL from verifying the peer's certificate
+	    curl_setopt($connection, CURLOPT_SSL_VERIFYPEER, 0);
+	    curl_setopt($connection, CURLOPT_SSL_VERIFYHOST, 0);	    
+	    //set the headers using the array of headers
+	    curl_setopt($connection, CURLOPT_HTTPHEADER, $headers);	    
+	    //set method as POST
+	    curl_setopt($connection, CURLOPT_POST, 1);	    
+	    //set the XML body of the request
+	    curl_setopt($connection, CURLOPT_POSTFIELDS, $requestBody);	    
+	    //set it to return the transfer as a string from curl_exec
+	    curl_setopt($connection, CURLOPT_RETURNTRANSFER, 1);	    
+	    //Send the Request
+	    $response = curl_exec($connection);	    
+	    //close the connection
+	    curl_close($connection);	    
+	    //return the response
+	    return $response;
+	    
+	}
+	
+	
+	/**	buildEbayHeaders
+	 Generates an array of string to be used as the headers for the HTTP request to eBay
+	 Output:	String Array of Headers applicable for this call
+	 */
+	public function buildEbayHeaders()
+	{
+	    $headers = array (
+	        //Regulates versioning of the XML interface for the API
+	        'X-EBAY-API-COMPATIBILITY-LEVEL: ' . $this->compatLevel,	        	
+	        //set the keys
+	        'X-EBAY-API-DEV-NAME: ' . $this->devID,
+	        'X-EBAY-API-APP-NAME: ' . $this->appID,
+	        'X-EBAY-API-CERT-NAME: ' . $this->certID,	        	
+	        //the name of the call we are requesting
+	        'X-EBAY-API-CALL-NAME: ' . $this->verb,	        	
+	        //SiteID must also be set in the Request's XML
+	        //SiteID = 0  (US) - UK = 3, Canada = 2, Australia = 15, ....
+	        //SiteID Indicates the eBay site to associate the call with
+	        'X-EBAY-API-SITEID: ' . $this->siteID,
+	    );	
+	    return $headers;
+	}
+}

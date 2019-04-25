@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+<body style="padding:0;margin:0;">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <div style="width:268pt;border:1pt solid #000;font-weight: bold;text-align: center;line-height: 25pt;font-size: 12pt;">
+            <?php echo (string)$shipping_name;?>
+        </div>
+        <div style="width:264pt;padding:2pt; border:solid 1pt #000;font-size:10pt;line-height:25pt;">
+            <span style="font-weight: bold;font-size:10pt;">包裹号</span>:  P<?php echo $number;?>
+        </div>
+
+        <div style="width:264pt;padding:2pt; border:solid 1pt #000;font-size:10pt;line-height:25pt;">
+
+            <span style="font-weight: bold;font-size:10pt;">跟踪号</span>:  <?php echo $shipping_number;?>
+
+        </div>
+        <div style="width:264pt;padding:2pt; border:solid 1pt #000;font-size:10pt;line-height:20pt;">
+
+            <span style="font-weight: bold;font-size:10pt;">时间</span>:  <?php echo date('Y-m-d H:i:s');?>
+
+        </div>
+        <div style="width:268pt; border:solid 1pt #000;border-top:0;">
+            <div style="width:266pt;font-size:9pt;text-align:center;padding-top:5pt">
+
+                <img width="80%" src='<?php echo $this->imgSrc('P'.$number);?>'>
+                <br />
+                <font style="font-weight: bold;font-size:10pt;"> P<?php echo $number;?> </font>
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+    </div>
+
+
+</div>
+</body>
+</html>

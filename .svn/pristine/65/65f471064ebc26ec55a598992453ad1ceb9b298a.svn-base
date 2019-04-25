@@ -1,0 +1,401 @@
+<?php
+/**
+ * Created by Phpstom.
+ * User: YangJiafei
+ * Date: 2019/4/17
+ * Time: 15:02
+ */
+
+
+namespace app\finance\service;
+
+use app\common\cache\Cache;
+use app\common\service\Common;
+use app\common\service\CommonQueuer;
+use app\common\service\Excel;
+use app\finance\queue\FinancePurchaseRecordExportQueue;
+use app\finance\validate\FinancePurchaseRecord as FinancePurchaseRecordValidate;
+use app\purchase\queue\PurchaseOrderExportQueue;
+use app\report\model\ReportExportFiles;
+use think\Db;
+use think\db\Query;
+use think\Exception;
+use think\Request;
+
+class FinancePurchaseRecordExport
+{
+
+    private $request;
+
+    /**
+     * 要导出的字段
+     * @var array
+     */
+    public $fields = [];
+
+    /**
+     * 要导出的行，因为列表是 group by 的结果，所以这里并非真正id，而是 group by 的三个字段
+     * @var array
+     */
+    public $ids = [];
+
+    /**
+     * 1-全部导出，2-部分导出
+     * @var int
+     */
+    public $exportType = 1;
+
+    /**
+     * 导出功能，数据验证错误信息
+     */
+    public $paramValidateErrorMsg;
+
+
+    public function __construct()
+    {
+        $this->request = Request::instance();
+    }
+
+    /**
+     * 导出参数验证
+     * @return bool
+     */
+    public function paramValidate()
+    {
+        $data = [
+            'ids' => $this->request->param('ids', json_encode([])),
+            'fields' => $this->request->param('fields'),
+            'export_type' => $this->request->param('export_type'),
+        ];
+
+        $validate = new FinancePurchaseRecordValidate();
+        //check 返回值 boolean
+        $bool = $validate->scene('export')->check($data);
+        $this->paramValidateErrorMsg = $validate->getError();
+
+        return $bool;
+    }
+
+    /**
+     * 参数保存为属性
+     * 被队列使用，所以独立为方法
+     */
+    public function initParam(array $params)
+    {
+        $this->ids    = $params['ids'];
+        $this->fields = $params['fields'];
+        $this->exportType = $params['export_type'];
+    }
+
+    /**
+     * 导出采购核算单
+     * @return array
+     * @throws Exception
+     * @throws \PHPExcel_Exception
+     * @throws \PHPExcel_Reader_Exception
+     * @throws \PHPExcel_Writer_Exception
+     */
+    public function doExport()
+    {
+        if ($this->getCount() > 500) {
+            //加入队列
+            $this->applyExport();
+            return ['message'=> '申请成功', 'join_queue' => 1];
+        } else {
+            //直接下载
+            return $this->export();
+        }
+    }
+
+    /**
+     * 采购核算单通过队列导出
+     * @params array $params
+     */
+    public function applyExport()
+    {
+        try{
+            $userId = Common::getUserInfo()->toArray()['user_id'];
+            $cache = Cache::handler();
+            $lastApplyTime = $cache->hget('hash:export_finance_purchase_record_apply',$userId);
+            if ($lastApplyTime && ((time() - $lastApplyTime) < 60)) {
+                throw new Exception('请求过于频繁',400);
+            } else {
+                $cache->hset('hash:export_finance_purchase_record_apply',$userId, time());
+            }
+
+            $userRealName = Common::getUserInfo()->toArray()['realname'];
+            $fileName = '核算单导出'.'('.$userRealName.')'.date('YmdHis'); //这里时间必须没有别的符号，纯数字
+
+            $model = new ReportExportFiles();
+            $model->applicant_id     = $userId;
+            $model->apply_time       = time();
+            $model->export_file_name = $fileName.'.xlsx';
+            $model->status =0;
+            if (!$model->save()) {
+                throw new Exception('导出请求创建失败',500);
+            }
+            $params = $this->request->param();
+            $params['file'] = [
+                'name' => $fileName,
+                'path' => 'finance_purchase_record_export',
+            ];
+            $params['apply_id'] = $model->id;
+            $queue = new CommonQueuer(FinancePurchaseRecordExportQueue::class);
+            $queue->push($params);
+        } catch (\Exception $ex) {
+            if ($ex->getCode()) {
+                throw $ex;
+            } else {
+                Cache::handler()->hset(
+                    'hash:export_finance_purchase_record_apply',
+                    'error_'.time(),
+                    $ex->getMessage());
+                throw new Exception($ex->getMessage(),500);
+            }
+        }
+    }
+
+    /**
+     * 导出全部，导出选中行
+     * @throws Exception
+     * @throws \PHPExcel_Exception
+     * @throws \PHPExcel_Reader_Exception
+     * @throws \PHPExcel_Writer_Exception
+     */
+    public function export()
+    {
+        $this->setHeaders($this->fields);
+        $headers = array_values($this->getHeaders());
+        $lists = $this->getData();
+        //文件名
+        $userRealName = Common::getUserInfo()->toArray()['realname'];
+        //\app\common\cache\driver\User::getOneUserRealname();
+        $file = [
+            'name' => '核算单导出'.'('.$userRealName.')'.date('YmdHis'), //这里时间必须没有别的符号，纯数字
+            'path' => 'finance_purchase_record_export',
+        ];
+
+        //导出excel
+        $result = Excel::exportExcel2007($headers, $lists, $file);
+
+        return $result;
+    }
+
+    public function queueExport2($file, $isQueue)
+    {
+        $this->setHeaders($this->fields);
+        $headers = array_values($this->getHeaders());
+        $lists = $this->getData();
+        //导出excel
+        $result = Excel::exportExcel2007($headers, $lists, $file, $isQueue);
+
+        return $result;
+    }
+
+    /**
+     * 队列导出采购核算单
+     * @param $applyId int 模型 ReportExportFiles 对应表 id
+     * @param $file array 导出方法用到，文件数组，包含文件名和保存路径
+     * @param $isQueue int 是否使用队列
+     * @throws \think\exception\DbException
+     */
+    public function queueExport(int $applyId, array $file, int $isQueue)
+    {
+        try{
+            //ini_set('memory_limit','4096M');
+            $result = $this->queueExport2($file, $isQueue);
+            if (is_file($result['file_path'])) {
+                $applyRecord = ReportExportFiles::get($applyId);
+                $applyRecord->exported_time = time();
+                $applyRecord->download_url = $result['download_url'];
+                $applyRecord->status = 1;
+                $applyRecord->isUpdate()->save();
+            } else {
+                throw new Exception('文件写入失败');
+            }
+        } catch (\Exception $ex) {
+            $applyRecord = ReportExportFiles::get($applyId);
+            $applyRecord->status = 2;
+            $applyRecord->error_message = $ex->getMessage();
+            $applyRecord->isUpdate()->save();
+            Cache::handler()->hset(
+                'hash:export_finance_purchase_record_export_apply',
+                $applyId.'_'.time(),
+                '申请id: '.$applyId.',导出失败:'.$ex->getMessage());
+        }
+
+    }
+
+    /**
+     * 客户选中导出相应行
+     * @param Query $query
+     * @return Query
+     */
+    private function whereClause(Query $query)
+    {
+        if (count($this->ids) > 0 && $this->exportType === 2) {
+            $whereIn = [];
+            foreach ($this->ids as $id) {
+                $whereIn[] = '('.$id['supplier_id'].','.$id['supplier_balance_type'].',\''.$id['currency_code'].'\')';
+            }
+            $where[] = ['exp', '(index.supplier_id, index.supplier_balance_type, index.currency_code) in ('.implode(',', $whereIn).')'];
+            return $query->where($where);
+        } else {
+            return $query;
+        }
+    }
+
+    /**
+     * 获得总记录数
+     * @return int|string
+     * @throws \think\exception\DbException
+     */
+    public function getCount()
+    {
+        /**
+         * list 查询未 group by 之前和detail查询连表和where都一样，这样list，detail连表才能得到正确结果，因为list其实只是detail的group by结果，这是和自身连接
+         */
+        $service = new FinancePurchaseRecord();
+        $listSql = $service->getListSqlForExport();
+        $detailSql = $service->getDetailSqlForExport();
+        //连表
+        $condition = 'index.supplier_id = detail.supplier_id and index.supplier_balance_type = detail.supplier_balance_type and index.currency_code = detail.currency_code';
+        $query = Db::table($listSql)->alias('index')
+            ->join($detailSql.' detail', $condition)
+            ->field(true);
+
+        //必要的where条件，客户选中行导出
+        $query = $this->whereClause($query);
+
+        return $query->count();
+    }
+
+    /**
+     * 获得要导出的数据
+     * @return array|mixed
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getData()
+    {
+        /**
+         * list 查询未 group by 之前和detail查询连表和where都一样，这样list，detail连表才能得到正确结果，因为list其实只是detail的group by结果，这是和自身连接
+         */
+        $service = new FinancePurchaseRecord();
+        $listSql = $service->getListSqlForExport();
+        $detailSql = $service->getDetailSqlForExport();
+        //连表
+        $condition = 'index.supplier_id = detail.supplier_id and index.supplier_balance_type = detail.supplier_balance_type and index.currency_code = detail.currency_code';
+        $query = Db::table($listSql)->alias('index')
+            ->join($detailSql.' detail', $condition)
+            ->field(true);
+
+        //必要的where条件，客户选中行导出
+        $query = $this->whereClause($query);
+
+        $sql = $query->buildSql();
+
+        //处理数据
+        $result = DB::query($sql);
+        $result = $service->listCompleteField($result);
+        $result = $service->detailCompleteField($result);
+
+        //排序和删除不必要字段，增加必要字段
+        $result = $this->detailFieldSortFilter($result);
+        return $result;
+    }
+
+    /**
+     * 获得 excel 导出的内容
+     * @param $result
+     * @return array
+     */
+    private function detailFieldSortFilter($result)
+    {
+        $excelTitle = $this->getHeaders();
+        $res = [];
+        foreach ($result as $key => $item) {
+            $itemTemp = [];
+            foreach ($excelTitle as $title => $value) {
+                //增加id，用于 xlsxwrite 完成分组，合并行，这里是一个联合主键，所以md5加密为一个字符串，用来识别唯一记录行。
+                $item['id'] = md5($item['supplier_id'] . $item['supplier_balance_type'] . $item['currency_code']);
+                $itemTemp[$title] = $item[$title];
+            }
+            $res[] = $itemTemp;
+        }
+        return $res;
+    }
+
+    /**
+     * 获得要导出的字段数据结构
+     */
+    public function getheaders()
+    {
+        return $this->fields;
+    }
+
+    /**
+     * 设置要导出的字段数据结构
+     * @param $fields
+     * @return array
+     * @throws Exception
+     */
+    public function setHeaders($fields)
+    {
+        $result = ['id' => [ 'title'=>'md5唯一字符串', 'key'=>'id', 'width'=>20 ,'need_merge'=>1]];
+        //$fields 格式：[{"field_name":"采购员","field_key":"purchaser"},{"field_name":"采购计划单号","field_key":"purchase_plan_id"},]
+        foreach ($fields as $item) {
+            $result[$item['field_key']] = ['title' => $item['field_name'], 'key' => $item['field_key'], 'width' => 20 ,'need_merge' => $this->needMerge($item['field_key'])];
+        }
+
+        return $this->fields = $result;
+    }
+
+    /**
+     * 采购单导出 excel 是否需要合并字段
+     * @param $field
+     * @return int|mixed
+     */
+    private function needMerge($field)
+    {
+        $fields = $this->getAllExportFields();
+        return isset($fields[$field]['need_merge']) ? $fields[$field]['need_merge'] : 0;
+    }
+
+    /**
+     * 获得所有导出字段
+     */
+    public function getAllExportFields()
+    {
+        return [
+            'id' => [ 'title'=>'md5唯一字符串', 'key'=>'id', 'width'=>20 ,'need_merge'=>1],
+            'supplier_name' => [ 'title'=>'供应商', 'key'=>'supplier_name', 'width'=>20 ,'need_merge'=>1],
+            'supplier_balance_type_name' => [ 'title'=>'结算方式', 'key'=>'supplier_balance_type_name', 'width'=>20 ,'need_merge'=>1],
+            'currency_code' => [ 'title'=>'币种', 'key'=>'currency_code', 'width'=>20 ,'need_merge'=>1],
+            'sum_shipping_cost' => [ 'title'=>'运费总额', 'key'=>'sum_shipping_cost', 'width'=>20 ,'need_merge'=>1],
+            'sum_amount' => [ 'title'=>'货款总额', 'key'=>'sum_amount', 'width'=>20 ,'need_merge'=>1],
+            'sum_payable_amount' => [ 'title'=>'应付总额', 'key'=>'sum_payable_amount', 'width'=>20 ,'need_merge'=>1],
+            'sum_returned_money' => [ 'title'=>'仅退款总额', 'key'=>'sum_returned_money', 'width'=>20 ,'need_merge'=>1],
+            'sum_returned_goods_money' => [ 'title'=>'退货退款总额', 'key'=>'sum_returned_goods_money', 'width'=>20 ,'need_merge'=>1],
+            'sum_mark_payed_money' => [ 'title'=>'付款总额', 'key'=>'sum_mark_payed_money', 'width'=>20 ,'need_merge'=>1],
+            'sum_in_stock_money' => [ 'title'=>'入库总额', 'key'=>'sum_in_stock_money', 'width'=>20 ,'need_merge'=>1],
+            'purchase_order_code' => [ 'title'=>'采购单号', 'key'=>'purchase_order_code', 'width'=>20 ,'need_merge'=>0],
+            'warehouse_name' => [ 'title'=>'采购仓库', 'key'=>'warehouse_name', 'width'=>20 ,'need_merge'=>0],
+            'payment_status_name' => [ 'title'=>'付款状态', 'key'=>'payment_status_name', 'width'=>20 ,'need_merge'=>0],
+            'shipping_cost' => [ 'title'=>'运费', 'key'=>'shipping_cost', 'width'=>20 ,'need_merge'=>0],
+            'amount' => [ 'title'=>'货款', 'key'=>'amount', 'width'=>20 ,'need_merge'=>0],
+            'payable_amount' => [ 'title'=>'应付款', 'key'=>'payable_amount', 'width'=>20 ,'need_merge'=>0],
+            'returned_money' => [ 'title'=>'仅退款', 'key'=>'returned_money', 'width'=>20 ,'need_merge'=>0],
+            'returned_goods_money' => [ 'title'=>'退货退款', 'key'=>'returned_goods_money', 'width'=>20 ,'need_merge'=>0],
+            'mark_payed_money' => [ 'title'=>'付款金额', 'key'=>'mark_payed_money', 'width'=>20 ,'need_merge'=>0],
+            'in_stock_money' => [ 'title'=>'入库金额', 'key'=>'in_stock_money', 'width'=>20 ,'need_merge'=>0],
+            'purchaser_name' => [ 'title'=>'采购人员', 'key'=>'purchaser_name', 'width'=>20 ,'need_merge'=>0],
+            'supply_chain_specialist_name' => [ 'title'=>'供应链专员', 'key'=>'supply_chain_specialist_name', 'width'=>20 ,'need_merge'=>0],
+            'purchase_time' => [ 'title'=>'采购日期', 'key'=>'purchase_time', 'width'=>20 ,'need_merge'=>0],
+            'finance_payment_time' => [ 'title'=>'付款日期', 'key'=>'finance_payment_time', 'width'=>20 ,'need_merge'=>0],
+            'in_time' => [ 'title'=>'入库日期', 'key'=>'in_time', 'width'=>20 ,'need_merge'=>0],
+        ];
+    }
+}

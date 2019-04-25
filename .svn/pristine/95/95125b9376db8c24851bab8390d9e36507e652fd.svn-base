@@ -1,0 +1,532 @@
+<?php
+namespace service\alinew\operation;
+
+use service\alinew\operation\Common;
+
+/**
+ * 速卖通消息通知服务
+ * @author wangwei
+ * @date 2018-9-15 11:26:39
+ */
+class Tmc extends Common
+{
+  
+    ################################################################
+    #############################group#############################start
+    ################################################################
+    /**
+     * taobao.tmc.groups.get
+     * 获取自定义用户分组列表
+     * @param array $group_names 
+     * 要查询分组的名称，多个分组用半角逗号分隔，不传代表查询所有分组信息，但不会返回组下面的用户信息。
+     * 如果应用没有设置分组则返回空。组名不能以default开头，default开头是系统默认的组
+     * 
+     * @param number $page_no 页码
+     * @param number $page_size 每页返回多少个分组
+     * @return unknown|ResultSet|mixed
+     */
+    public function getTmcGroups(array $group_name_arr=array(), $page_no=1, $page_size=40)
+    {
+        //设置请求对象
+        $req = new \TmcGroupsGetRequest();
+        if(!empty($group_name_arr)){
+            $req->setGroupNames(join(',', $group_name_arr));
+        }
+        if(is_numeric($page_no)){
+            $req->setPageNo($page_no);
+        }
+        if(is_numeric($page_size)){
+            $req->setPageSize($page_size);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    
+    /**
+     * taobao.tmc.group.delete
+     * 删除指定的分组或分组下的用户
+     * @param string $group_name
+     * 分组名称，分组删除后，用户的消息将会存储于默认分组中。警告：由于分组已经删除，用户之前未消费的消息将无法再获取。
+     * 不能以default开头，default开头为系统默认组。
+     * 
+     * @param array $nick_arr 用户列表，不传表示删除整个分组，如果用户全部删除后，也会自动删除整个分组
+     * @param string $user_platform 用户所属于的平台类型，tbUIC:淘宝用户; icbu: icbu用户;ae:ae用户
+     * @return unknown|ResultSet|mixed
+     */
+    public function deleteTmcGroups($group_name, array $nick_arr, $user_platform)
+    {
+        //设置请求对象
+        $req = new \TmcGroupDeleteRequest();
+        if($group_name){
+            $req->setGroupName($group_name);
+        }
+        if($nick_arr){
+            $req->setNicks(join(',', $nick_arr));
+        }
+        if($user_platform){
+            $req->setUserPlatform($user_platform);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+
+    /**
+     * taobao.tmc.group.add
+     * 为已开通用户添加用户分组
+     * @param string $group_name
+     * 分组名称，分组删除后，用户的消息将会存储于默认分组中。警告：由于分组已经删除，用户之前未消费的消息将无法再获取。
+     * 不能以default开头，default开头为系统默认组。
+     *
+     * @param array $nick_arr 用户列表，不传表示删除整个分组，如果用户全部删除后，也会自动删除整个分组
+     * @param string $user_platform 用户所属于的平台类型，tbUIC:淘宝用户; icbu: icbu用户;ae:ae用户
+     * @return unknown|ResultSet|mixed
+     */
+    public function addTmcGroups($group_name, array $nick_arr, $user_platform)
+    {
+        //设置请求对象
+        $req = new \TmcGroupAddRequest();
+        if($group_name){
+            $req->setGroupName($group_name);
+        }
+        if($nick_arr){
+            $req->setNicks(join(',', $nick_arr));
+        }
+        if($user_platform){
+            $req->setUserPlatform($user_platform);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    ################################################################
+    #############################group#############################end
+    ################################################################
+    
+    
+    
+    
+    
+    ################################################################
+    ###########################messages############################start
+    ################################################################
+    /**
+     * taobao.tmc.messages.confirm
+     * 确认消费消息的状态
+     * @param string $group_name
+     * @param array $s_message_id_arr
+     * @param array $f_message_id_arr
+     * @return unknown|ResultSet|mixed
+     */
+    public function confirmMessages($group_name, array $s_message_id_arr, array $f_message_id_arr)
+    {
+        //设置请求对象
+        $req = new \TmcMessagesConfirmRequest();
+        if($group_name){
+            $req->setGroupName($group_name);
+        }
+        if($s_message_id_arr){
+            $req->setSMessageIds(join(',', $s_message_id_arr));
+        }
+        if($f_message_id_arr){
+            $req->setFMessageIds(join(',', $f_message_id_arr));
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    
+    /**
+     * taobao.tmc.messages.consume
+     * 消费多条消息。消费时如果没有返回消息，建议做控制，不要一直调api，浪费应用的流量。如对程序做好优化，若没有消息则，sleep 100ms 等。
+     * @param string $group_name
+     * @param number $quantity
+     * @return unknown|ResultSet|mixed
+     */
+    public function consumeMessages($group_name, $quantity)
+    {
+        //设置请求对象
+        $req = new \TmcMessagesConsumeRequest();
+        if($group_name){
+            $req->setGroupName($group_name);
+        }
+        if(is_numeric($quantity)){
+            $req->setQuantity($quantity);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    
+    /**
+     * taobao.tmc.message.produce
+     * 发布单条消息
+     * @param array $content Y 必须按照topic的定义来填充
+     * @example $content = array(
+     *             'tid'=>'',
+     *             'seller_nick'=>'',
+     * );
+     * @param string $topic Y 消息类型
+     * @param string $target_group N 目标分组，一般为default
+     * @param array $media_content_file_location_arr N 回传的文件内容绝对路径（最多5个）
+     * @example $media_content_file_location_arr = array(
+     *              '/www/test/content1.txt',
+     *              '/www/test/content2.txt',
+     *              '/www/test/content3.txt',
+     *              '/www/test/content4.txt'
+     *              '/www/test/content5.txt'
+     * );
+     * @param string $target_appkey N 直发消息需要传入目标appkey
+     * @param array $ex_content N 消息的扩增属性
+     * @return unknown|ResultSet|mixed
+     */
+    public function produceMessages(array $content, $topic, $target_group, array $media_content_file_location_arr, $target_appkey, array $ex_content)
+    {
+        //设置请求对象
+        $req = new \TmcMessageProduceRequest();
+        $req->setContent(json_encode($content));
+        $req->setTopic($topic);
+        if($target_group){
+            $req->setTargetGroup($target_group);
+        }
+        if(is_array($media_content_file_location_arr) && !empty($media_content_file_location_arr)){
+            $arr_length = count($media_content_file_location_arr);
+            for ($i=1; $i<=$arr_length; $i++){
+                $func = "setMediaContent" . ($i>1 ? $i : '');
+                $req->$func('@'.$media_content_file_location_arr[$i-1]);
+            }
+        }
+        if($target_appkey){
+            $req->setTargetAppkey($target_appkey);
+        }
+        if(is_array($ex_content) && !empty($ex_content)){
+            $req->setExContent(json_encode($content));
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    
+    /**
+     * taobao.tmc.messages.produce
+     * 批量发送消息
+     * @param array $message_arr
+     * @example $message_arr = array(
+     *             [
+     *               'target_group'=>'',//string N 目标分组
+     *               'topic'=>'',//string Y 消息类型
+     *               'content'=>'',//array Y 消息内容的JSON表述，必须按照topic的定义来填充
+     *               'json_ex_content'=>'',//array N 消息内容的JSON表述，必须按照topic的定义来填充
+     *               'target_app_key'=>''string N 直发消息需要传入目标appkey
+     *             ],
+     * );
+     * @return unknown|ResultSet|mixed
+     */
+    public function produceMessagesBatch(array $message_arr)
+    {
+        //设置请求对象
+        $req = new \TmcMessagesProduceRequest();
+        foreach ($message_arr as $msg){
+            $msg_obj = new \TmcPublishMessage;
+            if(isset($msg['target_group']) && !empty($msg['target_group'])){
+                $msg_obj->setTargetGroup($msg['target_group']);
+            }
+            $msg_obj->setTopic($msg['topic']);
+            $msg_obj->setContent(json_encode($msg['content']));
+            if(isset($msg['json_ex_content']) && is_array($msg['json_ex_content']) && !empty($msg['json_ex_content'])){
+                $msg_obj->setJsonExContent(json_encode($msg['json_ex_content']));
+            }
+            if(isset($msg['target_app_key']) && !empty($msg['target_app_key'])){
+                $msg_obj->setTargetAppKey($msg['target_app_key']);
+            }
+            $req->setMessages($msg_obj);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    ################################################################
+    ###########################messages#############################end
+    ################################################################
+    
+    
+    
+    
+    
+    ################################################################
+    ###############################user############################start
+    ################################################################
+    /**
+     * taobao.tmc.user.cancel
+     * 取消用户的消息服务
+     * @param string $nick  用户昵称
+     * @param string $user_platform 用户所属的平台类型，tbUIC:淘宝用户; icbu: icbu用户;ae:ae用户
+     * @return unknown|ResultSet|mixed
+     */
+    public function cancelUser($nick, $user_platform)
+    {
+        //设置请求对象
+        $req = new \TmcUserCancelRequest();
+        if($nick){
+            $req->setNick($nick);
+        }
+        if($user_platform){
+            $req->setUserPlatform($user_platform);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    
+    /**
+     * taobao.tmc.user.permit
+     * 为已授权的用户开通消息服务
+     * @param array $topic_arr 消息主题列表，用半角逗号分隔。当用户订阅的topic是应用订阅的子集时才需要设置，
+     * 不设置表示继承应用所订阅的所有topic，一般情况建议不要设置。
+     * @return unknown|ResultSet|mixed
+     */
+    public function permitUser($topic_arr)
+    {
+        //设置请求对象
+        $req = new \TmcUserPermitRequest();
+        if($topic_arr){
+            $req->setTopics(join(',', $topic_arr));
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req,$this->config['token']);
+    }
+    
+    /**
+     * taobao.tmc.user.get
+     * 查询指定用户开通的消息通道和组
+     * @param array $field_arr Y 需返回的字段列表，多个字段以半角逗号分隔。可选值：TmcUser结构体中的所有字段，一定要返回topic。
+     * @param string $nick Y 用户昵称
+     * @param string $user_platform N 用户所属的平台类型，tbUIC:淘宝用户; icbu: icbu用户;ae:ae用户
+     * @return unknown|ResultSet|mixed
+     */
+    public function getUser(array $field_arr, $nick, $user_platform)
+    {
+        //设置请求对象
+        $req = new \TmcUserGetRequest();
+        if($field_arr){
+            $req->setFields(join(',', $field_arr));
+        }
+        if($nick){
+            $req->setNick($nick);
+        }
+        if($user_platform){
+            $req->setUserPlatform($user_platform);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req,$this->config['token']);
+    }
+    ################################################################
+    ###############################user############################end
+    ################################################################
+    
+    
+    
+    
+    
+    ################################################################
+    ################################queue#########################start
+    ################################################################
+    /**
+     * taobao.tmc.queue.get
+     * 根据appkey和groupName获取消息队列积压情况
+     * @param string $group_name Y TMC组名
+     * @return unknown|ResultSet|mixed
+     */
+    public function getQueue($group_name)
+    {
+        //设置请求对象
+        $req = new \TmcQueueGetRequest();
+        $req->setGroupName($group_name);
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    ################################################################
+    ################################queue#########################end
+    ################################################################
+    
+    
+    
+    
+    ################################################################
+    ################################msg###########################start
+    ################################################################
+    /**
+     * taobao.tmc.msg.sendrecord
+     * 查询单条消息发送记录，只返回返回条数和时间。
+     * @param string $group_name Y  消息分组名
+     * @param string $topic_name Y  TOPIC名称
+     * @param string $data_id Y  消息主键ID
+     * @return unknown|ResultSet|mixed
+     */
+    public function getMsgSendrecord($group_name, $topic_name, $data_id)
+    {
+        //设置请求对象
+        $req = new \TmcMsgSendrecordRequest();
+        $req->setGroupName($group_name);
+        $req->setTopicName($topic_name);
+        $req->setDataId($data_id);
+        
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    ################################################################
+    ################################msg###########################end
+    ################################################################
+    
+    
+    
+    
+    
+    ################################################################
+    #############################user.topics##########################start
+    ################################################################
+    /**
+     * taobao.tmc.user.topics.get
+     * 获取用户开通的topic列表
+     * @param string $nick
+     * @return unknown|ResultSet|mixed
+     */
+    public function getUserTopics($nick)
+    {
+        //设置请求对象
+        $req = new \TmcUserTopicsGetRequest();
+        if($nick){
+            $req->setNick($nick);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    ################################################################
+    #############################user.topics##########################end
+    ################################################################
+    
+    
+    
+    
+    
+    ################################################################
+    #############################topic.group#########################start
+    ################################################################
+    /**
+     * 根据topic名称路由消息到不同的分组。（前提：发送方未指定分组名） 如果是需要授权的消息，
+     * 分组路由先判断用户分组路由(使用taob ao.tmc.group.add添加的路由)，用户分组路由不存在时，才会判断topic分组路由
+     * @param string $group_name
+     * @param array $topic_arr
+     * @return unknown|ResultSet|mixed
+     */
+    public function addTopicGroup($group_name, array $topic_arr)
+    {
+        //设置请求对象
+        $req = new \TmcTopicGroupAddRequest();
+        if($group_name){
+            $req->setGroupName($group_name);
+        }
+        if($topic_arr){
+            $req->setTopics(join(',', $topic_arr));
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    
+    /**
+     * 删除根据topic名称路由消息到不同的分组关系
+     * @param string $group_name 消息分组名
+     * @param array $topic_arr 消息topic名称
+     * @param number $group_id 消息分组Id，一般不用填写，如果分组已经被删除，则根据问题排查工具返回的ID删除路由关系
+     * @return unknown|ResultSet|mixed
+     */
+    public function deleteTopicGroup($group_name, array $topic_arr, $group_id)
+    {
+        //设置请求对象
+        $req = new \TmcTopicGroupDeleteRequest();
+        if($group_name){
+            $req->setGroupName($group_name);
+        }
+        if($topic_arr){
+            $req->setTopics(join(',', $topic_arr));
+        }
+        if($group_id){
+            $req->setGroupId($group_id);
+        }
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        return $client->execute($req);
+    }
+    ################################################################
+    #############################topic.group#########################end
+    ################################################################
+    
+    
+    
+    
+    
+    ################################################################
+    #######################istore.gifting.message#########################start
+    ################################################################
+    /**
+     * 该api通过参数查询对应的gifting消息
+     * @param array $condition
+     * @example $condition = array(
+     *           'validate_date'=>'', N 有效时间,如:2018-09-06 00:00:00
+     *           'receiver_id'=>'',N 系统自动生成
+     *           'message_status'=>'',N 消息状态
+     *           'id'=>'',N 消息id
+     *           'sort'=>'',N 按时间排序1:asc 2:desc
+     * );
+     * @param unknown $page_size 页大小
+     * @param number $current_page_num 当前第几页
+     * @return ResultSet|mixed
+     */
+    public function getIstoreGiftingMessage(array $condition, $page_size, $current_page_num)
+    {
+        //设置请求对象
+        $req = new \IstoreGiftingMessageGetRequest;
+        $condition_obj = new \GiftMessageBizCondition;
+        $paginator = new \Paginator();
+        //设置分页对象
+        if(is_numeric($page_size)){
+            $paginator->setPageSize($page_size);
+        }
+        if(is_numeric($current_page_num)){
+            $paginator->setCurrentPageNum($current_page_num);
+        }
+        $condition_obj->setPaginator($paginator);
+        //设置条件
+        if(param($condition, 'validate_date')){
+            $condition_obj->setValidateDate($condition['validate_date']);
+        }
+        if(param($condition, 'receiver_id')){
+            $condition_obj->setReceiverId($condition['receiver_id']);
+        }
+        if(param($condition, 'message_status')){
+            $condition_obj->setMessageStatus($condition['message_status']);
+        }
+        if(param($condition, 'id')){
+            $condition_obj->setId($condition['id']);
+        }
+        if(param($condition, 'sort')){
+            $condition_obj->setSort($condition['sort']);
+        }
+        $req->setGiftMessageBizCondition(json_encode($condition_obj));
+        //请求客户端对象
+        $client = new \TopClient($this->config['client_id'], $this->config['client_secret']);
+        $client->format = 'json';
+        return $client->execute($req);
+    }
+    ################################################################
+    #######################istore.gifting.message#########################end
+    ################################################################
+    
+}

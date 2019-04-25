@@ -1,0 +1,533 @@
+<?php
+namespace service\shipping\operation;
+
+use service\shipping\operation\ShippingMethodBase;
+use think\Exception;
+use org\Curl;
+
+/**
+ * Class Tms
+ * @package service\shipping\operation
+ */
+class Tms
+{
+    /**
+     * 地址验证成功码
+     */
+    const VALIDATION_SUCCESS = 3;
+
+    /**
+     * 地址验证失败码
+     */
+    const VALIDATION_FAILED = 0;
+
+    /**
+     * 是否测试
+     * @var boolean
+     */
+    private $sandbox = true;
+    
+    /**
+     * 测试url
+     * @var string
+     */
+    private $_testUrl = "https://test.hwcservice.com/V4/Api";
+
+    /**
+     * 正式Url
+     * @var string
+     */
+    private $_url = "https://tms.hwcservice.com/V4/Api";
+
+    /**
+     * 地址验证
+     * @var string
+     */
+    private $_addressValiUrl = "/AddressValidationService/ValidationAddress";
+
+    /**
+     * 打印大标签
+     * @var string
+     */
+    private $_printLabelUrl = "/LabelPrintService/PrintLabel";
+
+
+    /**
+     * 打印退货标签
+     * @var string
+     */
+    private $_printReturnLabelUrl = "/LabelPrintService/PrintReturnLabel";
+
+    /**
+     * 打印小标签
+     * @var string
+     */
+    private $_printSmallLabelUrl = "/LabelPrintService/PrintSmallLabel";
+
+    /**
+     * 取消小标签
+     * @var string
+     */
+    private $_invalidSmallLabelUrl = "/LabelPrintService/InvalidSmallLabel";
+
+
+    /**
+     * 取消标签
+     * @var string
+     */
+    private $_cancelLabelUrl = "/LabelPrintService/CancelLabel";
+
+    /**
+     * 请求箱号
+     * @var string
+     */
+    private $_getPackageNumberUrl = "/LabelPrintService/GetPackageNumber";
+
+    /**
+     * 确定箱号与标签号
+     * @var string
+     */
+    private $_confirmLabelUrl = "/LabelPrintService/GetPackageNumber";
+
+    /**
+     * 一票多签
+     * @var string
+     */
+    private $_printMultiLabelUrl = "/LabelPrintService/PrintMultiLabel";
+
+    /**
+     * 物流查询
+     * @var string
+     */
+    private $_queryTrackingStatusUrl = "/TrackingService/QueryTrackingStatus";
+
+    /**
+     * url格式后缀
+     * @var string
+     */
+    private $_urlSuff = "?type=json";
+
+    /**
+     * 版本信息
+     * @var string
+     */
+    private $_version = "0.0.0.3";
+
+    /**
+     * 请求id
+     * @var string
+     */
+    private $_requestId = "rondaful";
+
+    /**
+     * 用户名
+     * @var string
+     */
+    private $_username = "LiLangDa";
+
+    /**
+     * 密码
+     * @var string
+     */
+    private $_password = "9^nF,92p";
+    
+    /**
+     * 返回结果
+     * @var array
+     */
+    private $result = ['data' => [], 'error' => [], 'success' => false];
+    
+    /**
+     * 图片类型
+     * @var array
+     */
+    private $pic_types = ['0' => 'png', '1' => 'pdf', '2' => 'xml', '3' => 'zip'];
+    
+    /**
+     * 地址验证接口
+     * @param array $address 地址信息
+     * @param string $channelName 渠道商
+     * @throw Exception
+     * @return array
+     */
+    public function addressValidation(array $address, $channelName)
+    {
+        $data['ChannelName'] = $channelName;
+        $data['Address']     = $address;
+        if ($this->sendRequest($this->_addressValiUrl, json_encode($this->_createData($data)))) {
+            $result = $this->getResponse();
+            if (!$result['Data'] || $result['Data']['AddressValidationResult'] == self::VALIDATION_FAILED) {
+                throw new Exception($result['ResponseError']['LongMessage']);
+            }
+
+            return ['token' => $result['Data']['Token'], 'isResidential' => $result['Data']['Address']['IsResidential']];
+        } else {
+            throw new Exception($this->getErrorMsg());
+        }
+    }
+
+    /**
+     * 打印标签操作
+     * @param string $url
+     * @param array $order
+     * @return array
+     * @throw Exception
+     */
+    private function printLabelAction($url, $order)
+    {
+        // $data = $this->formatPackageInfo($order);
+        $data = [
+            'OrderID' => 'P11734250422',
+            'ParcelInformation' => [
+                'Weight' => 0.01,
+                'WeightUnit' => 2,
+                'Length' => 11.5,
+                'Width' => 6.12,
+                'Height' => 0.25,
+                'SizeUnit' => 1,
+                'ExistDangerousGoods' => false,
+            ],
+            'ChannelName' => 'Endicia',
+            'ServiceTypeCode' => 'First',
+            'WarehouseCode' => 'NJ',
+            'LabelMarkText' => ''
+        ];
+        $data['RecipientAddress'] = [
+            'FirstName' => 'Joann',
+            'LastName'  => 'Strong',
+            'Company'   => '',
+            'StreetAddress' => '4438 Will O Run Dr',
+            'StreetAddress2' => '',
+            'City' => 'Jsckson',
+            'State' => 'MS',
+            'ZIPCode' => '39212',
+            'Country' => 'US',
+            'PhoneNumber' => "7692335290"
+        ];
+        $validation = $this->addressValidation($data['RecipientAddress'], $data['ChannelName']);
+        $data['Token'] = $validation['token'];
+        $data['RecipientAddress']['IsResidential'] = $validation['isResidential'];
+        if ($this->sendRequest($url, json_encode($this->_createData($data)))) {
+            $result = $this->getResponse();
+            if (!$result['Data']) {
+                throw new Exception($result['ResponseError']['LongMessage']);
+            }
+            $result['Data']['Label_suffix'] = $this->pic_types[$result['Data']['ImageType']];
+            return $result['Data'];
+        } else {
+            throw new Exception($this->getErrorMsg());
+        }
+    }
+
+    /**
+     * 打印大标签
+     * @param array $order
+     * @return array
+     */
+    public function printLabel(array $order)
+    {
+        try {
+            $this->result['data'] = $this->printLabelAction($this->_printLabelUrl, $order);
+            $this->result['success'] = true;
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result;
+    }
+    
+    /**
+     * 打印小标签
+     * @param array $order
+     * @return array
+     */
+    public function printSmallLabel(array $order)
+    {
+        try {
+            $this->result['data'] = $this->printLabelAction($this->_printSmallLabelUrl, $order);
+            $this->result['success'] = true;
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result;
+    }
+
+    /**
+     * 取消小标签
+     */
+    public function invalidSmallLabel($order_code)
+    {
+        try{
+            $data = $this->_createData($order_code);
+            $executeInfo = $this->sendRequest($this->_invalidSmallLabelUrl, json_encode($this->_createData($data)));
+            if ($executeInfo) {
+                $response = $this->getResponse();
+                if ($response['ResponseResult'] == 0) {
+                    $this->result['success'] = true;
+                } else {
+                    throw new Exception($response['ResponseError']['LongMessage']);
+                }
+            } else {
+                throw new Exception($this->getErrorMsg());
+            }  
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result;
+    }
+
+    /**
+     * 取消标签
+     * @author Bill
+     */
+    public function cancelLabel(array $params)
+    {
+        try{
+            $data = $this->_createData(['orderID' => $params['order_number'], 'trackingNumber' => $params['trackingNumber']]);
+            $executeInfo = $this->sendRequest($this->_cancelLabelUrl, json_encode($this->_createData($data)));
+            if ($executeInfo) {
+                $response = $this->getResponse();
+                if ($response['ResponseResult'] == 0) {
+                    $this->result['success'] = true;
+                } else {
+                    throw new Exception($response['ResponseError']['LongMessage']);
+                }
+            } else {
+                throw new Exception($this->getErrorMsg());
+            }  
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result; 
+    }
+
+    /**
+     * 请求箱号
+     * @author Bill
+     */
+    public function getPackageNumber($data = [])
+    {
+        return $this->sendRequest($this->_getPackageNumberUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 绑定箱号
+     * @author Bill
+     */
+    public function confirmLabel($data = [])
+    {
+        return $this->sendRequest($this->_confirmLabelUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 打印一票多签
+     * @author Bill
+     */
+    public function printMultiLabel($data = [])
+    {
+        return $this->sendRequest($this->_printMultiLabelUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 物流服务
+     * @author Bill
+     */
+    public function queryTrackingStatus($data = [])
+    {
+        return $this->sendRequest($this->_queryTrackingStatusUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 发送请求
+     * @param string $path
+     * @param array $data
+     * @return string
+     * TODO:服务化
+     */
+    public function sendRequest($path, $data)
+    {
+        $url = $this->getUrl($path);
+        //请求稳定性需要加强
+        $response = Curl::curlPost($url, $data, $this->_getHeader());
+        $result = json_decode($response, true);
+        if (!empty($result)) {
+            $this->_response = $result;
+            return true;
+        }
+        $this->_errorMsg = "网络请求不稳定!请稍后再试!";
+        return false;
+    }
+
+    /**
+     * 返回错误信息
+     * 
+     */
+    public function getErrorMsg()
+    {
+        return $this->_errorMsg;
+    }
+    
+    /**
+     * 返回响应内容
+     * @author Bill
+     */
+    public function getResponse()
+    {
+        return $this->_response;
+    }
+
+    /**
+     * 生成数据
+     * @param array $data
+     * @return array|bool
+     * @author Bill
+     */
+    private function _createData(array $data = [])
+    {
+        if (empty($data)) {
+            throw new Exception('请求数据不能为空');
+        }
+
+        $baseData = [
+            "Data" => $data,
+            "RequestId" => $this->_requestId,
+            "RequestTime" => $this->_createUTCTime(),
+            "Version" => $this->_version,
+        ];
+
+        return $baseData;
+    }
+
+    /**
+     * 生成UTC时间
+     * @author Bill
+     */
+    private function _createUTCTime()
+    {
+        return gmdate("Y-m-d\TH:i:s\\Z", time());
+    }
+
+    /**
+     * 获取URL
+     * @param string $path
+     * @return string
+     */
+    private function getUrl($path)
+    {
+        return ($this->sandbox ? $this->_testUrl : $this->_url) . $path . $this->_urlSuff;
+    }
+
+    /**
+     * 生成头部
+     * @author Bill
+     */
+    private function _getHeader()
+    {
+        $headers = [
+            "Content-Type:application/json",
+            "Authorization:Basic " . base64_encode($this->_username . ':' . $this->_password),
+            'Cache-Control: no-cache, no-store, max-age=0, must-revalidate'   //禁用缓存
+        ];
+        return $headers;
+    }
+    
+    /**
+     * 组织包裹信息
+     * @param array $order
+     * @return array $result
+     */
+    public function formatPackageInfo($order)
+    {  
+        $result = ['errorCode' => 0, 'errorMsg' => '', 'data' => []];       
+        do {
+            if (empty($order['product'])) {
+                $result['errorCode'] = 1;
+                $result['errorMsg']  = '订单不存在产品详情';
+                break;
+            }
+            
+            foreach($order['product'] as $list) {
+                $items[] = [
+                    'Description'   => $list['sku'],
+                    'Quantity'    => $list['qty'],
+                    'Weight'      => $list['weight'],
+                    'WeightUnit'  => 3,
+                    'Value'    => $list['price']
+                ];
+            }
+            
+            $address = [
+                'FistName' => '',
+                'LastName' => '',
+                'Company'  => '',
+                'StreetAddress' => $order['street'],
+                'StreetAddress2' => $order['street2'],
+                'City' => $order['city'],
+                'State' => $order['state'],
+                'ZIPCode' => $order['zip'],
+                'Country' => $order['country_code'],
+                'PhoneNumber' => $order['tel'],
+                'IsResidential' => false
+            ];
+            
+            $parcel = [
+                'Weight' => $order['estimated_weight'],
+                'WeightUnit' => 3,
+               /* 'Length' => $order['length'] / 10,
+                'Width'  => $order['width'] / 10,
+                'Height' => $order['height'] / 10,*/
+                'Length' => 0,
+                'Width'  => 0,
+                'Height' => 0,
+                'ExistDangerGoods' => false, // 是否含有危险物品， 确定是否含锂电池
+                'SizeUnit' => 2,
+                'ProductInfomations' => $items
+            ];
+            
+            $result['data'] = [
+                'OrderID'          => isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number'] : $order['number'],
+                'ChannelName'    => '',
+                'ServiceTypeCode'  => '',
+                'Token'    => '',
+                'LabelMarkText'    => 'Y',
+                'RedundanciField'  => '', // 冗余字段
+                'WarehouseCode'    => '',
+                'RecipientAddress' => $address,
+                'ParcelInformation'=> $parcel
+            ];
+        } while(false);
+        
+        return $result;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+}

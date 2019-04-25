@@ -1,0 +1,79 @@
+<?php
+namespace callBack\operation;
+use think\Exception;
+
+/**
+ * Created by PhpStorm.
+ * User: phill
+ * Date: 2018/8/20
+ * Time: 下午3:36
+ */
+class Common
+{
+    /**
+     * 公用的请求方法
+     * @param $url
+     * @param $dir
+     * @param $filename
+     * @return bool
+     * @throws Exception
+     */
+    public function curl($url, $dir, $filename)
+    {
+        set_time_limit(0);
+        try {
+            if (!empty($dir) && !is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_URL, $url);
+            ob_start();
+            curl_exec($ch);
+            curl_setopt($ch, CURLOPT_SSLVERSION, 3);
+            $return_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            return true;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage() . $e->getFile() . $e->getLine());
+        }
+    }
+
+    /** 请求数据
+     * @param $url
+     * @param $data
+     * @return mixed
+     */
+    public function curlPost($url, $data)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_POST, true);
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($ch);
+        $response = json_decode($response, true);
+        curl_close($ch);
+        return $response;
+    }
+
+    /** 请求头部信息
+     * @return resource
+     */
+    private function context()
+    {
+        $context = stream_context_create(array(
+            'http' => array(
+                'method' => 'POST',
+                'ignore_errors' => true,
+            ),
+        ));
+
+        return $context;
+    }
+}

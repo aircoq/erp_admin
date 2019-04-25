@@ -1,0 +1,582 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class Cloudway extends Base
+{
+    protected $is_open_water = 1;
+
+    public function isCanDeclare($code)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "canDeclare_".$code  ;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('此渠道不能预览报关单' . $strFun);
+        }
+        return $this->$strFun($code);
+    }
+    /*
+     * 云途>>华南快速小包平邮(DG)
+     */
+    private function canDeclare_CNDWA(){
+        return 1;
+    }
+    /*
+     * 云途中欧专线挂号
+     */
+    private function canDeclare_EUDDP(){
+        return 1;
+    }
+    /*
+     * 云途中欧专线平邮
+     */
+    private function canDeclare_EUDDPG(){
+        return 1;
+    }
+
+    /*
+     * 华南快速小包挂号(DG)
+     */
+    private function canDeclare_CNDWR(){
+        return 1;
+    }
+    /*
+    * 法国专线挂号特惠
+    */
+    private function canDeclare_FRZXTH(){
+        return 1;
+    }
+    /*
+    * 法国专线挂号
+    */
+    private function canDeclare_FRZXR(){
+        return 1;
+    }
+    /*
+    * DHL快递(香港)
+    */
+    private function canDeclare_HKDHL(){
+        return 1;
+    }
+    /*
+   * 云途快速小包平邮
+   */
+    private function canDeclare_TWYZA(){
+        return 1;
+    }
+
+    public function createLabel($code, $order)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+    public function createDeclareLabel($code,$order){
+        $strFun = "declareLabel_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        return $this->$strFun($order);
+    }
+    const LABEL_TYPE = [
+        'GB' => 'special',
+        'FR' => 'special',
+        'DE' => 'special',
+    ];
+    private function getMap($country_code)
+    {
+
+        $allMap = [
+            'FR' => '2  ',
+            'GB' => '3  ',
+            'DE' => '4  ',
+            'ES' => '5  ',
+            'MX' => '7  ',
+            'IT' => '8  ',
+            'NL' => '9  ',
+            'CH' => '11 ',
+            'NZ' => '12 ',
+            'IL' => '13 ',
+            'JP' => '14 ',
+            'HU' => '15 ',
+            'RU' => '16 ',
+            'SE' => '17 ',
+            'DK' => '18 ',
+            'NO' => '19 ',
+            'BR' => '20 ',
+            'CR' => '21 ',
+            'PR' => '22 ',
+            'PE' => '23 ',
+            'SK' => '24 ',
+            'KZ' => '25 ',
+            'RE' => '26 ',
+            'ZA' => '27 ',
+            'IN' => '28 ',
+            'CZ' => '29 ',
+            'CL' => '30 ',
+            'AT' => '31 ',
+            'IE' => '32 ',
+            'FI' => '33 ',
+            'LK' => '34 ',
+            'BE' => '35 ',
+            'MU' => '36 ',
+            'CO' => '37 ',
+            'LT' => '38 ',
+            'PT' => '39 ',
+            'MV' => '40 ',
+            'GR' => '41 ',
+            'SG' => '42 ',
+            'HR' => '43 ',
+            'SI' => '44 ',
+            'TH' => '45 ',
+            'RO' => '46 ',
+            'MD' => '47 ',
+            'AR' => '48 ',
+            'EC' => '49 ',
+            'LV' => '50 ',
+            'EE' => '51 ',
+            'UA' => '52 ',
+            'BY' => '53 ',
+            'PL' => '54 ',
+            'BO' => '55 ',
+            'CY' => '56 ',
+            'MT' => '57 ',
+            'BA' => '58 ',
+            'TR' => '59 ',
+            'UY' => '60 ',
+            'HN' => '61 ',
+            'JM' => '62 ',
+            'AL' => '63 ',
+            'DO' => '64 ',
+            'FJ' => '65 ',
+            'MY' => '66 ',
+            'RS' => '67 ',
+            'BG' => '68 ',
+            'LU' => '69 ',
+            'MA' => '70 ',
+            'KR' => '71 ',
+            'SV' => '72 ',
+            'SA' => '73 ',
+            'IS' => '74 ',
+            'NI' => '75 ',
+            'SC' => '76 ',
+            'AE' => '77 ',
+            'ID' => '78 ',
+            'GE' => '79 ',
+            'MK' => '80 ',
+            'KW' => '81 ',
+            'BN' => '82 ',
+            'MQ' => '83 ',
+            'JO' => '84 ',
+            'QA' => '85 ',
+            'AM' => '86 ',
+            'BB' => '87 ',
+            'BH' => '88 ',
+            'GP' => '89 ',
+            'ME' => '90 ',
+            'KH' => '91 ',
+            'AZ' => '92 ',
+            'GU' => '93 ',
+            'NC' => '94 ',
+            'OM' => '95 ',
+            'PK' => '96 ',
+            'ZM' => '97 ',
+            'GF' => '98 ',
+            'NG' => '99 ',
+            'PH' => '100',
+            'LB' => '101',
+            'VI' => '102',
+            'VN' => '103',
+            'GI' => '104',
+            'GL' => '105',
+            'PF' => '106',
+            'UZ' => '107',
+            'BW' => '108',
+            'KE' => '109',
+            'LI' => '110',
+            'MZ' => '111',
+            'TZ' => '112',
+            'AD' => '113',
+            'DM' => '114',
+            'EG' => '115',
+            'GH' => '116',
+            'GY' => '117',
+            'RW' => '118',
+            'VG' => '119',
+            'ZW' => '120',
+            'AN' => '121',
+            'AO' => '122',
+            'BM' => '123',
+            'MC' => '124',
+            'PA' => '125',
+            'DZ' => '126',
+            'PY' => '127',
+            'TM' => '128',
+            'TT' => '129',
+            'NA' => '130',
+            'VE' => '131',
+            'AF' => '132',
+            'AG' => '133',
+            'AI' => '134',
+            'AS' => '135',
+            'AW' => '136',
+            'BD' => '137',
+            'BF' => '138',
+            'BI' => '139',
+            'BJ' => '140',
+            'BS' => '141',
+            'BT' => '142',
+            'BZ' => '143',
+            'CF' => '144',
+            'CG' => '145',
+            'CI' => '146',
+            'CK' => '147',
+            'CM' => '148',
+            'CU' => '149',
+            'CV' => '150',
+            'CX' => '151',
+            'DJ' => '152',
+            'ET' => '153',
+            'FK' => '154',
+            'FM' => '155',
+            'FO' => '156',
+            'GA' => '157',
+            'GD' => '158',
+            'GM' => '159',
+            'GN' => '160',
+            'GQ' => '161',
+            'GS' => '162',
+            'GW' => '163',
+            'HK' => '164',
+            'HT' => '165',
+            'IQ' => '166',
+            'KG' => '167',
+            'KI' => '168',
+            'KM' => '169',
+            'KN' => '170',
+            'KP' => '171',
+            'KY' => '172',
+            'LA' => '173',
+            'LC' => '174',
+            'LS' => '175',
+            'MG' => '176',
+            'MH' => '177',
+            'MM' => '178',
+            'MN' => '179',
+            'MR' => '180',
+            'MS' => '181',
+            'MW' => '182',
+            'NE' => '183',
+            'NF' => '184',
+            'NP' => '185',
+            'NR' => '186',
+            'PG' => '187',
+            'PM' => '188',
+            'PN' => '189',
+            'SB' => '190',
+            'SH' => '191',
+            'SJ' => '192',
+            'SM' => '193',
+            'SN' => '194',
+            'SR' => '195',
+            'ST' => '196',
+            'SZ' => '197',
+            'TC' => '198',
+            'TG' => '199',
+            'TJ' => '200',
+            'TL' => '201',
+            'TN' => '202',
+            'TO' => '203',
+            'TV' => '204',
+            'UG' => '205',
+            'VA' => '206',
+            'VC' => '207',
+            'VU' => '208',
+            'WF' => '209',
+            'WS' => '210',
+            'XB' => '211',
+            'XD' => '212',
+            'XE' => '213',
+            'XG' => '214',
+            'XH' => '215',
+            'XI' => '216',
+            'XJ' => '217',
+            'XK' => '218',
+            'XM' => '219',
+        ];
+        return $allMap[$country_code];
+    }
+
+    private function changeCode($country_code, $zip)
+    {
+        $zip_0 = substr($zip, 0, 5);
+        $zip_1 = substr($zip, 0, 1);
+        if ($country_code == 'US') {
+            if ($zip_0 >= '00000' && $zip_0 <= '39999') {
+                $code = 'JFK-1';
+            } elseif ($zip_0 >= '70000' && $zip_0 <= '99999') {
+                $code = 'LAX-3';
+            } elseif ($zip_0 >= '40000' && $zip_0 <= '69999') {
+                $code = 'ORD-4';
+            }
+        }
+        if ($country_code == 'IT') {
+            $code = 'MIL-11';
+        }
+        if ($country_code == 'AU') {
+            if ($zip_1 == '0' || $zip_1 == '1' || $zip_1 == '2' || $zip_1 == '4' || $zip_1 == '9') {
+                $code = 'SYD-12';
+            } else {
+                $code = 'MEL-13';
+            }
+        }
+        if ($country_code == 'NZ') {
+            $code = 'AKL-19';
+        }
+        if ($country_code == 'NO') {
+            $code = 'OSL-28';
+        }
+        if ($country_code == 'CH') {
+            $code = 'ZRH-31';
+        }
+        if ($country_code == 'IL') {
+            $code = 'TLV-34';
+        }
+        if ($country_code == 'GB') {
+            $code = 'GB';
+        }
+        if ($country_code == 'DE') {
+            $code = 'DE';
+        }
+        if ($country_code == 'FR') {
+            $code = 'FR';
+        }
+        return $chang_code = $code ?? '';
+    }
+
+    private function getMapCode($country_code, $zip)
+    {
+        if (!$country_code) {
+            return '';
+        }
+        $code = '';
+        $codes = substr($zip, 0, 1);
+        if ($country_code == 'US') {
+            if ($codes == '8' || $codes == '9') {
+                $code = '1A';
+            } else if ($codes == '4' || $codes == '5' || $codes == '6' || $codes == '7') {
+                $code = '1B';
+            } else if ($codes == '0' || $codes == '1' || $codes == '2' || $codes == '3') {
+                $code = '1C';
+            }
+        } elseif ($country_code == 'AU') {
+            if ($codes == '6') {
+                $code = '6A';
+            } else if ($codes == '0' || $codes == '1' || $codes == '2') {
+                $code = '6B';
+            } else if ($codes == '3' || $codes == '5' || $codes == '7' || $codes == '8') {
+                $code = '1C';
+            } else if ($codes == '4' || $codes == '9') {
+                $code = '6D';
+            }
+        } elseif ($country_code == 'CA') {
+            if ($codes == 'A' || $codes == 'B' || $codes == 'C' || $codes == 'D' || $codes == 'E' || $codes == 'F' || $codes == 'G' || $codes == 'H' || $codes == 'I' || $codes == 'J' || $codes == 'K' || $codes == 'L' || $codes == 'M' || $codes == 'N' || $codes == 'O' || $codes == 'P') {
+                $code = '10A';
+            } else if ($codes == 'R' || $codes == 'S' || $codes == 'T' || $codes == 'U' || $codes == 'V' || $codes == 'W' || $codes == 'X' || $codes == 'Y') {
+                $code = '10B';
+            }
+        } else {
+            $code = $this->getMap($country_code);
+        }
+        return $code;
+    }
+    //德国专线挂号
+    private function label_DEZXR($order)
+    {
+        return $this->display('DEZXR', $order);
+    }
+
+    //法国专线挂号
+    private function label_FRZXR($order)
+    {
+        return $this->display('FRZXR', $order);
+    }
+
+    private function label_ESZXG($order)
+    {
+        return $this->display('ESZXG', $order);
+    }
+
+    private function label_ITZX($order)
+    {
+        return $this->display('ITZX', $order);
+    }
+
+    private function label_GBRYMA($order)
+    {
+        return $this->display('GBRYMA', $order);
+    }
+
+    private function label_GBZXTH($order)
+    {
+        return $this->display('GBZXTH', $order);
+    }
+
+    private function label_HKRDGM($order)
+    {
+        return $this->display('HKRDGM', $order);
+    }
+
+    private function label_USZXR($order)
+    {
+        return $this->display('USZXR', $order);
+    }
+
+    private function label_PK0014($order)
+    {
+        return $this->display('PK0014', $order);
+    }
+
+    private function label_CNDWR($order)
+    {
+        return $this->display('CNDWR', $order);
+    }
+
+    private function label_CNDWA($order)
+    {
+        return $this->display('CNDWA', $order);
+    }
+
+    private function label_FRZXTH($order)
+    {
+        return $this->display('FRZXTH', $order);
+    }
+
+    private function label_EUSPA($order)
+    {
+        return $this->display('EUSPA', $order);
+    }
+
+    private function label_EUB_FZ($order)
+    {
+        return $this->display('EUB_FZ', $order);
+    }
+
+    private function label_ITZXA($order)
+    {
+        return $this->display('ITZXA', $order);
+    }
+
+    private function label_HKDHL($order)
+    {
+        return $this->display('HKDHL', $order);
+    }
+
+    private function label_EUDDP($order)
+    {
+        return $this->display('EUDDP', $order);
+    }
+
+    private function label_AUSP($order)
+    {
+        return $this->display('AUSP', $order);
+    }
+
+    private function label_EUB_ZZ($order)
+    {
+        return $this->display('EUB_ZZ', $order);
+    }
+
+    private function label_EUDDPG($order)
+    {
+        return $this->display('EUDDPG', $order);
+    }
+
+    private function label_DEZXTH($order)
+    {
+        return $this->display('DEZXTH', $order);
+    }
+
+    /**
+     * @title 西班牙专线平邮特惠
+     * @param $order
+     * $return string
+     * @author libaimin
+     */
+    private function label_ESZXPTH($order)
+    {
+        return $this->display('ESZXPTH', $order);
+    }
+
+    /**
+     * @title 香港小包平邮
+     * @param $order
+     * $return string
+     * @author libaimin
+     */
+    private function label_CNPOSTP_HK($order)
+    {
+        $order['mapCdoe'] = $this->getMapCode($order['country_code'], $order['zip']);
+        return $this->display('CNPOSTP_HK', $order);
+    }
+
+    private function getLabelType($country_code)
+    {
+
+        return self::LABEL_TYPE[$country_code] ?? 'nomail';
+    }
+//    //by lanshushu 云途快速小包平邮(有个号码需要从他们系统那边获取  所以展示不用)
+//    private function label_TWYZA($order)
+//    {
+//        $labelType = $this->getLabelType($order['country_code']);
+//        $order['changeCode'] = $this->changeCode($order['country_code'], $order['zip']);
+//        $order['mapCdoe'] = $this->getMapCode($order['country_code'], $order['zip']);
+//        return $this->display('TWYZA_'.$labelType, $order);
+//    }
+    //新加坡DGM挂号
+    private function label_SGRDGM($order)
+    {
+        return $this->display('SGRDGM', $order);
+    }
+
+    //巴西专线
+    private function label_BRZXR($order)
+    {
+        return $this->display('BRZXR', $order);
+    }
+
+    //西班牙专线平邮
+    private function label_ESZXA($order)
+    {
+        return $this->display('ESZXA', $order);
+    }
+
+    //俄罗斯小包挂号
+    private function label_RUXBR($order)
+    {
+        return $this->display('RUXBR', $order);
+    }
+
+
+
+    private function declareLabel_FRZXTH($order)
+    {
+        return $this->display('declare_FRZXTH', $order);
+    }
+}

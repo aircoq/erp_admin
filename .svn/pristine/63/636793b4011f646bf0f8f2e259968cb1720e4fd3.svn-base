@@ -1,0 +1,32 @@
+<?php
+
+namespace service\alinew\operation;
+use think\Loader;
+/**
+ * @desc 公用类
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-03-13 19:56:11
+ */
+class Common
+{
+
+    protected $config; //配置文件信息
+    protected $url;
+
+    public function __construct($config)
+    {
+        $this->config = $config;
+        //测试地址
+        //$this->url = 'http://120.27.143.32/order';
+        //本地测试
+//        $this->url = 'http://ali.com/order';
+        //奇门地址
+        //$this->url = 'http://rte1csx059.api.taobao.com/router/qm';
+        $this->url = 'http://rte1csx059.api.taobao.com/router/qm';
+        //建立奇门
+        //Loader::import('service.qimenCloud.QimenCloudClient', EXTEND_PATH, '.php');
+        //Loader::import('service.qimenCloud.top.request.LiliangdaErpOrderproductDataRequest', EXTEND_PATH, '.php');
+        Loader::import('taobaosdk.TopSdk', EXTEND_PATH, '.php');
+    }
+
+}

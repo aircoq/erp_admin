@@ -1,0 +1,831 @@
+<?php
+
+namespace app\report\service;
+
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\model\joom\JoomShop;
+use app\common\model\Order;
+use app\common\model\OrderDetail;
+use app\common\model\OrderPackage;
+use app\common\service\Common;
+use app\common\service\CommonQueuer;
+use app\common\service\OrderStatusConst;
+use app\index\service\TransferShippingFee;
+use app\report\model\ReportExportFiles;
+use app\report\queue\OrderDetailExportQueue;
+use think\Db;
+use think\Exception;
+use think\Loader;
+use app\common\service\ChannelAccountConst;
+use app\common\traits\Export;
+
+Loader::import('phpExcel.PHPExcel', VENDOR_PATH);
+
+/**
+ * Created by PhpStorm.
+ * User: XPDN
+ * Date: 2017/10/11
+ * Time: 20:55
+ */
+class OrderDetailService
+{
+    use Export;
+
+    protected $PCardRate = [
+        'amazon' => 0.006,
+        'wish' => 0.005,
+    ];
+    protected $colMap = [
+        'order' => [
+            'title' => [
+                'A' => ['title' => '发货时间', 'width' => 30],
+                'B' => ['title' => '是否补发', 'width' => 10],
+                'C' => ['title' => 'sku', 'width' => 10],
+                'D' => ['title' => '商品名称', 'width' => 10],
+                'E' => ['title' => '发货数量', 'width' => 10],
+                'F' => ['title' => '商品重量', 'width' => 10],
+                'G' => ['title' => '平台', 'width' => 10],
+                'H' => ['title' => '平台简称', 'width' => 10],
+                'I' => ['title' => '平台账号', 'width' => 10],
+                'J' => ['title' => '站点', 'width' => 30],
+                'K' => ['title' => '发货仓库', 'width' => 15],
+                'L' => ['title' => '包裹号', 'width' => 15],
+                'M' => ['title' => '邮寄方式', 'width' => 15],
+                'N' => ['title' => '包裹总重量', 'width' => 20],
+                'O' => ['title' => '包裹总运费', 'width' => 20],
+                'P' => ['title' => '跟踪号', 'width' => 20],
+                'Q' => ['title' => '物流商处理号', 'width' => 20],
+                'R' => ['title' => '订单号', 'width' => 20],
+                'S' => ['title' => 'item id', 'width' => 10],
+                'T' => ['title' => '买家id', 'width' => 10],
+                'U' => ['title' => '买家姓名', 'width' => 10],
+                'V' => ['title' => '国家', 'width' => 10],
+                'W' => ['title' => '收货地址', 'width' => 10],
+                'X' => ['title' => '城市', 'width' => 10],
+                'Y' => ['title' => '省', 'width' => 10],
+                'Z' => ['title' => '邮编', 'width' => 10],
+                'AA' => ['title' => '电话', 'width' => 10],
+                'AB' => ['title' => '付款时间', 'width' => 10],
+                'AC' => ['title' => '采购员', 'width' => 10],
+                'AD' => ['title' => '开发员', 'width' => 10],
+                'AE' => ['title' => '币种', 'width' => 30],
+                'AF' => ['title' => '支付金额', 'width' => 30],
+                'AG' => ['title' => '平台运费', 'width' => 30],
+                'AH' => ['title' => '订单总售价原币', 'width' => 30],
+                'AI' => ['title' => '订单总售价CNY', 'width' => 30],
+                'AJ' => ['title' => '售价原币', 'width' => 30],
+                'AK' => ['title' => '售价CNY', 'width' => 30],
+                'AL' => ['title' => '商品总成本', 'width' => 30],
+                'AM' => ['title' => '商品单个成本', 'width' => 30],
+                'AN' => ['title' => '渠道成交费原币', 'width' => 30],
+                'AO' => ['title' => '渠道成交费CNY', 'width' => 30],
+                'AP' => ['title' => 'PayPal费用', 'width' => 30],
+                'AQ' => ['title' => '头程运输方式', 'width' => 30],
+                'AR' => ['title' => '头程运输费', 'width' => 30],
+                'AS' => ['title' => '头程报关费', 'width' => 30],
+                'AT' => ['title' => '包装费用', 'width' => 30],
+                'AU' => ['title' => '利润', 'width' => 30],
+                'AV' => ['title' => '利润率', 'width' => 30],
+                'AW' => ['title' => '物流商', 'width' => 30],
+                'AX' => ['title' => '订单转运费', 'width' => 30],
+            ],
+            'data' => [
+                'shipping_time' => ['col' => 'A', 'type' => 'time'],
+                'is_reissue' => ['col' => 'B', 'type' => 'str'],
+                'sku' => ['col' => 'C', 'type' => 'str'],
+                'spu_name' => ['col' => 'D', 'type' => 'str'],
+                'sku_quantity' => ['col' => 'E', 'type' => 'int'],
+                'weight' => ['col' => 'F', 'type' => 'str'],
+                'channel_id' => ['col' => 'G', 'type' => 'str'],
+                'channel_account_id' => ['col' => 'H', 'type' => 'str'],
+                'channel_account_name' => ['col' => 'I', 'type' => 'str'],
+                'site_code' => ['col' => 'J', 'type' => 'str'],
+                'warehouse_id' => ['col' => 'K', 'type' => 'str'],
+                'number' => ['col' => 'L', 'type' => 'str'],
+                'shipping_name' => ['col' => 'M', 'type' => 'str'],
+                'package_weight' => ['col' => 'N', 'type' => 'str'],
+                'shipping_fee' => ['col' => 'O', 'type' => 'str'],
+                'shipping_number' => ['col' => 'P', 'type' => 'str'],
+                'process_code' => ['col' => 'Q', 'type' => 'str'],
+                'order_number' => ['col' => 'R', 'type' => 'str'],
+                'channel_item_id' => ['col' => 'S', 'type' => 'str'],
+                'buyer_id' => ['col' => 'T', 'type' => 'str'],
+                'buyer' => ['col' => 'U', 'type' => 'str'],
+                'country_code' => ['col' => 'V', 'type' => 'str'],
+                'address' => ['col' => 'W', 'type' => 'str'],
+                'city' => ['col' => 'X', 'type' => 'str'],
+                'province' => ['col' => 'Y', 'type' => 'str'],
+                'zipcode' => ['col' => 'Z', 'type' => 'str'],
+                'tel' => ['col' => 'AA', 'type' => 'str'],
+                'pay_time' => ['col' => 'AB', 'type' => 'time'],
+                'purchaser_id' => ['col' => 'AC', 'type' => 'str'],
+                'developer_id' => ['col' => 'AD', 'type' => 'str'],
+                'currency_code' => ['col' => 'AE', 'type' => 'str'],
+                'pay_fee' => ['col' => 'AF', 'type' => 'str'],
+                'channel_shipping_free' => ['col' => 'AG', 'type' => 'str'],
+                'goods_amount' => ['col' => 'AH', 'type' => 'str'],
+                'goods_amount_CNY' => ['col' => 'AI', 'type' => 'str'],
+                'channel_sku_price' => ['col' => 'AJ', 'type' => 'str'],
+                'channel_sku_price_CNY' => ['col' => 'AK', 'type' => 'str'],
+                'sku_total_cost' => ['col' => 'AL', 'type' => 'str'],
+                'sku_cost' => ['col' => 'AM', 'type' => 'str'],
+                'channel_cost' => ['col' => 'AN', 'type' => 'str'],
+                'channel_cost_CNY' => ['col' => 'AO', 'type' => 'str'],
+                'paypal_fee' => ['col' => 'AP', 'type' => 'str'],
+                'first_shipping_name' => ['col' => 'AQ', 'type' => 'str'],
+                'first_fee' => ['col' => 'AR', 'type' => 'str'],
+                'tariff' => ['col' => 'AS', 'type' => 'str'],
+                'package_fee' => ['col' => 'AT', 'type' => 'str'],
+                'profit' => ['col' => 'AU', 'type' => 'str'],
+                'profit_margin' => ['col' => 'AV', 'type' => 'str'],
+                'carrier' => ['col' => 'AW', 'type' => 'str'],
+                'trans_shipping_fee' => ['col' => 'AX', 'type' => 'str'],
+            ]
+        ],
+    ];
+
+    /**
+     * 列表详情
+     * @param $page
+     * @param $pageSize
+     * @param $params
+     * @return array
+     */
+    public function lists($page, $pageSize, $params)
+    {
+        $this->where($params, $where);
+        $field = $this->field();
+        $join = $this->join();
+        $where['o.status'] = ['<>', OrderStatusConst::SaidInvalid];
+        $count = $this->doCount($field, $where, $join);
+        $data = $this->assemblyData($this->doSearch($field, $where, $join, $page, $pageSize));
+        $result = [
+            'data' => $data,
+            'count' => $count,
+            'page' => $page,
+            'pageSize' => $pageSize
+        ];
+        return $result;
+    }
+
+    /**
+     * 导出申请
+     * @param $params
+     * @return bool
+     * @throws Exception
+     * @throws \Exception
+     */
+    public function exportApply($params)
+    {
+        $userId = Common::getUserInfo()->toArray()['user_id'];
+        $cache = Cache::handler();
+        $lastApplyTime = $cache->hget('hash:export_detail_apply', $userId);
+        if ($lastApplyTime && time() - $lastApplyTime < 5) {
+            throw new JsonErrorException('请求过于频繁', 400);
+        } else {
+            $cache->hset('hash:export_apply', $userId, time());
+        }
+        Db::startTrans();
+        try {
+            $model = new ReportExportFiles();
+            $data['applicant_id'] = $userId;
+            $data['apply_time'] = time();
+            $data['export_file_name'] = $this->createExportFileName($params);
+            $data['status'] = 0;
+            $data['applicant_id'] = $userId;
+            $model->allowField(true)->isUpdate(false)->save($data);
+            $params['file_name'] = $data['export_file_name'];
+            $params['apply_id'] = $model->id;
+            (new CommonQueuer(OrderDetailExportQueue::class))->push($params);
+            Db::commit();
+            return true;
+        } catch (\Exception $ex) {
+            Db::rollback();
+            throw new JsonErrorException('申请导出失败');
+        }
+    }
+
+    /**
+     * 创建导出文件名
+     * @param $userId
+     * @return string
+     */
+    protected function createExportFileName($params)
+    {
+        $lastID = (new ReportExportFiles())->order('id desc')->value('id');
+        $fileName = '订单详情报表';
+        if (isset($params['warehouse_id']) && $params['warehouse_id']) {
+            $warehouse_name = Cache::store('warehouse')->getWarehouseNameById($params['warehouse_id']);
+            $fileName .= '_' . $warehouse_name;
+        }
+        if (isset($params['channel_id']) && $params['channel_id']) {
+            $channelName = Cache::store('channel')->getChannelName($params['channel_id']);
+            $fileName .= '_' . $channelName;
+        }
+        if (isset($params['developer_id']) && $params['developer_id']) {
+            $developer = Cache::store('user')->getOneUser($params['developer_id']);
+            $fileName .= '_' . param($developer, 'realname');
+        }
+        if (isset($params['shipping_id']) && intval($params['shipping_id']) == $params['shipping_id'] && $params['shipping_id']) {
+            $shipping = Cache::store('shipping')->getShipping($params['shipping_id']);
+            $fileName .= '_' . param($shipping, 'shortname');
+        }
+        if (isset($params['site_code']) && $params['site_code']) {
+            $fileName .= '_' . $params['site_code'];
+        }
+        if (isset($params['order_number']) && $params['order_number']) {
+            $fileName .= '_' . $params['order_number'];
+        }
+        //TODO: filename 未知post运输方式格式，待生成运输方式
+        $fileName .= '_' . $params['date_b'] . '_' . $params['date_e'] . '(' . (param($params, 'snDate') == 'pay_time' ? '付款日期' : '发货日期') . ').xlsx';
+        return $fileName;
+    }
+
+    /**
+     * 导出数据至excel文件
+     * @param array $params
+     * @return bool
+     * @throws Exception
+     */
+    public function export(array $params)
+    {
+        set_time_limit(0);
+        try {
+            //ini_set('memory_limit', '4096M');
+            if (!isset($params['apply_id']) || empty($params['apply_id'])) {
+                throw new Exception('导出申请id获取失败');
+            }
+            if (!isset($params['file_name']) || empty($params['file_name'])) {
+                throw new Exception('导出文件名未设置');
+            }
+            $fileName = $params['file_name'];
+            $downLoadDir = '/download/order_detail/';
+            $saveDir = ROOT_PATH . 'public' . $downLoadDir;
+            if (!is_dir($saveDir) && !mkdir($saveDir, 0777, true)) {
+                throw new Exception('导出目录创建失败');
+            }
+            $fullName = $saveDir . $fileName;
+            $titleMap = $this->colMap['order']['title'];
+            $title = [];
+            $titleData = $this->colMap['order']['data'];
+            foreach ($titleData as $k => $v) {
+                array_push($title, $k);
+            }
+            //创建excel对象
+            $writer = new \XLSXWriter();
+            $titleOrderData = [];
+            foreach ($titleMap as $t => $tt) {
+                $titleOrderData[$tt['title']] = 'string';
+            }
+//            $excel = new \PHPExcel();
+//            $excel->setActiveSheetIndex(0);
+//            $sheet = $excel->getActiveSheet();
+//            $titleRowIndex = 1;
+//            $dataRowStartIndex = 2;
+//            $titleMap = $this->colMap['order']['title'];
+//            $lastCol = 'AV';
+//            $dataMap = $this->colMap['order']['data'];
+            //设置表头和表头样式
+//            foreach ($titleMap as $col => $set) {
+//                $sheet->getColumnDimension($col)->setWidth($set['width']);
+//                $sheet->getCell($col . $titleRowIndex)->setValue($set['title']);
+//                $sheet->getStyle($col . $titleRowIndex)
+//                    ->getFill()
+//                    ->setFillType(\PHPExcel_Style_Fill::FILL_SOLID)
+//                    ->getStartColor()->setRGB('E8811C');
+//                $sheet->getStyle($col . $titleRowIndex)
+//                    ->getBorders()
+//                    ->getAllBorders()
+//                    ->setBorderStyle(\PHPExcel_Style_Border::BORDER_THIN);
+//            }
+//            $sheet->setAutoFilter('A1:' . $lastCol . '1');
+            //统计需要导出的数据行
+            $where = [];
+            $this->where($params, $where);
+            $where = is_null($where) ? [] : $where;
+            $where['o.status'] = ['<>', OrderStatusConst::SaidInvalid];
+            $count = $this->doCount($this->field(), $where, $this->join());
+            $pageSize = 2000;
+            $loop = ceil($count / $pageSize);
+            if (empty($loop)) {
+                $loop = 1;
+            }
+            $writer->writeSheetHeader('Sheet1', $titleOrderData);
+            //分批导出
+            for ($i = 0; $i < $loop; $i++) {
+                $data = $this->assemblyData($this->doSearch($this->field(), $where, $this->join(), $i + 1, $pageSize), $title);
+                foreach ($data as $r) {
+//                    foreach ($dataMap as $field => $set) {
+//                        $cell = $sheet->getCell($set['col'] . $dataRowStartIndex);
+//                        switch ($set['type']) {
+//                            case 'time':
+//                                if (empty($r[$field])) {
+//                                    $cell->setValue('');
+//                                } else {
+//                                    $cell->setValue(date('Y-m-d H:i:s', $r[$field]));
+//                                }
+//                                break;
+//                            case 'numeric':
+//                                $cell->setDataType(\PHPExcel_Cell_DataType::TYPE_NUMERIC);
+//                                if (empty($r[$field])) {
+//                                    $cell->setValue(0);
+//                                } else {
+//                                    $cell->setValue($r[$field]);
+//                                }
+//                                break;
+//                            default:
+//                                $cell->setDataType(\PHPExcel_Cell_DataType::TYPE_STRING);
+//                                if (is_null($r[$field])) {
+//                                    $r[$field] = '';
+//                                }
+//                                $cell->setValueExplicit($r[$field], \PHPExcel_Cell_DataType::TYPE_STRING);
+//                        }
+//                    }
+//                    $dataRowStartIndex++;
+                    $writer->writeSheetRow('Sheet1', $r);
+                }
+                unset($data);
+            }
+            $writer->writeToFile($fullName);
+//            $writer = \PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
+//            $writer->save($fullName);
+            if (is_file($fullName)) {
+                $applyRecord = ReportExportFiles::get($params['apply_id']);
+                $applyRecord['exported_time'] = time();
+                $applyRecord['download_url'] = $downLoadDir . $fileName;
+                $applyRecord['status'] = 1;
+                $applyRecord->isUpdate()->save();
+            } else {
+                throw new Exception('文件写入失败');
+            }
+        } catch (\Exception $ex) {
+            $applyRecord = ReportExportFiles::get($params['apply_id']);
+            $applyRecord['status'] = 2;
+            $applyRecord['error_message'] = $ex->getMessage();
+            $applyRecord->isUpdate()->save();
+            Cache::handler()->hset(
+                'hash:report_export',
+                $params['apply_id'] . '_' . time(),
+                '申请id: ' . $params['apply_id'] . ',导出失败:' . $ex->getMessage());
+        }
+    }
+
+    /**
+     * 获取店铺 简称|名称
+     * @param $channel_id
+     * @param $account_id
+     * @return bool|mixed|string
+     */
+    public function getAccount($channel_id, $account_id)
+    {
+        if (empty($account_id)) {
+            return "";
+        }
+        $account_name = '';
+        $account_code = '';
+        $account = [];
+        switch ($channel_id) {
+            case ChannelAccountConst::channel_ebay:
+                $account = Cache::store('EbayAccount')->getAccountById($account_id);
+                break;
+            case ChannelAccountConst::channel_amazon:
+                $account = Cache::store('AmazonAccount')->getAccount($account_id);
+                break;
+            case ChannelAccountConst::channel_wish:
+                $account = Cache::store('wishAccount')->getAccount($account_id);
+                break;
+            case ChannelAccountConst::channel_aliExpress:
+                $account = Cache::store('AliexpressAccount')->getAccountById($account_id);
+                break;
+            case ChannelAccountConst::channel_Joom:
+                $accountShop = Cache::store('JoomShop')->getAccountById($account_id);
+                $account = Cache::store('JoomAccount')->getAccountById($accountShop['joom_account_id']);
+                $account['account_name'] = $account['account_name'] . '/' . $accountShop['shop_name'];
+                $account['code'] = $accountShop['code'];
+                break;
+            case ChannelAccountConst::channel_Shopee:
+                $account = Cache::store('ShopeeAccount')->getTableRecord($account_id);
+                $account['account_name'] = $account['name'];
+                break;
+            case ChannelAccountConst::channel_Pandao:
+                $account = Cache::store('PandaoAccountCache')->getAccountById($account_id);
+                break;
+            case ChannelAccountConst::channel_Paytm:
+                $account = Cache::store('PaytmAccount')->getAccountById($account_id);
+                break;
+            case ChannelAccountConst::channel_Walmart:
+                $account = Cache::store('WalmartAccount')->getAccountById($account_id);
+                break;
+            case ChannelAccountConst::Channel_Jumia:
+                $account = Cache::store('JumiaAccount')->getAccountById($account_id);
+                break;
+            case ChannelAccountConst::channel_Lazada:
+                $account = Cache::store('LazadaAccount')->getTableRecord($account_id);
+                $account['account_name'] = $account['name'];
+                break;
+            case ChannelAccountConst::channel_Vova:
+                $account = Cache::store('VovaAccount')->getTableRecord($account_id);
+                break;
+            case ChannelAccountConst::Channel_umka:
+                $account = Cache::store('UmkaAccount')->getTableRecord($account_id);
+                $account['account_name'] = $account['name'];
+                break;
+            case ChannelAccountConst::channel_Newegg:
+                $account = Cache::store('NeweggAccount')->getTableRecord($account_id);
+                break;
+            case ChannelAccountConst::channel_CD:
+                $account = Cache::store('PddAccount')->getTableRecord($account_id);
+                break;
+            case ChannelAccountConst::channel_Oberlo:
+                $account = Cache::store('OberloAccount')->getTableRecord($account_id);
+                $account['account_name'] = $account['name'];
+                break;
+            case ChannelAccountConst::channel_Shoppo:
+                $account = Cache::store('ShoppoAccount')->getTableRecord($account_id);
+                $account['account_name'] = $account['name'];
+                break;
+            case ChannelAccountConst::channel_Zoodmall:
+                $account = Cache::store('ZoodmallAccount')->getAccountById($account_id);
+                break;
+        }
+        if (!empty($account)) {
+            $account_code = $account['code'];
+            $account_name = $channel_id == ChannelAccountConst::channel_wish ? $account['shop_name'] : $account['account_name'];
+        }
+        return array('account_name' => $account_name, 'account_code' => $account_code);
+    }
+
+    /**
+     * 组装查询返回数据
+     * @param $records
+     * @param array $title
+     * @return array
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    protected function assemblyData($records, $title = [])
+    {
+        $newOrderData = [];
+        $order_ids = array_map(function ($orderInfo) {
+            return $orderInfo->id;
+        }, $records);
+        $addressList = Db::name('order_address')->field('order_id,address,city,province,zipcode,tel')->where('order_id', 'in', $order_ids)->select();
+        $addressData = [];
+        foreach ($addressList as $key => $address) {
+            //$address = $address->toArray();
+            $addressData[$address['order_id']] = $address;
+        }
+        $orderCommon = new \app\common\service\Order();
+        $orderDetailModel = new OrderDetail();
+        $orderModel = new Order();
+        $join[] = ['order o', 'o.id = d.order_id', 'left'];
+        $join[] = ['order_source_detail s', 's.id = d.order_source_detail_id', 'left'];
+        foreach ($records as $key => $record) {
+            $record = $record->toArray();
+            if (isset($addressData[$record['id']]) && !empty($addressData[$record['id']])) {
+                $record = array_merge($record, $addressData[$record['id']]);
+            }
+            if (strpos($record['order_number'], '_R') !== false) {
+                $record['is_reissue'] = '是';
+            } else {
+                $record['is_reissue'] = '否';
+            }
+            $account = $this->getAccount($record['channel_id'], $record['channel_account_id']);
+            $record['channel_account_id'] = $account['account_code'];
+            $record['channel_account_name'] = $account['account_name'];
+            $record['shipping_name'] = !empty($record['shipping_id']) ? Cache::store('shipping')->getShippingName($record['shipping_id']) : '';
+            $record['channel_id'] = !empty($record['channel_id']) ? Cache::store('channel')->getChannelName($record['channel_id']) : '';
+            $record['number'] = trim($record['number']);
+            //判断当前包裹号订单是否为合并订单
+            $record['trans_shipping_fee'] = 0;
+            $trans_shipping_fee = $this->getTransShippingFee([$record['package_id']]);
+            if ($record['belong_type'] == 1) {
+                $order_ids = [];
+                //查看所有的详情信息
+                $detailListAll = $orderDetailModel->field('package_id,order_id')->where(['package_id' => $record['package_id']])->select();
+                foreach ($detailListAll as $detail => $list) {
+                    if (!in_array($list['order_id'], $order_ids)) {
+                        array_push($order_ids, $list['order_id']);
+                    }
+                }
+                //查询订单A、B、C的合计货品金额
+                $count_amount = $orderModel->where(['id' => ['in', $order_ids]])->sum('goods_amount');
+                //订单的分摊比例
+                $apportion = sprintf("%.4f", $record['order_goods_amount'] / $count_amount);
+                //包裹总运费
+                $record['shipping_fee'] = sprintf("%.4f", $record['shipping_fee'] * $apportion);
+                #转运费
+                $record['trans_shipping_fee'] = sprintf("%.4f", $trans_shipping_fee * $apportion);
+            } else {
+                $record['trans_shipping_fee'] = $trans_shipping_fee;
+            }
+            //采购员
+            $userInfo = Cache::store('user')->getOneUser($record['purchaser_id']);
+            $record['purchaser_id'] = !empty($userInfo) ? $userInfo['realname'] : '';
+            //开发者
+            $userInfo = Cache::store('user')->getOneUser($record['developer_id']);
+            $record['developer_id'] = !empty($userInfo) ? $userInfo['realname'] : '';
+            //商品成本
+            if (empty($record['shipping_time'])) {
+                $record['sku_cost'] = $orderCommon->getGoodsCostPriceBySkuId($record['sku_id'], $record['warehouse_id']);
+            }
+            $record['sku_total_cost'] = $record['sku_cost'] * $record['sku_quantity'];
+            $record['warehouse_id'] = Cache::store('warehouse')->getWarehouseNameById($record['warehouse_id']);
+            $record['first_shipping_name'] = '';
+            $record['goods_amount_CNY'] = $record['goods_amount'] * $record['rate'];
+//            $record['channel_sku_price'] = $record['channel_sku_price'] * $record['sku_quantity']; //售价原币*数量
+            $order_rate = $record['cost'] > 0 ? $record['sku_total_cost'] / $record['cost'] : 0;//成本占比
+            $record['channel_sku_price'] = $order_rate * $record['goods_amount']; //售价原币(包括数量)=订单总售价*成本占比
+            $record['channel_sku_price_CNY'] = $record['channel_sku_price'] * $record['rate'];
+            $record['channel_cost_CNY'] = $record['channel_cost'] * $record['rate'];
+            $payPal = $record['paypal_fee'] * $record['rate'];   // paypal 费用
+            //利润
+            $cost = $record['channel_cost_CNY'] + $record['cost'] + $record['first_fee'] + $record['tariff'] + $record['package_fee'] + $record['shipping_fee'] + $payPal;
+            $income = $record['pay_fee'] * $record['rate'];
+            $record['profit'] = $record['pay_fee'] * $record['rate'] - $cost;
+            //利润率
+            if (!empty($income)) {
+                $record['profit_margin'] = ($record['profit'] / $income) * 100;
+            } else {
+                $record['profit_margin'] = 0;
+            }
+            $record['profit_margin'] = sprintf("%.2f", $record['profit_margin']) . '%';
+            //物流商
+            $shippingInfo = Cache::store('shipping')->getShipping($record['shipping_id']);
+            $record['carrier'] = '';
+            if ($shippingInfo) {
+                $carrier = Cache::store('carrier')->getCarrier($shippingInfo['carrier_id']);
+                $record['carrier'] = $carrier['fullname'] ?? '';
+            }
+            #转运费(计算方式弃用)
+//            $skuInfo = $orderDetailModel->alias('d')->join($join)
+//                ->field('d.sku_cost,d.sku_quantity,o.cost,o.pay_fee as goods_amount,o.rate,s.channel_sku_price')
+//                ->where(['d.package_id' => $record['package_id']])->select();
+//            $total_price = 0;
+//            foreach ($skuInfo as $index => $item) {
+//                $sku_total_cost = $item['sku_cost'] * $item['sku_quantity'];
+//                $order_rate = $item['cost'] > 0 ? $sku_total_cost / $item['cost'] : 0;//成本占比
+//                $channel_sku_price = $order_rate * $item['goods_amount']; //售价原币(包括数量)=订单总售价*成本占比
+//                $channel_sku_price_CNY = $channel_sku_price * $item['rate'];
+//                $total_price += $channel_sku_price_CNY;
+//            }
+//            $record['trans_shipping_fee'] = 0;
+//            if (!empty($record['channel_sku_price_CNY']) && !empty($total_price)) {
+//                $proportion = $record['channel_sku_price_CNY'] / $total_price;
+//                $trans_shipping_fee = $this->getTransShippingFee([$record['package_id']]);
+//                $record['trans_shipping_fee'] = $trans_shipping_fee * $proportion;
+//            }
+            if (!empty($title)) {
+                $record['shipping_time'] = $record['shipping_time'] ? date('Y-m-d H:i:s', $record['shipping_time']) : 0;
+                $record['pay_time'] = $record['pay_time'] ? date('Y-m-d H:i:s', $record['pay_time']) : 0;
+                $temp = [];
+                foreach ($title as $k => $v) {
+                    $temp[$v] = $record[$v];
+                }
+                array_push($newOrderData, $temp);
+            } else {
+                array_push($newOrderData, $record);
+            }
+        }
+        return $newOrderData;
+    }
+
+    /**
+     * 查询条件
+     * @param $params
+     * @param $where
+     * @return \think\response\Json
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    private function where($params, &$where)
+    {
+        if (isset($params['channel_id']) && !empty($params['channel_id'])) {
+            $where['o.channel_id'] = ['eq', $params['channel_id']];
+        }
+        if (isset($params['site_code']) && !empty($params['site_code'])) {
+            $where['o.site_code'] = ['eq', $params['site_code']];
+        }
+        if (isset($params['account_id']) && !empty($params['account_id'])) {
+            $where['o.channel_account_id'] = ['eq', $params['account_id']];
+            if ($params['channel_id'] == ChannelAccountConst::channel_Joom) {
+                //joom平台特殊操作
+                if ($shop_id = param($params, 'shop_id')) {
+                    $where['o.channel_account_id'] = ['=', $shop_id];
+                } else {
+                    $joomShopModel = new JoomShop();
+                    $account_ids = $joomShopModel->field('id')->where(['joom_account_id' => $params['account_id']])->select();
+                    $account_ids = array_column($account_ids, 'id');
+                    $where['o.channel_account_id'] = ['in', $account_ids];
+                }
+            }
+        }
+
+
+        if (isset($params['warehouse_id']) && !empty($params['warehouse_id'])) {
+            $this->search($params['warehouse_id'], $where, 'p.warehouse_id');
+        }
+        //采购员
+        if (isset($params['purchaser_id']) && !empty($params['purchaser_id'])) {
+            $where['g.purchaser_id'] = ['eq', $params['purchaser_id']];
+        }
+        //销售员
+        if (isset($params['seller_id']) && !empty($params['seller_id'])) {
+            $where['o.seller_id'] = ['eq', $params['seller_id']];
+        }
+        //订单号
+        if (isset($params['order_number']) && !empty($params['order_number'])) {
+            $where['o.order_number'] = ['eq', $params['order_number']];
+        }
+        //邮寄方式
+        if (isset($params['shipping_id']) && intval($params['shipping_id']) == $params['shipping_id'] && $params['shipping_id']) {
+            $where['p.shipping_id'] = ['eq', $params['shipping_id']];
+        }
+        //开发员
+        if (isset($params['developer_id']) && !empty($params['developer_id'])) {
+            $where['g.developer_id'] = ['eq', $params['developer_id']];
+        }
+        if (isset($params['snDate'])) {
+            $params['date_b'] = isset($params['date_b']) ? $params['date_b'] : 0;
+            $params['date_e'] = isset($params['date_e']) ? $params['date_e'] : 0;
+            switch ($params['snDate']) {
+                case 'shipping_time':
+                    $condition = timeCondition($params['date_b'], $params['date_e']);
+                    if (!is_array($condition)) {
+                        return json(['message' => '日期格式错误'], 400);
+                    }
+                    if (!empty($condition)) {
+                        $where['p.shipping_time'] = $condition;
+                    }
+                    break;
+                case 'pay_time':
+                    $condition = timeCondition($params['date_b'], $params['date_e']);
+                    if (!is_array($condition)) {
+                        return json(['message' => '日期格式错误'], 400);
+                    }
+                    if (!empty($condition)) {
+                        $where['o.pay_time'] = $condition;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * 搜索
+     * @param $field
+     * @param array $condition
+     * @param array $join
+     * @param int $page
+     * @param int $pageSize
+     * @return false|\PDOStatement|string|\think\Collection
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function doSearch($field, array $condition = [], array $join = [], $page = 1, $pageSize = 10)
+    {
+        return (new OrderDetail())->alias('d')->field($field)->join($join)->where($condition)->order('o.order_time desc')->page($page,
+            $pageSize)->select();
+    }
+
+    /**
+     * 查询总数
+     * @param $field
+     * @param array $condition
+     * @param array $join
+     * @return int|string
+     */
+    protected function doCount($field, array $condition = [], array $join = [])
+    {
+        return (new OrderDetail())->alias('d')->field($field)->join($join)->where($condition)->count();
+    }
+
+    /**
+     * 获取字段信息
+     * @return string
+     */
+    public function field()
+    {
+        $field = 'p.shipping_time,' .           //发货时间
+            'o.id,' .                      //订单id
+            'd.sku,' .                     //sku
+            'd.sku_id,' .                     //sku_id
+            'd.sku_quantity,' .            //发货数量
+            'd.sku_price,' .            //商品价格
+            'k.weight,' .                  //商品重量
+            'k.spu_name,' .                  //商品名称
+            'o.channel_id,' .              //平台
+            'o.channel_account_id,' .      //平台账号
+            'o.site_code,' .               //站点
+            'p.warehouse_id,' .            //发货仓库
+            'p.number,' .                  //包裹号
+            'p.shipping_id,' .             //邮寄方式id
+            'p.shipping_name,' .           //邮寄方式
+            'p.package_weight,' .          //包裹中重量
+            'p.shipping_fee,' .            //包裹总运费
+            'p.shipping_number,' .         //跟踪号
+            'p.process_code,' .            //物流商处理号
+            'o.order_number,' .            //订单号
+            's.channel_item_id,' .         //item id
+            'o.buyer_id,' .                //买家id
+            'o.buyer,' .                   //买家姓名
+            'o.seller as seller_name,' .                   //销售员
+            'o.country_code,' .            //国家
+//            'r.address,' .                 //收货地址
+//            'r.city,' .                    //城市
+//            'r.province,' .                //省
+//            'r.zipcode,' .                 //邮编
+//            'r.tel,' .                     //电话
+            'o.pay_time,' .                //付款时间
+            'g.purchaser_id,' .            //采购员
+            'g.developer_id,' .            //开发员
+            'o.currency_code,' .           //币种
+            'o.pay_fee as goods_amount,' . //订单总售价原币（财务要支付金额）
+            'o.rate,' .                    //订单汇率
+            's.channel_currency_code,' .   //平台售价币种
+            's.channel_sku_price,' .       //售价原币
+            'd.sku_cost,' .                //商品成本
+            'o.cost,' .                    //订单商品总成本
+            'o.channel_cost,' .            //渠道成交费
+            'o.paypal_fee,' .              //paypal费用
+            'o.first_fee,' .               //头程运输费
+            'o.tariff,' .                  //头程报关费
+            'o.package_fee,' .             //包装费用
+            'o.channel_shipping_free,' .   //平台物流费用
+            'o.pay_fee,' .                 //支付费用
+            'o.belong_type,' .               //所属类型 （0-独立单 1-合并订单 2-多包裹订单）
+            'o.goods_amount as order_goods_amount,' . //货品金额
+            'p.id as package_id'                     //包裹id
+        ;
+        return $field;
+    }
+
+    /**
+     * 关联数据
+     * @return array
+     */
+    public function join()
+    {
+        $join[] = ['order o', 'o.id = d.order_id', 'left'];
+        $join[] = ['order_package p', 'p.id = d.package_id', 'left'];
+        #$join[] = ['order_address r', 'r.order_id = d.order_id', 'left'];
+        $join[] = ['order_source_detail s', 's.id = d.order_source_detail_id', 'left'];
+        $join[] = ['goods_sku k', 'k.id = d.sku_id', 'left'];
+        $join[] = ['goods g', 'g.id = d.goods_id', 'left'];
+        return $join;
+    }
+
+    /**
+     * 搜索内容
+     * @param $snText
+     * @param $where
+     * @param $field
+     */
+    private function search($snText, &$where, $field)
+    {
+        if (is_json($snText) && strpos($snText, ',') !== false) {
+            $snText = json_decode($snText, true);
+            $where[$field] = ['in', $snText];
+        } else {
+            $where[$field] = ['eq', $snText];
+        }
+    }
+
+    /**
+     * 获取转运费
+     * @param int $package_ids
+     * @return int $trans_shipping_fee
+     * @throws Exception
+     */
+    public function getTransShippingFee($package_ids)
+    {
+        try {
+            $orderPackageModel = new OrderPackage();
+            //当前（平台-账号）的包裹数据
+            $packageInfo = $orderPackageModel->field('warehouse_id,shipping_id,package_weight,shipping_time')
+                ->where(['id' => ['in', $package_ids]])->select();
+            $trans_shipping_fee = 0;
+            foreach ($packageInfo as $index => $item) {
+                $param = [
+                    'warehouse_id' => $item['warehouse_id'],    //仓库ID
+                    'carrier_id' => Cache::store('shipping')->getShipping($item['shipping_id'])['carrier_id'] ?? 0,  //物流商ID
+                    'date' => date('Y-m', $item['shipping_time']),  //包裹发货时间
+                    'weight' => $item['package_weight'],    //包裹重量
+                ];
+                //调用获取转运费的接口
+                $amount = (new TransferShippingFee())->transShippingFee($param)['originalTransFee'] ?? 0;
+                $trans_shipping_fee += $amount;
+            }
+            return $trans_shipping_fee;
+        } catch (Exception $ex) {
+            throw new Exception('获取转运费错误信息：' . $ex->getMessage());
+        }
+    }
+}

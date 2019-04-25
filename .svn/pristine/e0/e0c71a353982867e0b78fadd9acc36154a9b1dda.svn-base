@@ -1,0 +1,27 @@
+<?php
+
+namespace Box\Spout\Autoloader;
+
+//require_once 'Psr4Autoloader.php';
+
+use Box\Spout\Autoloader\Psr4Autoloader;
+
+/**
+ * @var string $srcBaseDirectory
+ * Full path to "src/Spout" which is what we want "Box\Spout" to map to.
+ */
+
+
+class autoload{
+    
+    public static function instance() 
+    {
+		$srcBaseDirectory = dirname(dirname(__FILE__));
+		
+        $loader = new Psr4Autoloader();
+        $loader->register();
+        $loader->addNamespace('Box\Spout', $srcBaseDirectory);
+        
+        return $loader;
+    }
+}

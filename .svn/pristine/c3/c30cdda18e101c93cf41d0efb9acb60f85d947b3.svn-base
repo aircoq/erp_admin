@@ -1,0 +1,140 @@
+<?php
+// +----------------------------------------------------------------------
+// | 
+// +----------------------------------------------------------------------
+// | File  : Mail.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-19
+// +----------------------------------------------------------------------
+
+namespace imap;
+
+
+use imap\platform\AbsPlatform;
+use PhpImap\IncomingMail;
+use \Exception as Exception;
+
+/**
+ * Class Mail
+ * @package imap
+ *
+ * @property $platformName
+ * @property $box
+ * @property $orderNo
+ * @property $site
+ */
+class Mail extends  IncomingMail
+{
+    const STATUS_SYNC  = 1;
+    const NO_NEED_REPLY = 2;
+
+    public $mailTime = 0;
+
+    protected $platformInfo = [
+        'platformName' => '',
+        'box'          => '',
+        'site'         => '',
+        'orderNo'      => ''
+    ];
+
+    protected $attachmentsStructurePorts = [];
+
+    /**
+     * @return mixed
+     */
+    public function getBody()
+    {
+        $body = $this->textHtml;
+        if(empty($this->textHtml)){
+            $body = str_replace("\n", '<br/>',$this->textPlain);
+        }
+        return $body;
+    }
+
+
+    /**
+     * @param AbsPlatform $platform
+     * @return $this
+     */
+    public function fetchPlatformInfo(AbsPlatform $platform)
+    {
+        $this->platformInfo['platformName'] = $platform->getPlatformName();
+        $this->platformInfo['orderNo'] = $platform->getOrderNo($this);
+        $this->platformInfo['box'] = $platform->getBox($this);
+        $this->platformInfo['site'] = $platform->getSite($this);
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getPlatformInfo()
+    {
+        return $this->platformInfo;
+    }
+
+    /**
+     * @return array
+     */
+    public function getPlatformName()
+    {
+        return $this->platformInfo['platformName'];
+    }
+
+    /**
+     * @return array
+     */
+    public function getBox()
+    {
+        return $this->platformInfo['box'];
+    }
+
+    /**
+     * @return array
+     */
+    public function getOrderNo()
+    {
+        return $this->platformInfo['orderNo'];
+    }
+
+    /**
+     * @return array
+     */
+    public function getSite()
+    {
+        return $this->platformInfo['site'];
+    }
+
+    /**
+     * @param $name
+     * @return mixed
+     * @throws Exception
+     */
+    public function __get($name)
+    {
+        if(isset($this->platformInfo[$name])) {
+            return $this->platformInfo[$name];
+        }
+        throw new Exception('Call to a undefined property on Mail '. $name);
+    }
+
+    /**
+     * @return array
+     */
+    public function getAttachmentsStructurePorts()
+    {
+        return $this->attachmentsStructurePorts;
+    }
+
+    /**
+     * @param array $attachmentsStructurePort
+     * @param int $portNum
+     */
+    public function addAttachmentsStructurePort($portNum, $attachmentsStructurePort)
+    {
+        $this->attachmentsStructurePorts[] = [$portNum, $attachmentsStructurePort];
+    }
+
+}

@@ -1,0 +1,701 @@
+<?php
+namespace app\finance\service;
+
+use app\common\service\ChannelAccountConst;
+use app\common\service\Common;
+use app\common\service\CommonQueuer;
+use app\finance\queue\AliexpressSettlementExport;
+use app\report\model\ReportExportFiles;
+use think\Exception;
+use app\index\service\ChannelUserAccountMap;
+use app\common\model\aliexpress\AliexpressSettlement;
+use app\common\cache\Cache;
+use app\common\cache\driver\User;
+use think\Loader;
+use app\common\model\aliexpress\AliexpressSettlementReportDetail;
+
+Loader::import('phpExcel.PHPExcel', VENDOR_PATH);
+/**
+ * @author wangwei
+ * @date 2019-4-12 15:58:14
+ */
+class AliexpressSettlementService
+{
+    
+    /**
+     * @desc 获取列表数据
+     * @author wangwei
+     * @date 2019-4-12 14:38:58
+     * @param array $params
+     */
+    public function getIndexData($params){
+        $return = [
+            'data' => [],
+            'sum'=>[],
+            'page' =>1,
+            'pageSize' =>20,
+            'count' => 0
+        ];
+//         $params = [
+//             'date_s'=>'2018-06-01',
+//             'date_e'=>'2018-08-01',
+//             'date_type'=>1,//时间类型,1:付款时间,2:发货时间
+//             'page'=>1,
+//             'pageSize'=>1,
+//             'seller_id'=>'5',
+//             'account_id'=>'3',
+//         ];
+
+        /**
+         * 1、数据校验
+         */
+        //开始时间
+        $start_time_str = paramNotEmpty($params,'date_s','2018-06-01');
+        if(!$start_time = strtotime($start_time_str)){
+            throw new Exception('错误的开始时间格式:' . $params['date_s']);
+        }
+        //结束时间
+        $end_time_str = paramNotEmpty($params,'date_e',date('Y-m-d'));
+        if(!$end_time = strtotime($end_time_str)){
+            throw new Exception('错误的结束时间格式:' . $params['date_e']);
+        }
+        $page = param($params, 'page', 1);
+        $pageSize = param($params, 'pageSize', 50);
+        $return['page'] = $page;
+        $return['pageSize'] = $pageSize;
+        
+        /**
+         * 2、查询当前页数据
+         */
+        $condition = [
+            'date_s'=>$start_time,
+            'date_e'=>$end_time,
+            'date_type'=>param($params, 'date_type','1'),
+            'seller_id'=>param($params, 'seller_id',''),
+            'account_id_arr'=> (isset($params['account_id']) && $params['account_id'] > 0) ? [$params['account_id']] : []
+        ];
+
+        $sdbcRe = $this->getSettlementDataByCondition($condition, $pageSize ,$page);
+        $return['count'] = $sdbcRe['total_count'];
+        $return['data'] = $sdbcRe['data'];
+        if(!$return['count']){
+            return $return;
+        }
+        
+        /**
+         * 3、首行汇总数据
+         */
+        $return['sum'] = $this->getIndexSummary($sdbcRe['order_where'], $sdbcRe['shop_where'], $sdbcRe['oa_summary']);
+        return $return;
+    }
+    
+    /**
+     * @desc 根据条件获取数据
+     * @author wangwei
+     * @date 2019-4-12 19:11:54
+     * @param array $condition
+     * @example $condition = [
+     *          'date_s'=>'2018-06-01',//开始时间
+     *          'date_e'=>'2018-08-01',//结束时间
+     *          'date_type'=>1,//时间类型,1:付款时间,2:发货时间
+     *          'seller_id'=>'5',//销售id
+     *          'account_id_arr'=>['3','5','8'],//账号id
+     * ];
+     * @param int $pageSize //每页条数，0不分页
+     * @param int $page //页码值
+     */
+    public function getSettlementDataByCondition($condition, $pageSize=0, $page=1){
+        $return = [
+            'data'=>[],
+            'total_count'=>0,//满足条件的数据总条数(页面使用)
+            'oa_summary'=>[],//订单金额数据(页面使用)
+            'order_where'=>[],//生成的条件(页面使用)
+            'shop_where'=>[],//生成的条件(页面使用)
+        ];
+        
+        /**
+         * 1、生成where条件
+         */
+        $where = $this->getWhere($condition);
+        $return['order_where'] = $order_where = $where['order_where'];
+        $return['shop_where'] = $shop_where = $where['shop_where'];
+        $group = 'a.account_id';
+        
+        /**
+         * 2、订单上的金额，如果已经缓存，读缓存
+         */
+        $order_cache_name = 'AliexpressIndexOrderAmountSummary';
+        $order_cache_key = md5(print_r($order_where,1));
+        if(!$oa_summary = $this->IndexSummaryCache($order_cache_name, $order_cache_key)){
+            $oa_summary = $this->getIndexOrderAmountSummary($order_where, 0 ,1 ,'',$group);
+            $this->IndexSummaryCache($order_cache_name, $order_cache_key, $oa_summary);
+        }
+        $count = count($oa_summary);
+        $return['total_count'] = $count;
+        if(!$count){
+            return $return;
+        }
+        $return['oa_summary'] = $oa_summary;
+
+        /**
+         * 3、有数据，查询当前页数据
+         */
+        $order = 'a.account_id asc';
+        $order_where['b.wait_delete'] = ['EXP',"=0 OR ISNULL(b.wait_delete)"];//连接明细表,排除待删除的
+        //当前页数据
+        $page_rows = $this->getDataByWhere($order_where, $pageSize, $page, $order, $group);
+        
+        /**
+         * 4、店铺上的金额，如果已经缓存，读缓存
+         */
+        //当前页所有账号id
+        $page_account_id_arr = [];
+        foreach ($page_rows as $page_row){
+            $page_account_id_arr[] = $page_row['account_id'];
+        }
+        //合并账号id
+        if(isset($shop_where['account_id_arr'])){
+            $page_account_id_arr = array_merge($page_account_id_arr,$shop_where['account_id_arr']);
+            unset($shop_where['account_id_arr']);
+        }
+        //账号id去重
+        $page_account_id_arr = array_unique($page_account_id_arr);
+        if(count($page_account_id_arr)==1){
+            $shop_where['a.account_id'] = $page_account_id_arr[0];
+        }else{
+            $shop_where['a.account_id'] = ['in',$page_account_id_arr];
+        }
+        $shop_cache_name = 'AliexpressIndexShopAmountSummary';
+        $shop_cache_key = md5(print_r($shop_where,1));
+        if(!$shop_summary = $this->IndexSummaryCache($shop_cache_name, $shop_cache_key)){
+            $shop_summary = $this->getShopDataByWhere($shop_where, 0 ,1 ,'' ,$group);
+            $this->IndexSummaryCache($shop_cache_name, $shop_cache_key, $shop_summary);
+        }
+        
+        /**
+         * 5、合并整理当前页数据并返回
+         */
+        $return['data'] = $this->arrangeSettlementData($oa_summary, $shop_summary, $page_rows);
+        return $return;
+    }
+    
+    /**
+     * @desc 获取查询条件
+     * @author wangwei
+     * @date 2019-4-12 15:39:37
+     * @param array $condition
+     * @example $condition = [
+     *          'date_s'=>'2018-06-01',//开始时间
+     *          'date_e'=>'2018-08-01',//结束时间
+     *          'date_type'=>1,//时间类型,1:付款时间,2:发货时间
+     *          'seller_id'=>'5',//销售id
+     *          'account_id_arr'=>['3','5','8'],//账号id
+     * ];
+     */
+    private function getWhere($condition){
+        $where = [
+            'order_where'=>[],
+            'shop_where'=>[],
+        ];
+        $order_where = $shop_where = [];
+        //只查未删除的
+        $shop_where['a.wait_delete']=0;
+        $account_id_arr = [];
+        if(isset($condition['account_id_arr']) && is_array($condition['account_id_arr'])){
+            $account_id_arr = $condition['account_id_arr'];
+        }
+        //销售
+        $seller_id = param($condition,'seller_id');
+        if($seller_id > 0) {
+            //获取当前销售负责的账号id
+            $account_ids = ChannelUserAccountMap::getAccountBySellerId(ChannelAccountConst::channel_aliExpress, $seller_id);
+            if($account_id_arr){
+                //账号id取交集
+                $account_id_arr = array_intersect($account_id_arr, $account_ids);
+            }else{
+                $account_id_arr = $account_ids;
+            }
+            //为空时弄一个查不到的值，保证数据查不到
+            $account_id_arr  = $account_id_arr ? $account_id_arr : ['-1'];
+        }
+        if(!empty($account_id_arr)){
+            if(count($account_id_arr)==1){
+                $order_where['a.account_id'] = $account_id_arr[0];
+            }else{
+                $order_where['a.account_id'] = ['in', $account_id_arr];
+            }
+            //这里直接放数组，方便后面追加账号id
+            $shop_where['account_id_arr'] =  $account_id_arr;
+        }
+        //时间
+        $date_type = param($condition,'date_type','1');//默认取  付款时间
+        $date_field = $date_type=='2' ? 'shipping_time' : 'payment_time';
+        $start_time = param($condition,'date_s');
+        $end_time = param($condition,'date_e');
+        if($start_time && $end_time) {
+            $order_where[$date_field] = ['EXP',">={$start_time} and {$date_field}<={$end_time}"];
+            $shop_where['a.transaction_time'] = ['EXP',">={$start_time} and a.transaction_time<={$end_time}"];
+        }else{
+            if($start_time){
+                $order_where[$date_field] = ['>=', $start_time];
+                $shop_where['a.transaction_time'] = ['>=', $start_time];
+            }else if($end_time){
+                $order_where[$date_field] = ['<=', $end_time];
+                $shop_where['a.transaction_time'] = ['<=', $end_time];
+            }
+        }
+        //过滤时间为付款时间,只查已发货数据
+        if($date_field == 'payment_time'){
+            $order_where['shipping_time'] = ['>', 0];
+        }
+        $where['order_where'] = $order_where;
+        $where['shop_where'] = $shop_where;
+        return $where;
+    }
+    
+    /**
+     * @desc 整理结算报告数据 
+     * @author wangwei
+     * @date 2019-4-12 18:09:45
+     * @param array $oa_summary
+     * @param array $shop_summary
+     * @param array $page_rows
+     */
+    public function arrangeSettlementData($oa_summary, $shop_summary, $rows){
+        $return = [];
+        
+        /**
+         * 1、简单校验
+         */
+        if(empty($oa_summary)){
+            return $return;
+        }
+        if(empty($rows)){
+            return $return;
+        }
+        
+        /**
+         * 2、合并数据
+         */
+        $oa_summary = arrayKeyChange($oa_summary, 'account_id');
+        $shop_summary = arrayKeyChange($shop_summary, 'account_id');
+        $rows = arrayKeyChange($rows, 'account_id');
+        $userCache = new User();
+        foreach ($rows as $account_id=>$row){
+            $acc_row = Cache::store('AliexpressAccount')->getTableRecord($account_id);
+            //销售人员
+            $seller_name = '';
+            if($seller_id = ChannelUserAccountMap::getSellerId(ChannelAccountConst::channel_aliExpress, $account_id)){
+                if($userInfo = $userCache->getOneUser($seller_id)){
+                    $seller_name = $userInfo['realname'];
+                }
+            }
+            //系统订单金额
+            $order_amount = isset($oa_summary[$account_id]) ? $oa_summary[$account_id]['order_amount'] : 0;
+            //店铺费用
+            $shop_fee = isset($shop_summary[$account_id]) ? $shop_summary[$account_id]['shop_fee'] : 0;
+            //转账金额
+            $gross_amount = isset($shop_summary[$account_id]) ? $shop_summary[$account_id]['gross_amount'] : 0;
+            $return[] = [
+                'account_id'=>$account_id,//账号id
+                'account_code'=>param($acc_row, 'code', ''),//账号简称
+                'seller_id'=>$seller_id,//销售人员id
+                'seller_name'=>$seller_name,//销售人员名称
+                'order_amount'=>number_format($order_amount,2),//系统订单金额
+                'loan_amount'=>number_format($row['loan_amount'],2),//扣佣后放款
+                'refund_amount'=>number_format($row['refund_amount'],2),//退款金额
+                'refund_amount_propertion'=>$order_amount>0 ? number_format($row['refund_amount'] / $order_amount * 100,2).'%' : "0.00%",//退款比例
+                'withhold_amount'=>number_format($row['withhold_amount'],2),//代扣运费
+                'correlative_amount'=>number_format($row['correlative_amount'],2),//其他与订单相关
+                'shop_fee'=>number_format($shop_fee, 2),//店铺费用
+                'gross_amount'=>number_format($gross_amount,2),//转账金额
+                'gross_amount_propertion'=>$order_amount>0 ? number_format($gross_amount / $order_amount * 100,2).'%' : "0.00%",//转账金额比例
+            ];
+        }
+        
+        return $return;
+    }
+    
+    /**
+     * @desc 获取指定条件的统计数据
+     * @author wangwei
+     * @date 2019-4-12 16:58:53
+     * @param array $order_where
+     * @param array $shop_where
+     * @param array $oa_summary
+     */
+    public function getIndexSummary($order_where, $shop_where, $oa_summary){
+        $return = [];
+        
+        /**
+         * 1、简单校验
+         */
+        if(empty($order_where)){
+            return $return;
+        }
+        if(empty($oa_summary)){
+            return $return;
+        }
+        $order_amount = 0;
+        foreach ($oa_summary as $oa_row){
+            $order_amount += $oa_row['order_amount'];
+        }
+        
+        /**
+         * 2、如果缓存里有，读缓存
+         */
+        $cache_name = 'AliexpressIndexSummary';
+        $cache_key = md5(print_r($order_where,1) . $order_amount);
+        if($summaryCache = $this->IndexSummaryCache($cache_name, $cache_key)){
+            $return = $summaryCache;
+            return $return;
+        }
+        
+        /**
+         * 3、查询订单上的汇总数据
+         */
+        $order_where['b.wait_delete'] = ['EXP',"=0 OR ISNULL(b.wait_delete)"];//连接明细表,排除待删除的
+        $os = $this->getDataByWhere($order_where);
+        if(empty($os)){
+            return $return;
+        }
+        $os_row = $os[0];
+        
+        /**
+         * 4、查询店铺上的汇总数据
+         */
+        if(isset($shop_where['account_id_arr'])){
+            if(count($shop_where['account_id_arr'])==1){
+                $shop_where['a.account_id'] = $shop_where['account_id_arr'][0];
+            }else{
+                $shop_where['a.account_id'] = ['in',$shop_where['account_id_arr']];
+            }
+            unset($shop_where['account_id_arr']);
+        }
+        $shop_summary = $this->getShopDataByWhere($shop_where);
+        $shop_row = param($shop_summary, 0);
+        //店铺费用
+        $shop_fee = param($shop_row, 'shop_fee',0);
+        //转账金额
+        $gross_amount = param($shop_row, 'gross_amount',0);
+        
+        /**
+         * 5、整理返回数据
+         */
+        $return = [
+            'account_id'=>'0',//账号id
+            'account_code'=>'汇总',//账号简称
+            'seller_id'=>'0',//销售人员id
+            'seller_name'=>'',//销售人员名称
+            'order_amount'=>number_format($order_amount,2),//系统订单金额
+            'loan_amount'=>number_format($os_row['loan_amount'],2),//扣佣后放款
+            'refund_amount'=>number_format($os_row['refund_amount'],2),//退款金额
+            'refund_amount_propertion'=>$order_amount>0 ? number_format($os_row['refund_amount'] / $order_amount * 100,2).'%' : "0.00%",//退款比例
+            'withhold_amount'=>number_format($os_row['withhold_amount'],2),//代扣运费
+            'correlative_amount'=>number_format($os_row['correlative_amount'],2),//其他与订单相关
+            'shop_fee'=>number_format($shop_fee,2),//店铺费用
+            'gross_amount'=>number_format($gross_amount,2),//转账金额
+            'gross_amount_propertion'=>$order_amount>0 ? number_format($gross_amount / $order_amount * 100,2).'%' : "0.00%",//转账金额比例
+        ];
+        
+        /**
+         * 6、存入缓存
+         */
+        $this->IndexSummaryCache($cache_name,$cache_key, $return);
+        
+        return $return;
+    }
+    
+    /**
+     * @desc 统计数据缓存 
+     * @author wangwei
+     * @date 2019-4-12 17:29:37
+     * @param string $cache_key
+     * @param array $data
+     * @return boolean|boolean|mixed
+     */
+    private function IndexSummaryCache($name, $cache_key, $data=[]){
+        $return = false;
+        if(!$name || !$cache_key){
+            return $return;
+        }
+        $key = "cache:{$name}:{$cache_key}";
+        if($data){
+            $return = Cache::handler()->set($key, json_encode($data),['ex' => 24*60*60]);
+        }else{
+            if($data_json = Cache::handler()->get($key)){
+                $return = json_decode($data_json,true);
+            }
+        }
+        return $return;
+    }
+    
+    /**
+     * @desc 获取订单金额统计数据
+     * @author wangwei
+     * @date 2019-4-12 16:26:18
+     * @param array $where
+     * @param int $pageSize
+     * @param int $page
+     * @param string $order
+     */
+    public function getIndexOrderAmountSummary($where, $pageSize=0, $page=1, $order='', $group=''){
+        $field = "
+        a.account_id,
+    	SUM(a.payment_amount * a.to_cny_rate ) as order_amount
+        ";
+
+        $db = (new AliexpressSettlement())->where($where);
+
+        if(isset($where['a.account_id']))
+        {
+            $db->force("idx_account_id");
+        }elseif (isset($where['payment_time']))
+        {
+            $db->force("idx_payment_time");
+        }
+
+        $model = $db->alias('a')->field($field);
+        if($pageSize>0){
+            $model->page($page,$pageSize);
+        }
+        if($group){
+            $model->group($group);
+        }
+        if($order){
+            $model->order($order);
+        }
+        return $model->select();
+    }
+    
+    /**
+     * @desc 获取订单分页数据
+     * @author wangwei
+     * @date 2019-4-12 16:26:18
+     * @param array $where
+     * @param int $pageSize
+     * @param int $page
+     * @param string $order
+     */
+    public function getDataByWhere($where = [], $pageSize = 0, $page = 1, $order='', $group=''){
+        $field = "
+        a.account_id,
+        SUM(CASE WHEN b.aliexpress_transaction_type_id IN ('4','5') THEN b.amount * b.to_cny_rate ELSE 0 END ) loan_amount,
+        SUM(CASE WHEN b.aliexpress_transaction_type_id IN ('1','2','11') THEN b.amount * b.to_cny_rate ELSE 0 END) refund_amount,
+        SUM(CASE WHEN b.aliexpress_transaction_type_id IN ('3','10','13') THEN b.amount * b.to_cny_rate ELSE 0 END) withhold_amount,
+        SUM(CASE WHEN b.aliexpress_transaction_type_id IN ('6') THEN b.amount * b.to_cny_rate ELSE 0 END ) correlative_amount
+        ";
+        
+        $model = (new AliexpressSettlement())->where($where)->alias('a')->field($field)
+        ->join('aliexpress_settlement_report_detail b', 'a.aliexpress_order_id=b.aliexpress_order_id',"LEFT");
+
+        if($pageSize>0){
+            $model->page($page,$pageSize);
+        }
+        if($group){
+            $model->group($group);
+        }
+        if($order){
+            $model->order($order);
+        }
+        return $model->select();
+    }
+
+    /**
+     * @desc 获取店铺分页数据
+     * @author wangwei
+     * @date 2019-4-18 17:21:40
+     * @param array $where
+     * @param int $pageSize
+     * @param int $page
+     * @param string $order
+     */
+    public function getShopDataByWhere($where = [], $pageSize = 0, $page = 1, $order='', $group=''){
+        $field = "
+        a.account_id,
+        SUM(CASE WHEN a.aliexpress_transaction_type_id IN ('8','9','12','14') THEN a.amount * a.to_cny_rate ELSE 0 END ) shop_fee,
+        SUM(CASE WHEN a.aliexpress_transaction_type_id IN ('7','15') THEN a.amount * a.to_cny_rate ELSE 0 END) gross_amount
+        ";
+        $model = (new AliexpressSettlementReportDetail())->where($where)->alias('a')->field($field);
+        if($pageSize>0){
+            $model->page($page,$pageSize);
+        }
+        if($group){
+            $model->group($group);
+        }
+        if($order){
+            $model->order($order);
+        }
+        return $model->select();
+    }
+    
+    /**
+     * 报表导出申请
+     * @param $params
+     * @throws Exception
+     */
+    public function exportApply($params)
+    {
+        $userinfo = Common::getUserInfo()->toArray();
+        $userId = $userinfo['user_id'];
+        $cache = Cache::handler();
+        $lastApplyTime = $cache->hget('hash:export_order_apply', $userId);
+        if ($lastApplyTime && time() - $lastApplyTime < 5) {
+            throw new Exception('请求过于频繁', 400);
+        } else {
+            $cache->hset('hash:export_order_apply', $userId, time());
+        }
+        try{
+            $model = new ReportExportFiles();
+            $data['applicant_id'] = $userId;
+            $data['apply_time'] = time();
+            $data['export_file_name'] = $this->getFileName($params);
+            $data['status'] = 0;
+            $data['applicant_id'] = $userId;
+            $model->allowField(true)->isUpdate(false)->save($data);
+            $params['file_name'] = $data['export_file_name'] . ".xlsx";
+            $params['apply_id'] = $model->id;
+            (new CommonQueuer(AliexpressSettlementExport::class))->push($params);
+        }catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * 获取需要导出的文件名称
+     * @param $params
+     * @return string
+     */
+    private function getFileName($params)
+    {
+        $name = [];
+
+        if($start = param($params,"date_s"))
+        {
+            $name[] = $start;
+        }
+
+        if($end = param($params,"date_e"))
+        {
+            $name[] = $end;
+        }
+
+        $fileName = "速卖通店铺资金核算";
+        if($name)
+        {
+           $fileName .= "(".implode("--",$name).")";
+        }
+
+        return $fileName;
+    }
+
+    public function export($params)
+    {
+        try {
+
+            if (!isset($params['apply_id']) || empty($params['apply_id'])) {
+                throw new Exception('导出申请id获取失败');
+            }
+            if (!isset($params['file_name']) || empty($params['file_name'])) {
+                throw new Exception('导出文件名未设置');
+            }
+            $fileName = $params['file_name'];
+            $downLoadDir = '/download/aliexpress_settle_export/';
+            $saveDir = ROOT_PATH . 'public' . $downLoadDir;
+            if (!is_dir($saveDir) && !mkdir($saveDir, 0777, true)) {
+                throw new Exception('导出目录创建失败');
+            }
+            $fullName = $saveDir . $fileName;
+            //创建excel对象
+            $excel = new \PHPExcel();
+            $excel->setActiveSheetIndex(0);
+            $sheet = $excel->getActiveSheet();
+            $letter = ['A','B','C','D','E','F','G','H','I','J','K'];
+            $header = ['账号简称','销售员','系统订单金额','扣佣后放款','退款金额','退款比例%','代扣运费','其他与订单相关','店铺费用','转账金额','转账比例%'];
+
+            $data = $this->getExportData($params);   //要写入的数据
+
+            $i = 0;
+            foreach ($header as $h)
+            {
+                $sheet->setCellValue($letter[$i]."1",$h);
+                $i++;
+            }
+
+            $j=2;
+            if(is_array($data) && count($data) > 0)
+            {
+                foreach ($data as $k=>$v)
+                {
+                    $sheet->getStyle($letter[0].$j.":".$letter[10].$j)->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_LEFT);
+                    $sheet->setCellValue($letter[0].$j,$v['account_code']);
+                    $sheet->setCellValue($letter[1].$j,$v['seller_name']);
+                    $sheet->setCellValue($letter[2].$j,$v['order_amount']);
+                    $sheet->setCellValue($letter[3].$j,$v['loan_amount']);
+                    $sheet->setCellValue($letter[4].$j,$v['refund_amount']);
+                    $sheet->setCellValue($letter[5].$j,$v['refund_amount_propertion']);
+                    $sheet->setCellValue($letter[6].$j,$v['withhold_amount']);
+                    $sheet->setCellValue($letter[7].$j,$v['correlative_amount']);
+                    $sheet->setCellValue($letter[8].$j,$v['shop_fee']);
+                    $sheet->setCellValue($letter[9].$j,$v['gross_amount']);
+                    $sheet->setCellValue($letter[10].$j,$v['gross_amount_propertion']);
+                    $j++;
+                }
+            }
+            @unlink($fullName);
+            $writer = \PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
+            $writer->save($fullName);
+            if (is_file($fullName)) {
+                $applyRecord['exported_time'] = time();
+                $applyRecord['download_url'] = $downLoadDir . $fileName;
+                $applyRecord['status'] = 1;
+                (new ReportExportFiles())->where(['id' => $params['apply_id']])->update($applyRecord);
+            } else {
+                throw new Exception('文件写入失败');
+            }
+        } catch (\Exception $ex) {
+            Cache::handler()->hset(
+                'hash:report_export',
+                $params['apply_id'].'_'.time(),
+                '申请id: ' . $params['apply_id'] . ',导出失败:' . $ex->getMessage() . $ex->getFile() . $ex->getLine());
+            $applyRecord['status'] = 2;
+            $applyRecord['error_message'] = $ex->getMessage();
+            (new ReportExportFiles())->where(['id' => $params['apply_id']])->update($applyRecord);
+        }
+    }
+
+    private function getExportData($params)
+    {
+        //开始时间
+        $start_time_str = paramNotEmpty($params,'date_s','2018-06-01');
+        if(!$start_time = strtotime($start_time_str)){
+            throw new Exception('错误的开始时间格式:' . $params['date_s']);
+        }
+        //结束时间
+        $end_time_str = paramNotEmpty($params,'date_e',date('Y-m-d'));
+        if(!$end_time = strtotime($end_time_str)){
+            throw new Exception('错误的结束时间格式:' . $params['date_e']);
+        }
+
+
+        /**
+         * 2、查询当前页数据
+         */
+        $condition = [
+            'date_s'=>$start_time,
+            'date_e'=>$end_time,
+            'date_type'=>param($params, 'date_type','1'),
+            'seller_id'=>param($params, 'seller_id',''),
+            'account_id_arr'=> (isset($params['account_id']) && $params['account_id'] > 0) ? [$params['account_id']] : []
+        ];
+        if($params['export_type'] == 1)  //部分导出
+        {
+            $condition['account_id_arr'] = $params['account_id_arr'];
+        }
+        $sdbcRe = $this->getSettlementDataByCondition($condition);
+        return $sdbcRe['data'];
+
+    }
+
+    
+}

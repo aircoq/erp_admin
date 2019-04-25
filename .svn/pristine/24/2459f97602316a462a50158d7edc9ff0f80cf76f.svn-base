@@ -1,0 +1,372 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: RondaFul
+ * Date: 2017-05-23
+ * Time: 19:15
+ */
+/**
+ * @Author Bill
+ * @CreateTime 2017-05-23 19:15
+ */
+
+namespace service\tms;
+
+
+use org\Curl;
+
+
+/**
+ * TMS使用API
+ * Class TmsApi
+ * @package service\tms
+ * TODO:数据验证,版本信息
+ */
+class TmsApi
+{
+    /**
+     * 地址验证成功码
+     */
+    const VALIDATION_SUCCESS = 3;
+
+    /**
+     * 地址验证失败码
+     */
+    const VALIDATION_FAILED = 0;
+    /**
+     * 持久化
+     * @var
+     */
+    private static $_instance;
+
+    /**
+     * 测试url
+     * @var string
+     */
+    private $_testUrl = "https://test.hwcservice.com/V4/Api";
+
+    /**
+     * 正式Url
+     * @var string
+     */
+    private $_url = "https://test.hwcservice.com/V4/Api";
+
+    /**
+     * 地址验证
+     * @var string
+     */
+    private $_addressValiUrl = "/AddressValidationService/ValidationAddress";
+
+    /**
+     * 打印大标签
+     * @var string
+     */
+    private $_printLabelUrl = "/LabelPrintService/PrintLabel";
+
+
+    /**
+     * 打印退货标签
+     * @var string
+     */
+    private $_printReturnLabelUrl = "/LabelPrintService/PrintReturnLabel";
+
+    /**
+     * 打印小标签
+     * @var string
+     */
+    private $_printSmallLabelUrl = "/LabelPrintService/PrintReturnLabel";
+
+    /**
+     * 取消小标签
+     * @var
+     */
+    private $_invalidSmallLabelUrl = "/LabelPrintService/InvalidSmallLabel";
+
+
+    /**
+     * 取消标签
+     * @var string
+     */
+    private $_cancelLabelUrl = "/LabelPrintService/InvalidSmallLabel";
+
+
+    /**
+     * 请求箱号
+     * @var string
+     */
+    private $_getPackageNumberUrl = "/LabelPrintService/GetPackageNumber";
+
+    /**
+     * 确定箱号与标签号
+     * @var string
+     */
+    private $_confirmLabelUrl = "/LabelPrintService/GetPackageNumber";
+
+    /**
+     * 一票多签
+     * @var string
+     */
+    private $_printMultiLabelUrl = "/LabelPrintService/PrintMultiLabel";
+
+    /**
+     * 物流查询
+     * @var string
+     */
+    private $_queryTrackingStatusUrl = "/TrackingService/QueryTrackingStatus";
+
+
+    /**
+     * url格式后缀
+     * @var string
+     */
+    private $_urlSuff = "?type=json";
+
+    /**
+     * 版本信息
+     * @var string
+     */
+    private $_version = "0.0.0.3";
+
+    /**
+     * 请求id
+     * @var
+     */
+    private $_requestId = "rondaful";
+
+    /**
+     * 用户名
+     * @var string
+     */
+    private static $_username = "LiLangDa";
+
+    /**
+     * 密码
+     * @var string
+     */
+    private static $_password = "9^nF,92p";
+
+    /**
+     * 错误信息
+     * @var
+     */
+    private $_errorMsg;
+    /**
+     * 签名
+     * @var
+     */
+    private static $authSign;
+
+    /**
+     * 最大请求次数
+     * @var int
+     */
+    private $_maxQuestCount = 3;
+
+    /**
+     * 请求响应
+     * @var
+     */
+    private $_response = "";
+
+    /**
+     * @return TmsApi
+     * @author Bill
+     */
+    public static function getInstance()
+    {
+        if (is_null(self::$_instance) || isset (self::$_instance)) {
+            self::$_instance = new self();
+        }
+        return self::$_instance;
+    }
+
+    /**
+     * 地址验证接口
+     * @author Bill
+     */
+    public function addressValidation($data = [])
+    {
+        return $this->sendRequest($this->_addressValiUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 打印大标签
+     * @author Bill
+     */
+    public function printLabel($data = [])
+    {
+        return $this->sendRequest($this->_printLabelUrl, json_encode($this->_createData($data)));
+    }
+
+
+    /**
+     * 打印退货标签
+     * @author Bill
+     */
+    public function printReturnLabel($data = [])
+    {
+        return $this->sendRequest($this->_printReturnLabelUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 打印小标签
+     * @author Bill
+     */
+    public function printSmallLabel($data = [])
+    {
+        return $this->sendRequest($this->_printSmallLabelUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 取消小标签
+     * @author Bill
+     */
+    public function invalidSmallLabel($data = [])
+    {
+        return $this->sendRequest($this->_invalidSmallLabelUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 取消标签
+     * @author Bill
+     */
+    public function cancelLabel($data = [])
+    {
+        return $this->sendRequest($this->_cancelLabelUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 请求箱号
+     * @author Bill
+     */
+    public function getPackageNumber($data = [])
+    {
+        return $this->sendRequest($this->_getPackageNumberUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 绑定箱号
+     * @author Bill
+     */
+    public function confirmLabel($data = [])
+    {
+        return $this->sendRequest($this->_confirmLabelUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 打印一票多签
+     * @author Bill
+     */
+    public function printMultiLabel($data = [])
+    {
+        return $this->sendRequest($this->_printMultiLabelUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 物流服务
+     * @author Bill
+     */
+    public function queryTrackingStatus($data = [])
+    {
+        return $this->sendRequest($this->_queryTrackingStatusUrl, json_encode($this->_createData($data)));
+    }
+
+    /**
+     * 发送请求
+     * @param string $url
+     * @param array $data
+     * @return string
+     * @author Bill
+     * TODO:服务化
+     */
+    public function sendRequest($uri = '', $data = [])
+    {
+        $url = $this->_testUrl . $uri . $this->_urlSuff;
+        //请求稳定性需要加强
+        $response = Curl::curlPost($url, $data, $this->_getHeader());
+        if (!empty($response)) {
+            $this->_response = $response;
+            return true;
+        }
+        $this->_errorMsg = "网络请求不稳定!请稍后再试!";
+        return false;
+    }
+
+    /**
+     * 解析请求结果
+     * @author Bill
+     */
+    public function getResponse()
+    {
+        $responseData = json_decode($this->_response, true);
+        if ($responseData["Data"] === null) {
+            $this->_errorMsg = $responseData["ResponseError"]["LongMessage"];
+            return false;
+        }
+        return $responseData["Data"];
+    }
+
+    /**
+     * 返回错误信息
+     * @author Bill
+     */
+    public function getErrorMsg()
+    {
+        return $this->_errorMsg;
+    }
+
+    /**
+     * 生成数据
+     * @param array $data
+     * @return array|bool
+     * @author Bill
+     */
+    private function _createData($data = [])
+    {
+        if (empty($data))
+            return false;
+
+        $baseData = [
+            "Data" => $data,
+            "RequestId" => $this->_requestId,
+            "RequestTime" => $this->_createUTCTime(),
+            "Version" => $this->_version,
+        ];
+
+        return $baseData;
+    }
+
+    /**
+     * 生成UTC时间
+     * @author Bill
+     */
+    private function _createUTCTime()
+    {
+        return gmdate("M d Y H:i:s", time());
+    }
+
+    /**
+     * 获取签名
+     * @author Bill
+     */
+    private static function getAuthSign()
+    {
+        if (!empty(self::$authSign))
+            return self::$authSign;
+        self::$authSign = base64_encode(self::$_username . ':' . self::$_password);
+        return self::$authSign;
+    }
+
+    /**
+     * 生成头部
+     * @author Bill
+     */
+    private function _getHeader()
+    {
+        $headers = [
+            "Content-Type:application/json",
+            "Authorization:Basic " . self::getAuthSign()
+        ];
+        return $headers;
+    }
+}

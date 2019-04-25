@@ -1,0 +1,14 @@
+<?php
+
+namespace service\shipping\operation;
+
+use service\shipping\operation\Aliexpress;
+
+/**
+ * @desc 南京wish
+ * @package app\carrier\controller
+ */
+class WishNj extends Aliexpress
+{
+    
+}

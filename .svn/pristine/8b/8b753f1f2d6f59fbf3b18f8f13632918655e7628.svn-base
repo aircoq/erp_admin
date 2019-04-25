@@ -1,0 +1,276 @@
+<?php
+namespace app\customerservice\controller;
+
+use app\common\model\aliexpress\AliexpressMsgDetail;
+use app\common\model\customerservice\AmazonEmailContent;
+use app\customerservice\service\KeywordManageService;
+use app\customerservice\service\KeywordRecordService;
+use think\Controller;
+use think\Request;
+use think\Db;
+use app\common\service\Common as CommonService;
+use app\common\controller\Base;
+use app\common\model\customerservice\MessageKeywordMatch as MessageKeywordMatchModel;
+use app\common\model\ebay\EbayMessage;
+use app\common\model\customerservice\AmazonEmail;
+use Exception;
+use app\common\model\ebay\EbayEmail;
+
+/**
+ * @module 客服管理
+ * @title 关键词抓取记录页面
+ * Date: 2019/02/23
+ */
+class KeywordsRecord extends Base
+{
+
+    /**
+     * @title 关键词抓取记录列表
+     * @author denghaibo
+     * @method GET
+     * @url /keywords-list
+     */
+    public function index()
+    {
+        try {
+            $request = Request::instance();
+            $page = $request->get('page', 1);
+            $pageSize = $request->get('pageSize', 10);
+            $params = $request->param();
+
+            $service = new KeywordRecordService();
+            $where = $service->index_where($params);
+
+
+            $count = MessageKeywordMatchModel::where($where)->alias('m')
+                ->join('message_keyword k', 'k.id=m.message_keyword_id', 'LEFT')->count();
+            $field = 'm.id,m.channel_id,m.account_id,k.keyword,k.type,m.auto_reply,m.buyer_id,m.receive_time,m.create_time';
+            $lists = MessageKeywordMatchModel::field($field)->alias('m')->where($where)->page($page, $pageSize)->order('id desc')
+                ->join('message_keyword k', 'k.id=m.message_keyword_id', 'LEFT')->select();
+
+            $keywordManageService = new KeywordManageService();
+            $type = $keywordManageService->allType();
+
+            foreach ($lists as &$list) {
+                if ($list['channel_id'] == 1) {
+                    $list['channel'] = 'ebay';
+                    $account_code = Db::table('ebay_account')->where(['id' => $list['account_id']])->value('code');
+                    $list['account_code'] = $account_code;
+                } elseif ($list['channel_id'] == 2) {
+                    $list['channel'] = '亚马逊';
+                    $account_code = Db::table('amazon_account')->where(['id' => $list['account_id']])->value('code');
+                    $list['account_code'] = $account_code;
+                } elseif ($list['channel_id'] == 4) {
+                    $list['channel'] = '速卖通';
+                    $account_code = Db::table('aliexpress_account')->where(['id' => $list['account_id']])->value('code');
+                    $list['account_code'] = $account_code;
+                }
+
+                if ($list['type']) {
+                    $list['type_name'] = $type[$list['type'] - 1]['label'];
+                }
+            }
+
+            $result = [
+                'data' => $lists,
+                'page' => $page,
+                'pageSize' => $pageSize,
+                'count' => $count,
+            ];
+
+            return json($result, 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage() . $e->getFile() . $e->getLine()], 400);
+        }
+    }
+
+    /**
+     * @title 增加关键词抓取记录
+     * @method POST
+     * @url /keywords-list/add
+     */
+    public function addKeyword()
+    {
+        try {
+            $return = [
+                'ask' => 0,
+                'message' => '增加关键词抓取记录错误!'
+            ];
+
+            $request = Request::instance();
+            $params = $request->param();
+
+            $service = new KeywordRecordService();
+            $re = $service->save_message($params);
+
+            if ($re == 3 || $re == 0) {
+                $return['message'] = '增加失败!';
+                return json($return, 500);
+            } elseif ($re == 2) {
+                $return['ask'] = 1;
+                $return['message'] = '记录已存在!';
+                return json($return, 200);
+            } else {
+                $return['ask'] = 1;
+                $return['message'] = '增加成功!';
+                return json($return, 200);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage() . $e->getFile() . $e->getLine()], 400);
+        }
+    }
+
+    /**
+     * @title 查看消息
+     * @method GET
+     * @url /keywords-list/view
+     */
+    public function viewMessage()
+    {
+        try{
+            $return = [
+                'ask' => 0,
+                'message' => '查看消息错误!',
+                'data'=>''
+            ];
+            $data=[];
+
+            $request = Request::instance();
+            $id = $request->get('id', 0);
+
+            if (empty($id))
+            {
+                return json(['message' => 'id为必须'], 400);
+            }
+
+            $message = MessageKeywordMatchModel::where(['id'=>$id])->find();
+            if ($message['channel_id'] == 1)
+            {
+                if ($message['message_type'] == 0){
+                    $ebayMessageModel = new EbayMessage();
+                    $data = $ebayMessageModel->where(['id'=>$message['message_id']])->field('subject,message_text as content')->find();
+                }elseif ($message['message_type'] == 1){
+                    $ebayEmailModel = new EbayEmail();
+                    $data = $ebayEmailModel->alias('e')->where(['e.id'=>$message['message_id']])->field('e.subject,c.content')
+                        ->join('ebay_email_content c','c.list_id=e.id','LEFT')->find();
+                }
+            }elseif ($message['channel_id'] == 2){
+                $amazonEmailmodel = new AmazonEmail();
+                $data = $amazonEmailmodel->alias('a')->where(['a.id'=>$message['message_id']])->field('a.subject,c.content')
+                    ->join('amazon_email_content c','c.id=a.id','LEFT')->find();
+            }elseif ($message['channel_id'] == 4){
+                $aliexpressMessageModel = new AliexpressMsgDetail();
+                $data = $aliexpressMessageModel->where(['id'=>$message['message_id']])->field('content')->find();
+            }
+
+            if (empty($data))
+            {
+                $return['message'] = '查看消息失败!';
+                return json($return, 500);
+            }else{
+                $return['ask'] = 1;
+                $return['message'] = '查看消息成功!';
+                $return['data'] = $data;
+                return json($return, 200);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage() . $e->getFile() . $e->getLine()], 400);
+        }
+    }
+
+    /**
+     * @title 关键词类型
+     * @method GET
+     * @url /keywords-list/type
+     * @return array
+     */
+    public function allType()
+    {
+        $type=[
+            ['label'=> '质量问题','value'=>1],
+            ['label'=> '包裹问题','value'=>2],
+            ['label'=> '物流问题','value'=>3],
+            ['label'=> '发货时间','value'=>4],
+            ['label'=> '仓库错发漏发','value'=>5],
+            ['label'=> '买家不满意','value'=>6],
+            ['label'=> '与描述不符','value'=>7],
+            ['label'=> '发票','value'=>8],
+            ['label'=> '其它','value'=>9],
+        ];
+
+        return json($type, 200);
+    }
+
+    /**
+     * @title 获取渠道
+     * @method GET
+     * @url /keywords-list/channel
+     * @return array
+     */
+    public function channels()
+    {
+        $channel=[
+            ['label'=> 'Ebay','value'=>1],
+            ['label'=> '亚马逊','value'=>2],
+            ['label'=> '速卖通','value'=>4],
+        ];
+
+        return json($channel, 200);
+    }
+
+    /**
+     * @title 获取ebay账号
+     * @method GET
+     * @url /keywords-list/ebay-account
+     * @return \think\response\Json
+     */
+    public function getEbayAccount()
+    {
+        try {
+            $service = new KeywordRecordService();
+            $datas = $service->ebayAccount();
+
+            return json($datas);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage() . $e->getFile() . $e->getLine()], 400);
+        }
+    }
+
+    /**
+     * @title 获取amazon账号
+     * @method GET
+     * @url /keywords-list/amazon-account
+     * @return \think\response\Json
+     */
+    public function getAmazonAccount()
+    {
+        try {
+            $service = new KeywordRecordService();
+            $datas = $service->amazonAccount();
+
+            return json($datas);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage() . $e->getFile() . $e->getLine()], 400);
+        }
+    }
+
+    /**
+     * @title 获取aliexpress账号
+     * @method GET
+     * @url /keywords-list/aliexpress-account
+     * @return \think\response\Json
+     */
+    public function getAliexpressAccount()
+    {
+        try {
+            $service = new KeywordRecordService();
+            $datas = $service->aliexpressAccount();
+
+            return json($datas);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage() . $e->getFile() . $e->getLine()], 400);
+        }
+    }
+
+}
+

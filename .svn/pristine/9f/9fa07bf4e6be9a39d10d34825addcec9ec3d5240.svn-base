@@ -1,0 +1,308 @@
+<?php
+namespace service\shipping\operation;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+use app\common\model\OrderDetail;
+use app\order\service\PackageService;
+use app\common\model\Order;
+use app\common\cache\Cache;
+use org\Curl;
+use think\Exception;
+use app\goods\service\GoodsHelp;
+use app\common\service\ChannelAccountConst;
+use app\carrier\service\PackageLabelFileService;
+
+/**
+ * zoodmall线上物流
+ * @class Zoodmall
+ * @package service\shipping\operation
+ */
+class Zoodmall
+{
+    private $client;
+    // 配置信息
+    private $_config = [
+        'label_url'   => 'http://www.clevylinks.net:8070/api/v2/',
+        'url'   => 'http://116.202.20.7:2222/china/',
+//        'url'   => 'http://www.clevylinks.net:7070/api/', //测试
+//        'url'   => 'http://116.202.20.7:5000/china/', //测试
+        'header' => [
+            "Content-Type: application/json"
+        ],
+        'username'=>'',
+        'password'=>'',
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return boolean
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_secret'])||empty($config['client_id']) ) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['username'] = $config['client_id'];
+        $this->_config['password'] = $config['client_secret'];
+        return true;
+    }
+    /**
+     * 获取运输方式详细信息
+     * @param array $config 账号 token配置
+     * @return array
+     */
+    public function getExpress(array $config)
+    {
+        $this->result['data'] = [
+            [
+                'code' => 'GP_ping',
+                'name' => '平邮',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code' => 'GP_ghao',
+                'name' => '挂号',
+                'has_tracking_number' => 1
+            ],
+
+        ];
+        $this->result['success'] = true;
+        return $this->result;
+    }
+
+    /**
+     * 创建物流订单
+     * @param array $config
+     * @param $order
+     * @return array
+     */
+    public function createOrder(array $config,$order,$confirm = false)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+          if ($order['channel_id']!=ChannelAccountConst::channel_Zoodmall) {
+                $this->result['error'] = [
+                    'error_msg' => '不是zoodmall平台不能用此渠道',
+                    'error_code' => 1  // 1为错误， 2为包裹已经提交
+                ];
+                return $this->result;
+            }
+
+            $param=$this->bulidData($order);
+            $url = $this->_config['url'] .'createShipmentOrder';
+            $header = $this->_config['header'];
+            $responseJson = Curl::curlPost($url, $param,$header);
+            //日志记录
+            $arr_log = [
+                'url' => $this->_config['url'],
+                'header' => '',
+                'request' => $param,
+                'response' => $responseJson
+            ];
+            if(in_array($order['number'],['154812653566','154812658539','154812658566','154812658581','154820577607'])){
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log,true);
+            }
+            $response = json_decode($responseJson, true);
+            if (isset($response['status']) && $response['status']=='OK'&& isset($response['data']) && $response['data'][0]['status']=='OK') {
+                $this->result['data']['number'] =$response['data'][0]['customerOrderNumber'];                            // 客户订单号
+                $this->result['data']['package_code'] = '';                              // One World包裹处理号
+                $this->result['data']['trackingNumber'] = $response['data'][0]['parcelNo'];                            // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];                           // 是否有跟踪号
+                $this->result['data']['confirm'] = true;                                                 // 是否交运
+                $this->result['data']['label'] = true;                              // 是否有pdf
+                $this->result['data']['label_url'] = '';                              // 是否有pdf
+                $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                $this->result['success'] = true;
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => $response['data'][0]['message'] ??'下单失败',
+                    'error_code' => 1  // 1为错误， 2为包裹已经提交
+                ];
+            }
+
+        }catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+    private  function bulidData($data){
+        //获取平台订单信息
+        $packageService = new PackageService();
+        $order_ids = $packageService->getOrderIdsByPackageId($data['package_id']);
+        $orderModel = new Order();
+        $detailList = $orderModel->field('channel_order_number,goods_amount')->where(['id' => ['in',$order_ids]])->select();
+        $channel_order_number=[];
+        $total_value=0;
+        foreach ($detailList as $d => $detail) {
+            if (!in_array($detail['channel_order_number'], $channel_order_number)) {
+                array_push($channel_order_number, $detail['channel_order_number']);
+            }
+            $total_value+=$detail['goods_amount'];
+        }
+        $channel_order_ids=implode(',',$channel_order_number);
+        //产品信息
+        $invoices = [];
+        $transport_property=[];
+        foreach($data['declared_info'] as $k=>$declared){
+            $transport_property[]=(new GoodsHelp)->getTPropertiesTextBySkuId($k);
+            $declared = isset($data['declared_info'][$k]) ? $data['declared_info'][$k] : [];
+            $invoices[] = [
+                "itemName"=> $declared['declared_name_en'],
+                "itemNameLocalLang"=> $declared['declared_name_cn'],
+                "itemDescription"=> "",
+                "itemQty"=> $declared['qty'],
+                "itemTotalWeightInGrams"=> (int)str_replace(',','',$declared['declared_weight']*$declared['qty']),
+                "itemTotalPriceInCents"=> (int)str_replace(',','',$declared['declared_value']*$declared['qty']*100),
+                "itemCurrency"=>$declared['declared_value_currency'],
+                "itemHsCode"=> $declared['hs_code'],
+                "itemDetailUrl"=>$declared['url'],
+                "itemSku"=>  $declared['sku'],
+                "itemBrand"=> "",
+            ];
+        }
+        $shipping_method_code=explode('_',$data['shipping_method_code']);
+        $productType=$data['shipping_method_code']=='GP_ghao'?1:2;
+        $result = [
+            "customerOrderNumber"=> $data['number'],
+            "corridorCode"=> $shipping_method_code[0],
+            "productType"=> $productType,
+            "sellerCode"=>$data['channel_account_id'],
+            "parcelWeightInGrams"=> (int)str_replace(',','',$data['estimated_weight']),
+            "recipientOrderNumber"=> $channel_order_ids,
+            "recipientOrderSource"=> 'Zoodmall',
+            "recipientFullName"=> $data['name'],
+            "recipientPhone"=> !empty($data['phone'])?$data['phone']:$data['tel'],
+            "recipientAddress"=> $data['street']. $data['street2'],
+            "recipientCity"=>$data['city'],
+            "recipientProvince"=> empty($data['province'])?$data['city']:$data['province'],
+//            "recipientZipCode"=>$this->zip($data['country_code'],$data['zip']),
+            "recipientZipCode"=>empty($data['zip'])?0000:$data['zip'],
+            "recipientCtryCode"=>$data['country_code'],
+            "batteryType"=>strpos(implode('',$transport_property),'电池')===false?0:1, //是否带电,
+            "liquid"=> 0,
+            "originCountry"=> 'CN',
+            "customer"=> [
+                'customerCode'=>$this->_config['username'],
+                'customerToken'=>$this->_config['password']
+            ],
+            "items"=>$invoices
+        ];
+        return json_encode($result);
+
+    }
+
+    public function zip($country_code,$zip)
+    {
+
+        switch ($country_code){
+            case 'LB':
+                $zip=empty($zip)?'00':$zip;
+                break;
+        }
+        return $zip;
+
+    }
+
+    /**
+     * 取消订单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = true;
+        return $this->result;
+    }
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+
+        try{
+            $this->result['number'] = $order['number'];
+            if (isset($order['shipping_number']) && empty($order['shipping_number'])) {
+                $this->result['error'] = [
+                    'error_msg' => '跟踪号不能为空',
+                    'error_code' => 1  // 1为错误， 2为包裹已经提交
+                ];
+                return $this->result;
+            }
+            if($order['label_source_type']=='1'  && !empty($order['shipping_number']) && isset($order['package_id'])){
+                (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+                ];
+                return $this->result;
+            }
+            //$responseString  = Curl::curlGet($this->_config['url'].'shipmentLabel/'.$order['shipping_number']);
+            $responseString  = Curl::curlGet($this->_config['label_url'].'orders/label/zoodmall/'.$order['shipping_number']);
+
+            if($responseString){
+                if(strpos($responseString,'%PDF')===false){
+                    throw new Exception('面单下载失败');
+                }
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'],base64_encode($responseString),'pdf');
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'=>'获取面单失败',
+                    'error_code'=>1
+                ];
+            }
+        } catch(Exception $ex) {
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+
+
+
+    }
+}

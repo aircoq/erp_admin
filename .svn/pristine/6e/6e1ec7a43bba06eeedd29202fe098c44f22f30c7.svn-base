@@ -1,0 +1,76 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-17
+ * Time: 上午10:40
+ */
+
+namespace swoole;
+
+
+class WebSocketCmder
+{
+    private $server;
+    private $frame;
+    private $cmd;
+
+    public function __construct(\swoole_websocket_server $server, \swoole_websocket_frame $frame, $cmd)
+    {
+        $this->server = $server;
+        $this->frame = $frame;
+        $this->cmd = $cmd;
+    }
+
+    public function process()
+    {
+        $class = $this->getProcessClass($this->cmd->cmd);
+        if(class_exists($class)){
+            $obj = new $class($this->cmd->data);
+            if($obj instanceof WebSocketCmd){
+                $result = $obj->execute();
+                $this->send($result);
+            }
+        }
+    }
+
+    private function send($data)
+    {
+        $data = [
+            'next' => $this->cmd->next,
+            'data' => $data,
+            'type' => 'common'
+        ];
+        $data = json_encode($data);
+        $this->server->push($this->frame->fd, $data);
+    }
+
+    public function getProcessClass($cmd)
+    {
+        return __NAMESPACE__."\\websocketCmd\\".$cmd;
+    }
+
+    public static function parseCmd($cmd)
+    {
+        if($class = static::findCmdClass($cmd->cmd)){
+            return new $class($cmd->data);
+        }else{
+            return null;
+        }
+    }
+
+    public static function findCmdClass($cmd)
+    {
+        if(static::isLoadCmd){
+            return static::cmds[$cmd];
+        }else{
+            static::loadCmd();
+            return static::findCmdClass($cmd);
+        }
+    }
+
+    public static function loadCmd()
+    {
+        
+    }
+}

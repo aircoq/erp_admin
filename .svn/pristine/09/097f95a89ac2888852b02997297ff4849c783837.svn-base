@@ -1,0 +1,25 @@
+<?php
+namespace swoole\cmd;
+use swoole\SwooleCmd;
+use swoole\SwooleCmdResult;
+
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-12
+ * Time: 下午9:09
+ */
+class Reload extends SwooleCmd
+{
+
+    public function execute(\swoole_websocket_server $server): SwooleCmdResult
+    {
+        $server->reload();
+        $result = new SwooleCmdResult($this);
+        $result->setCode("ok");
+        $result->setResult(['time'=>time()]);
+        echo "reload ok \n";
+        return $result;
+    }
+
+}

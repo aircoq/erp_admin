@@ -1,0 +1,322 @@
+<?php
+namespace service\shipping\operation;
+
+use app\common\cache\Cache;
+use service\shipping\operation\Common;
+use app\common\model\Order;
+use org\Xml;
+use app\common\service\ChannelAccountConst;
+use app\common\model\OrderDetail;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+/**
+ *  SfExpress 顺丰物流方式
+ */
+class SfExpress
+{
+    // 配置信息   
+    private $_config = [
+        'url'    => 'http://sfapi.trackmeeasy.com/ruserver/webservice/sfexpressService?wsdl',     //正式地址
+//        'url'   => 'http://115.159.70.250:8280/ruserver/webservice/sfexpressService?wsdl',            //测试地址
+        'header' => [
+
+        ],
+        'client_id'=>'',
+        'client_secret'=>'',
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    private $country_city_code = [
+        'RU'    =>  'MOW',
+        'LT'    =>  'VNO',
+        'LV'    =>  'RIX',
+        'EE'    =>  'TLL',
+        'SE'    =>  'ARN',
+        'NO'    =>  'OSL',
+        'FI'    =>  'HEL',
+        'BY'    =>  'MSQ',
+        'UA'    =>  'KBP',
+        'PL'    =>  'WAW'
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return array | void
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_id'])  || empty($config['client_secret'])) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return $this->result;
+        }
+        $this->_config['client_id']       = $config['client_id'];
+        $this->_config['client_secret']   = $config['client_secret'];
+//        $this->_config['client_id']       = 'erptest';
+//        $this->_config['client_secret']   = '78BE1BCAAED1EE08D344F894FBB296D3';
+    }
+
+    public function createOrder($config,$order,$confirm=true)
+    {
+        if (!isset($order['number'])) {
+            $order = $order[0];
+        }
+        $this->result['number'] = $order['number'];
+        $this->formatHeader($config);
+
+        $this->getOrderInfo($order);
+
+        $xml = $this->buildDataRu($order);
+        $verifyCode = $this->verifyCode($xml);
+        $response = $this->requestApi($xml, $verifyCode);
+        //日志记录
+        $arr_log = [
+            'url'=>'',
+            'header'=>'',
+            'request'=>['xml'=>$xml,'code'=>$verifyCode],
+            'response'=>$response
+        ];
+        $response = $this->xmlToArray($response);
+        if (is_array($response)) {
+            if(isset($response['Head']) && $response['Head']=='OK'){
+                $result = $response['Body']['OrderResponse']['@attributes'];
+                $this->result['data']['number']             = $result['orderid'];                            // 客户订单号
+                $this->result['data']['package_code']       = $result['mailno'];                              // One World包裹处理号
+                $this->result['data']['trackingNumber']     = param($result, 'agent_mailno', '') ;                            // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'] ;                           // 是否有跟踪号
+                $this->result['data']['confirm']            = true;                                                 // 是否交运
+                $this->result['data']['label']              = false;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+
+            }else{
+                //重复下单问题
+                $result = param($response, 'ERROR');
+                if(strstr($result, '重复下单') && strstr($result, 'mailno=')){
+                    $mailno_1 = strstr($result, 'mailno=');
+                    $mailno_2 = substr($mailno_1, 7);
+                    $mailno= strstr($mailno_2, ' ', true);
+
+                    $agent_mailno = '';
+                    $agent_mailno_1 = strstr($result, 'agent_mailno=');
+                    if($agent_mailno_1){
+                        $agent_mailno_2 = substr($agent_mailno_1, 13);
+                        $agent_mailno = strstr($agent_mailno_2, ' ', true);
+                    }
+                    $this->result['data']['number']             = $order['number'];                            // 客户订单号
+                    $this->result['data']['package_code']       = $mailno;                              // One World包裹处理号
+                    $this->result['data']['trackingNumber']     = $agent_mailno ;                            // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'] ;                           // 是否有跟踪号
+                    $this->result['data']['confirm']            = true;                                                 // 是否交运
+                    $this->result['data']['label']              = false;                              // 是否有pdf
+                    $this->result['data']['label_url']          = '';                              // 是否有pdf
+                    $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                    $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                    $this->result['success']                    = true;
+                }else {
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                    $this->result['error'] = [
+                        'error_msg'  =>$result,
+                        'error_code' => 1  // 1为错误， 2为包裹已经提交
+                    ];
+                }
+            }
+        }else {
+            $this->result['error'] = [
+                'error_msg'  => '网络错误,连接不上服务器',
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        if($order['label_source_type']=='1' ){
+
+            if(isset($order['package_id'])){
+                (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+            }
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+            ];
+            $this->result['number'] = $order['number'];
+            return $this->result;
+        }
+    }
+
+    /**
+     * SfExpress api（请求不同的参数，提交到不同的api）
+     * @param unknown $xml
+     * @param unknown $verifyCode
+     */
+    private function requestApi($xml, $verifyCode)
+    {
+        set_time_limit(0);
+        libxml_disable_entity_loader(false);
+        $client = new \SoapClient($this->_config['url']);
+        $result = $client->__soapCall('sfKtsService', array("xml" => $xml, "verifyCode"=> $verifyCode));
+        //$newResult = Xml::xmlToArray($result);
+        //$newResult = $this->xmlToArray($result);
+        return $result;
+    }
+
+    /**
+     * 生成验证码
+     * @return 返回验证码
+     */
+    private function verifyCode($xml)
+    {
+        $joinStr = $xml.$this->_config['client_secret'];
+        return base64_encode(md5($joinStr,TRUE));
+    }
+
+    public function getExpress($config){
+        $data = [
+            ['code'=>'29','name'=>'顺丰国际电商专递'],
+            ['code'=>'10','name'=>'顺丰国际小包(挂号)'],
+            ['code'=>'9','name'=>'顺丰国际小包(平邮)']
+        ];
+        $this->result['success'] = true;
+        $this->result['data'] = $data;
+        return $this->result;
+    }
+
+    private function getOrderInfo(&$order)
+    {
+        $order_data = (new Order())->field('channel_order_number, channel_id')->where('id', $order['order_id'])->find();
+        if(empty($order_data)){
+            $this->result['error'] = [
+                'error_msg'  => '找不到订单信息',
+                'error_code' => 1
+            ];
+            return $this->result;
+        }
+        $order['channel_order_number'] = $order_data['channel_order_number'];//平台订单号
+        switch ($order_data['channel_id']) {
+            case ChannelAccountConst::channel_ebay:
+                $order['platform_code'] = 'ebay';
+                break;
+            case ChannelAccountConst::channel_amazon:
+                $order['platform_code'] = 'amazon';;
+                break;
+            case ChannelAccountConst::channel_wish:
+                $order['platform_code'] = 'wish';;
+                break;
+            case ChannelAccountConst::channel_aliExpress:
+                $order['platform_code'] = 'aliexpress';;
+                break;
+            case ChannelAccountConst::channel_Joom:
+                $order['platform_code'] = 'joom';
+                break;
+            default:
+                $this->result['error'] = [
+                    'error_msg'  => '不支持的平台',
+                    'error_code' => 1
+                ];
+                return $this->result;
+        }
+    }
+
+    private function buildDataRu($data){
+        $referenceID = isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number']: $data['number'];
+        $proXml = '';
+        foreach($data['declared_info'] as $k=>$declared){
+            $proXml .= '<Cargo name="'.$declared['declared_name_en'].'" count="'.$declared['qty'].'" ';
+            $proXml .= 'unit="piece" weight="'.number_format($declared['declared_weight']/1000, 3).'" ';
+            $proXml .= 'amount="'.number_format($declared['declared_value'],3).'" currency="USD" ';
+            $proXml .= 'cname="'.$declared['declared_name_cn'].'" hscode="'.$declared['hs_code'].'" ';
+            $proXml .= 'ename="'.$declared['declared_name_en'].'"  order_url="" />';
+        }
+        $data['street'] = $data['street2'] ? $data['street'].' '.$data['street2'] : $data['street'];
+        $xml = '<?xml version="1.0" encoding="utf-8"?><Request service="OrderService" lang="zh_CN">';
+        $xml .= '<Head>'.$this->_config['client_id'].'</Head>';
+        $xml .= '<Body>';
+        $xml .= '<Order orderid="'.$referenceID.'"  platform_order_id = "'.$data['channel_order_number'].'" ';
+        $xml .= 'platform_code = "'.$data['platform_code'].'"  erp_code="0000"  express_type="'.$data['shipping_method_code'].'" ';
+        $xml .= 'j_company="'.$data['sender']['sender_company'].'"  j_contact="'.$data['sender']['sender_name'].'" ';
+        $xml .= 'j_mobile="'.$data['sender']['sender_mobile'].'" j_tel="'.$data['sender']['sender_phone'].'" ';
+        $xml .= 'j_province="'.$data['sender']['sender_state'].'" j_city="'.$data['sender']['sender_city'].'" ';
+        $xml .= 'j_address="'.$data['sender']['sender_street'].'" d_mobile="'.$data['phone'].'" ';
+        $xml .= 'd_tel="'.$data['tel'].'" d_province="'.$data['province'].'" ';
+        $xml .= 'd_city="'.  (isset($this->country_city_code[$data['country_code']])?$this->country_city_code[$data['country_code']]:'') .'" d_address="'.$data['street'].'" ';
+        $xml .= 'parcel_quantity="1" pay_method="1" ';
+        $xml .= 'declared_value="'.number_format($data['declared_amount'], 3).'" ';
+        $xml .= 'declared_value_currency="USD" ';
+        $xml .= 'custid="" j_country="CN" ';
+        $xml .= 'j_county="" j_post_code="'.$data['sender']['sender_zipcode'].'" ';
+        $xml .= 'd_country="'.$data['country_code'].'" d_county="" d_company="'.$data['name'].'" d_contact="'.$data['name'].'" ';
+        $xml .= 'd_post_code="'.$data['zip'].'" cargo_total_weight="'.number_format($data['estimated_weight']/1000, 3).'" ';
+       /* $xml .= 'sendstarttime="" cargo_length="'.($data['length']/10).'" ';
+        $xml .= 'cargo_width="'.($data['width']/10).'" cargo_height="'.($data['height']/10).'" ';*/
+        $xml .= 'sendstarttime="" cargo_length="0" ';
+        $xml .= 'cargo_width="0" cargo_height="0" ';
+        $xml .= 'operate_flag="1" isBat="1" remark="">';
+        $xml .= $proXml;
+        $xml .= '<Extra passport_status="" d_email="'.$data['email'].'" order_website="http://aliexpress.com" order_shopname="" d_contact_family_name="" d_contact_middle_name="" />';
+        $xml .= '</Order>';
+        $xml .= '</Body>';
+        $xml .= '</Request>';
+        return $xml;
+    }
+
+    private function xmlToArray($xml){
+
+        //禁止引用外部xml实体 
+
+        libxml_disable_entity_loader(true);
+
+        $xmlstring = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+
+        $val = json_decode(json_encode($xmlstring),true);
+
+        return $val;
+
+    }
+}

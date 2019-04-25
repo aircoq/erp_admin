@@ -1,0 +1,198 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/6/5
+ * Time: 18:16
+ */
+
+namespace walmart;
+
+use walmart\WalmartBaseApi;
+
+
+class WalmartOrderApi extends WalmartBaseApi
+{
+
+    /**
+     * 通过订单ID，拿取订单信息用于更新；
+     * @param $order_id 订单ID
+     */
+    public function getOrderById($order_id)
+    {
+        $url = 'https://marketplace.walmartapis.com/v3/orders/' . $order_id;
+        $result = $this->authcall($url, 'GET');
+        if (is_array($result)) {
+            return $result;
+        }
+        return false;
+    }
+
+    /**
+     * 抓取一段时间内的订单的列表
+     * @param datetime $startTime
+     * @param datetime $endTime
+     * @param int $limit
+     * @return array
+     *
+     */
+    public function getOrderLists($startTime = '', $endTime = '', $limit = 200, $nextStr = '')
+    {
+        if ($nextStr) {
+            return $this->getNextOrder($nextStr);
+        }
+
+        $url = 'https://marketplace.walmartapis.com/v3/orders';
+        $data = [
+            'createdStartDate' => $startTime,
+            'limit' => $limit,
+        ];
+        $data['createdEndDate'] = $endTime;
+        $result = $this->authcall($url, 'GET', $data);
+        if (is_array($result)) {
+            if (isset($result['error'])) {
+                $this->error = $result['error'];
+                return false;
+            }
+            return $result;
+        }
+        return false;
+    }
+
+    /**
+     * 通过订单的$nextCursor，拿取订单信息
+     * @param $nextCursor
+     */
+    public function getNextOrder($nextCursor)
+    {
+        $url = 'https://api-gateway.walmart.com/v3/orders?' . $nextCursor;
+        $result = $this->authcall($url, 'GET');
+        if (is_array($result)) {
+            if (isset($result['error'])) {
+                $this->error = $result['error'];
+                return false;
+            }
+            return $result;
+        }
+        return false;
+    }
+
+
+    /**
+     * 通过订单的$orderId，确认订单
+     * @param $nextCursor
+     */
+    public function acknowledgeOrders($orderIds)
+    {
+        $url = 'https://marketplace.walmartapis.com/v3/orders/'.$orderIds.'/acknowledge';
+        $data = [];
+        $data = $this->arrayToXml($data, 'orderShipment', 'xmlns:ns2="http://walmart.com/mp/orders" xmlns:ns3="http://walmart.com/mp/v3/orders" xmlns:ns4="http://walmart.com/"', 'ns3:', '');
+
+        $result = $this->authcall($url, 'POST',$data);
+        if (is_array($result)) {
+            if (isset($result['error'])) {
+                $this->error = $result['error'];
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+
+
+    /**
+     * @title 已经组装好了授权的；
+     * @param $url 访问地焉
+     * @param $mehod 访问方法'GET'， 'POST'
+     * @param $data 数据；
+     * @return mixed josn
+     */
+    protected function authcall($url, $mehod, $data = '')
+    {
+        if (is_array($data)) {
+            $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($data);
+            $data = '';
+        }
+        $time = $this->getTimestamp();
+        $header = [
+            'Accept' => 'application/xml',
+            'WM_CONSUMER.CHANNEL.TYPE' => $this->channel_type,
+            'WM_CONSUMER.ID' => $this->client_id,
+            'WM_SEC.TIMESTAMP' => $time,
+            'WM_SEC.AUTH_SIGNATURE' => $this->getSign($url, $mehod, $time),
+            'WM_SVC.NAME' => 'Walmart Marketplace',
+            'WM_QOS.CORRELATION_ID' => $this->code . time(),
+        ];
+        $result = $this->httpCurl($url, $header, $mehod, $data);
+        return $this->xmlToArray($result);
+    }
+
+    /** 发货订单
+     * @param $order_id 订单ID
+     * @param $item_nums 订单商品总数量
+     * @param $trackingInfo 跟踪提供商信息【shipDateTime-发货时间,carrier：快递商,methodCode：运输方法，trackingNumber：追踪号，trackingURL：查快递的链接】
+     * @param $isOtherCarrier 是否为walmart平台快递商
+     * @return bool
+     */
+    public function fulfillOne($order_id, $item_nums = [], $trackingInfo = [], $isOtherCarrier = false)
+    {
+        $carrierName = [];
+        if ($isOtherCarrier) {
+            $carrierName = [
+                'OtherCarrier' => $trackingInfo['carrier'],
+            ];
+        } else {
+            $carrierName = [
+                'carrier' => $trackingInfo['carrier'],
+            ];
+        }
+
+        $url = "https://marketplace.walmartapis.com/v3/orders/$order_id/shipping";
+        $orderLine = [];
+
+//        for ($i= 1;$i<= $item_nums ;$i++) {
+        foreach ($item_nums as $v) {
+            $one['orderLine'] = [
+                'lineNumber' => $v,
+                'orderLineStatuses' => [
+                    'orderLineStatus' => [[
+                        'status' => 'Shipped',
+                        'statusQuantity' => [
+                            'unitOfMeasurement' => 'Each',
+                            'amount' => 1,
+                        ],
+                        'trackingInfo' => [
+                            'shipDateTime' => date('Y-m-d\TH:i:s\Z', $trackingInfo['shipDateTime']),
+                            'carrierName' => $carrierName,
+                            'methodCode' => $trackingInfo['methodCode'] ?? '',
+                            'trackingNumber' => $trackingInfo['trackingNumber'] ?? '',
+                            'trackingURL' => $trackingInfo['trackingURL'] ?? '',
+                        ],
+                    ],
+                ],],
+            ];
+            $orderLine[] = $one;
+        }
+        $data['orderLines'] = $orderLine;
+        $data = $this->arrayToXml($data, 'orderShipment', 'xmlns:ns2="http://walmart.com/mp/orders" xmlns:ns3="http://walmart.com/mp/v3/orders" xmlns:ns4="http://walmart.com/"', 'ns3:', '');
+//        echo $data;die;
+        $result = $this->authcall($url, 'POST', $data);
+
+        if (is_array($result)) {
+            if (isset($result['error'])) {
+                $this->error = $result['error']['description'] ?? '';
+                if(!$this->error){
+                    foreach ($result['error'] as $k=>$items){
+                        $this->error .=  $k .'--' . $items['description'];
+                    }
+                }
+                return false;
+            }
+            return true; //成功
+        }
+        return false;
+    }
+
+
+}

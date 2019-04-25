@@ -1,0 +1,230 @@
+<?php
+// +----------------------------------------------------------------------
+// | 
+// +----------------------------------------------------------------------
+// | File  : MailSender.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-27
+// +----------------------------------------------------------------------
+
+namespace imap;
+
+use app\common\cache\Cache;
+use PHPMailer\PHPMailer\PHPMailer;
+
+class MailSender
+{
+    static protected $instance = null;
+    protected $lastErrorInfo = '';
+
+    /**
+     * @var EmailAccount
+     */
+    protected $account = null;
+
+
+    private function __construct()
+    {
+    }
+
+    /**
+     * 获取MailSender单粒
+     * @return MailSender
+     */
+    static public function getInstance()
+    {
+        if(static::$instance === null){
+            static::$instance = new self();
+        }
+        return static::$instance;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLastErrorInfo()
+    {
+        return $this->lastErrorInfo;
+    }
+
+
+    /**
+     * 设置当前邮箱账号
+     * @param EmailAccount $account
+     */
+    public function setAccount(EmailAccount $account)
+    {
+        $this->account = $account;
+        $this->lastErrorInfo = '';
+    }
+
+
+
+    /**
+     * 发送邮件
+     * 如果发送失败返回false,使用getLastErrorInfo获取错误信息
+     * @param $customerAddress
+     * @param $subject
+     * @param $content
+     * @param $attachFile
+     * @return array
+     * @throws \PHPMailer\PHPMailer\Exception
+     */
+    public function send($customerAddress,$subject, $content,$attachFile)
+    {
+        $return = [
+            //status 0 一般错误，1发送成功，2并发超三个，3每分钟超30条，4每天超10000条，5 3或者4
+            'status'=>0,
+            'message'=>'',
+        ];
+
+        $account = $this->account;
+        $result = $this->send_email_check($account->getEmailAccount());
+
+        if ($result['status'] == 3 || $result['status'] == 4)
+        {
+            $return['status'] = $result['status'];
+            $return['message'] = $result['message'];
+            return $return;
+        }
+
+        $phpMailer = new PHPMailer();
+        $_this = $this;
+        $phpMailer->isSMTP();
+        $phpMailer->SMTPAuth = true;
+        $phpMailer->SMTPSecure = 'tls';
+//        $phpMailer->SMTPDebug = 2;
+        $phpMailer->Host = $account->getSmtpServ();
+        $phpMailer->Port = $account->getSmtpSslPort();
+
+        $phpMailer->Username = $account->getEmailAccount();
+        $phpMailer->Password = $account->getEmailPassWord();
+
+        $phpMailer->setFrom($account->getEmailAccount());
+        $phpMailer->addAddress($customerAddress);
+        $phpMailer->CharSet = 'UTF-8';
+        $phpMailer->Subject = $subject;
+        $phpMailer->isHTML();
+        $phpMailer->Body = $content;
+        //附近是数组，还是字符串；
+        if (is_array($attachFile)) {
+            foreach ($attachFile as $file) {
+                $phpMailer->addAttachment($file);
+            }
+        } else {
+            $phpMailer->addAttachment($attachFile);
+        }
+        $isSent = $phpMailer->send();
+        if(!$isSent){
+            $this->lastErrorInfo = $phpMailer->ErrorInfo;
+            $return = $this->handle_return_msg($phpMailer->ErrorInfo, $account->getEmailAccount());
+
+            unset($phpMailer);
+            gc_collect_cycles();
+//            Cache::handler()->hSet('hash:email_send_log:'. $_this->account->getEmailAccount(), date('YmdHis'), $phpMailer->ErrorInfo);
+        }else{
+            $return['status'] = 1;
+            $return['message'] = '发送成功';
+
+            unset($phpMailer);
+            gc_collect_cycles();
+        }
+        return $return;
+    }
+
+
+    /**
+     * @desc outlook发邮件限制，1.同一时间不能发送三个以上的消息，2.每分钟 30 封邮件，3.每天 10000 个收件人的收件人的速率限制。
+     * @param $account_id
+     * @return bool
+     */
+    private function send_email_check($email)
+    {
+        $return = [
+            'status'=>0,
+            'message'=>''
+        ];
+
+        $cache = Cache::handler();
+
+        $key_day = 'email:'.$email.':day:' . strtotime(date('Y-m-d', time()));
+        $key_minute = 'email:'.$email.':minute:' . date('i',time());
+        $key_second = 'email:'.$email.':second:' . date('s',time());
+
+        if (Cache::handler()->exists($key_second))
+        {
+            $cache->IncrBy($key_second, 1);
+
+            if (Cache::handler()->get($key_second) > 3)
+            {
+                //同一时间并发超过3个
+                sleep(1);
+            }
+        }else{
+            Cache::handler()->set($key_second, 1,['nx', 'ex' => 1]);
+        }
+
+        if (Cache::handler()->exists($key_minute))
+        {
+            $cache->IncrBy($key_minute, 1);
+
+            if (Cache::handler()->get($key_minute) > 30)
+            {
+                //每分钟超过 30 封邮件
+                $return['status'] = 3;
+                $return['message'] = '每分钟超过 30 封邮件,请稍后再发';
+                return $return;
+            }
+        }else{
+            Cache::handler()->set($key_minute, 1,['nx', 'ex' => 60]);
+        }
+
+        if (Cache::handler()->exists($key_day))
+        {
+            $cache->IncrBy($key_day, 1);
+
+            if (Cache::handler()->get($key_day) > 10000)
+            {
+                //当天邮件发送数超出限制！请隔天再发。
+                $return['status'] = 4;
+                $return['message'] = '当天邮件发送数超出限制！请隔天再发。';
+                return $return;
+            }
+        }else{
+            Cache::handler()->set($key_day, 1,['nx', 'ex' => 86400]);
+        }
+
+        return true;
+    }
+
+    private function handle_return_msg($error_info, $email)
+    {
+        $return = [
+            'status'=>0,
+            'message'=>'',
+        ];
+
+        $key_minute = 'email:'.$email.':minute:' . date('i',time());
+        $key_second = 'email:'.$email.':second:' . date('s',time());
+
+        if (preg_match('/sender thread limit exceeded/i', $error_info)) {
+
+            $return['status'] = 2;
+            $return['message'] = '同一时间并发超过3个，请稍后再发';
+            Cache::handler()->set($key_second, 3,['nx', 'ex' => 1]);
+
+        }else if (preg_match('/SubmissionQuotaExceededException/i', $error_info)){
+
+            $return['status'] = 5;
+            $return['message'] = '每分钟超过 30 封邮件，请稍后再发 或 当天邮件发送数超出限制！请隔天再发。';
+            Cache::handler()->set($key_minute, 30,['nx', 'ex' => 60]);
+
+        }else{
+            $return['status'] = 0;
+            $return['message'] = $error_info;
+        }
+        return $return;
+    }
+}

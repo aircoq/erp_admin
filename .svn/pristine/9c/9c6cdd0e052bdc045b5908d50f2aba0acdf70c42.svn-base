@@ -1,0 +1,611 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-31
+ * Time: 下午2:26
+ */
+
+namespace app\common\cache\driver;
+
+
+use app\common\cache\Cache;
+use swoole\SwooleTasker;
+
+class Queuer extends Cache
+{
+
+    protected $db = 1;
+    private $zsetQueue = 'zset:queue|hosttype_';
+    private $queueAttr = 'hash:queue|attribute';
+
+    public function lock($key)
+    {
+        return $this->redis->set('lock:' . $key, time(), ['nx', 'ex' => 5]);
+    }
+
+    public function unlock($key)
+    {
+        $this->redis->del('lock:' . $key);
+    }
+
+    public function addSwooleWorker($worker, $priority = 1)
+    {
+        $this->persistRedis->hSet('hash:queues|swooleWorker', $worker, intval($priority));
+    }
+
+    public function isSwooleWorker($worker)
+    {
+        return $this->persistRedis->hExists("hash:queues|swooleWorker", $worker);
+    }
+
+    public function remSwooleWorker($worker)
+    {
+        $this->persistRedis->hDel('hash:queues|swooleWorker', $worker);
+    }
+
+    public function getSwooleWorkers()
+    {
+        return $this->persistRedis->hGetAll('hash:queues|swooleWorker');
+    }
+    
+    //----------------start-------------------
+    public function initClearData($hostType, $ipList = null)
+    {
+    	if(empty($hostType)){
+    		return "please configure the local swoole 'current_hosttype'.";
+    	}elseif($ipList){
+    		$hash = 'hash:swoole:hosttype|ip';
+    		$ip = array_shift($ipList);
+    		$existed = $this->persistRedis->hGet($hash, $hostType);
+    		if($existed && $ip != $existed){
+    			return "the local swoole 'current_hosttype={$hostType}' already exists, Please reconfigure it.";
+    		}else{
+    			$this->persistRedis->hSet($hash, $hostType, $ip);
+    		}
+    	}
+    	$this->clearTasks($hostType);
+    	///Clear queues without data
+    	$this->persistRedis->del($this->zsetQueue . $hostType);
+    	$allQueue = \app\common\model\Queue::where('status', 1)->where('host_type', $hostType)->column('queue_class, priority');
+    	foreach ($allQueue as $queuer => $priority){
+    		$queuer = path2class($queuer);
+    		$this->restWaitQueue($queuer);
+    		$this->resetQueueHash($queuer);
+    		$this->addQueueHostType($queuer, $hostType, $priority);
+    	}
+    }
+    
+    public function resetQueueHash($queuer, $setHash = null)
+    {
+    	$data = $this->persistRedis->lRange("queue:$queuer", 0, -1);
+    	foreach ($data as $n => $params){
+    		if(! $this->memberCount($queuer, $params)){
+    			$this->persistRedis->lRem("queue:$queuer", $params, 1);
+    			unset($data[$n]);
+    		}
+    	}
+    	if($setHash){
+    		$hashArr = $this->persistRedis->hKeys("hash:queuer|$queuer");
+    		foreach ($hashArr as $params){
+    			if(! in_array($params, $data)){
+    				$this->memberRemove($queuer, $params);
+    			}
+    		}
+    	}
+    }
+    
+    public function addQueueHostType($queuer, $hostType, $priority = 5)
+    {
+    	return $this->persistRedis->zAdd($this->zsetQueue . $hostType, intval($priority), $queuer);
+    }
+    
+    public function remQueueHostType($queuer, $hostType)
+    {
+    	return $this->persistRedis->zRem($this->zsetQueue . $hostType, $queuer);
+    }
+    
+    public function changeQueueHostType($queuer, $oldType, $newType, $priority)
+    {
+    	$this->persistRedis->multi();
+    	$this->remQueueHostType($queuer, $oldType);
+    	$this->addQueueHostType($queuer, $newType, $priority);
+    	return $this->persistRedis->exec() ? true : false;
+    }
+    
+    public function getQueueByHostType($hostType, $withscores = true)
+    {
+    	return $this->persistRedis->zRevRange($this->zsetQueue . $hostType, 0, -1, $withscores);
+    }
+    
+    public function checkQueueHostType($queuer, $hostType)
+    {
+    	return $this->persistRedis->zScore($this->zsetQueue . $hostType, $queuer) === false ? false : true;
+    }
+    
+    public function getQueueHosttypeKey(){
+    	$typeArr = [];
+    	$len = strlen($this->zsetQueue);
+    	$tmpArr = $this->persistRedis->keys($this->zsetQueue .'*');
+    	foreach($tmpArr as $key){
+    		$s = substr($key, $len);
+    		$typeArr[$s] = $s;
+    	}
+    	return $typeArr;
+    }
+    
+    public function getQueueAttribute($queuer)
+    {
+    	$result = $this->persistRedis->hGet($this->queueAttr, $queuer);
+    	return $result ? json_decode($result, true) : null;
+    }
+    public function setQueueAttribute($queuer, $value)
+    {
+    	is_array($value) && ($value = json_encode($value));
+    	$result = $this->persistRedis->hSet($this->queueAttr, $queuer, $value);
+    	return $result === false ? false : true;
+    }
+    //-----------------------------------
+    
+    public function queueCount($queuer, $incr = 0)
+    {
+    	if($incr){
+    		$result = $this->persistRedis->hIncrBy("hash:queues|count", $queuer, $incr);
+    	}else{
+    		$result = $this->persistRedis->hGet("hash:queues|count", $queuer);
+    	}
+    	return  $result;
+    }
+
+    public function remQueue($queuer, $params)
+    {
+        return $this->persistRedis->lRem("queue:$queuer", serialize($params), 1);
+    }
+
+    public function doQueue($queuer, $used = 0)
+    {
+    	if($used){
+    		$data = $this->persistRedis->hIncrBy('hash:queues|doing', $queuer, $used);
+    	}else{
+    		$data = $this->persistRedis->hGet('hash:queues|doing', $queuer);
+    	}
+        return $data;
+    }
+
+    public function clearDoQueues()
+    {
+        $this->persistRedis->del('hash:queues|doing');
+    }
+    
+    public function pushQueue($queuer, $params)
+    {
+//         if($this->persistRedis->lPush("queue:$queuer", $params)){
+//             $this->memberCountIncr($queuer, $params, 1);
+//         }
+        $script = <<<EOT
+    local qList = 'queue:'.. KEYS[1]
+    local qHash = 'hash:queuer|'.. KEYS[1]
+    redis.pcall('hincrby', qHash, KEYS[2], 1)
+    redis.pcall('lpush', qList, KEYS[2])
+EOT;
+        return $this->persistRedis->eval($script, [$queuer, $params], 2);
+    }
+
+    public function pushTimer($queuer, $params, $timer)
+    {
+        if($this->persistRedis->zAdd("timer:scopes:$queuer", $timer, serialize([$queuer, $params]))){
+            $this->memberCountIncr($queuer, $params, 1);
+        }
+    }
+    
+    public function removeTimer($queuer, $params)
+    {
+       return $this->persistRedis->zRem("timer:scopes:$queuer", serialize([$queuer, $params]));
+    }
+
+    public function allTimerTick($hosttype = null)
+    {
+        $keys = $this->persistRedis->keys("timer:scopes:*");
+        $len = strlen("timer:scopes:");
+        foreach ($keys as $key) {
+        	if($this->checkQueueHostType(substr($key, $len), $hosttype)){
+        		$this->timerTick($key);
+        	}
+        }
+        unset($keys);
+        //$this->timerTick();
+    }
+
+    public function timerTick($key = 'timer:scopes')
+    {
+        $now = time();
+        $lastCount = $this->persistRedis->zCard($key);
+        if ($lastCount <= 0) {
+            return null;
+        }
+        $queues = $this->persistRedis->zRangeByScore($key, '-inf', $now, ['limit' => [0, 100]]);
+        $this->persistRedis->multi();
+        foreach ($queues as $queue) {
+            /**
+             * @var $params string
+             */
+            list($queue, $params) = unserialize($queue);
+            $this->pushTopQueue($queue, $params);
+            //$this->addSwooleWorker($queue);
+        }
+        //$count = count($queues);
+        array_unshift($queues, $key);
+        call_user_func_array([$this->persistRedis, "zRem"], $queues);
+        if (!$this->persistRedis->exec()) {
+            $this->timerTick($key);
+        }
+        //$remainCount = $this->persistRedis->zCard($key);
+        unset($queues);
+        //echo "Queuer:timerTick Key:{$key} {$count} lastCount {$lastCount} remainCount {$remainCount} success\n";
+    }
+
+    public function pushTopQueue($queuer, $params)
+    {
+        $this->persistRedis->rPush("queue:$queuer", $params);
+    }
+
+    public function popQueue($queuer)
+    {
+        $result = null;
+        $first	= null;
+        $keep	= true;
+        $resetCount = 0;
+        do{
+        	$pop = $this->persistRedis->rpoplpush("queue:$queuer", "queueWait:$queuer") ?: false;
+        	if ($pop) {
+        		empty($first) && ($first = $pop);
+        		if($this->memberCount($queuer, $pop)){
+        			$result = $pop;
+        			$keep = false;
+        		}else{
+        			if($resetCount && $pop == $first){
+        				$first = null;
+        				$resetCount = 0;
+        				$this->remWaitQueue($queuer, unserialize($pop));
+        			}else{
+        				$this->restWaitQueue($queuer, unserialize($pop));
+        				$resetCount++;
+        			}
+        		}
+        	}else{
+        		$keep = false;
+        	}
+        }while($keep);
+        return $result;
+    }
+
+    public function queueLength($queuer)
+    {
+        return $this->persistRedis->lLen("queue:$queuer");
+    }
+
+    /**
+     * @doc 队列
+     */
+    public function addQueue($queuer, $type)
+    {
+        $this->persistRedis->hSet('hash:queues', $queuer, $type);
+    }
+
+    public function getQueue($queuer)
+    {
+        return $this->persistRedis->hGet('hash:queues', $queuer);
+    }
+    
+    public function queues()
+    {
+    	return $this->persistRedis->hGetAll('hash:queues') ?: [];
+    }
+
+    //删除整个队列
+    public function delQueue($queuer, $hosttype)
+    {
+        //$this->remSwooleWorker($queuer);
+    	//$this->remQueueHostType($queuer, $hosttype);
+        //$this->persistRedis->hDel('hash:queues', $queuer);
+        $this->persistRedis->del("queue:$queuer");
+        $this->persistRedis->del("hash:queuer|$queuer");
+        $this->persistRedis->del("queueWait:$queuer");
+        $this->persistRedis->del("hash:queue|fail|$queuer");
+        $this->persistRedis->del("timer:scopes:$queuer");
+    }
+
+    /* public function delFailTag($queuer, $element = null)
+    {
+        if ($element) {
+            $this->persistRedis->hDel("hash:queue|fail|$queuer", $element);
+        } else {
+            $this->persistRedis->del("hash:queue|fail|$queuer");
+        }
+
+    } */
+
+    public function restWaitQueue($queuer = null, $params = null)
+    {
+    	$result = null;
+        if($queuer){
+            $qKey = "queue:$queuer";
+            $waitQueueKey = "queueWait:$queuer";
+            if($params){
+                $params = serialize($params);
+                if($this->persistRedis->lPush($qKey, $params)){
+                	$result = $this->persistRedis->lRem($waitQueueKey, $params, 1);
+                }
+            }else{
+                while($this->persistRedis->rpoplpush($waitQueueKey, $qKey)){
+                	$result = true;
+                }
+                $this->persistRedis->del($waitQueueKey);
+            }
+            return $result;
+            //$this->addSwooleWorker($queuer, forward_static_call([$queuer, 'getPriority']));
+        }else{
+            $types = $this->persistRedis->keys("queueWait:*");
+            $cutLen = strlen("queueWait:");
+            foreach ($types as $type) {
+                $queue = substr($type, $cutLen);
+                while ($param = $this->persistRedis->rpoplpush($type, "queue:$queue")){
+                }
+                $this->persistRedis->del($type);
+                //$this->addSwooleWorker($queue, forward_static_call([$queue, 'getPriority']));
+            }
+        }
+
+    }
+
+    public function isExistWaitQueue($queuer, $element)
+    {
+
+    }
+    
+    public function showWaitQueue($queuer, $len=19)
+    {
+        $result = $this->persistRedis->lRange("queueWait:$queuer", 0, $len);
+        foreach ($result as $k => $val){
+            $result[$k] = unserialize($val);
+        }
+        return $result;
+    }
+
+    public function remWaitQueue($queue, $params, $isDelayed = null)
+    {
+        $params = serialize($params);
+        if(! $isDelayed){
+            if($this->memberCountIncr($queue, $params, -1) <= 0){
+                $this->memberRemove($queue, $params);
+            }
+        }
+        $result = $this->persistRedis->lRem("queueWait:$queue", $params, 1);
+    }
+
+    public function members($queuer)
+    {
+        $iter = null;
+        $rets = [];
+        while ($ret = $this->persistRedis->hScan("hash:queuer|$queuer", $iter, "*", 30)) {
+            $rets = array_merge($rets, $ret);
+        }
+        return array_keys($rets);
+    }
+
+    public function timers($queuer)
+    {
+        $ret = $this->persistRedis->zRange("timer:scopes:$queuer", 0, -1, true) ?: [];
+        $result = [];
+        foreach ($ret as $element => $time) {
+            list($_, $element) = unserialize($element);
+            $result[] = [
+                'element' => unserialize($element),
+                'timer' => $time
+            ];
+        }
+        return $result;
+    }
+    
+    public function membersLength($queuer){
+    	return $this->persistRedis->hLen("hash:queuer|$queuer");
+    }
+
+    public function membersCounts($queuer)
+    {
+        $iter = null;
+        $rets = [];
+        while ($ret = $this->persistRedis->hScan("hash:queuer|$queuer", $iter, "*", 30)) {
+            $rets = array_merge($rets, $ret);
+        }
+        return $rets;
+    }
+
+    public function memberCount($queuer, $params)
+    {
+        if ($val = $this->persistRedis->hGet("hash:queuer|$queuer", $params)) {
+            return intval($val);
+        } else {
+            return 0;
+        }
+    }
+
+    public function memberCountIncr($queuer, $params, $incr)
+    {
+        $ret = $this->persistRedis->hIncrBy("hash:queuer|$queuer", $params, $incr);
+        if (($ret > 1) && ($incr > 1)) {
+            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 15);
+            $trace = array_slice($trace, 5, count($trace));
+            $trace = array_map(function ($t) {
+                return $t['class'] . ":" . $t['line'];
+            }, $trace);
+            $trace = join("; ", $trace);
+            SwooleTasker::logFile('memberCountIncrTRace', $queuer . ":$ret:$params; $trace");
+        }
+        return $ret;
+    }
+
+    public function memberRemove($queuer, $params)
+    {
+        $res = $this->persistRedis->hDel("hash:queuer|$queuer", $params);
+        if(! $res) $res = $this->persistRedis->hDel("hash:queuer|$queuer", $params);
+        return $res ? true : false;
+    }
+
+    public function stopSwooleQueue($queue, $bool = true): bool
+    {
+        $ret = null;
+        if ($bool) {
+            $ret = $this->persistRedis->sAdd('sets:swoole-stops', $queue);
+        } else {
+            $ret = $this->persistRedis->sRem('sets:swoole-stops', $queue);
+        }
+        return !!$ret;
+    }
+
+    public function isStopSwooleQueue($quque): bool
+    {
+        return $this->persistRedis->sIsMember('sets:swoole-stops', $quque);
+    }
+
+    private const QUEUER_RUNTYPE = "hash:queuer-runtype";
+    public function setQueueRunType($queue, $runType)
+    {
+        $this->persistRedis->hSet(self::QUEUER_RUNTYPE, $queue, $runType);
+    }
+
+    public function getQueueRunType($queue)
+    {
+        return $this->persistRedis->hGet(self::QUEUER_RUNTYPE,$queue);
+    }
+
+    public function getQueuesRunType()
+    {
+        return $this->persistRedis->hGetAll(self::QUEUER_RUNTYPE);
+    }
+
+    public function getTimeout($queuer)
+    {
+        $timeout = $this->persistRedis->hGet('hash:queues|timeout', $queuer);
+        if(false === $timeout){
+            return null;
+        }else{
+            return $timeout;
+        }
+    }
+
+    public function setTimeout($queuer, $timeout)
+    {
+        $this->persistRedis->hSet('hash:queues|timeout', $queuer, $timeout);
+    }
+
+    public function taskSet($taskId, $queuer, $params, $hostType)
+    {
+        $info = [
+            'queuer' => $queuer,
+            'params' => $params,
+            'dotime' => time()
+        ];
+        $this->persistRedis->hSet('hash:queues|tasks'. $hostType, $taskId, serialize($info));
+    }
+
+    public function taskDel($taskId, $queuer, $hostType)
+    {
+    	$this->persistRedis->hDel('hash:queues|tasks'. $hostType, $taskId);
+    }
+
+    public function taskGets($taskId = null, $hostType = null)
+    {
+        $key = 'hash:queues|tasks' . $hostType;
+        if($taskId){
+        	$task = $this->persistRedis->hGet($key, $taskId);
+            $result = $task ? unserialize($task) : null;
+        }else{
+            $result = $this->persistRedis->hGetAll($key);
+        }
+        return $result;
+    }
+
+    public function clearTasks($hostType)
+    {
+    	$this->persistRedis->del('hash:queues|tasks'. $hostType);
+    }
+
+    public function addFailZset($queuer, $timeout, $params, $hosttype = null)
+    {
+    	$this->persistRedis->zAdd('zset:queues|expires', $timeout, serialize(['queuer' => $queuer, 'params' => $params, 'hosttype' => $hosttype]));
+    }
+
+    public function resetFailToQueues($hosttype = null)
+    {
+        $now = time();
+        $key = 'zset:queues|expires';
+        $lastCount = $this->persistRedis->zCard($key);
+        if ($lastCount <= 0) {
+        	return null;
+        }
+        $queues = $this->persistRedis->zRangeByScore($key, '-inf', $now, ['limit' => [0, 100]]);
+        $this->persistRedis->multi();
+        foreach ($queues as $n => $queueOrgin) {
+            /**
+             * @var $params string
+             */
+            $tmpArr = unserialize($queueOrgin);
+            if(empty($tmpArr['hosttype'])){
+            	///以前的数据
+            	if($this->checkQueueHostType($tmpArr['queuer'], $hosttype)){
+            		$this->pushTopQueue($tmpArr['queuer'], $tmpArr['params']);
+            	}else{
+            		unset($queues[$n]);
+            	}
+            }elseif($tmpArr['hosttype'] == $hosttype){
+            	$this->pushTopQueue($tmpArr['queuer'], $tmpArr['params']);
+            }else{
+            	unset($queues[$n]);
+            }
+            //$this->addSwooleWorker($queue);
+        }
+        //$count = count($queues);
+        array_unshift($queues, $key);
+        call_user_func_array([$this->persistRedis, "zRem"], $queues);
+        if (!$this->persistRedis->exec()) {
+        	$this->resetFailToQueues($hosttype);
+        }
+        //$remainCount = $this->persistRedis->zCard($key);
+        unset($queues);
+        //echo "Queuer:resetFailToQueues process {$count} last {$lastCount} remain {$remainCount} success\n";
+    }
+
+    public function failCount($queuer, $element, $incr = 0)
+    {
+        $key = "hash:queue|fail|$queuer";
+        if(0==$incr){
+            $result = $this->persistRedis->hGet($key, serialize($element));
+        }else{
+            $result = $this->persistRedis->hIncrBy($key, serialize($element), $incr);
+        }
+        return $result;
+    }
+
+    public function removeFailCount($queuer, $element = null)
+    {
+        $key = "hash:queue|fail|$queuer";
+        if($element){
+        	$result = $this->persistRedis->hDel($key, serialize($element));
+        }else{
+        	$result = $this->persistRedis->del($key);
+        }
+        return $result;
+    }
+    
+    public function getFailData($queuer)
+    {
+    	$iter = null;
+    	$rets = [];
+    	while ($ret = $this->persistRedis->hScan("hash:queue|fail|$queuer", $iter, "*", 30)) {
+    		$rets = array_merge($rets, $ret);
+    	}
+    	return array_keys($rets);
+    }
+    
+}

@@ -1,0 +1,529 @@
+<?php
+
+namespace service\lazada;
+
+use think\Loader;
+use app\common\cache\Cache;
+use think\Exception;
+use app\common\model\lazada\LazadaOrder as LazadaOrderModel;
+use app\index\service\LazadaAccountService;
+
+
+Loader::import('lazada.LazopSdk');
+
+
+class LazadaOrderApi {
+
+    private $app_key;
+    private $app_secret;
+    private $access_token;
+    private $service_url;
+    private $account;
+    private $account_code;
+    private $site;
+    private $config;
+
+    /**
+     *
+     * @param unknown $appname
+     * @param unknown $appversion
+     * @param unknown $aws_access_key_id
+     * @param unknown $aws_secret_access_key
+     * @param unknown $merchant_id
+     * @param unknown $marketplace_id
+     * @param unknown $serviceUrl
+     * @param unknown $account
+     * @param unknown $site
+     */
+    public function __construct($param=[]) {
+        $this->app_key = $param['app_key']??'';
+        $this->app_secret = $param['app_secret']??'';
+        $this->access_token= $param['access_token']??'';
+        $this->service_url = $param['serviceUrl']??'';
+        $this->account = $param['account']??'';
+        $this->account_code = $param['account_code']??'';
+        $this->site = $param['site']??'';
+
+        $this->config = array(
+            'ServiceURL' => $this->service_url,
+            'ProxyHost' => null,
+            'ProxyPort' => -1,
+            'MaxErrorRetry' => 1,
+        );
+    }
+
+    /*
+    * 根据订单标记发货
+    */
+
+    public function orderPack($order)
+    {
+        $c = new \LazopClient( $this->service_url, $this->app_key ,$this->app_secret);
+        $request = new \LazopRequest('/order/pack');
+        $request->addApiParam('shipping_provider',$order['shipping_method_code']);
+        $request->addApiParam('delivery_type','dropship');
+        $request->addApiParam('order_item_ids', $order['channel_item_id']);
+        $response=$c->execute($request,$this->access_token);
+        $result = json_decode($response, true);
+        if($result['code']=='IllegalAccessToken'){
+            $sdk = new LazadaAccountService(); //过期就去刷新token
+            $sdk->refresh_token($this->account);
+        }
+        return $result;
+    }
+    /*
+   * 同步平台订单标记发货
+   */
+
+    public function orderRts($order)
+    {
+        $c = new \LazopClient($this->service_url, $this->app_key ,$this->app_secret);
+        $request = new \LazopRequest('/order/rts');
+        $request->addApiParam('delivery_type','dropship');
+        $request->addApiParam('order_item_ids', $order['channel_item_id']);
+        $request->addApiParam('shipping_provider',$order['shipping_method_code']);
+        $request->addApiParam('tracking_number',$order['tracking_number']);
+        $rtsJson=$c->execute($request, $this->access_token);
+        $rts = json_decode($rtsJson, true);
+        return $rts;
+    }
+    /*
+      * 同步平台订单标记发货
+      */
+    public  function getOneOrderDetail($order_number){
+
+        $c = new \LazopClient($this->service_url, $this->app_key ,$this->app_secret);
+        $request = new \LazopRequest('/order/items/get','GET');;
+        $request->addApiParam('order_id',$order_number);
+        $response=$c->execute($request,$this->access_token);
+        $result = json_decode($response, true);
+        return $result;
+    }
+    /*
+     * 根据lazada order id 查找 订单详细
+     */
+
+    public function getOrders($lazada_order_id,$orderid)
+    {
+        $url=$this->service_url;
+        $c = new \LazopClient($url,$this->app_key,$this->app_secret);
+        $request = new \LazopRequest('/order/get','GET');
+        $request->addApiParam("order_id", $orderid);
+        $response_json=$c->execute($request,$this->access_token);
+        $listOrdersResult=json_decode($response_json , true,512,JSON_BIGINT_AS_STRING);
+        return $listOrdersResult;
+    }
+    /**
+     * 抓取一段时间内的订单的列表(每次查询最多可以查100条  用递归处理)
+     * @param datetime $starttime
+     * @param datetime $endtime
+     * @return array
+     *
+     */
+    public function getOrderLists($startTime, $endTime,$page=0,$pageOffset=0, $pageSize = 100) {
+        try {
+            $url=$this->service_url;
+            $c = new \LazopClient($url,$this->app_key,$this->app_secret);
+            $request = new \LazopRequest('/orders/get','GET');
+            $request->addApiParam('update_before',$endTime);
+            $request->addApiParam('update_after',$startTime);
+            $request->addApiParam('sort_by','created_at');
+            $request->addApiParam('sort_direction','DESC');
+            $request->addApiParam('offset',$page);
+            $request->addApiParam('limit',$pageSize);
+            $response_json=$c->execute($request,$this->access_token);
+            $listOrdersResult = json_decode($response_json , true,512,JSON_BIGINT_AS_STRING); //防止float过长
+            if(isset($listOrdersResult['code']) && $listOrdersResult['code']==0 && isset($listOrdersResult['data'])){
+                $response_data=isset($listOrdersResult['data']['orders'])?$listOrdersResult['data']['orders']:array();
+                if($response_data){
+                    if($listOrdersResult['data']['count']==$pageSize){
+                        $pageOffset++;
+                        $next = $this->getOrderLists($startTime, $endTime,$pageOffset*$pageSize,$pageOffset);
+                        $response_data = array_merge($response_data,($next) );
+                    }
+                }
+                return $response_data;
+            }else{
+                if($listOrdersResult['code']=='IllegalAccessToken'){
+                    $sdk = new LazadaAccountService(); //过期就去刷新token
+                    $sdk->refresh_token($this->account);
+                }
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => '请求超时'.$ex->getMessage(),
+                'error_code' => 1
+            ];
+            return $this->result;
+        }
+
+    }
+
+
+    /**
+     * 抓取单条条订单产品详细
+     * @param number $OrderId
+     * @return array
+     *
+     */
+    public function getOrderOneItems($orders) {
+        try {
+            if(isset($orders['data']) && !empty($orders['data'])){
+                $ids[]=isset($orders['data']['order_id'])?$orders['data']['order_id']:'';
+                $url=$this->service_url;
+                $c = new \LazopClient($url,$this->app_key,$this->app_secret);
+                $request = new \LazopRequest('/orders/items/get','GET');
+                $request->addApiParam('order_ids', json_encode($ids));
+                $response_json=$c->execute($request,$this->access_token);
+                $all_response = json_decode($response_json , true,512,JSON_BIGINT_AS_STRING); //防止float过长
+                if(isset($all_response['code']) &&  $all_response['code']==0){
+                    return $all_response['data'];
+                }
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+    }
+
+    /**
+     * 抓取多条订单产品详细
+     * @param number $OrderId
+     * @return array
+     *
+     */
+    public function getOrderListsItems($orders) {
+        try {
+            if(isset($orders) && !empty($orders)){
+                foreach ($orders as $val){
+                    $ids[]=isset($val['order_id'])?$val['order_id']:'';
+                }
+                $pagesize=80;
+                $num=ceil(count($ids)/$pagesize);
+                $export_list=[];
+                for($i=0;$i<$num;$i++){
+                    $url=$this->service_url;
+                    $c = new \LazopClient($url,$this->app_key,$this->app_secret);
+                    $request = new \LazopRequest('/orders/items/get','GET');
+                    $idss=array_slice($ids,$i*$pagesize,$pagesize);
+                    $request->addApiParam('order_ids', json_encode($idss));
+                    $response_json=$c->execute($request,$this->access_token);
+                    $all_response = json_decode($response_json , true,512,JSON_BIGINT_AS_STRING); //防止float过长
+                    $export_list=array_merge($all_response['data'],$export_list);
+                }
+               return $export_list;
+            }else{
+                return [];
+            }
+
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+    }
+    /**
+     * 抓取订单产品详细
+     * @param number $OrderId
+     * @return array
+     *
+     */
+    public function getOrderDetailLists($OrderId) {
+        try {
+            $url=$this->service_url;
+            $c = new \LazopClient($url,$this->app_key,$this->app_secret);
+            $request = new \LazopRequest('/order/items/get','GET');
+            $request->addApiParam('order_id',$OrderId);
+            $response_json=$c->execute($request,$this->access_token);
+            $all_response = json_decode($response_json,true);
+            if(isset($all_response['code']) &&  $all_response['code']==0){
+                return $all_response;
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+    }
+     /**
+     * 根据订单号抓取订单列表（获取多条详情再遍历）
+     * @param int $accountId
+     * @param array $simplelists
+     * @return array
+     * @author
+     */
+    public function spiderOrderListsCommon($starttime, $accountId, $simplelists,$orderDetailItems) {
+        $inserOrder = [];
+        $orders = isset($simplelists) && !empty($simplelists)? $simplelists:$inserOrder;
+        foreach ($orders as $order) {
+            $lazadaOrderId = isset($order['order_id'])?$order['order_id']:array();
+            if (empty($lazadaOrderId)) {
+                continue;
+            }
+            $orderInfo = false;
+            if (!$orderInfo) {
+                $orderInfo = LazadaOrderModel::where(['order_id' => $lazadaOrderId,'lazada_account_id'=>$accountId,'site'=>$this->site])->field('id,statuses')->find();
+            }
+            //订单表数据
+            $order_data = array(
+                'id'                  => $orderInfo ? $orderInfo['id'] : 0,
+                'lazada_account_id'   => $accountId,
+                'order_id'            => $lazadaOrderId,  //订单号
+                'order_number'        => $order['order_number'],  //订单号
+                'site'                => $this->site,   //站点
+                'payment_method'      => $order['payment_method'] ? $order['payment_method'] : '',  //付款方式
+                'gift_message'        => $order['gift_message'], //礼物信息
+                'gift_option'         => isset($order['gift_option'])?$order['gift_option']:'', //是否为礼物选项
+                'delivery_info'       => $order['delivery_info'], //订购交货信息
+                'voucher_code'        => $order['voucher_code'], //保证code
+                'branch_number'       => isset($order['branch_number'])?$order['branch_number']:0, //tax分支code
+                'tax_code'            => isset($order['tax_code'])?$order['tax_code']:0, //tax code
+                'address_updated_at'  => strtotime($order['updated_at']), //地址更新时间
+                'shipping_fee'        => $order['shipping_fee'], //订单运费
+                'voucher'             => $order['voucher'], //保证金
+                'national_registration_number'  => $order['national_registration_number'], //国家注册码
+                'promised_shipping_time'        => $order['promised_shipping_times'], //最迟发货时间
+                'items_count'  => $order['items_count'], //产品数
+                'price'        => str_replace(',','',$order['price']), //订单金额(有些站点金额含有,)
+                'voucher_platform'           => $order['voucher_platform']??'', //平台收保证金额
+                'voucher_seller'             => $order['voucher_seller']??'', //买家保证金额
+                'address_shipping'           => json_encode($order['address_shipping']), //发货地址信息
+                'address_billing'            => json_encode($order['address_billing']), //付款地址
+                'customer_last_name'         =>  $order['address_billing']['last_name'], //用户名称
+                'customer_first_name'        =>  $order['address_billing']['first_name'], //用户首名称
+                'created_at'         => strtotime($order['created_at']), //下单时间
+                'updated_at'         => strtotime($order['updated_at']), //更新时间
+                'create_time'        =>  time(), //入库的时间
+                'update_time'        => time(), //入库的时间
+                'statuses'           => end($order['statuses']), //订单状态
+            );
+            $i = 0;
+            if (empty($orderDetailItems)) {
+                continue;
+            }
+            $orderDetail = [];
+            $total_shipping_fee = 0;
+            $item_status=[];
+            $tracking_code=[];
+
+            $own = false;
+            $drop = false;
+            $count = 0;
+            foreach ($orderDetailItems  as $orderItem) {
+
+                if($orderItem['order_id']==$order['order_id']){
+                    foreach ($orderItem['order_items'] as  $key=>$orderItemOne){
+                        $count++;
+                        $tmp_fee            = $orderItem['order_items'][$key]['shipping_amount'] ? floatval($orderItem['order_items'][$key]['shipping_amount']) : 0;
+                        $total_shipping_fee = $total_shipping_fee + $tmp_fee;
+                        $item_status[]= $orderItem['order_items'][$key]['reason']."[".$orderItem['order_items'][$key]['order_item_id'].' '.$orderItem['order_items'][$key]['status'].' '.$orderItem['order_items'][$key]['tracking_code'].'] ';
+                        $tracking_code[]= $orderItem['order_items'][$key]['tracking_code'];
+
+                        /**
+                         * 判断详情发货类型
+                         */
+                        if ($orderItem['order_items'][$key]['shipping_type'] == 'Own Warehouse') {
+                            $own = true;
+                        } elseif ($orderItem['order_items'][$key]['shipping_type'] == 'Dropshipping') {
+                            $drop = true;
+                        }
+                        $orderDetail[] = array(
+                            'lazada_account_id'        => $accountId, // 账号id
+                            'order_id'                 =>  $orderItem['order_items'][$key]['order_id'], // 订单id
+                            'reason'                   =>  $orderItem['order_items'][$key]['reason'], // 原因
+                            'promised_shipping_time'   =>  strtotime($orderItem['order_items'][$key]['promised_shipping_time']), // 承诺最迟发货时间
+                            'digital_delivery_info'    =>  $orderItem['order_items'][$key]['digital_delivery_info'], // 数字运输 信息
+                            'voucher_amount'           =>  $orderItem['order_items'][$key]['voucher_amount'], // 保证金
+                            'return_status'            =>  $orderItem['order_items'][$key]['return_status'], // 返回状态
+                            'shipping_type'            =>  $orderItem['order_items'][$key]['shipping_type'], // 运输类型
+                            'variation'                =>  $orderItem['order_items'][$key]['variation'], // 变体
+                            'invoice_number'          =>  $orderItem['order_items'][$key]['invoice_number'], // invoice码
+                            'shipping_amount'         => $total_shipping_fee, // 运费
+                            'currency'        =>  $orderItem['order_items'][$key]['currency'], // 币种
+                            'shop_id'         =>  $orderItem['order_items'][$key]['shop_id'], // 卖家名称
+                            'voucher_code'           =>  $orderItem['order_items'][$key]['voucher_code'], // 保证code
+                            'wallet_credits'         =>'', //
+                            'created_at'        =>  strtotime($orderItem['order_items'][$key]['created_at']), // 创建于
+                            'updated_at'        => strtotime($orderItem['order_items'][$key]['updated_at']), //更新时间
+                            'is_digital'        =>  $orderItem['order_items'][$key]['is_digital'], //是否电子产品
+                            'order_item_id'     =>  $orderItem['order_items'][$key]['order_item_id'], //条目号
+                            'package_id'        =>  $orderItem['order_items'][$key]['package_id'], //包裹id
+                            'tracking_code'     =>  $orderItem['order_items'][$key]['tracking_code'], //跟踪code
+                            'shipping_service_cost' =>  $orderItem['order_items'][$key]['shipping_service_cost'], //费用花费
+                            'paid_price'            =>  $orderItem['order_items'][$key]['paid_price'], //花费金额
+                            'shipping_provider_type'=>  $orderItem['order_items'][$key]['shipping_provider_type'], //服务提供类型
+                            'shop_sku'                  =>  $orderItem['order_items'][$key]['shop_sku'], //店铺sku
+                            'product_main_image'        =>  $orderItem['order_items'][$key]['product_main_image'], //产品主图
+                            'product_detail_url'        =>  $orderItem['order_items'][$key]['product_detail_url'], //产品地址
+                            'item_price'        =>  str_replace(',','',$orderItem['order_items'][$key]['item_price']), //单价
+                            'status'            =>  $orderItem['order_items'][$key]['status'], //状态
+                            'product_name'      =>  $orderItem['order_items'][$key]['name'], //产品名称
+                            'sku'               =>  $orderItem['order_items'][$key]['sku'], //产品名称
+
+                        );
+
+                    }
+                }
+            }
+            $order_status=$order_data['statuses'];
+            /*判断如果是状态改变了就加入队列回写到系统订单*/
+            if ($orderInfo) {
+                if($order_status!=$orderInfo['statuses']) {
+                    $this->lazadaChangeStatus($orderDetail);
+                }
+            }
+
+            /**
+             * 主表是否包含海外仓订单（0默认,1，部分海外仓，2全部海外仓，3，全部本地仓）
+             */
+
+            $involve_oversea = 0;
+            if ($count == 1) {
+                $involve_oversea = $own ? 2 : 3;
+            }elseif ($count > 1){
+                if ($own && $drop) {
+                    $involve_oversea = 1;
+                } else {
+                    if ($own) {
+                        $involve_oversea = 2;
+                    }
+                    if ($drop) {
+                        $involve_oversea = 3;
+                    }
+                }
+            }
+            $order_data['involve_oversea'] = $involve_oversea;
+            //组装数据
+            $inserOrder[] = array(
+                'order' => $order_data,
+                'orderDetail' => $orderDetail
+            );
+            unset($orderItemOne);
+            unset($orderItem);
+            unset($order);
+            unset($item_status);
+        }
+
+        return $inserOrder;
+    }
+
+
+
+    /**
+     * 对象转为数组
+     * @param object $array
+     * @return array
+     * @author czq
+     */
+    function object_array($array) {
+        if (is_object($array)) {
+            $array = (array) $array;
+        }
+        if (is_array($array)) {
+            foreach ($array as $key => $value) {
+                $array[$key] = $this->object_array($value);
+            }
+        }
+        return $array;
+    }
+
+    /**
+     * 取订单列表
+     * @param unknown $accountId
+     * @param unknown $startTime
+     * @param unknown $endtime
+     */
+    public function getLazadaOrderList($accountId, $startTime, $endtime) {
+        $spiderlists = $this->spiderOrderLists($accountId, $startTime, $endtime);
+        return $spiderlists;
+    }
+    /**
+     *
+     * @param unknown $lazadaids
+     */
+    public function getOrder($accountId,$orderId) {
+
+        $simplelists = $this->getOrders($accountId,$orderId);
+        if (!param($simplelists, 'type') == 'ISP') {
+            $orderDetailItems =$this->getOrderOneItems($simplelists);
+            $orders = $this->spiderOrderListsCommon('', $accountId, $simplelists,$orderDetailItems);
+            return $orders;
+        } else {
+            throw new Exception($simplelists['message'], 400);
+        }
+
+    }
+
+    public function spiderOrderLists($accountId, $starttime, $endtime) {
+        $simplelists = $this->getOrderLists($starttime, $endtime);
+        $orderDetailItems= $this->getOrderListsItems($simplelists);
+        $orders = $this->spiderOrderListsCommon($starttime, $accountId, $simplelists,$orderDetailItems);
+        return $orders;
+    }
+    /*
+     * lazada状态回写
+     */
+    public  function lazadaChangeStatus($data)
+    {
+        /**
+         * @param shipping_type=Own Warehouse lazada仓库发货我们不需要发货加入队列去更改系统订单加入到人工审核
+         * @param shipping_type=Dropshipping 我们仓库发货
+         */
+        $sdk = new \app\order\service\LazadaService();
+        $message = [];
+        $status_arr = [];
+        $tracking_arr = [];
+        $order_id='';
+        foreach ($data as $key => $v) {
+            $shipping_type_arr[]=$v['shipping_type'];
+            $status_arr[]=$v['status'];
+            $tracking_arr[]=$v['tracking_code'];
+            switch ($v['shipping_type']) {
+                case 'Own Warehouse':
+                    $message[]='by lazada';
+                    break;
+                case 'Dropshipping':
+                    switch ($v['status']) {
+                        case 'pending';
+                                $message[]=$v['order_item_id'] . '状态' . $v['status'];
+                                break ;
+                        case 'canceled';
+                                $message[]=$v['order_item_id'].':cancel';
+                                break;
+                        case 'failed';
+                            $message[]='failed';
+                            break;
+                        case 'returned';
+                            $message[]=$v['order_item_id'].':returned';
+                            break;
+                        case 'ready_to_ship';
+                                $message[]=$v['order_item_id'] . '状态' . $v['status'] .' ' . $v['tracking_code'];
+                                break;
+                    }
+            }
+            $order_id = $v['order_id'];
+        }
+        $tracking_arr=implode(',',array_unique($tracking_arr));
+        $remark=implode(',',array_unique($message));
+        if(implode(',',array_unique($status_arr))=='canceled'){
+            $remark='all is canceled';
+        }
+        $order_local = [
+            'channel_order_number' => $this->account_code.$order_id,
+            'lazada_account_id' => $this->account,
+        ];
+        if($remark && strpos($tracking_arr,'LZDCB')===false){
+            $remark = '后台--' . $remark;
+            $sdk->joinChangeQueue($order_local, $remark);
+        }
+        return  $remark;
+    }
+
+}

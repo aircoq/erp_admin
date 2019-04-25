@@ -1,0 +1,123 @@
+<?php
+namespace service\pm;
+
+/**
+ * PriceMinister异常处理类
+ * @author wangwei 2019-2-27 16:41:46
+ */
+class PriceMinisterException extends \Exception{
+    /** @var string */
+    private $_message = null;
+    /** @var string */
+    private $_errorCode = null;
+    /** @var string */
+    private $_errorType = null;
+    /** @var array */
+    private $_errorDetails = null;
+    /** @var string */
+    private $_action = null;
+    /** @var string */
+    private $_version = null;
+    /** @var string */
+    private $_org = null;
+
+    /**
+     * 构造方法
+     * @param array $errorInfo
+     */
+    public function __construct(array $errorInfo = array()){
+        $this->_message = $errorInfo["Message"];
+        parent::__construct($this->_message);
+        
+        if (array_key_exists("Exception", $errorInfo)) {
+            $exception = $errorInfo["Exception"];
+            if ($exception instanceof PriceMinisterException) {
+            	$this->_message = $exception->getErrorMessage();
+            	$this->_errorCode = $exception->getErrorCode();
+            	$this->_errorType = $exception->getErrorType();
+            	$this->_errorDetails = $exception->getErrorDetails();
+            	$this->_action = $exception->getAction();
+            	$this->_version = $exception->getVersion();
+                $this->_org= $exception->getORG();
+            }
+        } else {
+        	$this->_errorCode = $this->arr_val($errorInfo, "ErrorCode");
+        	$this->_errorType = $this->arr_val($errorInfo, "ErrorType");
+        	$this->_errorDetails = $this->arr_val($errorInfo, "ErrorDetails");
+        	$this->_action = $this->arr_val($errorInfo, "Action");
+        	$this->_version = $this->arr_val($errorInfo, "Version");
+            $this->_org = $this->arr_val($errorInfo, "ORG");
+        }
+    }
+
+    /**
+     * 从数组里取值
+     * @param array $arr
+     * @param string $key
+     * @return unknown|NULL
+     */
+    private function arr_val($arr, $key) {
+        if(array_key_exists($key, $arr)) {
+            return $arr[$key];
+        } else {
+            return null;
+        }
+    }
+   
+    /**
+     * 获取错误代码
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getErrorCode(){
+        return $this->_errorCode;
+    }
+
+    /**
+     * 获取错误类型
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getErrorType(){
+        return $this->_errorType;
+    }
+    
+    /**
+     * 获取错误明细
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getErrorDetails(){
+    	return $this->_errorDetails;
+    }
+    
+    /**
+     * 获取错误信息
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getErrorMessage() {
+        return $this->_message;
+    }
+
+    /**
+     * 获取请求接口名
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getAction() {
+        return $this->_action;
+    }
+    
+    /**
+     * 获取接口版本
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getVersion() {
+    	return $this->_version;
+    }
+    
+    /**
+     * 获取返回的原始数据
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getORG() {
+        return $this->_org;
+    }
+
+}

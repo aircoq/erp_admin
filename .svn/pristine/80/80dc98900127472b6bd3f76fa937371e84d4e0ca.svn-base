@@ -1,0 +1,24 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-4
+ * Time: 下午5:56
+ */
+
+namespace swoole\cmd;
+
+
+use swoole\SwooleCmd;
+use swoole\SwooleCmdResult;
+use swoole\PipeMessageAction;
+use swoole\messageAction\StopQueueRuuner;
+
+class QueueStatus extends SwooleCmd
+{
+    public  function execute(\swoole_websocket_server $server): SwooleCmdResult
+    {
+        PipeMessageAction::sendMessage($server, new StopQueueRuuner($this->data), 1);
+        return new SwooleCmdResult($this);
+    }
+}

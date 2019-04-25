@@ -1,0 +1,500 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: donghaibo
+ * Date: 2019/4/18
+ * Time: 16:01
+ */
+
+namespace app\finance\service;
+
+use app\common\cache\Cache;
+use app\common\service\Common;
+use app\report\model\ReportExportFiles;
+use think\Db;
+use app\common\service\CommonQueuer;
+use app\index\service\ChannelUserAccountMap;
+use app\common\service\ChannelAccountConst;
+use think\Loader;
+use think\Exception;
+use app\finance\queue\EbayStatisticsExportQueue;
+Loader::import('phpExcel.PHPExcel', VENDOR_PATH);
+
+class EbaySettlementService
+{
+    /**
+     * @param $param
+     * @param bool $paging   是否分页
+     * @return mixed
+     * @throws Exception
+     * 搜索店铺数据统计
+     */
+    public function searchshopStatistics($param,$paging=true)
+    {
+        $cache = param($param,"cache",1);
+
+        $cacheResult = Cache::store("EbayOrder")->getShopCache('shopStatisticsResult',http_build_query($param).intval($paging));
+        if($cache && $cacheResult)
+        {
+            return $cacheResult;
+        }
+
+        $where = $this->getStatisWhere($param);
+
+        $page = (isset($param['page']) && $param['page'] > 0) ? $param['page'] : 1;
+        $pageSize = (isset($param['pageSize']) && $param['pageSize'] > 0) ? $param['pageSize'] : 0;
+        if(!$paging)
+        {
+            $pageSize = 0;
+        }
+
+        $sum_total = [
+            'order_total_cny' => 0,                   //系统订单总额
+            'refund_total_cny'  => 0,                 //退款合计
+            'shop_total_cny' => 0,                    //paypal销售额
+            'ebay_pay_order_cny' => 0,                //支付ebay账单
+            'frozen_amount_cny' => 0,                 //冻结金额结算
+            'offset_settlement_cny' => 0,             //抵消项结算
+            'other_fee_cny' => 0,                      //其他费用总额
+            'paypal_foreign_payment_cny' => 0,          //paypal对外付款
+            'other_items_cny' => 0,                      //其他正项总额
+            'refund_commission_cny' => 0,                //退款佣金
+            'paypal_fee_cny' => 0,                         //Paypal手续费
+            'paypal_commission_cny' => 0,                       //paypal佣金
+            'refund_commission_fee_cny' => 0,                  //退款佣金返还
+            'surplus_plus_fee_cny' => 0,                      //其他正项费用
+            'surplus_minus_fee_cny' => 0                     //其他负项费用
+        ];
+
+        $shopStatistics['sum_total'] = $sum_total;
+        $shopStatistics['total_count'] = 0;
+        $shopStatistics['data'] = [];
+
+        $paypal_trans = new PaypalTransactionService();
+        $event_id = $paypal_trans->getTransEvent();
+        list($shop_total,$refund_total,$ebay_pay_order,$frozen_amount,$offset_settlement,$withdrawal,$other_fee,$refund_commission,$paypal_foreign_payment,$rate_dif,$surplus) = $event_id['transaction_status_id'];
+        list($paypal_fee,$paypal_commission,$refund_commission_fee,$surplus_fee) = $event_id['fee_status_id'];
+
+
+        $sql = "select a.*,b.order_total_cny from (select s.account_id,GROUP_CONCAT(DISTINCT s.site) site,               
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($shop_total) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as shop_total_cny,
+                SUM(CASE WHEN p.transaction_status in ('S','V','F') and p.ebay_transaction_type_id in ($refund_total) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as refund_total_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($ebay_pay_order) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as ebay_pay_order_cny,
+                SUM(CASE WHEN p.ebay_transaction_type_id in ($frozen_amount) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as frozen_amount_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($offset_settlement) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as offset_settlement_cny,    
+                (SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($other_fee) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END)
+                +SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($surplus) AND p.transaction_amount < 0 THEN p.transaction_amount*p.to_cny_rate ELSE 0 END)) as other_fee_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($paypal_foreign_payment) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as paypal_foreign_payment_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($surplus) AND p.transaction_amount > 0 THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as other_items_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($refund_commission) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as refund_commission_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($paypal_fee) THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as paypal_fee_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($paypal_commission) THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as paypal_commission_cny, 
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($refund_commission_fee) THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as refund_commission_fee_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($surplus_fee) AND p.fee_amount > 0 THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as surplus_plus_fee_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($surplus_fee) AND p.fee_amount < 0 THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as surplus_minus_fee_cny
+                from ebay_settlement as s 
+                JOIN ebay_settlement_detail as p on p.ebay_settlement_id=s.id 
+                $where  GROUP BY s.account_id) as a join (select s.account_id,sum(s.payment_amount*s.to_cny_rate) order_total_cny
+                from ebay_settlement as s 
+                JOIN ebay_settlement_detail as p on p.ebay_settlement_id=s.id and s.transaction_id=p.paypal_transaction_id
+                $where GROUP BY s.account_id) as b on a.account_id=b.account_id";
+
+        $cacheResult = Cache::store("EbayOrder")->getShopCache('shopStatistics',$sql);
+
+        if(!$cache || !$cacheResult)
+        {
+            $res = Db::query($sql);
+            if($res)
+            {
+                $shopStatistics['total_count'] = count($res);
+                $accounts = Cache::store("EbayAccount")->channelAccount();
+                foreach ($res as &$row)
+                {
+                    foreach ($sum_total as $k=>$v)
+                    {
+                        $sum_total[$k] += $row[$k];
+                    }
+                    $row['order_total_cny'] = number_format($row['order_total_cny'],2);
+                    $row['refund_total_cny'] = number_format($row['refund_total_cny'],2);
+                    $row['shop_total_cny'] = number_format($row['shop_total_cny'],2);
+                    $row['ebay_pay_order_cny'] = number_format($row['ebay_pay_order_cny'],2);
+                    $row['frozen_amount_cny'] = number_format($row['frozen_amount_cny'],2);
+                    $row['offset_settlement_cny'] = number_format($row['offset_settlement_cny'],2);
+                    $row['other_fee_cny'] = number_format($row['other_fee_cny'],2);
+                    $row['paypal_foreign_payment_cny'] = number_format($row['paypal_foreign_payment_cny'],2);
+                    $row['other_items_cny'] = number_format($row['other_items_cny'],2);
+                    $row['refund_commission_cny'] = number_format($row['refund_commission_cny'],2);
+                    $row['paypal_fee_cny'] = number_format($row['paypal_fee_cny'],2);
+                    $row['paypal_commission_cny'] = number_format($row['paypal_commission_cny'],2);
+                    $row['refund_commission_fee_cny'] = number_format($row['refund_commission_fee_cny'],2);
+                    $row['surplus_plus_fee_cny'] = number_format($row['surplus_plus_fee_cny'],2);
+                    $row['surplus_minus_fee_cny'] = number_format($row['surplus_minus_fee_cny'],2);
+                    $account = param($accounts,$row['account_id']);
+                    $row['realname'] = $account['realname'] ?? '';
+                    $row['code'] = $account['code'] ?? '';
+
+                    $backParams = $param;
+                    $backParams['account_ids'] = $row['account_id'];
+                    $row['paypal_detail'] = $backParams;
+                }
+                foreach ($sum_total as &$total)
+                {
+                    $total = number_format($total,2);
+                }
+                $shopStatistics['sum_total'] = $sum_total;
+                $shopStatistics['data'] = $res;
+            }
+            Cache::store("EbayOrder")->setShopCache('paypalStatistics',$sql,$shopStatistics);
+        }else{
+            $shopStatistics = $cacheResult;
+        }
+
+        if($pageSize > 0)
+        {
+            $items = array_chunk($shopStatistics['data'],$pageSize);
+            $item = isset($items[$page-1]) ? $items[$page-1] : [];
+        }else{
+            $item = $shopStatistics['data'];
+        }
+        $result['count'] = $shopStatistics['total_count'];
+        if($paging)
+        {
+            $result['page'] = $page;
+            $result['pageSize'] = $pageSize;
+        }
+        $result['list'] = $item;
+        $result['sum_total'] = $shopStatistics['sum_total'];
+
+
+        Cache::store("EbayOrder")->setShopCache('shopStatisticsResult',http_build_query($param).intval($paging),$result,5*60);
+
+        return $result;
+    }
+
+    /**
+     * 获取一条数据的详情
+     */
+    public function getRowDetail($param)
+    {
+        $param = json_decode($param['paypal_detail'],true);
+
+        if(!$param)
+        {
+            return [];
+        }
+
+        $where = $this->getStatisWhere($param);
+
+        $paypal_trans = new PaypalTransactionService();
+
+        $event_id = $paypal_trans->getTransEvent();
+        list($shop_total,$refund_total,$ebay_pay_order,$frozen_amount,$offset_settlement,$withdrawal,$other_fee,$refund_commission,$paypal_foreign_payment,$rate_dif,$surplus) = $event_id['transaction_status_id'];
+        list($paypal_fee,$paypal_commission,$refund_commission_fee,$surplus_fee) = $event_id['fee_status_id'];
+
+        $sql = "select 
+                p.paypal_account_id,
+                a.account_name,             
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($shop_total) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as shop_total_cny,
+                SUM(CASE WHEN p.transaction_status in ('S','V','F') and p.ebay_transaction_type_id in ($refund_total) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as refund_total_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($ebay_pay_order) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as ebay_pay_order_cny,
+                SUM(CASE WHEN p.ebay_transaction_type_id in ($frozen_amount) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as frozen_amount_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($offset_settlement) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as offset_settlement_cny,   
+                (SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($other_fee) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END)
+                +SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($surplus) AND p.transaction_amount < 0 THEN p.transaction_amount*p.to_cny_rate ELSE 0 END)) as other_fee_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($paypal_foreign_payment) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as paypal_foreign_payment_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($surplus) AND p.transaction_amount > 0 THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as other_items_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($refund_commission) THEN p.transaction_amount*p.to_cny_rate ELSE 0 END) as refund_commission_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($paypal_fee) THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as paypal_fee_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($paypal_commission) THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as paypal_commission_cny,   
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($refund_commission_fee) THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as refund_commission_fee_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($surplus_fee) AND p.transaction_amount > 0 THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as surplus_plus_fee_cny,
+                SUM(CASE WHEN p.transaction_status = 'S' and p.ebay_transaction_type_id in ($surplus_fee) AND p.transaction_amount < 0 THEN p.fee_amount*p.to_cny_rate ELSE 0 END) as surplus_minus_fee_cny
+                from ebay_settlement as s 
+                JOIN ebay_settlement_detail as p on p.ebay_settlement_id=s.id 
+                LEFT JOIN paypal_account a on a.id = p.paypal_account_id
+                $where  GROUP BY p.paypal_account_id";
+
+        $res = Db::query($sql);
+
+        if($res)
+        {
+            foreach ($res as &$row)
+            {
+                $row['refund_total_cny'] = number_format($row['refund_total_cny'],2);
+                $row['shop_total_cny'] = number_format($row['shop_total_cny'],2);
+                $row['ebay_pay_order_cny'] = number_format($row['ebay_pay_order_cny'],2);
+                $row['frozen_amount_cny'] = number_format($row['frozen_amount_cny'],2);
+                $row['offset_settlement_cny'] = number_format($row['offset_settlement_cny'],2);
+                $row['other_fee_cny'] = number_format($row['other_fee_cny'],2);
+                $row['paypal_foreign_payment_cny'] = number_format($row['paypal_foreign_payment_cny'],2);
+                $row['other_items_cny'] = number_format($row['other_items_cny'],2);
+                $row['refund_commission_cny'] = number_format($row['refund_commission_cny'],2);
+                $row['paypal_fee_cny'] = number_format($row['paypal_fee_cny'],2);
+                $row['paypal_commission_cny'] = number_format($row['paypal_commission_cny'],2);
+                $row['refund_commission_fee_cny'] = number_format($row['refund_commission_fee_cny'],2);
+                $row['surplus_plus_fee_cny'] = number_format($row['surplus_plus_fee_cny'],2);
+                $row['surplus_minus_fee_cny'] = number_format($row['surplus_plus_fee_cny'],2);
+            }
+        }else{
+            $res = [];
+        }
+
+        return $res;
+    }
+
+    private function getStatisWhere($param)
+    {
+        $where = [];
+        $account_id_arr = [];
+        $account_ids = isset($param['account_ids'])?$param['account_ids']:'';
+        if($account_id_str = trim($account_ids)) {
+            $account_id_arr = explode(',', $account_id_str);
+            if(!empty($account_id_arr))
+            {
+                foreach ($account_id_arr as $k=>$v)
+                {
+                    $v = intval($v);
+                    if($v <= 0)
+                    {
+                        unset($account_id_arr[$k]);
+                    }
+                }
+            }
+        }
+        $seller_id = isset($param['seller_id'])?intval($param['seller_id']):0;
+        if($seller_id > 0) {
+            //获取当前销售负责的账号id
+            $account_ids = ChannelUserAccountMap::getAccountBySellerId(ChannelAccountConst::channel_ebay, $seller_id);
+            if(empty($account_ids))
+            {
+                $where[] = "s.account_id = 0";
+            }
+            if($account_id_arr && $account_ids){
+                //账号id取交集
+                $account_id_arr = array_intersect($account_id_arr, $account_ids);
+                if(!$account_id_arr)
+                {
+                    $where[] = "s.account_id = 0";
+                }
+            }else{
+                $account_id_arr = $account_ids;
+            }
+            //为空时弄一个查不到的值，保证数据查不到
+            //$account_id_arr  = $account_id_arr ? $account_id_arr : 0;
+        }
+        if($account_id_arr){
+            if(count($account_id_arr)==1){
+                $where[] = "s.account_id = ".$account_id_arr[0];
+            }else{
+                $where[] = "s.account_id in (".implode(",",$account_id_arr).")";
+            }
+        }
+
+        if(isset($param['site']) && !empty($param['site']))
+        {
+            $where[] = "s.site='".$param['site']."'";
+        }
+
+        $field = "p.finance_time";
+        if(isset($param['time_type']) && $param['time_type'] == 1)
+        {
+            $field = "s.shipping_time";
+        }elseif(isset($param['time_type']) && $param['time_type'] == 2)
+        {
+            $field = "p.finance_time";
+        }
+        elseif(isset($param['time_type']) && $param['time_type'] == 3)
+        {
+            $field = "s.payment_time";
+        }
+        if(isset($param['start_time']) && ($startTime = strtotime($param['start_time'])))
+        {
+            $where[] = "$field > $startTime";
+        }else{
+            $where[] = "$field > ".strtotime("2018-3-1");
+        }
+        if(isset($param['end_time']) && ($endTime = strtotime($param['end_time'])))
+        {
+            $endTime = $endTime + 3600*24-1;
+            $where[] = "$field < ".$endTime;
+        }else{
+            $where[] = "$field < ".time();
+        }
+
+        if(!empty($where))
+        {
+            $where = "WHERE ". implode(" AND ",$where);
+        }else{
+            $where = '';
+        }
+
+        return $where;
+
+
+    }
+
+    /**
+     * @param $params
+     * 下载报表申请
+     */
+    public function exportApply($params)
+    {
+        $userinfo = Common::getUserInfo()->toArray();
+        $userId = $userinfo['user_id'];
+        $cache = Cache::handler();
+        $lastApplyTime = $cache->hget('hash:export_order_apply', $userId);
+        if ($lastApplyTime && time() - $lastApplyTime < 5) {
+            throw new Exception('请求过于频繁', 400);
+        } else {
+            $cache->hset('hash:export_order_apply', $userId, time());
+        }
+        try{
+            $model = new ReportExportFiles();
+            $data['applicant_id'] = $userId;
+            $data['apply_time'] = time();
+            $data['export_file_name'] = $this->getFileName($params,$userId);
+            $data['status'] = 0;
+            $data['applicant_id'] = $userId;
+            $model->allowField(true)->isUpdate(false)->save($data);
+            $params['file_name'] = $data['export_file_name'];
+            $params['apply_id'] = $model->id;
+            (new CommonQueuer(EbayStatisticsExportQueue::class))->push($params);
+        }catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * @param $param
+     * 获取报表文件名称
+     */
+    private function getFileName($param,$userid)
+    {
+        $file_name = 'eBay店铺资金核算';
+        $condition = [];
+        if($param['export_all'] == 1 && isset($param['account_ids']))
+        {
+            $account = Cache::store("EbayAccount")->getAccountById($param['account_ids']);
+            if($account && isset($account['code']))
+            {
+                $condition[] = "账号:".$account['code'];
+            }
+        }
+        if(isset($param['seller_id']))
+        {
+            $seller = Db::table("user")->where("id",$param['seller_id'])->value("realname");
+            if(isset($seller))
+            {
+                $condition[] = "销售:".$seller;
+            }
+        }
+        if(isset($param['start_time']) && !empty($param['end_time']))
+        {
+            $condition[] = $param['start_time'];
+        }
+        if(isset($param['end_time']) && !empty($param['end_time']))
+        {
+            $condition[] = $param['end_time'];
+        }
+        if($condition)
+        {
+            $file_name .= "(".implode("--",$condition).")";
+        }
+        $file_name .= '.xlsx';
+        return $file_name;
+    }
+
+    /**
+     * @param $params
+     * 导出店铺数据
+     */
+    public function export($params)
+    {
+        try {
+
+            if (!isset($params['apply_id']) || empty($params['apply_id'])) {
+                throw new Exception('导出申请id获取失败');
+            }
+            if (!isset($params['file_name']) || empty($params['file_name'])) {
+                throw new Exception('导出文件名未设置');
+            }
+            $fileName = $params['file_name'];
+            $downLoadDir = '/download/ebay_statistics/';
+            $saveDir = ROOT_PATH . 'public' . $downLoadDir;
+            if (!is_dir($saveDir) && !mkdir($saveDir, 0777, true)) {
+                throw new Exception('导出目录创建失败');
+            }
+            $fullName = $saveDir . $fileName;
+            //创建excel对象
+            $excel = new \PHPExcel();
+            $excel->setActiveSheetIndex(0);
+            $sheet = $excel->getActiveSheet();
+
+            $letter = [];
+            $header = ['账号简称','站点','销售员','系统订单总额','PayPal销售额','PayPal佣金','退款合计','退款佣金','支付eBay账单','PayPal对外付款',
+                '冻结金额结算','抵消项结算','其他正项总额','其他费用总额','退款佣金返还','PayPal手续费','其他正项费用','其他负项费用'];
+            foreach ($header as $k=>$h)
+            {
+                $letter[] = chr(ord('A') + $k);
+            }
+
+            $service = new EbaySettlementService();
+            $data = $service->searchshopStatistics($params,false);
+            $i = 0;
+            foreach ($header as $h)
+            {
+                $sheet->setCellValue($letter[$i]."1",$h);
+                $i++;
+            }
+
+            $j=2;
+            if(is_array($data) && $data['count'] > 0)
+            {
+                $list = $data['list'];
+                foreach ($list as $k=>$v)
+                {
+                    $sheet->getStyle($letter[0].$j.":".$letter[17].$j)->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_LEFT);
+                    $sheet->setCellValue($letter[0].$j,$v['code']);
+                    $sheet->setCellValue($letter[1].$j,$v['site']);
+                    $sheet->setCellValue($letter[2].$j,$v['realname']);
+                    $sheet->setCellValue($letter[3].$j,$v['order_total_cny']);
+                    $sheet->setCellValue($letter[4].$j,$v['shop_total_cny']);
+                    $sheet->setCellValue($letter[5].$j,$v['paypal_commission_cny']);
+                    $sheet->setCellValue($letter[6].$j,$v['refund_total_cny']);
+                    $sheet->setCellValue($letter[7].$j,$v['refund_commission_cny']);
+                    $sheet->setCellValue($letter[8].$j,$v['ebay_pay_order_cny']);
+                    $sheet->setCellValue($letter[9].$j,$v['paypal_foreign_payment_cny']);
+                    $sheet->setCellValue($letter[10].$j,$v['frozen_amount_cny']);
+                    $sheet->setCellValue($letter[11].$j,$v['offset_settlement_cny']);
+                    $sheet->setCellValue($letter[12].$j,$v['other_items_cny']);
+                    $sheet->setCellValue($letter[13].$j,$v['other_fee_cny']);
+                    $sheet->setCellValue($letter[14].$j,$v['refund_commission_fee_cny']);
+                    $sheet->setCellValue($letter[15].$j,$v['paypal_fee_cny']);
+                    $sheet->setCellValue($letter[16].$j,$v['surplus_plus_fee_cny']);
+                    $sheet->setCellValue($letter[17].$j,$v['surplus_minus_fee_cny']);
+                    $j++;
+                }
+            }
+            @unlink($fullName);
+            $writer = \PHPExcel_IOFactory::createWriter($excel, 'Excel2007');
+            $writer->save($fullName);
+            if (is_file($fullName)) {
+                $applyRecord['exported_time'] = time();
+                $applyRecord['download_url'] = $downLoadDir . $fileName;
+                $applyRecord['status'] = 1;
+                (new ReportExportFiles())->where(['id' => $params['apply_id']])->update($applyRecord);
+            } else {
+                throw new Exception('文件写入失败');
+            }
+        } catch (\Exception $ex) {
+            Cache::handler()->hset(
+                'hash:report_export',
+                $params['apply_id'].'_'.time(),
+                '申请id: ' . $params['apply_id'] . ',导出失败:' . $ex->getMessage() . $ex->getFile() . $ex->getLine());
+            $applyRecord['status'] = 2;
+            $applyRecord['error_message'] = $ex->getMessage();
+            (new ReportExportFiles())->where(['id' => $params['apply_id']])->update($applyRecord);
+        }
+
+    }
+}

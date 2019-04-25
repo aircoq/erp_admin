@@ -1,0 +1,61 @@
+<?php
+// +----------------------------------------------------------------------
+// | 
+// +----------------------------------------------------------------------
+// | File  : AbsBase.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-20
+// +----------------------------------------------------------------------
+
+namespace imap\filter\rules;
+
+use function foo\func;
+use imap\interfaces\IFilterRule;
+use PhpImap\IncomingMail;
+use \Exception as Exception;
+
+abstract class AbsBase implements IFilterRule
+{
+    protected  $exps = [];
+
+    public function __construct($exps = null)
+    {
+        if($exps) $this->addRegular($exps);
+    }
+
+    /**
+     * @param $exps
+     * @throws Exception
+     */
+    public function addRegular($exps)
+    {
+        if(is_string($exps)){
+            $this->exps[] = $exps;
+        }elseif(is_array($exps)){
+            foreach ($exps as $exp){
+                if(!is_string($exp)) {
+                    $this->thorwException('invalid parameter');
+                }
+                $this->exps[] = $exp;
+            }
+        }else{
+            $this->thorwException('invalid parameter');
+        }
+    }
+
+    /**
+     * @param $msg
+     * @throws Exception
+     */
+    protected function thorwException($msg)
+    {
+        $trace = debug_backtrace();
+        $file  = $trace[1]['file'];
+        $line  = $trace[1]['line'];
+        $class = $trace[1]['class'];
+        $func  = $trace[1]['function'];
+        throw  new Exception("{$file}:{$line}\t{$class}::{$func}\t{$msg}");
+    }
+}

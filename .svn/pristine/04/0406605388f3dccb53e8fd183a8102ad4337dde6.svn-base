@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="border:2pt solid #000;width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr>
+                <td colspan="6" style="border:1pt solid #000;border-bottom-width: 0;font-size: 8pt">
+                    Mailing address:<br>
+                    Saylom road 01000,PO Box 8879
+                    Vientiane Lao PDR
+                </td>
+                <td colspan="3" style="font-size: 8pt;text-align: center;border:1pt solid #000;">
+                    pp/0001
+                    Entreprise des
+                    Postes Lao
+                </td>
+                <td colspan="3" style="line-height: 14pt;font-size: 8pt;text-align: center;border:1pt solid #000;">
+                    <img  style="width:40pt;height:30pt" src="data:image/jpeg;base64,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">
+                </td>
+            </tr>
+            <tr style="font-size:10pt;line-height: 10pt;">
+                <td colspan="10" style="border:1pt solid #000;border-right:0;text-align: left;">
+                    <div style="padding: 3pt;">
+                        To:<?php echo $name;?> <br>
+                        <?php echo $street.$street2;?> <br>
+                        <?php echo $city?> <?php echo $province?> <?php echo $zip?> <br>
+                        <?php echo $country_en_name?> <br>
+                        Tel:<?php echo $phone?> Mobile:<?php echo $tel?>
+                    </div>
+                </td>
+                <td colspan="2" style="border:1pt solid #000;border-right:0;border-left:0;">
+                    <div style="font-size: 15px;">
+                        <?php echo $zoneCode?>
+                    </div>
+<!--                    <div>-->
+<!--                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAaCAIAAAAvw3vjAAAB70lEQVRIDe2Tz2sTQRTHP7ObbROjtmiytJUQD9pD0QqiB/0HehLxIP7ASwXpxasHQcFS0Js9WOyxIugf4B+gggheetEierNtEmLxR4wWTZrdcV7akzAzUMxJvyzLsPPe581+3xultaY3CnqDFeo/hdZfn+lfq24zt2OITn6y9lhlS38fTfMVyn+mjLuy2dUbn6kv0GkSZNl3lSDHygzFc95EP5oP09TmBBRfJMzTeM73RUrXvWjPf+n1JT4+FEq4i/JNUCzPkLZ5P6nba266B01llqQpiPg8uVEaT/n2At2iXaN6z41Wjouuf7xh8Sgk4u/xt0RFXk/QfLlFzAxybEn1j9gKWE8tJVduC9doaFJlyyTr7DzC8BTxBbnGnQb1Bzau+W5FS05rWd5RTOmaVIoK6uCcGp0nPw5pN6Aib4usE6KU0sNXZISDfip3JX3HGCNT0r1qd2BMS00D7HKeOr5E/jCtVemYeYI+4RhuuyqLPRPsPiELi1xoFUSUb6Ai8S1/iOJZbfyt3e+iQjPaEmCXCy1Ze0+z/xYqlKGWe3iHzhf5XjjFwElZ2GX1eitFZQgHyB2gcIZWlU9PpKt9Q5Snlannlmm9W+m7y2n9kYlJ043NyDRN3Cmbu64r4z6Td9fntRdgD/iP/sObHhryGwws3D1TK/xcAAAAAElFTkSuQmCC" alt=""/>-->
+<!--                    </div>-->
+                </td>
+            </tr>
+            <tr >
+                <td colspan="10" style="text-align:center;width: 180px;">
+                    <div style="width: 100%;text-align: center;margin:5pt 5pt;">
+
+                        <img  style="width: 180pt" src="<?php echo $this->imgSrc($shipping_number);?>">
+                        <br/>
+                        <?php echo $shipping_number;?>
+                    </div>
+
+
+                </td>
+                <td colspan="2" style="border: 0;">
+                    <font style="font-size: 12px;"><?php echo $country_code?></font>
+                    <br>
+                    <br>CN22
+                </td>
+
+            </tr>
+
+            <tr >
+                <td colspan="6" style="=text-align: left">
+
+                    CUSTOMS DECLARATION
+                    CN22
+                    (May be opened officially)
+                    Postal administration
+
+                </td>
+                <td colspan="6">
+                    <div ><span ><img style="width: 11pt;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAANCAYAAAB2HjRBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAADZJREFUOE9j/A8EDOQCkGaoASBDiMZgPVTVDDMMFw1zHVabRzVjhgDtAozYhEK9REIofrHJAwBqhe4hNzG0HwAAAABJRU5ErkJggg==">Gift&nbsp;</span><span ><img style="width: 11pt;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAANCAYAAAB2HjRBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAADZJREFUOE9j/A8EDOQCkGaoASBDiMZgPVTVDDMMFw1zHVabRzVjhgDtAozYhEK9REIofrHJAwBqhe4hNzG0HwAAAABJRU5ErkJggg==">Document&nbsp;</span></div>
+                    <div><span><img style="width: 11pt;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAANCAYAAAB2HjRBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAADZJREFUOE9j/A8EDOQCkGaoASBDiMZgPVTVDDMMFw1zHVabRzVjhgDtAozYhEK9REIofrHJAwBqhe4hNzG0HwAAAABJRU5ErkJggg==">CommercialSample&nbsp;</span> <span><img style="width: 11pt;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAANCAYAAAB2HjRBAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMTQyIDc5LjE2MDkyNCwgMjAxNy8wNy8xMy0wMTowNjozOSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTggKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjBDNEZEODM0OEMwNTExRThCMDI5ODA5RjNENEU5NDgwIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjBDNEZEODM1OEMwNTExRThCMDI5ODA5RjNENEU5NDgwIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6MEM0RkQ4MzI4QzA1MTFFOEIwMjk4MDlGM0Q0RTk0ODAiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6MEM0RkQ4MzM4QzA1MTFFOEIwMjk4MDlGM0Q0RTk0ODAiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4mAeCkAAAAtklEQVR42mL8//8/A7mABcZgZGQk2hSghYwgmomBAsCEzVR0/HSHL4MtazZWJzBA/f0fwv3PgIw/X0z/H8xk899x1/P/6Grwa/687H+XDct/lqS1/y/+/U+a5gs9Mv8ZeBL+F97+/h+bGqyap195///X7eL/4Yy8/4X6z//HZQGG5gkWLP8ZNIL/R/lx/Gcwrv0/9dVv4jW/WG/5XxDMVvivsOAmijfQNTPCUhjdEwkjJWkbIMAAfYPxG4DhGAkAAAAASUVORK5CYII=">Other&nbsp;</span></div>
+
+
+                </td>
+
+            </tr>
+            <tr>
+                <td colspan="6" style="border:1pt solid #000;text-align: center;">
+                    NameEN&Sku
+                </td>
+                <td  colspan="3" style="border:1pt solid #000;text-align: center;">
+                    Qty
+                </td>
+                <td colspan="3" style="text-align: center;border:1pt solid #000;">
+                    value
+                </td>
+
+            </tr>
+            <?php foreach ($list as $k=>$v): ?>
+                <tr>
+                    <td colspan="6" style="border:1pt solid #000;text-align: center;">
+                        <?php echo $v['declared_name_en'];?>&<?php echo $v['sku'];?>
+                    </td>
+                    <td   colspan="3"style="border:1pt solid #000;text-align: center;">
+                        <?php echo $v['qty'];?>
+                    </td>
+                    <td  colspan="3"style="text-align: center;border:1pt solid #000;">
+                        <?php echo number_format($v['declared_value']*$v['qty'],1,'.','');?>
+                    </td>
+
+                </tr>
+            <?php endforeach;?>
+            <tr>
+                <td colspan="12" style="border:1pt solid #000;text-align: center;border-bottom-width: 0;">
+                    &nbsp;
+                </td>
+            </tr>
+
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

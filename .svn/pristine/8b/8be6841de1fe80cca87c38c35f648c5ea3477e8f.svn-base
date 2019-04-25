@@ -1,0 +1,16 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-18
+ * Time: 下午8:24
+ */
+
+return [
+
+    'workerTaskers' =>[
+        0=>['executer'=>\swoole\taskExecuter\Tasker::class],
+        1=>['executer'=>\swoole\taskExecuter\Queuer::class],
+//        0=>['executer'=>\swoole\taskExecuter\Test::class],
+    ]
+];

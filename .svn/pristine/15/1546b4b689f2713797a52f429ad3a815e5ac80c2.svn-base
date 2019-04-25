@@ -1,0 +1,1247 @@
+<?php
+namespace service\shipping\operation;
+
+use service\shipping\operation\ShippingMethodBase;
+use think\Exception;
+use app\common\cache\Cache;
+use org\Curl;
+use app\common\service\ChannelAccountConst;
+use app\warehouse\service\WarehouseGoodsForecast;
+use app\warehouse\service\WarehouseGoods;
+
+/**
+ * Class Fourpx
+ * @package service\shipping\operation
+ */
+class Fourpx extends ShippingMethodBase
+{   
+    private $config = [
+        'sandbox'       => true, 
+        'format'        => 'json',
+        'code'          => '4px',
+        'token'         => '',
+        'customerId'    => '',
+        'sandboxUrl'    => 'http://apisandbox.4px.com',
+        'productionUrl' => 'http://openapi.4px.com',
+        'language'      => 'zh_CN',
+        'url'           => 'http://openapi.4px.com'
+    ];
+    
+    private $result = ['data' => [], 'error' => [], 'success' => false];
+    
+    // 保险code
+    private $insurce_code = [
+        'NI' => ['code' => 'NI', 'name' => '不买保险(无)', 'application' => 'All'],
+        'LI' => ['code' => 'LI', 'name' => '低值保险', 'application' => '海外仓'],
+        'HI' => ['code' => 'HI', 'name' => '高值保险', 'application' => '海外仓'],
+        '5Y' => ['code' => '5Y', 'name' => '挂号-快递保价', 'application' => '国内仓'],
+        '8Y' => ['code' => '8Y', 'name' => '平邮保价', 'application' => '国内仓'],
+        '6P' => ['code' => '6P', 'name' => '0.6%保费', 'application'=> '国内仓']
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    // 平台简码
+    private $platform_code = [
+        '1' => 'E',
+        '2' => 'A',
+        '3' => 'S',
+        '4' => 'W'
+    ];
+    
+    // 计量单位
+    private $measure_unit = [
+        'EA', 'KG', 'MT'
+    ];
+    
+    private $warehouses = [
+            ['code' => '4PHK', 'name' => '递四方香港仓'],
+            ['code' => 'AUSY', 'name' => '递四方东莞保税仓'],
+            ['code' => 'BJ01', 'name' => '递四方北京一号仓'],
+            ['code' => 'CAWH', 'name' => '递四方加拿大库'],
+            ['code' => 'DEFR', 'name' => '递四方德国二仓'],
+            ['code' => 'DEWC', 'name' => '第四方德国三仓'],
+            ['code' => 'DEWH', 'nmae' => '递四方德国库'],
+            ['code' => 'DGBS', 'name' => '递四方东莞保税仓'],
+            ['code' => 'DGST', 'name' => '递四方东莞B61保税仓'],
+            ['code' => 'HK02', 'name' => '递四方香港二仓'],
+            ['code' => 'HK03', 'name' => '递四方香港转运仓'],
+            ['code' => 'KRIC', 'name' => '递四方韩国仁川仓'],
+            ['code' => 'SGP1', 'name' => '递四方新加坡仓'],
+            ['code' => 'SH01', 'name' => '递四方上海一号仓'],
+            ['code' => 'SHHQ', 'name' => '递四方上海虹桥仓库'],
+            ['code' => 'STKJ', 'name' => '递四方沙田快件仓'],
+            ['code' => 'SZZW', 'name' => '递四方深圳钟屋仓'],
+            ['code' => 'UKLH', 'name' => '递四方英国库'],
+            ['code' => 'USLA', 'name' => '递四方美国洛杉矶仓'],
+            ['code' => 'USNY', 'name' => '递四方美东纽约仓'],
+            ['code' => 'UKLU', 'name' => '递四方英国路腾仓']
+    ];
+    // 订单状态
+    private $order_status = [
+        'O'=>'待审核',
+        'P'=>'待发货',
+        'S'=>'已发货',
+        'X'=>'已取消',
+        'D'=>'已删除',
+        'F'=>'已冻结',
+        'Q'=>'已签收',
+        'E'=>'异常',
+    ];
+
+    /**
+     * @desc 获取系统仓库
+     * @param array $config
+     * @return array
+     */
+    public function getWarehouse(array $config)
+    {
+        $this->result['success'] = true;
+        $this->result['data'] = $this->warehouses;
+        return $this->result;
+    }
+
+
+    /**
+     * 获取API信息
+     * @param array $config
+     * @return boolean
+     * @throws Exception
+     */
+    private function getApiInfo($config)
+    {
+       /* $config=[
+            'customer_code'=>'551166',
+            'accessToken'=>'61eb84b88935a07d6c3364a30dacc67c',
+        ];*/
+        if (!param($config, 'customer_code') || !param($config, 'accessToken')) {
+            throw new Exception('缺少必要授权信息');
+        }
+        $this->config['token'] = trim($config['accessToken']);
+        $this->config['customerId'] = trim($config['customer_code']);
+        $this->config['sandbox'] = true;
+        return true;
+
+    }
+
+    /**
+     * @desc 循环获取所有的分类
+     * @param int $category
+     * @param int $level
+     * @throws Exception
+     * @return array
+     */
+    public function cycleGetCategory($path, &$i, $category=0, $level=0)
+    {
+        if($i%250==0){ //每分钟有请求限制
+            sleep(60);
+        }
+        $data['categoryParentCode'] = $category;
+        $result= $this->callOperation($data, $path);
+        if(param($result, 'errorCode')){
+            throw new Exception($result['errorMsg']);
+        }
+        $categories = $result['data'] ?? [];
+        foreach($categories as $key=>$item){
+            $categories[$key]['parent_category_id'] = $category;
+            $categories[$key]['category_name'] = $item['categoryName'];
+            //$categories[$key]['category_name_en'] = $item['categoryCode'];
+            $categories[$key]['category_level'] = $level;
+            $categories[$key]['category_id'] = $item['categoryCode'];
+            $categories[$key]['level'] = $level;
+            $i++;
+            $child_category = $this->cycleGetCategory($path, $i, $item['categoryCode'], ($level+1));
+            $categories = array_merge($categories, $child_category);
+        }
+        return $categories;
+    }
+    
+    /**
+     * 更新或加载4px产品分类
+     * @param array $config
+     * @return array (categoroyCode, categoryName, categoryEnname, minDeclarevalue)
+     */
+    public function getCategory($config)
+    {
+        $path = 'api/service/woms/item/getItemCategory';
+        try {
+            $this->getApiInfo($config);
+            $i = 1;
+            $info = $this->cycleGetCategory($path, $i);
+            $this->result['success'] = true;
+            $this->result['data'] = $info;
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+    
+    /**
+     * 获取产品信息
+     * @param int $warehouse_id
+     * @param array $skus
+     * @return array (categoryCode, sku, skuId, iteName, specification, unitPrice, weight, length, width, height, declare, refrenceCode
+     * imBmNo, imBarCode, supplierCode, uomCode )
+     */
+    public function getItemList($config, array $skus=[])
+    {
+        $data['lstSku'] = $skus;
+        $path = 'api/service/woms/item/getItemList';
+        try {
+            $this->getApiInfo($config);
+            $info = $this->callOperation($data, $path);
+            if ($info['errorCode'] == 0) {
+                $this->result['success'] = true;
+                $this->result['data'] = $info['data'];
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $info['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        
+        return $this->result;
+    }
+
+    /**
+     * @desc 组装库存返回格式
+     * @param array $lists
+     * @return array
+     */
+    private function buildReturnInventory($lists, $sku = [], $code = '')
+    {
+        $data = [];
+        foreach($lists as $item){
+            $temp['thirdparty_goods_sku'] = $item['sku'];
+            $temp['warehouse_code'] = $item['warehouseCode'];
+            $temp['third_intransit_quantity'] = $item['pendingQuantity'] ?? 0; //在途=调拨
+            $temp['third_avaliable_quantity'] = $item['availableQuantity'] ?? 0; //可用=可售
+            $temp['third_defects_quantity'] = $item['unqualifiedGross'] ?? 0; //故障品=不合格
+            $temp['third_quantity'] = $item['actualQuantity'] ?? 0; //实际库存
+            $data[] = $temp;
+        }
+        if ($sku) {
+            $new_sku = array_column($data, 'thirdparty_goods_sku');
+            $diff_sku = array_diff($sku, $new_sku);
+            foreach ($diff_sku as $v) {
+                $data[] = [
+                    'thirdparty_goods_sku' => $v,
+                    'warehouse_code' => $code,
+                    'third_intransit_quantity' => 0,
+                    'third_avaliable_quantity'=> 0,
+                    'third_defects_quantity'=> 0,
+                    'third_quantity'=> 0
+                ];
+            }
+        }
+        return $data;
+    }
+    /**
+     * 获取库存信息
+     * @param array $config
+     * @param array $info (warehouseCode, skus)
+     * @return array (sku, skuId, warehouseCode, actualQuantity, availableQuantity, shippingQuantity, pendingQuantity, unqalifeidGross, unqualifies)
+     * $actualQuantity 实际库存
+     * $availableQuantity 可销售库存
+     * $shippingQuantity 待出库存
+     * $pendingQuantity 在途库存(货物尚未到达仓库)
+     * $unqualifiedGross 不良品数量
+     */
+    public function getProductInventory($config, array $info)
+    {
+        isset($info['skus']) && !empty($info['skus']) ? $data['lstSku'] = $info['skus'] : '';
+        $data['warehouseCode'] = $info['code'];
+        $path = 'api/service/woms/item/getInventory';
+        try {
+            $this->getApiInfo($config);
+            $result = $this->callOperation($data, $path);
+            if ($result['errorCode'] == 0) {
+                $result['data'] = $result['data'] ?? [];
+                $sku = $info['skus'] ?? [];
+                $this->result['data'] = $this->buildReturnInventory($result['data'], $sku, $info['code']);
+                $this->result['success'] = true;
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        
+        return $this->result;
+    }
+    
+    /**
+     * 获取库存信息
+     * @param int $warehouse_id
+     * @param array $info (warehouseCode, sku_id)
+     * @return array (sku, skuId, warehouseCode)
+     */
+    public function getInventoryDetail($warehouse_id, array $info)
+    {  
+        $data['warehouseCode'] = $info['warehouseCode'];
+        $data['skuId']         = $info['sku_id'];
+        $path = 'api/service/woms/item/getInventoryDetail';
+        try {
+            $this->getApiInfo($warehouse_id);
+            $result = $this->callOperation($data, $path);
+            if ($result['errorCode'] == 0) {
+                $this->result['success'] = true;
+                $this->result['data'] = $result['data'];
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取平台简码
+     * @param int $channel_id
+     * @return string
+     */
+    private function getChannelCode($channel_id)
+    {
+        switch ($channel_id) {
+            case ChannelAccountConst::channel_ebay:
+                $channel = 'E';
+                break;
+            case ChannelAccountConst::channel_amazon:
+                $channel = 'A';
+                break;
+            case ChannelAccountConst::channel_aliExpress:
+                $channel = 'S';
+                break;
+            case ChannelAccountConst::channel_wish:
+                $channel = 'W';
+                break;
+            default:
+                $channel = '';
+        }
+        return $channel;
+    }
+
+    /**
+     * @desc 获取门牌号(仅根据地址1)
+     */
+    public function getDoorplate($shipping_code, &$street, &$street2)
+    {
+        $need_door_shipping = ['DEDHL', 'UK-DE-TRUCK','DEDHLPAL'];//只有部分需要门牌号
+        if(in_array($shipping_code, $need_door_shipping)){
+            $data = explode(' ', $street);
+            $doorplate = array_pop($data);
+            if(preg_match('/^[A-Za-z0-9]{1,5}$/',$doorplate) && !preg_match('/^[A-Za-z]{1,5}$/',$doorplate)) {
+                $street = implode(' ',$data);
+                $data2 =  explode(' ', $street2);
+                $doorplate2 = array_pop($data2);
+                if($doorplate2==$doorplate){
+                    $street2 = implode(' ',$data2);
+                }
+                return $doorplate;
+            }
+        }
+        return  '';
+    }
+
+    /**
+     * @desc 获取地址
+     */
+    public function getStreet($street1, $street2)
+    {
+        if($street1==''){
+            return  $street2;
+        }
+        $street = $street1;
+        $street2 = trim($street2);
+        if($street2 != ''){
+            if(!strstr($street1, $street2)){ //地址1和地址2不一样
+                $street = $street1.' '.$street2;
+            }
+        }
+        return  $street;
+    }
+
+
+    /**
+     * @desc 组装创建订单信息
+     * @param array $order
+     * @return array
+     */
+    private function buildOrderData($order)
+    {
+
+        $items = [];
+        $warehouseGoods = new WarehouseGoods();
+        foreach($order['product'] as $sku_id=>$list) {
+            $items[] = [
+                'sku'          => $warehouseGoods->getThirdSku($order['warehouse_id'], $sku_id) , //第三方sku
+                'quantity'     => $list['qty'],
+                'skuLabelCode' => '' //SKU 标签文件资源编码
+            ];
+        }
+        $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+        $doorplate = '';
+        if($order['street'] != ''){
+            $doorplate = $this->getDoorplate($order['shipping_method_code'], $order['street'], $order['street2']);
+        }
+        if(!$doorplate && $order['street2']){
+            $doorplate = $this->getDoorplate($order['shipping_method_code'], $order['street2'], $order['street']);
+        }
+        $remoteArea = 'N';
+        if(in_array($order['number'], [155458561804])){
+            $remoteArea = 'Y';
+        }
+        $request = [
+            'referenceCode' => $referenceID,  // 订单参考号
+            'warehouseCode' => Cache::store('warehouse')->getWarehouseCodeById($order['warehouse_id']),
+            'carrierCode'   => $order['shipping_method_code'],
+            'insureType'    => 'NI', // 不买保险
+            'sellCode'      => '',  //销售交易号
+//            'remoteArea'    => $order['number']=='153335230318'? 'Y':'N', //是否走货
+            'remoteArea'    => $remoteArea, //是否走货
+            'description'   => '',
+            'consignee'     => [ //收件人信息
+                'fullName'    => $order['name'],
+                'countryCode' => $order['country_code'],
+                'street'      => $this->getStreet($order['street'], $order['street2']),
+                'city'        => $order['city'],
+                'state'       => $order['province'],
+                'postalCode'  => $order['zip'],
+                'email'       => $order['email'],
+                'phone'       => $order['phone'],
+                'company'     => '',
+                'doorplate'   => $doorplate,
+                'cardId'      => ''
+            ],
+            'insureMoney'   => '0.00',
+            'platformCode'  => $this->getChannelCode($order['channel_id']), // 平台简码
+            'fbaLabelCode'  => '',
+            'items'           => $items
+        ];
+        //vova平台需要传跟踪号到递四方后台
+        if($order['channel_id']==ChannelAccountConst::channel_Vova){
+
+            if(!$order['shipping_number']){
+                $this->result['error'] = [
+                    'error_msg'  => 'vova平台下单需获取线上物流跟踪号才能下单',
+                    'error_code' => 1
+                ];
+                return $this->result;
+            }
+            $request['shippingCode']=$order['shipping_number'];
+            $arr_log = [
+                'request'=> json_encode($request),
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log,true);
+
+        }
+        return $request;
+    }
+    
+    /**
+     * 创建出库单 -- 下单createDevlieryOrder
+     * @param array $config 授权信息
+     * @param array $order 包裹详情
+     * @param boolean $confirm
+     * @return array
+     */
+    public function createOrder($config, $order, $confirm = true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            $this->getApiInfo($config);
+
+            $request_data = $this->buildOrderData($order);
+            $result = $this->callOperation($request_data, 'api/service/woms/order/createDeliveryOrder');
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=> $request_data,
+                'response'=> $result
+            ];
+            if (param($result, 'errorCode') != '0') { // 执行情况
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+                $this->result['error'] = [
+                    'error_msg' => isset($result['errorMsg'])?$result['errorMsg']:'未知错误',
+                    'error_code'=> 1
+                ];
+              return  $this->result;
+            }
+            if ($result['data']['ack'] == 'Y') { // 执行结果
+                if($order['channel_id']==ChannelAccountConst::channel_Vova){
+                    $tacking=explode('-',$order['process_code']);
+                    $this->result['success'] = true;
+                    $this->result['data']['number']             =  $order['number'];      // 订单参考号
+                    $this->result['data']['package_code']       =  $result['data']['documentCode'];      // 4px订单号
+                    $this->result['data']['trackingNumber']     = $tacking[1]??'';  // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                    $this->result['data']['confirm']            = true;                              // 是否交运
+                    $this->result['data']['label']              = false;                          // 是否有pdf
+                    $this->result['data']['label_url']          = '';                             // 是否有pdf
+                    $this->result['data']['is_weight']          = true;                           // 是否能查询实际重量
+                    $this->result['data']['is_fee']             = true;                          // 是否能查询实际费用
+                    $this->result['data']['send']               = true;                           // 是否能查询物流订单状态
+                    $this->result['success']                    = true;
+                    $this->result['success']                    = true;
+                }else{
+                    $this->result['success'] = true;
+                    $this->result['data']['number']             =  $order['number'];      // 订单参考号
+                    $this->result['data']['package_code']       = $result['data']['documentCode'];      // 4px订单号
+                    $this->result['data']['trackingNumber']     = '';  // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                    $this->result['data']['confirm']            = true;                              // 是否交运
+                    $this->result['data']['label']              = false;                          // 是否有pdf
+                    $this->result['data']['label_url']          = '';                             // 是否有pdf
+                    $this->result['data']['is_weight']          = true;                           // 是否能查询实际重量
+                    $this->result['data']['is_fee']             = true;                          // 是否能查询实际费用
+                    $this->result['data']['send']               = true;                           // 是否能查询物流订单状态
+                    $this->result['success']                    = true;
+                    $this->result['success']                    = true;
+                }
+
+            }else {
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                $msg = [];
+                foreach($result['data']['errors'] as $k => $error) {
+                    $msg[] = $error['codeNote'] ?? $error['code'];
+                }
+                $this->result['error']['error_msg'] = $msg ? implode(' ',  $msg) : '未知错误';
+                $this->result['error']['error_code'] = 1;
+            }
+
+        }catch (Exception $ex){
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+    
+    /**
+     * 获取邮寄方式
+     * @param array $config
+     * @return array (warehouseCode, carrierCode, carrierName, carrierEName, productCode)
+     */
+    public function getExpress($config)
+    {
+        $data['warehouseCode'] =  $config['carrier_code'];
+        $path = 'api/service/woms/order/getOrderCarrier';
+        try {
+            $this->getApiInfo($config);
+            $result = $this->callOperation($data, $path);
+            if ($result['errorCode'] == 0) {
+                $this->result['success'] = true;
+                $lists = [];
+                foreach($result['data'] as $item){
+                    $lists[] = ['code'=>$item['carrierCode'], 'name'=>$item['carrierName']];
+                }
+                $this->result['data'] = $lists;
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        return $this->result;
+    }
+    
+    /**
+     * 获取出库单信息
+     * @param array $config
+     * @return array $order
+     */
+    public function getDeliveryOrder($config, array $order)
+    {
+        try {
+            $path = 'api/service/woms/order/getDeliveryOrder';
+            $data['orderCode'] = $order['process_code'];
+            $this->getApiInfo($config);
+            $result = $this->callOperation($data, $path);
+            if ($result['errorCode'] == 0 && $result['data']) {
+                $this->result['success'] = true;
+                $this->result['data'] = $result['data'];
+            } else if($result['errorCode'] == 0 && !$result['data']) {
+                $this->result['error'] = [
+                    'error_msg'  => ' 出库单号不存在，未查询到信息!!',
+                    'error_code' => 1
+                ];
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取跟踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    function getTrackingNumber($config, $order)
+    {
+        try {
+            if($order['channel_id']==ChannelAccountConst::channel_Vova){
+                $this->result['error'] = [
+                    'error_msg' => 'VOVA平台不支持获取跟踪号',
+                    'error_code' => 1
+                ];
+                return $this->result;
+            }
+            $this->result['number'] = $order['number'];
+            $this->getApiInfo($config);
+            $data['orderCode'] = $order['process_code'];
+            $response = $this->callOperation($data, 'api/service/woms/order/getDeliveryOrder');
+            if ($response['errorCode'] == 0) {
+                $this->result['data']['trackingNumber'] = $response['data']['shippingNumber'];
+                $this->result['success'] = true;
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => param($response, 'errorMsg', '未知错误'),
+                    'error_code' => 1
+                ];
+            }
+        }catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config,$order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            $this->getApiInfo($config);
+            //递四方老系统取消订单无法获取订单信息
+            $number = ["155420579348"];
+            if (in_array($order['number'], $number)) {
+                $this->result['success'] = true;
+                return $this->result;
+            }
+            $data['orderCode'] = $order['process_code'];
+            $response = $this->callOperation($data, 'api/service/woms/order/cancelDeliveryOrder');
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=> $data,
+                'response'=> $response
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            if ($response['errorCode'] == 0) {
+                if($response['data']['ack'] == 'Y'){
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['success'] = false;
+                    $this->result['error'] = [
+                        'error_msg' => param($response['data']['errors'][0], 'codeNote', '未知错误'),
+                        'error_code' => 1
+                    ];
+                }
+
+            } else {
+                $this->result['success'] = false;
+                $this->result['error'] = [
+                    'error_msg' => param($response, 'errorMsg', '未知错误'),
+                    'error_code' => 1
+                ];
+            }
+            //返回订单已经取消
+            if($this->result['success']==false){
+                $response = $this->callOperation($data, 'api/service/woms/order/getDeliveryOrder');
+                if(isset($response['data']) && isset($response['data']['status']) && in_array($response['data']['status'], array('X', 'D'))){
+                    $this->result['success'] = true;
+                }
+            }
+        }catch(Exception $ex){
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取是否已经发货
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function getPackageStatus($config, $order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            $this->getApiInfo($config);
+            $data['orderCode'] = $order['process_code'];
+            $response = $this->callOperation($data, 'api/service/woms/order/getDeliveryOrder');
+            if ($response['errorCode'] == 0) {
+                $this->result['success'] = true;
+                //0-未发货 1已发货 3 问题单
+                switch($response['data']['status']){
+                    case 'O':
+                    case 'R':
+                    case 'P':
+                        $shipping_status = 0;
+                        break;
+                    case 'S':
+                    case 'Q':
+                        $shipping_status = 1;
+                        break;
+                    default:
+                        $shipping_status = 2;
+                }
+                $this->result['data']['weight'] = $response['data']['weight']*1000;
+                $this->result['data']['is_send'] = $shipping_status==1 ? true:false;
+                $this->result['data']['shipping_time'] = param($response['data'], 'shippingTime') ? strtotime($response['data']['shippingTime']) : 0;
+            } else {
+                $this->result['success'] = false;
+                $this->result['error'] = [
+                    'error_msg' => param($response, 'errorMsg', '未知错误'),
+                    'error_code' => 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+    
+    /**
+     * 获取所有出库单
+     * @param array $params
+     * @return array(
+     */
+    public function getDeliveryOrderList($warehouse_id, $params = null) 
+    {     
+        if (isset($params['warehouseCode']) && $params['warehouseCode']) {
+            $search_data['warehouseCode'] = $params['warehouseCode'];
+        }
+        
+        if (isset($params['order_code']) && $params['order_code']) {
+            $search_data['orderCode'] = $params['order_code'];
+        }
+        
+        if (isset($params['carrier_code']) && $params['carrier_code']) {
+            $search_data['carrierCode'] = $params['carrier_code'];
+        }
+        
+        if (isset($params['area_code']) && $params['area_code']) {
+            $search_data['areaCode'] = $params['area_code'];
+        }
+        
+        if (isset($params['reference_code']) && $params['reference_code']) {
+            $search_data['referenceCode'] = $params['reference_code'];
+        }
+        
+        if (isset($params['create_date_begin']) && $params['create_date_begin']) {
+            $search_data['createDateBegin'] = $params['create_date_begin'];
+        }
+        
+        if (isset($params['create_date_end']) && $params['create_date_end']) {
+            $search_data['createDateEnd'] = $params['create_date_end'];
+        }
+        
+        if (isset($params['order_status_code']) && $params['order_status_code']) {
+            $search_data['orderStatusCode'] = $params['order_status_code'];
+        }/* else {
+            $search_data['orderStatusCode'] = 'S';
+        }*/
+        
+        if (isset($params['shipment_date_begin']) && $params['shipment_date_begin']) {
+            $search_data['shipmentDateBegin'] = $params['shipment_date_begin'];
+        }/* else {
+            $search_data['shipmentDateBegin'] = date('Y-m-d H:i:s', strtotime("-1 day"));
+        }*/
+        
+        if (isset($params['shipment_date_end']) && $params['shipment_date_end']) {
+            $search_data['shipmentDateEnd'] = $params['shipment_date_end'];
+        }
+        
+        $path = 'api/service/woms/order/getDeliveryOrderList';
+        try {
+            $this->getApiInfo($warehouse_id);
+            $result = $this->callOperation($search_data, $path);
+            if ($result['errorCode'] == 0) {
+                $this->result['success'] = true;
+                $this->result['data'] = $result['data'];
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        
+        return $this->result;
+    }
+    
+    /**
+     * 建立货品
+     * @param array $config
+     * @param array $goods
+     * @return array
+     */
+    public function createProduct($config, $goods)
+    {
+        $path = 'api/service/woms/item/createItem';
+        try {
+            $this->getApiInfo($config);
+            $data = $this->formatGoodsInfo($goods);
+            $result = $this->callOperation($data, $path);
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=> $data,
+                'response'=> $result
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($data['sku'],$arr_log);
+            if ($result['errorCode'] == 0 && $result['data']['ack'] == 'Y') {
+                $this->result['success'] = true;
+                //$this->result['data']['skuId'] = $result['data']['documentCode'];
+            } else if($result['errorCode'] == 0 && $result['data']['ack'] == 'N') {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $result['data']['errors'][0]['codeNote']
+                ];
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        
+        return $this->result;
+    }
+    
+    /**
+     * @desc 组装产品信息
+     * @param array
+     * @return array
+     */
+    private function formatGoodsInfo($goods)
+    {
+        $data['categoryCode'] = $goods['cat_id_level2'] ? $goods['cat_id_level2'] :$goods['cat_id_level1'] ; //发现部分分类没有三级
+        $data['sku'] =  $goods['third_sku'];
+        $data['itemName'] = $goods['title'];
+        $data['unitPrice'] = $goods['declared_value']; // 申报价值(美元)
+        $data['units'] = 'KG'; // 计量单位
+        $data['weight'] = $goods['weight']; // 单位(kg)
+        $data['length'] = $goods['length']; // 单位(cm)
+        $data['width']  = $goods['width']; // 单位(cm)
+        $data['height'] = $goods['height']; // 高度(cm)
+        $data['declare'] = $goods['declared_name']; // 海关申报品名
+        $data['referenceCode'] = $goods['sku_id']; // 货品参考号， sku_id
+        $data['isRelease'] = 'Y'; // 是否审核
+      /*  $data['valueable'] = 'N'; // 是否贵重物品
+        $data['constantTemprature'] = 'N'; // 是否需要恒温
+        $data['dangerSign'] = 'N'; // 是否危险品*/
+        $data['upc'] = ''; // UPC码
+        return $data;
+    }
+    
+    /**
+     * 获取订单信息
+     * @param array $order
+     * @param int warehouse_id
+     * @return array order info
+     */
+    private function formatPackageInfo(&$order, &$warehouseId)
+    {  
+        $result = ['errorCode' => 0, 'errorMsg' => '', 'data' => []];
+        do {                 
+            if (empty($order)) {
+                $result['errorCode'] = 1;
+                $result['errorMsg'] = '订单不存在';
+                break;
+            }
+            $warehouseId = $order['warehouse_id'];
+            $warehouseInfo = Cache::store('warehouse')->getWarehouse($warehouseId);           
+            if (empty($warehouseInfo)) {
+                $result['errorCode'] = 1;
+                $result['errorMsg']  = '仓库不存在';
+                break;
+            }
+
+            if (empty($order['product'])) {
+                $result['errorCode'] = 1;
+                $result['errorMsg']  = '订单不存在产品详情';
+                break;
+            }
+            
+            $errorMsg = '';           
+            foreach($order['product'] as $list) {
+                $sku = $this->getCarrierSku($list['sku'], $warehouseId);
+                if (empty($sku)) {
+                    $errorMsg .= $list['sku'] . '没有找到对应的sku .';
+                }
+                $items[] = [
+                    'sku'          => $sku, // 'test' => 'WL003',
+                    'quantity'     => $list['qty'],
+                    'skuLabelCode' => ''
+                ];
+            }
+            
+            if ($errorMsg) {
+                $result['errorCode'] = 1;
+                $result['errorMsg']  = $errorMsg;
+                break;
+            }
+            $platformCode = isset($this->platform_code[$order['channel_id']]) ? $this->platform_code[$order['channel_id']] : '';
+            $result['data'] = [
+                'referenceCode' => $order['number'],  // 订单参考号
+                'warehouseCode' => $warehouseInfo['code'],
+                'carrierCode'   => $order['shipping_method_code'],
+                'insureType'    => 'NI', // 不买保险
+                'sellCode'      => '',
+                'remoteArea'    => 'N',
+                'description'   => '',
+                'insureMoney'   => '0.00',
+                'platformCode'  => $platformCode, // 平台简码
+                'fbaLabelCode'  => '',
+                'consignee'     => [
+                    'fullName'    => $order['sender']['sender_name'],
+                    'countryCode' => $order['sender']['sender_country'],
+                    'street'      => $order['sender']['sender_street'],
+                    'city'        => $order['sender']['sender_city'],
+                    'state'       => $order['sender']['sender_state'],
+                    'postalCode'  => $order['sender']['sender_zipcode'],
+                    'email'       => $order['sender']['email'],
+                    'phone'       => $order['sender']['sender_phone'] ? $order['sender']['sender_phone'] : $order['sender']['sender_mobile'],
+                    'company'     => '',
+                    'doorplate'   => '',
+                    'cardId'      => ''
+                ],
+                'items'           => $items
+            ];
+            
+        } while(false);
+        
+        return $result;
+    }
+
+    /**
+     * @desc 获取产品列表
+     * @params array $config
+     * @return array
+     */
+    public function getProductList(array $config,  $info = [])
+    {
+        $data = [];
+        $data['lstSku'] = isset($info['skus']) && !empty($info['skus']) ?  $info['skus'] : [];
+        $path = 'api/service/woms/item/getItemList';
+        if(isset($info['skus']) && !empty($info['skus'])){
+            $data['lstSku'] =  $info['skus'];
+        } else {
+            //同步产品预报表
+            $data['lstSku'] = (new WarehouseGoodsForecast())->getThirdSkuByType($config['type']);
+        }
+        try {
+            $this->getApiInfo($config);
+            $result = $this->callOperation($data, $path);
+            if ($result['errorCode'] == 0) {
+                $product_info = [];
+                foreach($result['data'] as $item){
+                    $temp['third_sku'] = $item['sku']; //第三方sku
+                    $temp['status'] = \app\common\model\WarehouseGoodsForecast::STATUS_AVALILABLE;
+                    $temp['title'] = $item['itemName'];
+                    $temp['weight'] = $item['weight'];//cm
+                    $temp['length'] = $item['length'];//cm
+                    $temp['width'] = $item['width'];//cm
+                    $temp['height'] = $item['height']; //cm
+                    $temp['declared_value'] = $item['unitPrice'];
+                    $temp['third_category_id'] = $item['categoryCode'];
+                    $temp['declared_name'] = $item['declare']; //海关申报名
+                    $product_info[] = $temp;
+                }
+                $this->result['success'] = true;
+                $this->result['data'] = $product_info;
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+
+
+
+        return $this->result;
+    }
+
+    /**
+     * 获取出库单费用信息
+     * @param array $config
+     * @param array $order
+     * @return array
+     * @throws Exception
+     * freightFee 运费
+     * fuelFee 燃油费
+     * registeredFee 挂号费
+     * totalFee 总计费用
+     */
+    private function getOrderFee($config, array $order)
+    {
+        try {
+            $path = 'api/service/woms/order/GetOrderFee';
+            $data['orderCode'] = $order['process_code'];
+            $this->getApiInfo($config);
+            $result = $this->callOperation($data, $path);
+            if ($result['errorCode'] == 0 && $result['data']) {
+                return $result['data'];
+            } else if($result['errorCode'] == 0 && !$result['data']) {
+                throw new Exception('未查询到费用信息!');
+            } else {
+                throw new Exception($result['errorMsg']);
+            }
+        } catch(Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * 获取真实重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            //获取重量
+            $order_info = $this->getDeliveryOrder($config,$order);
+            $this->result = [];
+            if ($order_info['success']) {
+                $this->result['data']['real_weight'] = $order_info['data']['weight'];
+            } else {
+                $this->result['success'] = false;
+                $this->result['error'] = [
+                    'error_msg' => param($order_info['error'], 'error_msg', '未知错误'),
+                    'error_code' => 1
+                ];
+                return $this->result;
+            }
+            //获取运费
+            $fee_info = $this->getOrderFee($config, $order);
+            $this->result['data']['real_fee'] = $fee_info['totalFee'];
+            $this->result['data']['currency'] = 'CNY';
+            $this->result['success'] = true;
+        }catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+    
+    /**
+     * 获取Fourpx的sku
+     * @param string $sku
+     * @return string 
+     */
+    private function getCarrierSku($sku, $warehouse_id)
+    {     
+        $wareGoodsModel = new WarehouseGoodsModel();        
+        $goodsInfo = $wareGoodsModel->where(['sku' => $sku, 'warehouse_id' => $warehouse_id])->field('thirdparty_goods_sku')->find();        
+        if (empty($goodsInfo)) {
+            return '';
+        } else {
+            return $goodsInfo->thirdparty_goods_sku;
+        }
+    }
+    
+    /**
+     * 发送请求
+     *
+     * @param array $data 发送数据
+     * @param string 请求方法名
+     * @return object json decode.
+     */
+    private function callOperation($data, $path)
+    {
+        $url       = $this->getUrl($path);
+        $post_data = json_encode($data);
+
+        $headers[] = 'Content-Type:application/json';
+        $headers[] = 'Content-Length:' . strlen($post_data);
+        $response  = Curl::curlPost($url, $post_data, $headers);
+        \think\log::write($response);
+        $result    = json_decode($response, true);
+        if ($result) {
+            return $result;
+        }
+        $xml = new \org\Xml();
+        $result = $xml->xmlToArray($response);
+        if(!$result){
+            throw new Exception('系统错误');
+        }
+        return $result;
+    }
+
+    /**
+     * 组织请求url及参数
+     * @param string $path
+     * @return string $url
+     */
+    private function getUrl($path)
+    {
+        $url = $this->config['url'].'/'. $path . '?token='. $this->config['token'];
+        $url .= '&customerId='. $this->config['customerId'];
+        $url .= '&language='. $this->config['language'];
+        $url .= '&format=json';
+        return $url;
+    }
+    
+    /**
+     * 交运包裹
+     * @param unknown $name
+     */
+    public function confirmOrder($config, $package)
+    {
+        
+    }
+    
+    /**
+     * 删除包裹信息
+     */
+    public function deleteOrder($config, $package)
+    {
+        
+    }
+    
+    /**
+     * 获取跟踪号
+     * @param array $info
+     * @param int  $warehouse_id
+     */
+    public function getTrackNumber($info, $warehouse_id)
+    {
+        $result = $this->getDeliveryOrder($warehouse_id, $info);
+        if ($result['success']) {
+            $result['data']['trackingNumber'] = $result['data']['shippingNumber'];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * 获取包裹重量
+     * @param array $info
+     * @param int  $warehouse_id
+     */
+    public function getWeight($info, $warehouse_id)
+    {
+        $result = $this->getDeliveryOrder($warehouse_id, $info);
+        if ($result['success']) {
+            $result['data']['weight'] = $result['data']['weight'] ? $result['data']['weight'] * 1000 : 0;
+        }
+        
+        return $result;
+    }
+
+    public function getLogisticsServiceList($config) 
+    {
+        
+    }
+    
+    /**
+     * 确认是否已发货
+     * @param array $token
+     * @param array $info
+     * @return array
+     */
+    public function isSend($token, $info)
+    {
+        $result = $this->getDeliveryOrder($info['warehouse_id'], $info);
+        if ($result['success']) {
+            $result['data']['send'] = $result['data']['status'] == 'S' ? true : false;
+        }
+        
+        return $result;
+    }
+
+}

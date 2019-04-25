@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.47642236280090033 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;font-size:10pt;line-height:12pt;overflow-x:hidden;page-break-after:always;">
+        <div style="width:268pt;border:1pt #000 solid;">
+            <div style="width:268pt;">
+                <div style="width:90pt;float:left;font-size:5pt;line-height:5pt;word-warp:break-word;padding:0 2pt;"> If
+                    undeliveralbe return to:<br> Locked Bag No:<?php echo $pmk;?><br> Special Project Unit<br> Post MALAYSIA<br>
+                    INTERNATIONAL HUB<br> Jalan KLIA S1<br> 640000 KLIA<br> Account No:<br> 2002022012
+                </div>
+                <div style="width:173pt;float:left;font-size:8pt;line-height:9pt;word-warp:break-word;">
+                    <div style="width:168pt;font-size:10pt;line-height:12pt;">
+                        <div style="width:66pt;height:43pt;float:left;font-size:20pt;line-height:22pt;padding-top:2pt;border-left:solid 1pt #000;border-right:solid 1pt #000"></div>
+                        <div style="width:100pt;float:left;font-size:7pt;line-height:7pt;"> Bayaran Pos Jelas<br>
+                            Postage Paid<br> Pos Mataysia<br> International Hub<br> Malaysia<br>PMK<?php echo $pmk;?>
+                        </div>
+                        <div style="clear:both;"></div>
+                    </div>
+                </div>
+                <div style="clear:both;"></div>
+            </div>
+            <div style="width:264pt;font-size:7pt;line-height:7pt;word-warp:break-word;border-top:solid 1pt #000;float:left;padding:0 1pt">
+                <div style="width:220pt;float:left;border-right:1pt solid #000;">
+                    <?php echo $name;?><br>
+                    <?php echo $street.' '.$street2;?> <br>
+                    <?php echo $city;?> ,<?php echo $province;?>  <?php echo $zip;?><br>
+                    <?php echo $phone;?>  <?php echo $tel;?> <br>
+                    <?php echo $country_en_name;?>
+                </div>
+                <div style="width:40pt;float:left;line-height:10pt;word-warp:break-word;word-break:break-all;">
+                    P<?php echo $number; ?>
+                </div>
+                <div style="clear:both;"></div>
+            </div>
+            <div style="width:268pt;table-layout:fixed;border-collapse:collapse;font-size:9pt;line-height:10pt;border-top:solid 1pt #000;float:left;">
+                <div style="width:113pt;font-size:7pt;line-height:10pt;text-align:center;float:left"> CUSTOMS
+                    DECLARATION CN23<br> May be opened officialiy
+                </div>
+                <div style="width:70pt;font-size:7pt;line-height:6pt;border-right:solid 1pt #000;border-left:solid 1pt #000;float:left">
+                    <div style="width:70pt;"> Contents:</div>
+                    <div style="width:70pt;float:left">
+                        <div style="width:4pt;height:4pt;float:left;border:solid 1pt #000;text-align:center;">√</div>
+                        <div style="float:left">Gift</div>
+                        <div style="clear:both;"></div>
+                    </div>
+                    <div style="width:70pt;float:left">
+                        <div style="width:4pt;height:4pt;float:left;border:solid 1pt #000;"></div>
+                        <div style="float:left">Commercial sample</div>
+                        <div style="clear:both;"></div>
+                    </div>
+                    <div style="width:70pt;float:left">
+                        <div style="width:4pt;height:4pt;float:left;border:solid 1pt #000;"></div>
+                        <div style="float:left">Document</div>
+                        <div style="clear:both;"></div>
+                    </div>
+                    <div style="width:70pt;float:left">
+                        <div style="width:4pt;height:4pt;float:left;border:solid 1pt #000;"></div>
+                        <div style="float:left">Other</div>
+                        <div style="clear:both;"></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                </div>
+                <div style="width:34pt;font-size:8pt;line-height:12.5pt;text-align:center;border-right:solid 1pt #000;float:left;padding-bottom:5pt">
+                    Total Wt.<br><?php echo number_format($total_weight/1000,3);?>
+                </div>
+                <div style="width:47pt;font-size:8pt;line-height:10pt;text-align:center;float:left"> Total Value<br>
+                    <?php echo number_format($total_value,2);?>
+                </div>
+                <div style="clear:both;"></div>
+            </div>
+            <table cellpadding="0" cellspacing="0"
+                   style="text-align:center;width:268pt;table-layout:fixed;border-collapse:collapse;font-size:7pt;line-height:7pt;border-top:solid 1pt #000">
+                <tbody>
+                <tr>
+                    <td style="width:143pt;text-align:center;border-right:solid 1pt #000"> Description of Contents</td>
+                    <td style="width:35pt;border-right:solid 1pt #000"> Qty</td>
+                    <td style="width:44pt;text-align:center;border-right:solid 1pt #000"> weight(kg)</td>
+                    <td style="text-align:center;"> Value</td>
+                </tr>
+                <?php  foreach ($list as $value){?>
+                <tr>
+                    <td style="text-align:center;border-right:solid 1pt #000;border-top:solid 1pt #000">
+                        <?php echo $value['declared_name_en'];?>
+                    </td>
+                    <td style="border-right:solid 1pt #000;border-top:solid 1pt #000"> <?php echo $value['qty'];?></td>
+                    <td style="text-align:center;border-right:solid 1pt #000;border-top:solid 1pt #000"> <?php echo number_format($value['declared_weight']/1000,3);?></td>
+                    <td style="text-align:center;border-top:solid 1pt #000"><?php echo number_format($value['declared_value']*$value['qty'],2);?></td>
+                </tr>
+                <?php } ?>
+                </tbody>
+            </table>
+            <div style="width:268pt;font-size:7pt;line-height:7pt;word-warp:break-word;border-top:solid 1pt #000;">
+                <div style="width:170pt;float:left;border-right:solid 1pt #000">
+                    <div style="width:170pt;"> For commercial items only</div>
+                    <div style="width:170pt;border-top:solid 1pt #000;">
+                        <div style="width:90pt;float:left;"> HS Tariff NO:</div>
+                        <div style="width:80pt;float:left;">
+                            <div style="width:80pt;border-left:solid 1pt #000">Country of origin</div>
+                            <div style="width:80pt;border-top:solid 1pt #000;border-left:solid 1pt #000">Malaysia</div>
+                            <div style="clear:both;"></div>
+                        </div>
+                        <div style="clear:both;"></div>
+                    </div>
+                    <div style="width:170pt;border-top:solid 1pt #000;">
+                        <div style="width:90pt;border-right:solid 1pt #000;float:left"> Importer"s ref(tax code/VAT no)
+                            if any:
+                        </div>
+                        <div style="width:70pt;float:left"> Postage Fees:</div>
+                        <div style="clear:both;"></div>
+                    </div>
+                    <div style="clear:both;"></div>
+                </div>
+                <div style="width:90pt;float:left;">
+                    <div style="width:98pt;">License No:</div>
+                    <div style="width:98pt;border-top:solid 1pt #000">Certificate No:</div>
+                    <div style="width:98pt;border-top:solid 1pt #000">Invoice No:</div>
+                    <div style="width:98pt;border-top:solid 1pt #000;word-warp:break-word;">Office of origin/Date of
+                        posting:
+                    </div>
+                    <div style="clear:both;"></div>
+                </div>
+                <div style="clear:both;"></div>
+            </div>
+            <div style="width:268pt;font-size:6pt;line-height:7pt;border-top:solid 1pt #000; "> Comments:(eq:goods
+                subject to quarantine sanitary/phytosanitary inspection or other restrictions)
+            </div>
+            <div style="width:268pt;font-size:6pt;line-height:6pt;border-top:solid 1pt #000;"> I certify that the
+                padticulars given in this customs declaration are correct and that this items does not contain any
+                danferous article prohibited by legislation or by postal or customs regulations.<br> Signature of
+                sender:302065
+                <span style="margin-left:5pt;"></span>
+                <span style="margin-left:10pt;"><?php echo $process_code;?></span>
+                <span style="margin-left:10pt;">Date:<?php echo date('d-m-Y',time())?> </span>
+                <span style="margin-left:10pt;font-size:8pt;line-height:8pt;font-weight:bold;"><?php  echo $sigMap?></span>
+            </div>
+            <div style="width:268pt;font-size:8pt;text-align:center;border-top:1pt solid #000">
+
+                <span style="display:inline-block;overflow-y:hidden;height:25pt;line-height:25pt;margin-top: 1pt;">
+                         <img style="width:180pt;height:30pt;" src="<?php echo $this->imgSrc($shipping_number);?>">
+                    </span>
+                <br>
+                <?php echo $shipping_number;?>
+
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:270pt;margin-top:1pt;">
+
+        </div>
+        <div style="clear:both;"></div>
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+<?php
+
+namespace service\brandslink\operation;
+
+class Brand extends Common
+{
+    public function lists($page=1,$pageSize=500)
+    {
+        $url = "/common/brand/list?page={$page}&row={$pageSize}";
+        return $this->get($url);
+
+    }
+}

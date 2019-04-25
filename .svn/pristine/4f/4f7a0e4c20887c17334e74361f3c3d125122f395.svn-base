@@ -1,0 +1,143 @@
+<?php
+namespace service\funmart\Common;
+
+use org\XmlHandle;
+use service\funmart\FunmartException;
+use service\funmart\RequestService;
+
+/**
+ * Class Common
+ * Created by linpeng
+ * createTime: time 2019/3/4 17:04
+ * @package service\funmart\Order
+ */
+class CommonService extends RequestService {
+
+
+    /***
+     * 获取token
+     * @example
+     *
+     * $params=array(
+     * 			'name'=>'', //必需   商户中文名称
+     * 			'phone'=>'', //必需
+     * 			'email'=>'', //必需
+     * 			'secrect'=>'', //必需   商户唯一key
+     * );
+     * @param $params
+     * @return array
+     */
+    /** $postData 以post下的 RAW 方式的 JSON 传送*/
+    public function GetToken($params)
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'api_token'=>[],
+            'org_data'=>'',
+        ];
+        /**
+         * 1、设置请求参数(时间格式统一)
+         */
+        $params = is_array($params) ? $params : array();
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('order/get-token');
+
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $url_arr = '';
+            $option['Type']= 'POST';
+            $re = $this->executeRequest($url_arr,$params,$option);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $Orders = $re['data'];
+                $return['message'] = $re['message'];
+                $return['api_token'] = isNumericArray($Orders) ? $Orders : $Orders;
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (FunmartException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+
+    /**
+     *执行请求
+     * @param $url_arr
+     * @param array $data_arr
+     * @param array $option
+     * @return array
+     * @throws FunmartException
+     */
+    public function executeRequest($url_arr, $data_arr = array(), $option = array())
+    {
+        $return = array('ask' => 0, 'message' => '', 'data' => [], 'org_data' => '');
+        //获取请求地址
+        $this->getUrl();
+        //获取公共参数
+        $url_arr = $this->getCommonParams($data_arr);
+        //请求URL
+        $params_url = '';
+        $params_data = json_encode($url_arr);
+        //调用curl请求
+        $curlRe = $this->curl($params_url, $params_data, $option);
+        if ($curlRe['ask']) {//请求成功
+            //根据不同格式解析数据
+            $data = array();
+            if (!isset($url_arr['Format']) || empty($url_arr['Format']) || $url_arr['Format'] != 'JSON') {
+                $data = XmlHandle::unserialize($curlRe['data']);//XML解析
+            } else {
+                if ($url_arr['Format'] == 'JSON') {
+                    $data = json_decode($curlRe['data'], true);//JSON解析
+                }
+            }
+            //数据结构非预期异常抛出
+            if (empty($data) || (!isset($data['msg']) && !isset($data['code']))) {
+                $errorInfo = array(
+                    'Message' => 'Unexpected Response Data',
+                    'RequestAction' => $this->_requestAction,
+                    'ErrorType' => 'Internalc Error',
+                    'ORG' => $curlRe['data'],
+                );
+                throw new FunmartException($errorInfo);
+            }
+            //有错误异常抛出
+            if (isset($data['error']) && $data['error'] && ($data['msg'] != 'token已存在,请勿重复获取')) {
+                $errorInfo = array(
+                    'Message' => $data['msg'],
+                    'ErrorCode' => $data['code'],
+                    'ORG' => $curlRe['data'],
+                );
+                throw new FunmartException($errorInfo);
+            }
+            $return['ask'] = 1;
+            $return['message'] = $data['msg'];
+            $return['data'] = $data['data']['api_token'];
+            $return['org_data'] = $curlRe['data'];
+        } else {
+            $return['message'] = $curlRe['message'];
+        }
+        return $return;
+    }
+
+
+
+}

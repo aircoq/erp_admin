@@ -1,0 +1,604 @@
+<?php
+
+namespace service\amazon;
+
+use app\common\model\amazon\AmazonOrder;
+use think\Loader;
+use app\common\cache\Cache;
+use think\Exception;
+use app\common\model\amazon\AmazonOrder as AmazonOrderModel;
+use Waimao\AmazonMws\AmazonConfig;
+
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Client');
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Model.ListOrdersRequest');
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Model.ListOrdersByNextTokenRequest');
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Model.ListOrderItemsRequest');
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Model.GetOrderRequest');
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Model.GetOrderResponse');
+
+class AmazonOrderApi {
+
+    private $appname;
+    private $appversion;
+    private $aws_access_key_id;
+    private $aws_secret_access_key;
+    private $aws_auth_token;
+    private $merchant_id;
+    private $marketplace_id;
+    private $service_url;
+    private $account;
+    private $site;
+    private $logname;
+    private $config;
+    private $authorize;
+    private $_requestTimes = 0;
+    
+    /**
+     * 
+     * @param unknown $appname
+     * @param unknown $appversion
+     * @param unknown $aws_access_key_id
+     * @param unknown $aws_secret_access_key
+     * @param unknown $merchant_id
+     * @param unknown $marketplace_id
+     * @param unknown $serviceUrl
+     * @param unknown $account
+     * @param unknown $site
+     */
+    public function __construct($appname, $appversion, $aws_access_key_id, $aws_secret_access_key, $merchant_id, $marketplace_id, $serviceUrl, $account, $site,$aws_auth_token='') {
+        $this->appname = $appname;
+        $this->appversion = $appversion;
+        $this->aws_access_key_id = $aws_access_key_id;
+        $this->aws_secret_access_key = $aws_secret_access_key;
+        $this->aws_auth_token = $aws_auth_token;
+        $this->merchant_id = $merchant_id;
+        $this->marketplace_id = $marketplace_id;
+        $this->service_url = $serviceUrl;
+        $this->account = $account;
+        $this->site = $site;
+
+        $this->config = array(
+            'ServiceURL' => $this->service_url,
+            'ProxyHost' => null,
+            'ProxyPort' => -1,
+            'MaxErrorRetry' => 1,
+        );
+    }
+
+    /*
+     * 根据amazon order id 查找 订单详细
+     */
+
+    public function getOrders($amazon_order_id)
+    {
+        $allResponse = array();
+        $service = new \MarketplaceWebServiceOrders_Client($this->aws_access_key_id, $this->aws_secret_access_key, $this->appname, $this->appversion, $this->config);
+        $request = new \MarketplaceWebServiceOrders_Model_GetOrderRequest();
+        $request->setSellerId($this->merchant_id);
+        if($this->aws_auth_token){
+            $request->setMWSAuthToken($this->aws_auth_token);
+        }
+        $request->setAmazonOrderId($amazon_order_id);
+        $response = $service->getOrder($request);
+        $OrdersResult = $response->getGetOrderResult();
+        
+        /*
+         * 校验站点是否正确
+         * wangwei
+         * 2018-10-17 12:44:15
+         */
+        $this_marketplaceId = $OrdersResult->Orders[0]->MarketplaceId;//当前订单商城id
+        $account_marketplaceId = AmazonConfig::$marketplaceId[$this->site];//当前账号商城id
+        if($this_marketplaceId != $account_marketplaceId){
+            return false;
+        }
+        $allResponse[] = $OrdersResult;
+        $details = $this->spiderOrderListsCommon(0, $this->account, $allResponse);
+        return $details;
+    }
+
+    /**
+     * 抓取一段时间内的订单的列表
+     * @param datetime $starttime
+     * @param datetime $endtime
+     * @return array
+     *
+     */
+    public function getOrderLists($startTime, $endTime) {
+        $allResponse = array();
+        $service = new \MarketplaceWebServiceOrders_Client($this->aws_access_key_id, $this->aws_secret_access_key, $this->appname, $this->appversion, $this->config);
+        $request = new \MarketplaceWebServiceOrders_Model_ListOrdersRequest();
+        $request->setSellerId($this->merchant_id);
+        $request->setMarketplaceId($this->marketplace_id);
+        if($this->aws_auth_token){
+            $request->setMWSAuthToken($this->aws_auth_token);
+        }
+        // $request->setCreatedAfter($startTime);
+        // $request->setCreatedBefore($endTime);
+
+        $request->setLastUpdatedAfter($startTime);
+        $request->setLastUpdatedBefore($endTime);
+        // $request->setOrderStatus(array("Unshipped", "PartiallyShipped","Shipped",'Pending','Canceled','Unfulfillable','PendingAvailability'));
+        // $request->setFulfillmentChannel('MFN');
+        $request->setMaxResultsPerPage(100);
+        $response = $service->listOrders($request);
+        $listOrdersResult = $response->getListOrdersResult();
+
+        $allResponse[] = $listOrdersResult;
+        #########################   分页抓取剩下的分页   start  ################################
+        $while_index = 0;
+        while ($listOrdersResult->isSetNextToken() && $response->isSetResponseMetadata()) {
+            $request = new \MarketplaceWebServiceOrders_Model_ListOrdersByNextTokenRequest();
+            $request->setSellerId($this->merchant_id);
+            $request->setNextToken($listOrdersResult->getNextToken());
+            if($this->aws_auth_token){
+                $request->setMWSAuthToken($this->aws_auth_token);
+            }
+            $response = $service->ListOrdersByNextToken($request);
+            $listOrdersResult = $response->getListOrdersByNextTokenResult();
+            $allResponse[] = $listOrdersResult;
+
+            //ListOrders 和   ListOrdersByNextToken 操作的最大请求限额为 6 个防止意外循环
+            if ($while_index % 6 == 5) {
+                //echo "sleep 65\r\n";
+                sleep(65);  //恢复速度1分钟
+            }
+            //容错机制， 异常后自动弹出
+            if ($while_index > 1) {
+                break;
+            }
+            $while_index++;
+        }
+        #########################   分页抓取剩下的分页   end   ##################################
+        return $allResponse;
+    }
+
+    /**
+     * 抓取订单产品详细
+     * @param number $OrderId
+     * @return array
+     *
+     */
+    public function getOrderDetailLists($OrderId) {
+
+        $service = new \MarketplaceWebServiceOrders_Client($this->aws_access_key_id, $this->aws_secret_access_key, $this->appname, $this->appversion, $this->config);
+        $request = new \MarketplaceWebServiceOrders_Model_ListOrderItemsRequest();
+        $request->setSellerId($this->merchant_id);
+        $request->setAmazonOrderId($OrderId);
+        if($this->aws_auth_token){
+            $request->setMWSAuthToken($this->aws_auth_token);
+        }
+        $response = $service->listOrderItems($request);
+        $listOrderItemsResult = $response->getListOrderItemsResult();
+        $all_response = array();
+        $all_response[] = $listOrderItemsResult;
+        //$orderItems 	 = $listOrderItemsResult->getOrderItems();
+        //$orderItemList = $orderItems->getOrderItem();
+        while ($listOrderItemsResult->isSetNextToken()) {
+            $request = new \MarketplaceWebServiceOrders_Model_ListOrderItemsByNextTokenRequest();
+            $request->setSellerId($this->merchant_id);
+            $request->setNextToken($listOrderItemsResult->getNextToken());
+            if($this->aws_auth_token){
+                $request->setMWSAuthToken($this->aws_auth_token);
+            }
+            $response = $service->ListOrdersByNextToken($request);
+            $listOrderItemsResult = $response->getListOrderItemsByNextTokenResult();
+            $all_response[] = $listOrderItemsResult;
+            //最大的请求权限为30个,每30个就sleep 60秒恢复 
+            if ($this->_requestTimes % 30 == 0) {
+                sleep(60);
+                $this->_requestTimes = 0;
+            }
+            $this->_requestTimes++;
+        }
+        if ($this->_requestTimes % 30 == 0) {
+            sleep(60);
+            $this->_requestTimes = 0;
+        }
+        $this->_requestTimes++;
+        return $all_response;
+    }
+
+    /**
+     * 
+     * @param unknown $amazonids
+     */
+    public function getOrder($amazonids) {
+
+        $simplelists = $this->getOrders($amazonids);
+        $orders = $this->spiderOrderListsCommon($simplelists);
+        return $orders;
+    }
+
+    public function spiderOrderLists($accountId, $starttime, $endtime) {
+
+        $simplelists = $this->getOrderLists($starttime, $endtime);
+        $orders = $this->spiderOrderListsCommon($starttime, $accountId, $simplelists);
+
+        return $orders;
+    }
+
+    /**
+     * 根据订单号抓取订单列表
+     * @param int $accountId
+     * @param array $simplelists
+     * @return array
+     * @author 
+     */
+    public function spiderOrderListsCommon($starttime, $accountId, $simplelists) {
+        $inserOrder = [];
+        $countryList = Cache::store('country')->getCountry();
+        $startTime = strtotime($starttime);
+        foreach ($simplelists as $simplelist) {
+            $orders = $simplelist->Orders;
+            //var_dump($orders);
+            if (empty($orders)) {
+                return $inserOrder;
+            }          
+            foreach ($orders as $order) {
+                $amazonOrderId = $order->AmazonOrderId;
+                //var_dump($amazonOrderId);
+                if (empty($amazonOrderId)) {
+                    continue;
+                }
+                // 判断amazon订单更新时间
+                $orderInfo = Cache::store('AmazonOrder')->orderUpdateTime($accountId, $amazonOrderId);
+                // $orderInfo = $orderInfo ? 
+                $last_update_time = strtotime($order->LastUpdateDate);
+                $purchase_time = strtotime($order->PurchaseDate);
+                if (!$orderInfo) { // 暂时注释掉&& $purchase_time < $startTime
+                    $orderInfo = AmazonOrderModel::where(['order_number' => $amazonOrderId])->find();
+                }
+                if ($orderInfo && $orderInfo['last_update_time'] == $last_update_time) {
+                    continue;
+                }
+                //用户信息
+                $street1 = $order->ShippingAddress ? $order->ShippingAddress->AddressLine1 : '';
+                $street2 = $order->ShippingAddress ? $order->ShippingAddress->AddressLine2 : '';
+                $street3 = $order->ShippingAddress ? $order->ShippingAddress->AddressLine3 : '';
+                if (empty($street1) && !empty($street2)) {
+                    $street1 = $street2;
+                    $street2 = '';
+                }               
+                $county    = $order->ShippingAddress ? $order->ShippingAddress->County : '';
+                $district  = $order->ShippingAddress ? $order->ShippingAddress->District : '';       
+                $countrySn = $order->ShippingAddress ? $order->ShippingAddress->CountryCode : '';                
+                $state     = $order->ShippingAddress ? $order->ShippingAddress->StateOrRegion : '';
+                $city      = $order->ShippingAddress ? $order->ShippingAddress->City : '';
+                $district  = $county ? $county : $district;
+                $postCode  = $order->ShippingAddress ? $order->ShippingAddress->PostalCode : '';
+                //订单表数据
+                $order_data = array(
+                    'id'                  => $orderInfo ? $orderInfo['id'] : 0,
+                    'order_number'        => $amazonOrderId,
+                    'site'                => $this->site,
+                    'payment_method'      => $order->PaymentMethod ? $order->PaymentMethod : '',
+                    'currency'            => $order->OrderTotal? $order->OrderTotal->CurrencyCode : '',
+                    'account_id'          => $accountId,
+                    'payment_time'        => strtotime($order->PurchaseDate),
+                    'actual_total'        => $order->OrderTotal? $order->OrderTotal->Amount : 0,
+                    'transport_id'        => 0, //数据库字段不能为空，先置为0						
+                    'latest_ship_time'    => $order->LatestShipDate ? strtotime($order->LatestShipDate) : 0,
+                    'earliest_ship_time'  => $order->EarliestShipDate ? strtotime($order->EarliestShipDate) : 0,
+                    'or_transport'        => $order->ShipServiceLevel,
+                    'order_status'        => $order->OrderStatus,
+                    'created_time'        => strtotime($order->PurchaseDate),
+                    'last_update_time'    => $last_update_time,
+                    'declared_price'      => 0.00,
+                    'fulfillment_channel' => $order->FulfillmentChannel,
+                    'sales_channel'       => $order->SalesChannel,
+                    'ship_service_level'  => $order->ShipServiceLevel,
+                    'marketplace_id'      => $order->MarketplaceId,
+                    'shipment_serviceLevel_category' => $order->ShipmentServiceLevelCategory,
+                    'user_name'           => $order->ShippingAddress ? $order->ShippingAddress->Name : '',
+                    'platform_username'   => $order->BuyerName ? $order->BuyerName : '',
+                    'email'               => $order->BuyerEmail ? $order->BuyerEmail : '',
+                    'country_name'        => isset($countryList[$countrySn]['country_en_name']) ? $countryList[$countrySn]['country_en_name'] : '', //get_country_name 根据国家简码返回国家全英文名						
+                    'country'             => $countrySn,
+                    'state'               => $state ? $state : '',
+                    'city'                => empty($city) ? '' : $city,
+                    'district'            => empty($district) ? '' : $district,
+                    'address1'            => empty($street1) ? '' : $street1,
+                    'address2'            => empty($street2) ? '' : $street2,
+                    'address3'            => empty($street3) ? '' : $street3,
+                    'phone'               => $order->ShippingAddress ? ($order->ShippingAddress->Phone ? $order->ShippingAddress->Phone : '')  : '',
+                    'zip_code'            => $postCode ? $postCode : '',
+                    'unshipped_numbers'   => $order->NumberOfItemsUnshipped,
+                    'shipped_numbers'     => $order->NumberOfItemsShipped,                    
+                    'earliest_delivery_time' => $order->EarliestDeliveryDate ? strtotime($order->EarliestDeliveryDate) : 0,
+                    'lastest_delivery_time'  => $order->LatestDeliveryDate ? strtotime($order->LatestDeliveryDate) : 0,
+                    //将是否有detail设置为1
+                   'has_detail'          => 1
+                );
+
+                // 处理timeout
+                $i = 0;
+                $orderDetailObjList = [];
+                while($i < 3 && empty($orderDetailObjList)) {
+                    // $i ++;
+                    try {
+                        $orderDetailObjList = $this->getOrderDetailLists($amazonOrderId);
+                    } catch (\Exception $ex) {
+                        $orderDetailObjList = [];
+                        // \think\Log::write('amazonOrderId ' . $amazonOrderId . ' ' . $ex->getMessage());
+                        sleep(5);
+                    }
+                }
+                if (empty($orderDetailObjList)) {
+                    continue;
+                }
+                $orderDetail = [];
+                $total_shipping_fee = 0;
+                foreach ($orderDetailObjList[0]->OrderItems as $orderItem) {
+                    $itemTitle = $orderItem->Title ?? '';
+                    $itemPrice = $orderItem->ItemPrice ? $orderItem->ItemPrice->Amount : 0;
+                    $price = $orderItem->QuantityOrdered ? round($itemPrice / $orderItem->QuantityOrdered, 4) : 0;
+                    $currency_code      = $orderItem->ItemPrice ? $orderItem->ItemPrice->CurrencyCode : '';
+                    $tmp_fee            = $orderItem->ShippingPrice ? floatval($orderItem->ShippingPrice->Amount) : 0;
+                    $total_shipping_fee = $total_shipping_fee + $tmp_fee;
+                    $promotion_discount = $orderItem->PromotionDiscount ? $orderItem->PromotionDiscount->Amount : 0;
+                    $orderDetail[] = array(
+                        'record_number'        => $orderItem->OrderItemId, // 订单商品识别号
+                        'order_number'         => $amazonOrderId,
+                        'item_price'           => $price,
+                        'currency_code'        => $currency_code,
+                        'online_sku'           => $orderItem->SellerSKU,
+                        'sku'                  => $orderItem->SellerSKU,
+                        'qty'                  => $orderItem->QuantityOrdered,
+                        'shipping_fee'         => $tmp_fee, //amazon的邮费没有？
+                        'created_time'         => time(),
+                        'item_id'              => $orderItem->ASIN,
+                        'item_title'           => $itemTitle,
+                        'item_url'             => 'https://www.'.$order_data['sales_channel'] . '/gp/product/'.$orderItem->ASIN,
+                        'promotion_discount'   => $promotion_discount,
+                        'shipping_tax'         => $orderItem->ShippingTax ? $orderItem->ShippingTax->Amount : 0,
+                        'shipping_discount'    => $orderItem->ShippingDiscount ? $orderItem->ShippingDiscount->Amount : 0,
+                        'shipping_price'       => $orderItem->ShippingPrice ? $orderItem->ShippingPrice->Amount : 0,
+                        'condition_note'       => $orderItem->ConditionNote ? $orderItem->ConditionNote : '',
+                        'condition_subtype_id' => $orderItem->ConditionSubtypeId ? $orderItem->ConditionSubtypeId : '',
+                    );
+                }
+                unset($orderDetailObjList);
+                $order_data['actual_shipping'] = $total_shipping_fee;
+                //组装数据
+                $inserOrder[] = array(
+                    'order' => $order_data,
+                    'orderDetail' => $orderDetail
+                );
+            }
+        }
+        return $inserOrder;
+    }
+
+
+
+
+
+    /**
+     * 根据订单号抓取订单列表
+     * @param int $accountId
+     * @param array $simplelists
+     * @return array
+     * @author
+     */
+    public function spiderOrderListsCommonNew($starttime, $accountId, $simplelists) {
+        $inserOrder = [];
+        $countryList = Cache::store('country')->getCountry();
+        $startTime = strtotime($starttime);
+        foreach ($simplelists as $simplelist) {
+            $orders = $simplelist->Orders;
+            if (empty($orders)) {
+                return $inserOrder;
+            }
+            foreach ($orders as $order) {
+                $amazonOrderId = $order->AmazonOrderId;
+                if (empty($amazonOrderId)) {
+                    continue;
+                }
+                // 判断amazon订单更新时间
+                $orderInfo = Cache::store('AmazonOrder')->orderUpdateTime($accountId, $amazonOrderId);
+                // $orderInfo = $orderInfo ?
+                $last_update_time = strtotime($order->LastUpdateDate);
+                $purchase_time = strtotime($order->PurchaseDate);
+                if (!$orderInfo) { // 暂时注释掉&& $purchase_time < $startTime
+                    $orderInfo = AmazonOrderModel::where(['order_number' => $amazonOrderId])->find();
+                }
+                if ($orderInfo && $orderInfo['last_update_time'] == $last_update_time) {
+                    continue;
+                }
+                //用户信息
+                $street1 = $order->ShippingAddress ? $order->ShippingAddress->AddressLine1 : '';
+                $street2 = $order->ShippingAddress ? $order->ShippingAddress->AddressLine2 : '';
+                $street3 = $order->ShippingAddress ? $order->ShippingAddress->AddressLine3 : '';
+                if (empty($street1) && !empty($street2)) {
+                    $street1 = $street2;
+                    $street2 = '';
+                }
+                $county    = $order->ShippingAddress ? $order->ShippingAddress->County : '';
+                $district  = $order->ShippingAddress ? $order->ShippingAddress->District : '';
+                $countrySn = $order->ShippingAddress ? $order->ShippingAddress->CountryCode : '';
+                $state     = $order->ShippingAddress ? $order->ShippingAddress->StateOrRegion : '';
+                $city      = $order->ShippingAddress ? $order->ShippingAddress->City : '';
+                $district  = $county ? $county : $district;
+                $postCode  = $order->ShippingAddress ? $order->ShippingAddress->PostalCode : '';
+                //订单表数据
+                $order_data = array(
+                    'id'                  => $orderInfo ? $orderInfo['id'] : 0,
+                    'order_number'        => $amazonOrderId,
+                    'site'                => $this->site,
+                    'payment_method'      => $order->PaymentMethod ? $order->PaymentMethod : '',
+                    'currency'            => $order->OrderTotal? $order->OrderTotal->CurrencyCode : '',
+                    'account_id'          => $accountId,
+                    'payment_time'        => strtotime($order->PurchaseDate),
+                    'actual_total'        => $order->OrderTotal? $order->OrderTotal->Amount : 0,
+                    'transport_id'        => 0, //数据库字段不能为空，先置为0
+                    'latest_ship_time'    => $order->LatestShipDate ? strtotime($order->LatestShipDate) : 0,
+                    'earliest_ship_time'  => $order->EarliestShipDate ? strtotime($order->EarliestShipDate) : 0,
+                    'or_transport'        => $order->ShipServiceLevel,
+                    'order_status'        => $order->OrderStatus,
+                    'created_time'        => strtotime($order->PurchaseDate),
+                    'last_update_time'    => $last_update_time,
+                    'declared_price'      => 0.00,
+                    'fulfillment_channel' => $order->FulfillmentChannel,
+                    'sales_channel'       => $order->SalesChannel,
+                    'ship_service_level'  => $order->ShipServiceLevel,
+                    'marketplace_id'      => $order->MarketplaceId,
+                    'shipment_serviceLevel_category' => $order->ShipmentServiceLevelCategory,
+                    'user_name'           => $order->ShippingAddress ? $order->ShippingAddress->Name : '',
+                    'platform_username'   => $order->BuyerName ? $order->BuyerName : '',
+                    'email'               => $order->BuyerEmail ? $order->BuyerEmail : '',
+                    'country_name'        => isset($countryList[$countrySn]['country_en_name']) ? $countryList[$countrySn]['country_en_name'] : '', //get_country_name 根据国家简码返回国家全英文名
+                    'country'             => $countrySn,
+                    'state'               => $state ? $state : '',
+                    'city'                => empty($city) ? '' : $city,
+                    'district'            => empty($district) ? '' : $district,
+                    'address1'            => empty($street1) ? '' : $street1,
+                    'address2'            => empty($street2) ? '' : $street2,
+                    'address3'            => empty($street3) ? '' : $street3,
+                    'phone'               => $order->ShippingAddress ? ($order->ShippingAddress->Phone ? $order->ShippingAddress->Phone : '')  : '',
+                    'zip_code'            => $postCode ? $postCode : '',
+                    'unshipped_numbers'   => $order->NumberOfItemsUnshipped,
+                    'shipped_numbers'     => $order->NumberOfItemsShipped,
+                    'earliest_delivery_time' => $order->EarliestDeliveryDate ? strtotime($order->EarliestDeliveryDate) : 0,
+                    'lastest_delivery_time'  => $order->LatestDeliveryDate ? strtotime($order->LatestDeliveryDate) : 0,
+                );
+
+                //组装数据
+                $inserOrder[] = array(
+                    'order' => $order_data,
+//                    'orderDetail' => $orderDetail
+                );
+            }
+        }
+        return $inserOrder;
+    }
+
+    /**
+     * 组装数据 function
+     * @param $order
+     * @param $orderDetailObjList
+     * @param $amazonOrderId
+     * @return array
+     */
+    public function getRewriteOrderDate($order,$orderDetailObjList,$amazonOrderId)
+    {
+        $orderDetail = [];
+        $order_data = [];
+        $total_shipping_fee = 0;
+        foreach ($orderDetailObjList[0]->OrderItems as $orderItem) {
+            $itemTitle = $orderItem->Title ?? '';
+            $itemPrice = $orderItem->ItemPrice ? $orderItem->ItemPrice->Amount : 0;
+            $price = $orderItem->QuantityOrdered ? round($itemPrice / $orderItem->QuantityOrdered, 4) : 0;
+            $currency_code      = $orderItem->ItemPrice ? $orderItem->ItemPrice->CurrencyCode : '';
+            $tmp_fee            = $orderItem->ShippingPrice ? floatval($orderItem->ShippingPrice->Amount) : 0;
+            $total_shipping_fee = $total_shipping_fee + $tmp_fee;
+            $promotion_discount = $orderItem->PromotionDiscount ? $orderItem->PromotionDiscount->Amount : 0;
+            $orderDetail[] = array(
+                'record_number'        => $orderItem->OrderItemId, // 订单商品识别号
+                'order_number'         => $amazonOrderId,
+                'item_price'           => $price,
+                'currency_code'        => $currency_code,
+                'online_sku'           => $orderItem->SellerSKU,
+                'sku'                  => $orderItem->SellerSKU,
+                'qty'                  => $orderItem->QuantityOrdered,
+                'shipping_fee'         => $tmp_fee, //amazon的邮费没有？
+                'created_time'         => time(),
+                'item_id'              => $orderItem->ASIN,
+                'item_title'           => $itemTitle,
+                'item_url'             => 'https://www.'.$order['sales_channel'] . '/gp/product/'.$orderItem->ASIN,
+                'promotion_discount'   => $promotion_discount,
+                'shipping_tax'         => $orderItem->ShippingTax ? $orderItem->ShippingTax->Amount : 0,
+                'shipping_discount'    => $orderItem->ShippingDiscount ? $orderItem->ShippingDiscount->Amount : 0,
+                'shipping_price'       => $orderItem->ShippingPrice ? $orderItem->ShippingPrice->Amount : 0,
+                'condition_note'       => $orderItem->ConditionNote ? $orderItem->ConditionNote : '',
+                'condition_subtype_id' => $orderItem->ConditionSubtypeId ? $orderItem->ConditionSubtypeId : '',
+            );
+        }
+        unset($orderDetailObjList);
+
+        // 回写主表
+        $order_data = [
+            'id' => $order['id'],
+            'order_number'=> $order['order_number'],
+            'site'=> $order['site'],
+            'payment_method'=> $order['payment_method'],
+            'currency'=> $order['currency'],
+            'account_id'=> $order['account_id'],
+            'payment_time'=> $order['payment_time'],
+            'actual_total'=> $order['actual_total'],
+            'transport_id'=> $order['transport_id'],
+            'latest_ship_time'=> $order['latest_ship_time'],
+            'or_transport'=> $order['or_transport'],
+            'order_status'=> $order['order_status'],
+            'created_time'=> $order['created_time'],
+            'declared_price'=> $order['declared_price'],
+            'fulfillment_channel'=> $order['fulfillment_channel'],
+            'sales_channel'=> $order['sales_channel'],
+            'ship_service_level'=> $order['ship_service_level'],
+            'marketplace_id'=> $order['marketplace_id'],
+            'shipment_serviceLevel_category'=> $order['shipment_serviceLevel_category'],
+            'user_name'=> $order['user_name'],
+            'platform_username'=> $order['platform_username'],
+            'email'=> $order['email'],
+            'country_name'=> $order['country_name'],
+            'country'=> $order['country'],
+            'state'=> $order['state'],
+            'city'=> $order['city'],
+            'district'=> $order['district'],
+            'address1'=> $order['address1'],
+            'address2'=> $order['address2'],
+            'address3'=> $order['address3'],
+            'phone'=> $order['phone'],
+            'shipped_numbers'=> $order['shipped_numbers'],
+            'unshipped_numbers'=> $order['unshipped_numbers'],
+            'earliest_ship_time'=> $order['earliest_ship_time'],
+            'earliest_delivery_time'=> $order['earliest_delivery_time'],
+            'lastest_delivery_time'=> $order['lastest_delivery_time'],
+            'zip_code'=> $order['zip_code'],
+            'push_status'=> $order['push_status'],
+            'transfer_money'=> $order['transfer_money'],
+            'transfer_time'=> $order['transfer_time'],
+
+
+            //回写这两个字段
+            'actual_shipping'=> $total_shipping_fee,
+            'has_detail'=> 1
+        ];
+        $inserOrder[] = array(
+            'order' => $order_data,
+            'orderDetail' => $orderDetail
+        );
+        return $inserOrder;
+    }
+    /**
+     * 对象转为数组
+     * @param object $array
+     * @return array
+     * @author czq
+     */
+    function object_array($array) {
+        if (is_object($array)) {
+            $array = (array) $array;
+        }
+        if (is_array($array)) {
+            foreach ($array as $key => $value) {
+                $array[$key] = $this->object_array($value);
+            }
+        }
+        return $array;
+    }
+
+    /**
+     * 取订单列表 
+     * @param unknown $accountId
+     * @param unknown $startTime
+     * @param unknown $endtime
+     */
+    public function getAmazonOrderList($accountId, $startTime, $endtime) {
+
+        $spiderlists = $this->spiderOrderLists($accountId, $startTime, $endtime);
+
+        return $spiderlists;
+    }
+
+}

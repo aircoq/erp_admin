@@ -1,0 +1,399 @@
+<?php
+
+namespace swoole;
+
+use app\common\cache\Cache;
+use app\common\cache\driver\TaskWorker;
+//use app\common\interfaces\QueueJob;
+use app\common\service\SwooleQueueJob;
+use app\index\service\AbsTasker;
+use swoole\cmd\WSPublish;
+use swoole\messageAction\Subscibe;
+use swoole\messageAction\TimerReload;
+use swoole\messageAction\UnSubscibe;
+use swoole\taskExecuter\Queuer;
+use think\exception\ErrorException;
+use think\Config;
+
+/**
+ * swoole tcp服务器
+ * @author RondaFul
+ *
+ */
+abstract class SwooleTasker extends Swoole
+{
+    const TASK_TYPE_TIME = 'time';
+    const TASK_TYPE_EVENT = 'event';
+    protected $daemon = false;
+    protected $setting = [];
+
+
+    public function getOptions(): array
+    {
+        $logDir = LOG_PATH . "swoole/";
+        $logFile = $logDir . "swoole.log";
+        make_sure_file($logFile);
+        $config = [
+            'worker_num' => Config::get('swoole.worker_num') ?: 4,    //一般设置为服务器CPU数的1-4倍
+            'daemonize' => $this->daemon,   //以守护进程执行
+            'max_request' => Config::get('swoole.max_request') ?: 2000,
+            'dispatch_mode' => 2,
+            'open_cpu_affinity' => true,
+            'cpu_affinity_ignore' => array(0, 1),
+            'task_worker_num' => Config::get('swoole.tasker_num') ?: 100,   //task进程的数量
+            'task_max_request' => Config::get('swoole.task_max_request') ?: 100,
+            'current_hosttype' => Config::get('swoole.current_hosttype'),
+            'task_ipc_mode' => 3,    //使用消息队列通信，并设置为争抢模式
+            'backlog' => 128,
+            'task_tick' => 3000,
+            'reserved_for_task' => Config::get('swoole.close_task_manager') ? 0 : 20,
+            'user' => Config::get('swoole.user'),
+            'group' => Config::get('swoole.group'),
+            'queue_tick' => 1000,
+            'log_file' => $logFile,//日志
+            'log_dir' => $logDir,//日志
+        ];
+        $config = array_merge($config, $this->setting);
+        return $config;
+    }
+
+    public function __construct($setting = [])
+    {
+
+        swoole_set_process_name('php:swoole:manager');
+        $this->setting = $setting;
+        set_time_limit(0);
+        $this->host = Config::get('swoole.host');
+        $this->port = Config::get('swoole.port');
+        $this->daemon = false;
+        /**
+         * @var $cache TaskWorker
+         */
+        $cache = Cache::store('taskWorker');
+        $cache->reset();
+        $error = Cache::store('queuer')->initClearData(Config::get('swoole.current_hosttype'), swoole_get_local_ip());
+        if($error){
+        	throw new \Exception($error);
+        }
+        parent::__construct();
+        $reloadProcess = ReloadProcess::single($this->swoole);
+        $this->swoole->addProcess($reloadProcess);
+        $this->swoole->reloadProcess = $reloadProcess;
+//        $reloadProcess = new ReloadProcess();
+//        $this->swoole->addProcess($reloadProcess->getProcess());
+        $task = new \swoole_table(8192);
+        $task->column('workerId', \swoole_table::TYPE_INT);
+        $task->column('pname', \swoole_table::TYPE_STRING, 50);
+        $task->column('status', \swoole_table::TYPE_INT);
+        $task->column('pid', \swoole_table::TYPE_INT);
+        $task->column('task', \swoole_table::TYPE_STRING, 1000);
+        $task->column('time', \swoole_table::TYPE_INT);
+        $task->create();
+        $this->swoole->tableTask = $task;
+
+        $queue = new \swoole_table(1024);
+        $queue->column('count', \swoole_table::TYPE_INT);
+        $queue->create();
+        $this->swoole->tableQueue = $queue;
+
+        /**
+         * 最多500个订阅
+         */
+        $tableSuscribes = new \swoole_table(500);
+        $tableSuscribes->column('fds', \swoole_table::TYPE_STRING, 1000000);
+        $tableSuscribes->create();
+        $this->swoole->tableSuscribes = $tableSuscribes;
+
+        /**
+         * 最多50000个在线client
+         */
+        $tableWsConnects = new \swoole_table(50000);
+        $tableWsConnects->column('time', \swoole_table::TYPE_INT);
+        $tableWsConnects->create();
+        $this->swoole->tableWsConnects = $tableWsConnects;
+
+        $tableSetting = new \swoole_table(4);
+        $tableSetting->column('key', \swoole_table::TYPE_STRING, 1000);
+        $tableSetting->column('val', \swoole_table::TYPE_STRING, 1000);
+        $tableSetting->create();
+        $this->swoole->tableSetting = $tableSetting;
+    }
+
+    public function onManagerStart()
+    {
+
+    }
+
+    public function onWorkerExit(\swoole_server $server, $workerId)
+    {
+        $this->onWorkerError($server, $workerId, getmypid(), 0, 0);
+    }
+
+    public function onWorkerError(\swoole_server $server, $workerId, $workerPid, $code, $sig)
+    {
+        $taskInfo = $this->swoole->tableTask->get($workerId);
+        if($taskInfo){
+            try{
+                $this->swoole->tableTask->del($workerId);
+                //处理Queuer
+                if(is_subclass_of($taskInfo['task'], SwooleQueueJob::class)){
+                    $queuer = $taskInfo['task'];
+                    $logs  = json_encode($taskInfo);
+                    $cache = Cache::store('queuer');
+                    $task = $cache->taskGets($workerId, $server->setting['current_hosttype']);
+                    $ret = $this->swoole->tableQueue->decr($queuer, 'count', 1);
+                    if(isset($task['params'])){
+                        $params = $task['params'];
+                        if($cache->failCount($queuer, $params, 1) < 10){
+                            $cache->restWaitQueue($queuer, $params);
+                        }else{
+                            $logs .= '; params:'. var_export($params, true) .'; running 10 times and failing';
+                            $logs .= ";onWorkerError(), sw exit_code:{$code}, singal:{$sig}";
+                            $this->logFile('onWorkerErrorExit', $logs);
+                        }
+                        $cache->taskDel($workerId, $queuer, $server->setting['current_hosttype']);
+                    }
+                }elseif(is_subclass_of($taskInfo['task'], AbsTasker::class)){
+                }
+            }catch (\Throwable $e){
+            	$this->logFile('onWorkerErrorExit', 'exception:'. $e->getMessage() . var_export($taskInfo, true));
+            }
+        }
+    }
+
+    public function onStart()
+    {
+        swoole_set_process_name('php:swoole:master');
+        if (extension_loaded('inotify') && $reload = Config::get('swoole.reload')) {
+            echo "loaded:inotify\n";
+            $inotify = inotify_init();
+            dir_iteration(APP_PATH, function ($dir, $type) use ($inotify) {
+                if ($type === 'dir') {
+                    inotify_add_watch($inotify, $dir, IN_CREATE | IN_DELETE | IN_MODIFY);
+                }
+            });
+            dir_iteration(APP_EXTEND, function ($dir, $type) use ($inotify) {
+                if ($type === 'dir') {
+                    inotify_add_watch($inotify, $dir, IN_CREATE | IN_DELETE | IN_MODIFY);
+                }
+            });
+
+            swoole_event_add($inotify, function ($inotify) use ($reload) {
+                $read = inotify_read($inotify);
+                if (!empty($read)) {
+                    $this->swoole->sendMessage(serialize(new TimerReload($reload)), 1);
+                }
+            });
+        }
+    }
+
+    public function onPipeMessage(\swoole_server $serv, $from_worker_id, $pipeMessageAction)
+    {
+        /**
+         * @var $pipeMessageAction PipeMessageAction
+         */
+        $pipeMessageAction = unserialize($pipeMessageAction);
+        $pipeMessageAction->execute($serv, $from_worker_id);
+    }
+
+    public function onShutdown()
+    {
+        $this->onTaskShutdown();
+    }
+
+
+    public function onMessage(\swoole_websocket_server $server, \swoole_websocket_frame $frame)
+    {
+
+        $data = json_decode($frame->data);
+        switch ($data->type) {
+            case 'cmd':
+                $cmder = new WebSocketCmder($server, $frame, $data);
+                $cmder->process();
+                break;
+            case 'subscibe':
+                $action = new Subscibe(['name' => $data->next, 'fd' => $frame->fd]);
+                PipeMessageAction::sendMessage($server, $action, 3);
+                break;
+            case 'unsubscibe':
+                $action = new UnSubscibe(['name' => $data->next, 'fd' => $frame->fd]);
+                PipeMessageAction::sendMessage($server, $action, 3);
+                break;
+                break;
+            case "phpcmd":
+                $class = $data->cmd;
+                $swooleCmd = new $class(unserialize($data->data));
+                set_error_handler(function ($errNo, $errMsg, $errFile, $errLine) use ($server, $frame, $swooleCmd) {
+                    $result = new SwooleCmdResult($swooleCmd);
+                    $result->setCode('error');
+                    $result->setResult("errNo:$errNo;errMsg:$errMsg;errFile:$errFile;errLine:$errLine");
+                    static::send($server, $frame, $result);
+                });
+                try {
+                    $swooleCmdResult = $swooleCmd->execute($server);
+                    static::send($server, $frame, $swooleCmdResult);
+                } catch (ErrorException $exception) {
+                    $result = new SwooleCmdResult($swooleCmd);
+                    $result->setCode('exception');
+                    $result->setResult($exception);
+                    static::send($server, $frame, $result);
+                }
+        }
+    }
+
+    public function onOpen(\swoole_websocket_server $server, \swoole_http_request $request)
+    {
+        $server->tableWsConnects->set($request->fd, ['time' => time()]);
+    }
+
+    public function onClose(\swoole_websocket_server $server, $fd)
+    {
+        $server->tableWsConnects->del($fd);
+    }
+
+    public abstract function onTaskShutdown();
+
+    /**
+     * swoole初始化回调
+     * @param \swoole_server $server ：swoole进程对象
+     * @param int $worker_id : swoole worker进程id
+     */
+    public function onWorkerStart(\swoole_server $server, $worker_id)
+    {
+        ///--------------------------------------
+        if (function_exists('opcache_reset')){
+            opcache_reset();
+        }
+        $current_hosttype = $server->setting['current_hosttype'];
+        register_shutdown_function(function() use($worker_id, $current_hosttype){
+            $error = error_get_last();
+            if($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE])){
+                $errorMsg = "fatal error: {$error['message']} ({$error['file']}:{$error['line']})\n";
+                $taskInfo = $this->swoole->tableTask->get($worker_id);
+                if($taskInfo){
+                    $errorMsg .= json_encode($taskInfo);
+                    if(is_subclass_of($taskInfo['task'], SwooleQueueJob::class)){
+                        $queuer = $taskInfo['task'];
+                        $cache = Cache::store('queuer');
+                        $task = $cache->taskGets($worker_id, $current_hosttype);
+                        $params = $task['params'] ?? '';
+                        $errorMsg .= '; parmas:'. json_encode($params);
+                        //$log = Cache::store('queuerLog');
+                        //$log->recordLog($queuer, $params, QueueJob::LOG_TYPE_ERROR, $errorMsg);
+                    }
+                }
+                $this->logFile('run', $errorMsg);
+            }
+            error_clear_last();
+        });
+        $workerNum = $server->setting['worker_num'];
+        if ($worker_id >= $workerNum) {
+            $taskId = $worker_id - $workerNum;
+            $processName = "tasker:{$taskId}";
+        } else {
+            $processName = "worker:$worker_id";
+        }
+        define('SWOOLE_WORKER', $worker_id);
+        define('SWOOLE_PNAME', $processName);
+        swoole_set_process_name("php:swoole:".$processName);
+        $config = require __DIR__ . '/config.php';
+        if (isset($config['workerTaskers'][$worker_id])) {
+            $executer = $config['workerTaskers'][$worker_id]['executer'];
+            forward_static_call([$executer, "init"], $server);
+        }
+    }
+
+    public static function getInstance()
+    {
+        return self::$instance;
+    }
+
+    public function onWorkerStop(\swoole_server $server, $workerId)
+    {
+        $workerNum = $server->setting['worker_num'];
+        if ($server->worker_id >= $workerNum) {
+            $taskId = $server->worker_id - $workerNum;
+            $processName = "php:swoole:tasker:{$taskId}";
+        } else {
+            $processName = "php:swoole:worker:$server->worker_id";
+        }
+        $now = now();
+        self::logFile('workerStop', "$now   $processName is stop!");
+    }
+
+    public static function send(\swoole_websocket_server $server, \swoole_websocket_frame $frame, SwooleCmdResult $cmdResult)
+    {
+        $server->push($frame->fd, serialize($cmdResult));
+    }
+
+    public final function onReceive(\swoole_websocket_server $server, $fd, $fromId, $data)
+    {
+        dump_detail(func_get_args());
+    }
+
+    private function socket_timeout()
+    {
+        ini_set('default_socket_timeout', -1);  //不超时
+    }
+
+    public abstract function onQueuerStart(\swoole_server $server);
+
+
+    private function fastPublish($name, $data)
+    {
+        $wsPublish = new WSPublish(['name' => $name, 'data' => $data]);
+        $wsPublish->execute($this->swoole);
+    }
+
+    public function onTask(\swoole_websocket_server $serv, $taskId, $fromId, $task)
+    {
+        ini_set('memory_limit', '512m');
+        /**
+         * @var $tasker TaskExecuter
+         */
+        try {
+            $tasker = unserialize($task);
+        } catch (ErrorException $exception) {
+            echo $exception->getMessage();
+            $now = now();
+            static::logFile('onTaskUnserialize', "now($now)" . $exception->getMessage() . ":" . $task);
+            return;
+        } catch (\Throwable $exception) {
+            $now = now();
+            static::logFile('onTaskUnserialize', "now($now)" . $exception->getMessage() . ":" . $task);
+            return;
+        }
+        $tableTask = [
+            'pname' => SWOOLE_PNAME,
+            'workerId' => $serv->worker_id,
+            'status' => true,
+            'pid' => $serv->worker_pid,
+            'task' => $tasker->getExecuterName(),
+            'time' => time()
+        ];
+        $serv->tableTask->set($serv->worker_id, $tableTask);
+        $tableTask['id'] = $serv->worker_id;
+        $tableTask['direction'] = 1;
+        $this->fastPublish('taskdoing', $tableTask);
+
+        $tasker->setServer($serv);
+        $tasker->setFromId($fromId);
+        $tasker->execute();
+        $tableTask['direction'] = 0;
+        $this->fastPublish('taskdoing', $tableTask);
+        $serv->tableTask->del($serv->worker_id);
+    }
+
+    public static function logFile($type, $logs)
+    {
+        //make_sure_file($file);
+        $m = date('Y-m');
+        $time = date('Y-m-d H:i:s');
+        $file = LOG_PATH ."swoole/{$type}-{$m}.log";
+        file_put_contents($file, "[$time]". $logs . "\n", FILE_APPEND);
+    }
+
+    public function onFinish($serv, $task_id, $data)
+    {
+    }
+}

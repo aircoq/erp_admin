@@ -1,0 +1,75 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class Gucang extends Base
+{
+    public function isCanDeclare($code)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "canDeclare_".$code  ;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('此渠道不能预览报关单' . $strFun);
+        }
+        return $this->$strFun($code);
+    }
+    /*
+     * HYDHL国际包裹派送1
+     */
+    private function canDeclare_HY_EU_DHL_1(){
+        return 1;
+    }
+    /*
+    * DHL国际派送-NonEU
+    */
+    private function canDeclare_HY_DHL_NONEU(){
+        return 1;
+    }
+    /*
+    * HYDHL国际非欧盟
+    */
+    private function canDeclare_HYDHL_NONEU(){
+        return 1;
+    }
+    /*
+    * DEDHL国际包裹派送2
+    */
+    private function canDeclare_DE_DHL_EU_2(){
+        return 1;
+    }
+    /*
+    * 谷仓英国仓库>>Hermes国际件
+    */
+    private function canDeclare_HERMES_INTERNATIONAL(){
+        return 1;
+    }
+    /*
+   * 谷仓英国仓库>>英国标准UPS
+   */
+    private function canDeclare_UPS_STANDARD(){
+        return 1;
+    }
+
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+}

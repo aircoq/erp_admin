@@ -1,0 +1,42 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: rondaful-min
+ * Date: 2018/7/19
+ * Time: 20:41
+ */
+
+namespace recognition\operation;
+
+
+/**
+ * 识别技术 Recognition 基础类
+ */
+class RecognitionBase
+{
+    public $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    public $_config = [
+        'Version'               => '',
+        'AppID'                 => '',
+        'AppCert'               => '',
+        'APIDevUserID'          => '',
+        'APISellerUserID'       => '',
+        'APISellerUserToken'    => '',
+        'MessageID'             => ''
+    ];
+
+    public function setConfig($account)
+    {
+        $this->_config['AppID']     = $account['app_id'];
+        $this->_config['AppCert']     = $account['cert_id'];
+        $this->_config['APIDevUserID']     = $account['dev_id'];
+        $this->_config['APISellerUserID']     = $account['account_name'];
+        $this->_config['APISellerUserToken']  = $account['token'];
+        return true;
+    }
+}

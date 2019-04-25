@@ -1,0 +1,89 @@
+<?php
+
+namespace app\report\controller;
+
+use app\api\controller\Post;
+use app\common\controller\Base;
+use think\Exception;
+use think\Request;
+use app\report\service\AccountOperationAnalysisService as AnalysisService;
+
+
+/**
+ * /**
+ * @module 账户运营分析
+ * @author ZhouFurong
+ * @title 账户运营分析
+ * @url /report/account-operation-analysis
+ * Class AccountOperationAnalysis
+ * @package app\report\controller
+ */
+class AccountOperationAnalysis extends Base
+{
+	/**
+	 * @var AnalysisService
+	 */
+	protected $analysisService;
+
+	/**
+	 * 初始化
+	 */
+	protected function init()
+	{
+		if (is_null($this->analysisService)) {
+			$this->analysisService = new AnalysisService();
+		}
+	}
+
+	/**
+	 * @title 账户运营分析
+	 * @param Request $request
+	 * @return \think\response\Json
+	 */
+	public function index(Request $request)
+	{
+		try {
+			return json($this->analysisService->search($request->param()));
+		} catch (\Exception $ex) {
+			$code = $ex->getCode();
+			$msg = $ex->getMessage();
+			if (!$code) {
+				$code = 500;
+				$msg = '程序内部错误';
+			}
+			return json(['message' => $msg], $code);
+		}
+	}
+
+	/**
+	 * @title 导出
+	 * @url export
+	 * @method Post
+	 * @return \think\response\Json
+	 */
+	public function export(Request $request)
+	{
+		// ids 不为空为部分  type 0 - 部分 1-全部
+		$params = $request->param();
+		$header = $request->header();
+		$result = $this->analysisService->createExport($params, $header);
+		return json($result);
+	}
+
+	/**
+	 * @title 导出字段
+	 * @url export-fields
+	 * @method get
+	 * @return \think\response\Json
+	 */
+	function exportFields()
+	{
+		try {//搜索条件
+			$title = $this->analysisService->getExportField();
+			return json($title);
+		} catch (Exception $ex) {
+			return json(['message' => $ex->getMessage()], 400);
+		}
+	}
+
+}

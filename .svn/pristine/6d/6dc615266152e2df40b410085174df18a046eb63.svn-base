@@ -1,0 +1,479 @@
+<?php
+
+namespace service\ebay;
+
+use think\Loader;
+use app\common\cache\Cache;
+use app\common\model\ebay\EbayOrder as EbayOrderModel;
+
+class EbayOrdersApi extends EbayBaseApi
+{
+    
+    protected $config;
+    
+    /**
+     * 初始化
+     *
+     * @param array $config
+     */
+    public function __construct($config)
+    {
+        parent::__construct($config, 1);
+    }
+    
+    /**
+     * 下载该帐号ID订单;
+     * @param $accountId 帐号ID;
+     * @param $createTimeFrom 订单创建时间
+     * @param $createTimeTo 订单结束时间,不能等于当前时间,
+     *      因为ebay服务器需要时间来处理当前时间的订单,所以此时间不能等于当前时间,必需提前至少两分钟;
+     * @param int $pageNum 页码,最小值为1, 不传默认从第一页开始;
+     * @return array 返回当前用户当前页码的数据;
+     * @throws \think\Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getOrderList($accountId, $createTimeFrom, $createTimeTo, $pageNum = 1)
+    {
+        //set_time_limit(0);
+        $datas = [];
+        // 返回初始值
+        $response_data = [
+            'state' => false,
+            'datas' => []
+        ];
+        //用来装返回值的order数组;
+        $OrderArrays = [];
+    
+        // 先分页获取数据，再进行处理
+        do {
+            $response = $this->getOrders($createTimeFrom, $createTimeTo, $pageNum);
+            $response = $response['soapenv:Envelope']['soapenv:Body']['GetOrdersResponse'] ?? [];
+            
+            // 无数据
+            if (empty($response)) {
+                // 无数据，直接返回false
+                $response_data['state'] = false;
+                return $response_data;
+            }
+            
+            if (param($response, 'Ack') == 'Success') {
+                $response_data['state'] = true; // 设置已经对这个时间段进行了拉取
+            } else {
+                // 分页获取，如果中间接口获取有问题直接返回false
+                $response_data['state'] = false;
+                return $response_data;
+            }
+            
+            $OrderArray = param($response, 'OrderArray');
+            if ($OrderArray && !empty($OrderArray['Order'])) {
+                //当返回的订单合集只有一个订单时,$OrderArray['Order']是数字健数组, 有多个订单时非数字键数组;
+                $OrderArrayNew = isset($OrderArray['Order']['OrderID'])? [$OrderArray['Order']] : $OrderArray['Order'];
+                $OrderArrays = array_merge($OrderArrays, $OrderArrayNew);
+            }
+            $pageNum += 1;
+        } while (count($OrderArray) > 0 && $pageNum <= $response['PaginationResult']['TotalNumberOfPages']);
+        
+        if (empty($OrderArrays)) {
+            return $response_data;
+        }
+
+        //开始抓取时间写成时间戳
+        $fromTime = strtotime($createTimeFrom);
+
+        $downOrderIds = [];
+        foreach ($OrderArrays as $k => $order) {
+            $downOrderIds[] = $order['OrderID']; // 用于日志
+    
+            // 从缓存 判断ebay订单官方最后更新时间,如果最后更新时间相等 ,则等于订单没有什么变化,缓存数据不存在,如果订单已支付,且最后修改时间大于支付时间,再去数据库里面查
+            $cacheOrderInfo = Cache::store('EbayOrder')->orderUpdateTime($order['OrderID']);
+            $last_update_time = strtotime($order['CheckoutStatus']['LastModifiedTime']);
+            if (!$cacheOrderInfo && !empty($order['PaidTime']) && $fromTime < strtotime($createTimeFrom)) {
+                $cacheOrderInfo = EbayOrderModel::where(['order_id' => $order['OrderID']])->field('id,last_modified_time')->find();
+                if($cacheOrderInfo) {
+                    $cacheOrderInfo = $cacheOrderInfo->toArray();
+                    $cacheOrderInfo['last_update_time'] = $cacheOrderInfo['last_modified_time'];
+                }
+            }
+            if ($cacheOrderInfo && $cacheOrderInfo['last_update_time'] == $last_update_time) {
+                continue;
+            }
+            
+            //支付交易数据
+            $ReferenceIDs = ''; // 所有的付款交易号
+            $PaymentInfo = []; // 默认第一条付款交易号
+            if (isset($order['MonetaryDetails']['Payments'])) {
+                $PaymentResult = isset($order['MonetaryDetails']['Payments']['Payment']['PaymentStatus'])? [$order['MonetaryDetails']['Payments']['Payment']] : $order['MonetaryDetails']['Payments']['Payment'];
+                foreach ($PaymentResult as $key=>$Payment) {
+                    $ReferenceIDs .= $Payment['ReferenceID']. ',';
+                    if($key == 0) {
+                        $PaymentInfo = [
+                            'ReferenceID' => $Payment['ReferenceID'],
+                            'PaymentStatus' => $Payment['PaymentStatus'],
+                            'PaymentAmount' => $Payment['PaymentAmount'],
+                            'PaymentTime' => $Payment['PaymentTime'],
+                            'Payer' => $Payment['Payer'],
+                            'Payee' => $Payment['Payee'],
+                            'FeeOrCreditAmount' => $Payment['FeeOrCreditAmount']
+                        ];
+                    }
+                }
+                $ReferenceIDs = trim($ReferenceIDs, ',');
+            }
+    
+            //退款交易数据
+            $RefundReferenceIDs = ''; // 所有的付款交易号
+            $RefundAmount = 0;
+            if (isset($order['MonetaryDetails']['Refunds'])) {
+                $RefundResult = isset($order['MonetaryDetails']['Refunds']['Refund']['RefundStatus'])? [$order['MonetaryDetails']['Refunds']['Refund']] : $order['MonetaryDetails']['Refunds']['Refund'];
+                foreach ($RefundResult as $Refund) {
+                    $RefundReferenceIDs .= $Refund['ReferenceID']. ',';
+                    $RefundAmount += floatval($Refund['RefundAmount']);
+                }
+                $RefundReferenceIDs = trim($RefundReferenceIDs, ',');
+            }
+            
+            //运输相关
+            $shipping_service = '';
+            $shipping_service_priority = 0;
+            $shipping_service_cost = 0;
+            $shipping_time_min = 0;
+            $shipping_time_max = 0;
+            if (!empty($order['ShippingDetails']['ShippingServiceOptions'])  && isset($order['ShippingServiceSelected']['ShippingService'])) {
+                $shiplist = isset($order['ShippingDetails']['ShippingServiceOptions']['ShippingService'])? [$order['ShippingDetails']['ShippingServiceOptions']] : $order['ShippingDetails']['ShippingServiceOptions'];
+                foreach($shiplist as $ship) {
+                    if($ship['ShippingService'] == $order['ShippingServiceSelected']['ShippingService']) {
+                        $shipping_service = $ship['ShippingService'];
+                        $shipping_service_priority = $ship['ShippingServicePriority'];
+                        $shipping_service_cost =  $order['ShippingServiceSelected']['ShippingServiceCost'];
+                        $shipping_time_min = $ship['ShippingTimeMin'];
+                        $shipping_time_max = $ship['ShippingTimeMax'];
+                    }
+                }
+            }
+            
+            //ebay_order 表数据;
+            $datas[$k]['order'] = array(
+                'id' => $cacheOrderInfo ? $cacheOrderInfo['id'] : 0,
+                'order_id' => $order['OrderID'],
+                'account_id' => $accountId,
+                'order_status' => $order['OrderStatus'],
+                'currency_id' => $order['AmountPaid@Atts']['currencyID'] ?? '', // 币种
+                'amount_paid' => $order['AmountPaid'] ?? 0,
+                'amount_saved' => $order['AmountSaved'] ?? 0,
+                'discount' => $order['AdjustmentAmount'] ?? 0,
+                'ebay_payment_status' => $order['CheckoutStatus']['eBayPaymentStatus'] ?? '',
+                'last_modified_time' => isset($order['CheckoutStatus']['LastModifiedTime']) ? strtotime($order['CheckoutStatus']['LastModifiedTime']) : 0,
+                'payment_method' => $order['CheckoutStatus']['PaymentMethod'] ?? '',
+                'status' => $order['CheckoutStatus']['Status'] ?? '',
+                
+                'shipping_service' => $shipping_service,
+                'shipping_service_cost' => $shipping_service_cost,
+                'shipping_service_priority' => $shipping_service_priority,
+                'shipping_time_min' => $shipping_time_min,
+                'shipping_time_max' => $shipping_time_max,
+                
+                'international_shipping_service' => '',
+                'international_shipping_service_cost' => 0,
+                'international_shipping_service_priority' => 0,
+                'international_shipping_service_ship_to_location' => '',
+                
+                'created_time' => strtotime($order['CreatedTime']),
+                'record_number' => $order['ShippingDetails']['SellingManagerSalesRecordNumber'] ?? 0,
+                
+                'seller_email' => $order['SellerEmail'] ?? '',
+                
+                'shipping_address_name' => $order['ShippingAddress']['Name'] ?? '',
+                'shipping_address_street1' => $order['ShippingAddress']['Street1'] ?? '',
+                'shipping_address_street2' => $order['ShippingAddress']['Street2'] ?? '',
+                'shipping_address_city_name' => $order['ShippingAddress']['CityName'] ?? '',
+                'shipping_address_state_or_province' => $order['ShippingAddress']['StateOrProvince'] ?? '',
+                'shipping_address_country' => $order['ShippingAddress']['Country'] ?? '',
+                'shipping_address_country_name' => $order['ShippingAddress']['CountryName'] ?? '',
+                'shipping_address_phone' => $order['ShippingAddress']['Phone'] ?? '',
+                'shipping_address_postal_code' => $order['ShippingAddress']['PostalCode'] ?? '',
+                'shipping_address_address_id' => $order['ShippingAddress']['AddressID'] ?? '',
+                'shipping_address_address_owner' => $order['ShippingAddress']['AddressOwner'] ?? '',
+                'shipping_service_selected' => $order['ShippingServiceSelected']['ShippingService'] ?? '',
+                
+                'refund_amount' => $RefundAmount,
+                'refund_transaction_id' => $RefundReferenceIDs,
+                'buyer_user_id' => $order['BuyerUserID'],
+                'paid_time' => isset($order['PaidTime']) ? strtotime($order['PaidTime']) : 0,
+                'shipped_time' => isset($order['ShippedTime']) ? strtotime($order['ShippedTime']) : 0,
+                'payment_hold_status' => $order['PaymentHoldStatus'] ?? '',
+    
+                'total' => $order['Total'],
+                'payment_transaction_id' => $PaymentInfo['ReferenceID'] ?? '', // paypal支付 交易号
+                'fee_or_credit_amount' => $PaymentInfo['FeeOrCreditAmount'] ?? 0,
+                'payment_status' => $PaymentInfo['PaymentStatus'] ?? '',
+                'payment_time' => !empty($PaymentInfo['PaymentTime']) ? strtotime($PaymentInfo['PaymentTime']) : 0,
+                'payee' => $PaymentInfo['Payee'] ?? '',
+                'payer' => $PaymentInfo['Payer'] ?? '',
+                'payment_amount' => $PaymentInfo['PaymentAmount'] ?? 0,
+                
+                'reference_id' => $ReferenceIDs,
+                'seller_user_id' => $order['SellerUserID'] ?? '',
+                'cancel_status' => $order['CancelStatus'] ?? '',
+                'extended_order_id' =>  $order['ExtendedOrderID'] ?? '',
+            );
+            
+            //交易详情;
+            $transactionArray = isset($order['TransactionArray']) ? $order['TransactionArray'] : []; // TransactPrice
+            if (!isset($transactionArray['Transaction'][0])) {
+                $transactionArray['Transaction'] = [$transactionArray['Transaction']];
+            }
+            
+            foreach ($transactionArray['Transaction'] as $key => $transaction) {
+    
+                $ShippingCarrierUsed = $transaction['ShippingDetails']['ShipmentTrackingDetails'][$key]['ShippingCarrierUsed'] ?? $transaction['ShippingDetails']['ShipmentTrackingDetails']['ShippingCarrierUsed'] ?? '';
+                $ShipmentTrackingNumber = $transaction['ShippingDetails']['ShipmentTrackingDetails'][$key]['ShipmentTrackingNumber'] ?? $transaction['ShippingDetails']['ShipmentTrackingDetails']['ShipmentTrackingNumber'] ?? '';
+    
+                //ebay_order_detail 表数据;
+                $datas[$k]['orderDetail'][$key] = array(
+                    'email' => $transaction['Buyer']['Email'] ?? '',
+                    'order_id' => $order['OrderID'],
+                    'user_first_name' => $transaction['Buyer']['UserFirstName'] ?? '',
+                    'user_last_name' => $transaction['Buyer']['UserLastName'] ?? '',
+                    'shipping_carrier_used' => $ShippingCarrierUsed,
+                    'shipment_tracking_number' => $ShipmentTrackingNumber,
+                    'created_date' => isset($transaction['CreatedDate']) ? strtotime($transaction['CreatedDate']) : 0,
+                    'item_id' => $transaction['Item']['ItemID'],
+                    'site' => $transaction['Item']['Site'] ?? '',
+                    'title' => $transaction['Item']['Title'] ?? '',
+                    'sku' => $transaction['Item']['SKU'] ?? '',
+                    'quantity_purchased' => $transaction['QuantityPurchased'],
+                    'transaction_id' => $transaction['TransactionID'] ?? '',
+                    'transaction_price' => $transaction['TransactionPrice'] ?? 0,
+                    'final_value_fee' => $transaction['FinalValueFee'] ?? 0,
+                    'final_value_curreny' => $transaction['FinalValueFee@Atts']['currencyID'] ?? '',
+                    'transaction_site_id' => $transaction['TransactionSiteID'] ?? '',
+                    'variation_sku' => $transaction['Variation']['SKU'] ?? '',
+                    'variation_title' => $transaction['Variation']['VariationTitle'] ?? '',
+                    'variation_view_item_url' => !empty($transaction['Variation']['VariationViewItemURL']) ? $transaction['Variation']['VariationViewItemURL'] : '',
+                    'order_line_item_id' =>  $transaction['OrderLineItemID'] ?? '',
+                    'extended_order_id' => $transaction['ExtendedOrderID'] ?? '',
+                    'record_number' => $transaction['ShippingDetails']['SellingManagerSalesRecordNumber'] ?? 0, // 2507 销售交易号
+                );
+            }
+        }
+        
+        // 写入缓存日志
+        $logs = [
+            'time' => $createTimeFrom . ' 到 ' . $createTimeTo,
+            'account_id' => $accountId,
+            'oids' => $downOrderIds
+        ];
+        Cache::store('EbayOrder')->addOrderLogs(time(), $logs);
+        
+        $response_data['datas'] = $datas;
+        
+        return $response_data;
+    }
+    
+    /**
+     * 获取订单列表
+     *
+     * @param unknown $accountId
+     * @param unknown $createTimeFrom
+     * @param unknown $createTimeTo
+     * @param number $pageNum
+     */
+    public function getOrders($createTimeFrom, $createTimeTo, $pageNum = 1)
+    {
+        //set_time_limit(0);
+        Loader::import('trading.GetOrdersRequestType');
+        $request = new \GetOrdersRequestType();
+        $request->setDetailLevel('ReturnAll');
+        // 按修改时间拉取
+        $request->setModTimeFrom($this->setTimeToEbayTime($createTimeFrom));
+        $request->setModTimeTo($this->setTimeToEbayTime($createTimeTo));
+        $request->setOrderRole('Seller');
+        $request->setOrderStatus('All');
+        $request->setIncludeFinalValueFee(true);
+        
+        $pagination = new \PaginationType();
+        $pagination->setEntriesPerPage(100);
+        $pagination->setPageNumber($pageNum);
+        $request->setPagination($pagination);
+        
+        $response = $this->_proxy->GetOrders($request);
+        $response = $this->xmlToArray($response);
+        
+        return $response;
+    }
+    
+    /**
+     * 获取订单详情
+     *
+     * @param unknown $accountId
+     * @param unknown $createTimeFrom
+     * @param unknown $createTimeTo
+     * @param number $pageNum
+     */
+    public function getOrdersById($order_id)
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetOrdersRequestType');
+        $request = new \GetOrdersRequestType();
+        $request->setDetailLevel('ReturnAll');
+        $request->setOrderRole('Seller');
+        $request->setOrderStatus('All');
+        $request->setIncludeFinalValueFee(true);
+        
+        $oid = new \OrderIDArrayType();
+        $oid->setOrderID($order_id);
+        $request->setOrderIDArray($oid);
+        
+        $response = $this->_proxy->GetOrders($request);
+        return $response;
+        
+        $resultArr = $this->xmlToArray($response);
+    }
+    
+    public function getTransOrdersById($order_id)
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetOrderTransactionsRequestType');
+        $request = new \GetOrderTransactionsRequestType();
+        // $request->setDetailLevel('ReturnAll');
+        // $request->setOrderRole('Seller');
+        $order = new \OrderIDArrayType();
+        $order->setOrderID($order_id);
+        $request->setOrderIDArray($order);
+        
+        $response = $this->_proxy->GetOrderTransactions($request);
+        return $response;
+        $resultArr = $this->xmlToArraySDK($response);
+    }
+    
+    /**
+     * 标记发货
+     *
+     * @param array $data
+     *            $data = [
+     *            'order_id' 订单号
+     *            'transaction_id' 交易号
+     *            'item_id' itemId
+     *            'shipped_time' 发货时间 : 时间撮
+     *
+     *            //发货详情
+     *            'shipment_detail' = [
+     *            'tracking_number' 跟踪号
+     *            'shipping_carrier' 物流商
+     *
+     *            //多个包裹详细
+     *            'shipment_item' = [
+     *            'item_id' itemId
+     *            'transaction_id' 交易号
+     *            'quantity' 数量
+     *            'description' 描述
+     *            ]
+     *            ]
+     *
+     *            ];
+     */
+    public function completeShipped($data = [])
+    {
+        $response_msg = [
+            'state' => 0,
+            'msg' => ''
+        ];
+        
+        set_time_limit(0);
+        Loader::import('trading.CompleteSaleRequestType');
+        $request = new \CompleteSaleRequestType();
+        
+        $request->setOrderID($data['order_id']);
+        if (param($data, 'transaction_id')) {
+            $request->setTransactionID($data['transaction_id']);
+        }
+        if (param($data, 'item_id')) {
+            $request->setItemID($data['item_id']);
+        }
+        
+        $shipment = new \ShipmentType();
+        $shipment->setShippedTime($this->setTimeToEbayTime($data['shipped_time']));
+        
+        // 发货详情
+        if (param($data, 'shipment_detail')) {
+            $i = 0;
+            $shipmentDetails = new \ShipmentTrackingDetailsType();
+            foreach ($data['shipment_detail'] as $s_detail) {
+                $shipmentDetails->setShipmentTrackingNumber($s_detail['tracking_number']);
+                $shipmentDetails->setShippingCarrierUsed($s_detail['shipping_carrier']);
+                // 多个包裹详细
+                if (param($s_detail, 'shipment_item')) {
+                    $j = 0;
+                    $shipmentLineItem = new \ShipmentLineItemType();
+                    foreach ($s_detail['shipment_item'] as $s_item) {
+                        $lineItem = new \LineItemType();
+                        $lineItem->setItemID($s_item['item_id']);
+                        $lineItem->setTransactionID($s_item['transaction_id']);
+                        $lineItem->setQuantity(param($s_item, 'quantity'));
+                        $lineItem->setDescription($s_item['description']);
+                        $shipmentLineItem->setLineItem($lineItem, $j);
+                        $j++;
+                    }
+                    $shipmentDetails->setShipmentLineItem($shipmentLineItem);
+                }
+                $i++;
+            }
+            $shipment->setShipmentTrackingDetails($shipmentDetails);
+        }
+        
+        $request->setShipment($shipment);
+        $request->setShipped('true');
+        
+        $response = $this->_proxy->CompleteSale($request);
+        $resultArr = $this->convertXml($response);
+        if (!empty($resultArr['soapenvBody']['CompleteSaleResponse']['Ack'])) {
+            $resultArr = $resultArr['soapenvBody']['CompleteSaleResponse'];
+        } else if (!empty($resultArr['soapenvEnvelope']['soapenvBody']['CompleteSaleResponse']['Ack'])) {
+            $resultArr = $resultArr['soapenvEnvelope']['soapenvBody']['CompleteSaleResponse'];
+        } else {
+            $resultArr = ['Ack' => 'Failure'];
+        }
+        if ($resultArr['Ack'] == 'Success') {
+            $response_msg['state'] = 1;
+        } else {
+            $response_msg['msg'] = isset($resultArr['Errors']['LongMessage']) ? $resultArr['Errors']['LongMessage'] : 'RequestError';
+        }
+        
+        return $response_msg;
+    }
+    
+    /**
+     * 获取ebay Detail
+     */
+    public function geteBayDetails($detailName = '')
+    {
+        set_time_limit(0);
+        
+        $detailName = 'ShippingCarrierDetails';
+        
+        Loader::import('trading.GeteBayDetailsRequestType');
+        $request = new \GeteBayDetailsRequestType();
+        
+        $request->setDetailName($detailName);
+        
+        $response = $this->_proxy->GeteBayDetails($request);
+        
+        $resultArr = $this->xmlToArraySDK($response);
+        
+        if ($resultArr['Ack'] == 'Success') {
+            return $resultArr['ShippingCarrierDetails'];
+        }
+    }
+
+    public function convertXml($xml)
+    {
+        $xml = str_replace('soapenv:Envelope', "soapenvEnvelope", $xml);
+        $xml = str_replace('soapenv:Header', "soapenvHeader", $xml);
+        $xml = str_replace('soapenv:Body', "soapenvBody", $xml);
+
+        return $xml ? $this->xmlToArrayElement(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)) : array();
+    }
+
+}

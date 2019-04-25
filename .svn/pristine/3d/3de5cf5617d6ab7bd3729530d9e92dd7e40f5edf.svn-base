@@ -1,0 +1,129 @@
+<?php
+/**
+ * 亚马逊入库货件 API 服务类
+ * @author wangwei 2019-3-8 10:48:35
+ */
+namespace service\amazon\Feed;
+
+use service\amazon\Feed\Base\FeedService;
+
+class InboundCartonFeedService extends FeedService
+{
+    protected $_feedType = '_POST_FBA_INBOUND_CARTON_CONTENTS_';
+    
+    /**
+     * 提交FBA入库货件装箱明细
+     * @param array $Param_CartonsArray
+     * @param string | array $Param_MarketplaceIdList  商城 ID(数组或字符串)
+     * @param bool $Param_PurgeAndReplace  启用清除并替换功能
+     */
+    public function submitInboundCartonByArray(
+        $Param_CartonsArray,
+        $Param_MarketplaceIdList=array(),
+        $Param_PurgeAndReplace=false
+        ){
+    	$return = array(
+    			'ask' => 0,
+    			'message'=>'submitProductByArray_error',
+    			'data'=>array(
+    					'FeedSubmissionId'=>'',//上传数据提交的唯一编码
+    					'requestId'=>'',//请求id
+    					'FeedContent'=>'',//XML请求数据
+    					'FeedType'=>'',//已提交的上传数据类型,FeedType 枚举
+    					'SubmittedDate'=>'',//提交上传数据的日期和时间
+    					'FeedProcessingStatus'=>'',//所提交的上传数据的处理状态
+    			),
+    	);
+    	if(empty($Param_CartonsArray)){
+    		$return['message'] = '提交的调拨数据不能为空';
+    		return $return;
+    	}
+    	//整理产品数据格式
+    	$CartonData = $this->sortOutData($Param_CartonsArray);
+    	//获取XML文本
+    	$Param_FeedContent = $this->getXmlContent($CartonData);
+    	$Param_FeedType = $this->_feedType;
+    	return $this->submitFeed($Param_FeedContent, $Param_FeedType,$Param_MarketplaceIdList,$Param_PurgeAndReplace);
+    }
+    
+    /**
+     * 整理FBA入库货件装箱明细数据格式
+     * @param array $Param_CartonsArray  提交装箱数据（注意是二维数组）
+     * Example :
+     * $Param_CartonsArray = [
+     *      $ShipmentId(货件编号)=>[
+     *           [
+     *              'items'=>[//一箱
+     *                  [
+     *                      'SKU'=>'',//Y 商品的卖家 SKU
+     *                      'QuantityShipped'=>'',//Y 要配送的商品数量
+     *                      'QuantityInCase'=>'',//N 每个包装箱中的商品数量（仅针对原厂包装发货商品）
+     *                      'ExpirationDate'=>'',//N 最晚到达时间
+     *                  ],
+     *                  [
+     *                      'SKU'=>'',
+     *                      'QuantityShipped'=>'',
+     *                      'QuantityInCase'=>'',
+     *                      'ExpirationDate'=>'',
+     *                  ],
+     *               ],
+     *          ],
+     *          [
+     *           ......
+     *          ]
+     *     ],
+     *     $ShipmentId(货件编号)=>[
+     *          .......
+     *     ]
+     * ];
+     *   
+     * @return array
+     */
+    public function sortOutData($Param_CartonsArray){
+        // 数组，请严格按照该格式拼装
+        $data = array();
+        $data['Header'] = array(
+            'DocumentVersion' => '1.01',
+            'MerchantIdentifier' => $this->_tokenConfig['MERCHANT_ID']
+        );
+        $data['MessageType'] = 'CartonContentsRequest';
+        $message_key = 1;
+        $carton_key = 1;
+        foreach($Param_CartonsArray as $ShipmentId => $ShipmentData){
+            $shipment = [
+                'Message'=>[
+                    'MessageID'=>$message_key,
+                    'CartonContentsRequest'=>[
+                        'ShipmentId'=>$ShipmentId,
+                        'NumCartons'=>count($ShipmentData),
+                        'Carton'=>[]
+                    ]
+                ]
+            ];
+            foreach ($ShipmentData as $k=>$v){
+                $carton = [
+                    'CartonId' => $carton_key,
+                    'Item' =>[]
+                ];
+                foreach ($v['items'] as $kk => $item){
+                    $item_tmp = [
+                        'SKU'=>$item['SKU'],
+                        'QuantityShipped'=>$item['QuantityShipped'],
+                    ];
+                    if(isset($item['QuantityInCase']) && !empty($item['QuantityInCase'])){
+                        $item_tmp['QuantityInCase'] = $item['QuantityInCase'];
+                    }
+                    if(isset($item['ExpirationDate']) && !empty($item['ExpirationDate'])){
+                        $item_tmp['ExpirationDate'] = $item['ExpirationDate'];
+                    }
+                    $carton['Item'][] = $item_tmp;
+                }
+                $shipment['Message']['CartonContentsRequest']['Carton'][] = $carton;
+                $carton_key++;
+            }
+            $data[] = $shipment;
+            $message_key++;
+        }
+        return $data;
+    }
+}

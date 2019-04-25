@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr>
+                <td colspan="12" style="text-align: center;font-size: 25pt;">
+                    Nigeria
+                </td>
+            </tr>
+            <tr style="line-height: 10pt;">
+                <td colspan="12" style="vertical-align: middle;">
+                    <div style="margin-top: 20pt;">
+                        <div style="float: left;width:30%;margin-top: 10%;text-align:right;font-size: 14pt;">
+                            Parcel <br>
+                            Number
+                        </div>
+                        <div style="float: left;width:68%;text-align:center;">
+                            <img src="<?php echo $this->img($shipping_number,'',80,1);?>">  <br>
+                            <span>*<?php echo $shipping_number ?>*</span>
+                        </div>
+                        <div style="clear: both;"></div>
+                    </div>
+                </td>
+            </tr>
+            <tr style="line-height: 10pt;">
+                <td colspan="12" style="vertical-align: middle;">
+                    <div style="margin-top: 5pt;">
+                        <div style="float: left;width:30%;margin-top: 10%;text-align:right;font-size: 14pt;">
+                            Order <br>
+                            Number
+                        </div>
+                        <div style="float: left;width:68%;text-align:center;">
+                            <img src="<?php echo $this->img($channel_order_number,'',100,1);?>">  <br>
+                            <span>*<?php echo $channel_order_number ?>*</span>
+                        </div>
+                        <div style="clear: both;"></div>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

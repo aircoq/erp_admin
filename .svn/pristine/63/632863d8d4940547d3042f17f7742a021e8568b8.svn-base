@@ -1,0 +1,73 @@
+<?php
+
+/**
+ * Description of Wish
+ * @datetime 2017-5-19  15:26:24
+ * @author joy
+ */
+
+namespace command;
+use think\console\Command;
+use think\console\Input;
+use think\console\input\Option;
+use think\console\Output;
+
+
+class Aliexpress extends Command{
+    
+    protected function configure()
+    {
+        // 指令配置
+        $this
+        ->setName('aliexpress')
+	        ->addOption('map', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->addOption('category', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->addOption('categoryAttr', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('attribute', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('rsync', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('publish', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('cronpublish', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('productTemplate', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        //->addOption('download', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->setDescription('command entrance');
+    }
+   
+    protected function execute(Input $input, Output $output)
+    {
+
+        if ($input->getOption('category')) 
+        {
+            $task = new \app\publish\task\AliexpressCategory;
+        }
+        if ($input->getOption('categoryAttr')) {
+            $task = new \app\publish\task\AliexpressGrabCategoryAttrAndVal;
+        }
+		if ($input->getOption('rsync')) {
+            $task = new \app\listing\task\AliexpressRsyncProduct;
+        }
+		if ($input->getOption('attribute')) {
+            $task = new \app\publish\task\AliexpressAttibutes;
+        }
+		if ($input->getOption('publish')) {
+            $task = new \app\publish\task\AliexpressPostProduct;
+        }
+		if ($input->getOption('cronpublish')) {
+            $task = new \app\publish\task\AliexpressPostCronProduct;
+        }
+		if ($input->getOption('productTemplate')) {
+            $task = new \app\publish\task\AliexpressProductTemplate;
+        }
+	    if ($input->getOption('map')) {
+		    $task = new \app\publish\task\GoodsPublishMapAliexpress();
+	    }
+        
+        
+        if(isset($task))
+        {
+            $task->execute();
+        }else{
+            echo 'please input start command'.PHP_EOL;
+        }
+        
+    }
+}

@@ -1,0 +1,142 @@
+<?php
+// +----------------------------------------------------------------------
+// | 邮箱供应商抽象基类
+// +----------------------------------------------------------------------
+// | File  : AbsProvider.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-19
+// +----------------------------------------------------------------------
+namespace imap\provider;
+use imap\EmailAccount;
+use \Exception as Exception;
+
+abstract class AbsProvider
+{
+    const PROVIDER_CLASS_MAP = array(
+        '163' => '\\imap\\provider\\Provider163'
+    );
+
+    /**
+     * @var EmailAccount
+     */
+    protected $account = null;
+
+    protected $server      = '';      //邮箱服务器地址
+    protected $imapPort    = '';
+    protected $imapSsLPort = '';
+    protected $pop3Port    = '';
+    protected $pop3SsLPort = '';
+    protected $isSSL       = true;
+    protected $isImap      = true;
+
+    protected $isSmtp      = true;
+    protected $smtpPort    = '';
+    protected $smtpServer  = '';
+
+
+    protected $attachmentsRootDir  = '';
+    protected $serverEncoding = 'UTF-8';
+
+    protected $box = 'INBOX';
+
+    protected $mailFilters = [];
+
+
+    /**
+     * Base constructor.
+     * @throws Exception
+     */
+    public function __construct()
+    {
+        if(method_exists($this , 'initialize')){
+            call_user_func([$this,"initialize"]);
+        }
+    }
+
+    /**
+     * 设置邮箱账号
+     * @param EmailAccount $account
+     */
+    public function setAccount(EmailAccount $account)
+    {
+        $this->account = $account;
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getImapPath()
+    {
+        if($this->isImap) {
+            $port = $this->isSSL ? $this->imapSsLPort : $this->imapPort;
+        }else{
+            $port = $this->isSSL ? $this->pop3SsLPort : $this->pop3Port;
+        }
+        return
+            '{'.
+                $this->server .':'.$port.
+                ($this->isImap? '/imap' : '/pop3' ).
+                ($this->isSSL? '/ssl' : '' ).
+            '}';
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getServerEncoding()
+    {
+        return strtoupper($this->serverEncoding);
+    }
+
+    /**
+     * @return string
+     */
+    public function getServer()
+    {
+        return $this->server;
+    }
+
+    /**
+     * 获取平台登录时使用的密码
+     * @return mixed
+     */
+    public abstract function getLoginPwd();
+
+    /**
+     * @return string
+     */
+    public function getBox()
+    {
+        return $this->box;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSmtp()
+    {
+        return $this->isSmtp;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSmtpServer()
+    {
+        return $this->smtpServer;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSmtpPort()
+    {
+        return $this->smtpPort;
+    }
+
+}
+

@@ -1,0 +1,149 @@
+<?php
+
+namespace zoodmall;
+
+use app\common\cache\Cache;
+use zoodmall\ZoodmallBaseApi;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/1/6
+ * Time: 17:25
+ */
+class ZoodmallOrderApi extends ZoodmallBaseApi
+{
+    public function __construct($params)
+    {
+        parent::__construct($params);
+    }
+
+    /**
+     * @title 返回当前需要完成的所有订单。
+     * @param $start 开始点最小为0；
+     * @param $limit 每次拉取的个数；
+     * @param $since 开始时间；
+     * @return mixed
+     */
+    public function getOrderLists( $page = 1,$rowsPerPage = 20,$startTime = '', $endTime = '')
+    {
+        $mehod = 'OrderRpc.finds';
+        $params = [
+            'hasPicking'=>'',
+            'status'=>2,
+            'processOrder'=>1,
+            'page' => $page,
+            'rowsPerPage' => $rowsPerPage,
+        ];
+        if($startTime){
+//             $params['dateCodeGeq'] = is_numeric($startTime) ? date('Y-m-d', $startTime) : $startTime;
+                       $params['timePaidGeq'] = is_numeric($startTime) ? date('Y-m-d', $startTime) : $startTime;
+        }
+        if($endTime){
+//             $params['dateCodeLeq'] = is_numeric($endTime) ? date('Y-m-d', $endTime) : $endTime;
+                       $params['timePaidLeq'] = is_numeric($endTime) ? date('Y-m-d', $endTime) : $endTime;
+        }
+        $result = $this->authcall('POST',$mehod, [$params]);
+        if(isset($result['result']['orders'][0])){
+            return $result['result'];
+        }
+        return false;
+    }
+
+
+    /**
+     * 通过订单ID，拿取订单信息用于更新；
+     * @param $order_id 订单ID
+     */
+    public function getOrdersById($order_id)
+    {
+        $mehod = 'OrderRpc.finds';
+        $params = [
+            'code' => $order_id,
+        ];
+        $result = $this->authcall('POST',$mehod, [$params]);
+        if(isset($result['result']['orders'][0])){
+            return $result['result'];
+        }
+        return false;
+    }
+
+    /**
+     * 发货订单
+     * @param $order_id
+     * @param string $tracking_number
+     * @param string $itemList 商品库存 sku 列表
+     * @return mixed
+     */
+    public function fulfillOne($order_id, $tracking_number = '', $itemList = '')
+    {
+        $mehod = 'OrderRpc.updateTrackNumber';
+        $params = [
+            'code' => $order_id,
+            'trackNumber' => $tracking_number,
+            'itemList' => $itemList,
+        ];
+        $result = $this->authcall('POST', $mehod, [$params]);
+        return $result;
+    }
+
+    /**
+     * 订单退款
+     * @param $order_id 订单ID
+     * @param $reason_code 退款代码 1--店无法履行订单 2--产品缺货 3--客户提供错误地址信息
+     * @return bool
+     */
+    public function refund($order_id, $reason_code)
+    {
+
+    }
+
+    /**
+     * 取消订单商品
+     * @param $order_id
+     * @param $items [{'sku'=>'ads1123','quamtity'=>1},{} ...]
+     * @param $refundReason 取消原因
+     * @return mixed
+     */
+    public function cancel($order_id, $items, $refundReason)
+    {
+        $mehod = 'OrderRpc.updateTrackNumber';
+        $params = [
+            'code' => $order_id,
+            'refundReason' => $refundReason,
+            'items' => $items,
+        ];
+        $result = $this->authcall($mehod, $params);
+        return $result;
+    }
+
+
+
+
+    /**
+     * 提交线上发货请求
+     * @param string $order_ids
+     * @param string $ship_note
+     * @param string $tracking_provider
+     * @return array
+     *
+     */
+    public function fulfillOnline($order_ids = '', $ship_note = '', $tracking_provider = 'Zoodmall Logistics')
+    {
+
+    }
+
+
+
+    /**
+     * 获取订单面单
+     * @param $order_id 订单ID
+     * @return bool
+     */
+    public function shippingLabel($order_id)
+    {
+
+    }
+
+
+}

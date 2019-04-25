@@ -1,0 +1,15 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+/**
+ * @title UBI
+ * @module 请输入模块
+ * @url 输入url
+ * @author starzhan <397041849@qq.com>
+ */
+class UBi extends Base
+{
+    protected $is_open_water = 1;
+}

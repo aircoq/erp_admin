@@ -1,0 +1,27 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-14
+ * Time: 下午5:48
+ */
+
+namespace swoole\cmd;
+
+
+use swoole\ProcessManager;
+use swoole\SwooleCmd;
+use swoole\SwooleCmdResult;
+
+class QueueProcess extends SwooleCmd
+{
+    public  function execute(\swoole_websocket_server $server): SwooleCmdResult
+    {
+        /**
+         * @var $processManager ProcessManager
+         */
+        $processManager = $server->setting['processManager'];
+        $processManager->send($this->data);
+        return new SwooleCmdResult($this);
+    }
+}

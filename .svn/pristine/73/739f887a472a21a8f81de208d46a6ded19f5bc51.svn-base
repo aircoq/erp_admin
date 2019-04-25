@@ -1,0 +1,185 @@
+<?php
+
+namespace service\alinew\operation;
+
+use service\alinew\operation\Common;
+
+/**
+ * @desc 纠纷处理
+ * @author johnny <1589556545@qq.com>
+ * @date 2018-05-24 21:18:11
+ */
+class Issue extends Common
+{
+    /**
+     * @title 获取纠纷列表
+     * @param $page_size 详情描述如下
+     * @param $current_page 买家登录id
+     * @param null $buyer_login_id 当前页
+     * @param null $issue_status 纠纷状态 处理中processing、 纠纷取消canceled_issue、纠纷完结,退款处理完成finish
+     * @param null $order_no 订单号
+     * @return mixed|\ResultSet|\SimpleXMLElement 每页大小，不要大于50.
+     * @throws \Exception
+     */
+    
+    public function getIssueList($page_size, $current_page, $buyer_login_id = null, $issue_status = null, $order_no = null)
+    {
+        $data = [];
+        //方法参数
+        $data['page_size'] = $page_size;
+        $data['current_page'] = $current_page;
+        $data['buyer_login_id'] = $buyer_login_id;
+        $data['issue_status'] = $issue_status;
+        $data['order_no'] = $order_no;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('getIssuelist');
+        $request->setClassName('Issue');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+    /**
+     * @title 获取纠纷详情
+     * @param $buyer_login_id 买家登录帐号
+     * @param $issue_id 纠纷id
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function getDetail($buyer_login_id, $issue_id)
+    {
+        $data = [];
+        //方法参数
+        $data['buyer_login_id'] = $buyer_login_id;
+        $data['issue_id'] = $issue_id;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('getDetail');
+        $request->setClassName('Issue');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+    /**
+     * @title 卖家上传纠纷证据图片
+     * @param $buyer_login_id 买家登录帐号
+     * @param $extension 文件后缀名
+     * @param $issue_id 纠纷id
+     * @param $image_bytes 图片内容
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function imageUpload($buyer_login_id, $extension ,$issue_id ,$image_bytes )
+    {
+        $data = [];
+        //方法参数
+        $data['buyer_login_id'] = $buyer_login_id;
+        $data['extension'] = $extension;
+        $data['issue_id'] = $issue_id;
+        $data['image_bytes'] = $image_bytes;
+
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('imageUpload');
+        $request->setClassName('Issue');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+    /**
+     * @title 卖家新增(拒绝某个买家方案)or修改方案
+     * @param $add_seller_solution 是否新增方案(true新增,false修改)
+     * @param $buyer_login_id  买家登录id
+     * @param $issue_id 纠纷id
+     * @param $buyer_solution_id 拒绝买家方案id
+     * @param $modify_seller_solution_id 修改的卖家方案id
+     * @param $refund_amount 新增or修改金额(元)
+     * @param $refund_amount_currency 新增or修改金额的币种
+     * @param $solution_context 新增or修改理由说明
+     * @param $add_solution_type 方案类型(SNAD才可更改类型)：退款refund,退货退款return_and_refund
+     * @param $return_good_address_id 退货地址id 如果新增退货方案,必须有地址
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function solutionSave($saveData)
+    {
+        $data = [];
+        //方法参数
+        $data['add_seller_solution'] = $saveData['add_seller_solution'];
+        $data['buyer_login_id'] = $saveData['buyer_login_id'];
+        $data['issue_id'] = $saveData['issue_id'];
+        $data['buyer_solution_id'] = $saveData['buyer_solution_id'] ;
+        $data['modify_seller_solution_id'] = $saveData['modify_seller_solution_id'];
+        $data['refund_amount'] = $saveData['refund_amount'];
+        $data['refund_amount_currency'] = $saveData['refund_amount_currency'];
+        $data['solution_context'] = $saveData['solution_context'];
+        $data['add_solution_type'] = $saveData['add_solution_type'];
+        $data['return_good_address_id'] = $saveData['return_good_address_id'];
+
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('solutionSave');
+        $request->setClassName('Issue');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+    /**
+     * @title 卖家同意普通纠纷方案
+     * @param $buyer_login_id 买家登录id
+     * @param $issue_id 纠纷id
+     * @param $solution_id 若退货需提供退货地址id
+     * @param $return_address_id 同意方案id
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function solutionAgree($buyer_login_id, $issue_id ,$solution_id ,$return_address_id )
+    {
+        $data = [];
+        //方法参数
+        $data['buyer_login_id'] = $buyer_login_id;
+        $data['issue_id'] = $issue_id;
+        $data['solution_id'] = $solution_id ;
+        $data['return_address_id'] = $return_address_id;
+
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('solutionAgree');
+        $request->setClassName('Issue');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+
+
+}

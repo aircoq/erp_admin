@@ -1,0 +1,40 @@
+<?php
+namespace PaypalClient\Checkout;
+
+use PaypalClient\RequestService;
+/**
+ * 快速结算接口服务类
+ * @author Jacky 2017-9-24 23:36:18
+ */
+class CheckoutService extends RequestService{
+    
+    /**
+     * 通过运送选项，保险和税务信息更新“PayPal评估”页面
+     */
+    public function Callback(){
+        
+    }
+    
+    /**
+     * 完成Express Checkout交易。
+     * 如果您在SetExpressCheckoutAPI通话中设置了结算协议，则在通话时会创建结算协议DoExpressCheckoutPayment
+     */
+    public function DoExpressCheckoutPayment(){
+        
+    }
+    
+    /**
+     * 显示有关Express Checkout交易的信息
+     */
+    public function GetExpressCheckoutDetails(){
+    
+    }
+    
+    /**
+     * 启动Express Checkout交易
+     */
+    public function SetExpressCheckout(){
+    
+    }
+    
+}

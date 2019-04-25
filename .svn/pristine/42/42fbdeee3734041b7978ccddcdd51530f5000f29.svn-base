@@ -1,0 +1,57 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-3-13
+ * Time: 下午2:57
+ */
+
+namespace service\aliexpress\operation;
+
+
+class UploadImage extends Common
+{
+    protected $client_id;
+    protected $client_secret;
+    protected $access_token;
+    protected $refresh_token ;
+    protected $server_host = 'http://gw.api.alibaba.com/';
+    protected $api_type = 'openapi';
+    protected $namespace = 'aliexpress.open';
+    protected $name = 'api.uploadImage4SDK';
+    protected $version='1';
+
+    /**
+     * 构造函数
+     */
+    public function __construct($config)
+    {
+        parent::__construct($config);
+    }
+
+    /**
+     * @info 上传图片到图片银行
+     * @param unknown $strUrl
+     * @return mixed
+     */
+    public function uploadImage($strUrl,$count=0)
+    {
+        try{
+            $this->namespace = 'aliexpress.open';
+            $this->name = 'api.uploadImage4SDK';
+            $this->api_type = 'openapi';
+            $this->version = '1';
+            $data = file_get_contents($strUrl);
+            $imageBytes = base64_encode($data);
+            $arrData ['fileName'] = pathinfo($strUrl)['basename'];
+            $arrData ['imageBytes'] = $imageBytes;
+            $urlPath = implode('/',[$this->api_type,'param2',1,$this->namespace,$this->name,$this->client_id]);
+            $arrData['access_token'] = $this->accessToken;
+            $strUrl = $this->server_host.$urlPath;
+            $result = $this->requestAliexpress($strUrl, $arrData);
+            return $result;
+        }catch (Exception $exp){
+            throw new QueueException($exp->getMessage());
+        }
+    }
+}

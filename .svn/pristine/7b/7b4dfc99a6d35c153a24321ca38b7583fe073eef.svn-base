@@ -1,0 +1,623 @@
+<?php
+
+namespace app\index\service;
+
+use app\common\exception\JsonErrorException;
+use app\common\model\walmart\WalmartAccount;
+use app\common\cache\Cache;
+use app\common\service\ChannelAccountConst;
+use walmart\WalmartAccountApi;
+use think\Exception;
+use app\common\model\ChannelAccountLog;
+use app\index\service\AccountService;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/6/7
+ * Time: 11:43
+ */
+class WalmartAccountService
+{
+    protected $walmartAccountModel;
+    protected $error = '';
+
+    /**
+     * 日志配置
+     * 字段名称[name] 
+     * 格式化类型[type]:空 不需要格式化,time 转换为时间,list
+     * 格式化值[value]:array
+     */
+    public static $log_config = [
+        'sales_company_id' => ['name'=>'运营公司','type'=>null],
+        'base_account_id' => ['name'=>'账号基础资料名','type'=>null],
+        'account_name' => ['name'=>'账号名称','type'=>null],
+        'site' => ['name'=>'站点','type'=>null],
+        'code' => ['name'=>'账号简称','type'=>null],
+        'merchant_id' => ['name'=>'商户ID','type'=>null],
+        'email' => ['name'=>'邮箱','type'=>null],
+        'access_token' => ['name'=>'token','type'=>null],
+        'client_id' => ['name'=>'应用程序ID','type'=>null],
+        'client_secret' => ['name'=>'应用程序密钥','type'=>'key'],
+        'channel_type' => ['name'=>'v3专用应用程序key','type'=>'key'],
+        'status' => [//字段可能没有使用
+            'name'=>'系统状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'停用',
+                1 =>'使用' ,
+            ],
+        ],
+        'walmart_enabled' => [
+            'name'=>'walmart状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'失效',
+                1 =>'有效' ,
+            ],
+        ],
+        'is_invalid' => [
+            'name'=>'系统状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未启用',
+                1 =>'启用' ,
+            ],
+        ],
+        'is_authorization' => [
+            'name'=>'授权状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未授权',
+                1 =>'已授权' ,
+            ],
+        ],
+        'download_listing' => ['name'=>'抓取Listing时间','type'=>'time'],
+        'download_health' => ['name'=>'同步健康数据','type'=>'time'],
+        'download_order' => ['name'=>'抓取订单时间','type'=>'time'],
+        'sync_delivery' => ['name'=>'同步发货状态时间','type'=>'time'],
+        'sync_feedback' => ['name'=>'同步中差评时间','type'=>'time'],
+        'site_status' => [
+            'name'=>'账号状态',
+            'type'=>'list',
+            'value'=>[
+                0 => '未分配',
+                1 => '运营中',
+                2 => '回收中',
+                3 => '冻结中',
+                4 => '申诉中',
+            ]
+        ],
+    ];
+
+    public function __construct()
+    {
+        if (is_null($this->walmartAccountModel)) {
+            $this->walmartAccountModel = new WalmartAccount();
+        }
+    }
+
+    /**
+     * 得到错误信息
+     * @return string
+     */
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * 获取账号列表
+     * lingjiawen
+     */
+    public function getList(array $req)
+    {
+        /**
+         * 初始化参数
+         */
+        $operator = ['eq' => '=', 'gt' => '>', 'lt' => '<'];
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 50;
+        $time_type = isset($req['time_type']) and in_array($req['time_type'],['register','fulfill']) ? $req['time_type'] : '';
+        $start_time = isset($req['start_time']) ? strtotime($req['start_time']) : 0;
+        $end_time = isset($req['end_time']) ? strtotime($req['end_time']) : 0;
+        $site = $req['site'] ?? '';
+        $status = isset($req['status']) && is_numeric($req['status']) ? intval($req['status']) : -1;
+        $site_status = isset($req['site_status']) && is_numeric($req['site_status']) ? intval($req['site_status']) : -1;
+        $seller_id = isset($req['seller_id']) ? intval($req['seller_id']) : 0;
+        $customer_id = isset($req['customer_id']) ? intval($req['customer_id']) : 0;
+        $is_authorization = isset($req['authorization']) && is_numeric($req['authorization']) ? intval($req['authorization']) : -1;
+        $is_invalid = isset($req['is_invalid']) && is_numeric($req['is_invalid']) ? intval($req['is_invalid']) : -1;
+        $snType = !empty($req['snType']) && in_array($req['snType'], ['account_name', 'code']) ? $req['snType'] : '';
+        $snText = !empty($req['snText']) ? $req['snText'] : '';
+        $taskName = !empty($req['taskName']) && in_array($req['taskName'], ['download_listing', 'download_order', 'sync_delivery', 'download_health']) ? $req['taskName'] : '';
+        $taskCondition = !empty($req['taskCondition']) && isset($operator[trim($req['taskCondition'])]) ? $operator[trim($req['taskCondition'])] : '';
+        $taskTime = isset($req['taskTime']) && is_numeric($req['taskTime']) ? intval($req['taskTime']) : '';
+        //排序
+        $sort_type = !empty($req['sort_type']) && in_array($req['sort_type'], ['account_name', 'code']) ? $req['sort_type'] : '';
+        $sort = !empty($req['sort_val']) && $req['sort_val'] == 2 ? 'desc' : 'asc';
+        $order_by = 'am.id DESC';
+        $sort_type && $order_by = "am.{$sort_type} {$sort},{$order_by}";
+
+        /**
+         * 参数处理
+         */
+        if ($time_type && $end_time && $start_time > $end_time) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+        !$page and $page = 1;
+        if ($page > $pageSize) {
+            $pageSize = $page;
+        }
+
+        /**
+         * where数组条件
+         */
+        $where = [];
+        $seller_id and $where['c.seller_id'] = $seller_id;
+        $customer_id and $where['c.customer_id'] = $customer_id;
+        $is_invalid >= 0 and $where['am.is_invalid'] = $is_invalid;
+        $is_authorization >= 0 and $where['am.is_authorization'] = $is_authorization;
+        $site and $where['am.site'] = $site;
+        $status >= 0 and $where['am.status'] = $status;
+        $site_status >= 0 and $where['s.site_status'] = $site_status;
+
+        if ($taskName && $taskCondition && !is_string($taskTime)) {
+            $where['am.' . $taskName] = [$taskCondition, $taskTime];
+        }
+
+        if ($snType && $snText) {
+            $where['am.' . $snType] = ['like', '%' . $snText . '%'];
+        }
+
+        /**
+         * 需要按时间查询时处理
+         */
+        if ($time_type) {
+            /**
+             * 处理需要查询的时间类型
+             */
+            switch ($time_type) {
+                case 'register':
+                    $time_type = 'a.register_time';
+                    break;
+                case 'fulfill':
+                    $time_type = 'a.fulfill_time';
+                    break;
+
+                default:
+                    $start_time = 0;
+                    $end_time = 0;
+                    break;
+            }
+            /**
+             * 设置条件
+             */
+            if ($start_time && $end_time) {
+                $where[$time_type] = ['between time', [$start_time, $end_time]];
+            } else {
+                if ($start_time) {
+                    $where[$time_type] = ['>', $start_time];
+                }
+                if ($end_time) {
+                    $where[$time_type] = ['<', $end_time];
+                }
+            }
+        }
+
+        $count = $this->walmartAccountModel
+            ->alias('am')
+            ->where($where)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id', 'LEFT')
+            ->count();
+
+        //没有数据就返回
+        if (!$count) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+
+        $field = 'am.id,am.account_name,am.code,am.is_invalid status,am.site,am.walmart_enabled,am.create_time,am.update_time,am.is_authorization,am.sync_delivery,am.base_account_id,am.download_order,am.creator_id,am.updater_id,am.download_listing,s.site_status,c.seller_id,c.customer_id,a.register_time,a.fulfill_time';
+        //有数据就取出
+        $list = $this->walmartAccountModel
+            ->alias('am')
+            ->field($field)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id', 'LEFT')
+            ->where($where)
+            ->page($page, $pageSize)
+            ->order($order_by)
+            ->select();
+
+        foreach ($list as &$val) {
+            $seller =  Cache::store('User')->getOneUser($val['seller_id']);
+            $val['seller_name'] = $seller ? $seller['realname'] : '';
+            $val['seller_on_job'] = $seller ? $seller['on_job'] : '';
+            $customer = Cache::store('User')->getOneUser($val['customer_id']);
+            $val['customer_name'] = $customer ? $customer['realname'] : '';
+            $val['customer_on_job'] = $customer ? $customer['on_job'] : '';
+        }
+
+        return [
+            'count' => $count,
+            'data' => $list,
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ];
+    }
+
+    /**
+     * 账号列表 (已废弃)2019-4-22
+     * @param array $params
+     * @param int $page
+     * @param int $pageSize
+     * @return array
+     */
+    public function accountList($params = [], $page = 1, $pageSize = 10)
+    {
+
+        $where = $this->getWhere($params);
+        $field = 'id,account_name,code,is_invalid status,create_time,update_time,is_authorization,sync_delivery,download_order,download_listing,walmart_enabled,site';
+
+        $sort = "create_time desc";
+        //排序刷选
+        if (param($params, 'sort_type') && in_array($params['sort_type'], ['account_name', 'code', 'created_at'])) {
+            $sort_by = $params['sort_val'] == 2 ? 'DESC' : ' ';
+            $sort = $params['sort_type'] . " " . $sort_by . " ,create_time desc";
+            unset($sort_by);
+        }
+
+        $count = $this->walmartAccountModel->field($field)->where($where)->count();
+        $accountList = $this->walmartAccountModel->field($field)->where($where)->order($sort)->page($page, $pageSize)->select();
+        $thisTime = time();
+        foreach ($accountList as &$item) {
+            $item['walmart_enabled'] > $thisTime ? 1 : 0;
+        }
+        $result = [
+            'data' => $accountList,
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'count' => $count,
+        ];
+        return $result;
+    }
+
+    /**
+     * 新增
+     * @param $data
+     * @return bool
+     */
+    public function add($data, $uid = 0)
+    {
+        try {
+            $id = $data['id'] ?? 0;
+            $time = time();
+
+            $save_data['update_time'] = $time;
+            $save_data['code'] = $data['code'];
+            $save_data['download_order'] = $data['download_order'] ?? 0;
+            $save_data['download_listing'] = $data['download_listing'] ?? 0;
+            $save_data['sync_delivery'] = $data['sync_delivery'] ?? 0;
+            $save_data['site'] = $data['site'] ?? 'US';
+            $save_data['base_account_id'] = $data['base_account_id'] ?? '0';
+
+            $old_data = [];
+            $operator = [];
+            $operator['operator_id'] = $data['user_id'];
+            $operator['operator'] = $data['realname'];
+
+            if ($id == 0) {
+                //检查产品是否已存在
+                if ($this->walmartAccountModel->check(['account_name' => $data['account_name']])) {
+                    $this->error = 'Walmart账号已经存在无法重复添加';
+                    return false;
+                }
+                if ($this->walmartAccountModel->check(['code' => $data['code']])) {
+                    $this->error = 'Walmart简称已经存在无法重复添加';
+                    return false;
+                }
+                $save_data['account_name'] = $data['account_name'];
+                $save_data['create_time'] = $time;
+                $save_data['creator_id'] = $uid;
+                //必须要去账号基础资料里备案
+                \app\index\service\BasicAccountService::isHasCode(ChannelAccountConst::channel_Walmart,$data['code']);
+            } else {
+                // $is_ok = $this->walmartAccountModel->field('id')->where(['code' => $data['code']])->where('id', '<>', $id)->find();
+                // if ($is_ok) {
+                //     $this->error = 'Walmart简称已经存在无法修改';
+                //     return false;
+                // }
+
+                $old_data = $this->walmartAccountModel::get($id);
+
+                $save_data['id'] = $id;
+                $save_data['updater_id'] = $uid;
+                unset($save_data['code'],$save_data['base_account_id'],$save_data['site']);
+                //更新缓存
+                $cache = Cache::store('WalmartAccount');
+                foreach ($save_data as $key => $val) {
+                    $cache->updateTableRecord($id, $key, $val);
+                }
+            }
+
+            $new_data = $save_data;
+            $new_data['site_status'] = isset($data['site_status']) ? intval($data['site_status']) : 0;
+
+            $save_id = $this->walmartAccountModel->add($save_data);
+
+            $operator['account_id'] = $save_id;
+            if ($id && isset($new_data['site_status'])) {
+                if (in_array($new_data['site_status'], [1, 2, 3, 4])) {
+                    $old_data['site_status'] = AccountService::setSite(
+                        ChannelAccountConst::channel_Walmart,
+                        $old_data['base_account_id'],
+                        $old_data['code'],
+                        $operator['operator_id'],
+                        $new_data['site_status']
+                    );
+                }
+            }
+
+            $save_id and self::addWalmartLog(
+                $operator, 
+                $id ? ChannelAccountLog::UPDATE : ChannelAccountLog::INSERT, 
+                $new_data, 
+                $old_data
+            );
+
+            return $this->getOne($id);
+        } catch (Exception $e) {
+            throw new JsonErrorException($e->getMessage());
+        }
+    }
+
+    /**
+     * 获取账号信息
+     * @param $id
+     * @return array
+     */
+    public function getOne($id)
+    {
+        $field = 'id,account_name,code,base_account_id,is_invalid status,create_time,update_time,is_authorization,sync_delivery,download_order,download_listing,walmart_enabled,site';
+        if ($id == 0) {
+            return $this->walmartAccountModel->field($field)->order('id desc')->find();
+        }
+        return $this->walmartAccountModel->where('id', $id)->field($field)->find();
+    }
+
+    /**
+     * 获取订单授权信息
+     * @param $id
+     * @return array
+     */
+    public function getTokenOne($id)
+    {
+        return $this->walmartAccountModel->where('id', $id)->field('id,code,account_name,client_id,client_secret,channel_type')->find();
+    }
+
+    /**
+     * 封装where条件
+     * @param array $params
+     * @return array
+     */
+    public function getWhere($params = [])
+    {
+        $where = [];
+        if (isset($params['status'])) {
+            $params['status'] = $params['status'] == 'true' ? 1 : 0;
+            $where['is_invalid'] = ['eq', $params['status']];
+        }
+        if (isset($params['site']) && $params['site'] != '') {
+            $where['site'] = ['eq', $params['site']];
+        }
+        if (isset($params['authorization']) && $params['authorization'] > -1) {
+            $where['is_authorization'] = ['eq', $params['authorization']];
+        }
+        if (isset($params['authorization_cat']) && $params['authorization_cat'] > -1) {
+            $where['is_authorization_cat'] = ['eq', $params['authorization_cat']];
+        }
+        if (isset($params['download_order']) && $params['download_order'] > -1) {
+            if (empty($params['download_order'])) {
+                $where['download_order'] = ['eq', 0];
+            } else {
+                $where['download_order'] = ['>', 0];
+            }
+        }
+        if (isset($params['download_listing']) && $params['download_listing'] > -1) {
+            if (empty($params['download_listing'])) {
+                $where['download_listing'] = ['eq', 0];
+            } else {
+                $where['download_listing'] = ['>', 0];
+            }
+        }
+        if (isset($params['sync_delivery']) && $params['sync_delivery'] > -1) {
+            if (empty($params['sync_delivery'])) {
+                $where['sync_delivery'] = ['eq', 0];
+            } else {
+                $where['sync_delivery'] = ['>', 0];
+            }
+        }
+        if (isset($params['snType']) && isset($params['snText']) && !empty($params['snText'])) {
+            switch ($params['snType']) {
+                case 'account_name':
+                    $where['account_name'] = ['like', '%' . $params['snText'] . '%'];
+                    break;
+                case 'code':
+                    $where['code'] = ['like', '%' . $params['snText'] . '%'];
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (isset($params['taskName']) && isset($params['taskCondition']) && isset($params['taskTime']) && $params['taskName'] !== '' && $params['taskTime'] !== '') {
+            $where[$params['taskName']] = [trim($params['taskCondition']), $params['taskTime']];
+        }
+        return $where;
+    }
+
+    /**
+     * 状态
+     * @param $data
+     * @return array
+     */
+    public function changeStatus($data)
+    {
+        $cache = Cache::store('WalmartAccount');
+        $account = $cache->getAccount($data['id']);
+        if (!isset($account)) {
+            $this->error = '账号不存在';
+            return false;
+        }
+
+        $old_data = $account;
+
+        try {
+            $updata = [];
+            if (isset($data['status'])) {
+                $updata['is_invalid'] = $data['status'];
+            }
+            $updata['update_time'] = time();
+            $res = $this->walmartAccountModel->allowField(true)->save($updata, ['id' => $data['id']]);
+
+            $new_data = $updata;
+
+            $operator = [];
+            $operator['operator_id'] = $data['user_id'];
+            $operator['operator'] = $data['realname'];
+            $operator['account_id'] = $account['id'];
+            $res and self::addWalmartLog(
+                $operator, 
+                ChannelAccountLog::UPDATE, 
+                $new_data, 
+                $old_data
+            );
+
+            //修改缓存
+            foreach ($updata as $key => $val) {
+                $cache->updateTableRecord($data['id'], $key, $val);
+            }
+            return true;
+        } catch (Exception $e) {
+            throw new JsonErrorException($e->getMessage() . $e->getFile() . $e->getLine(), 400);
+        }
+    }
+
+    /**
+     * 更新拉取数据必要参数
+     * @param $data
+     * @param $uid
+     * @return array
+     */
+    public function updateToken($data, $uid = 0)
+    {
+        if (empty($data['client_id']) || empty($data['client_secret']) || empty($data['channel_type'])) {
+            $this->error = '帐号授权信息不完整';
+            return false;
+        }
+        $cache = Cache::store('WalmartAccount');
+        $account = $cache->getAccount($data['id']);
+        if (!isset($account)) {
+            $this->error = '账号不存在';
+            return false;
+        }
+
+        $old_data = $account;
+
+        try {
+            $save_data['id'] = $data['id'];
+            $save_data['client_id'] = $data['client_id'];
+            $save_data['client_secret'] = $data['client_secret'];
+            $save_data['channel_type'] = $data['channel_type'];
+            $save_data['walmart_enabled'] = 1;
+            $save_data['is_authorization'] = 1;
+            //更新缓存
+            foreach ($save_data as $key => $val) {
+                $cache->updateTableRecord($data['id'], $key, $val);
+            }
+
+            $new_data = $save_data;
+
+            $res = $this->walmartAccountModel->add($save_data);
+
+
+            $operator = [];
+            $operator['operator_id'] = $data['user_id'];
+            $operator['operator'] = $data['realname'];
+            $operator['account_id'] = $account['id'];
+            $res and self::addWalmartLog(
+                $operator, 
+                ChannelAccountLog::UPDATE, 
+                $new_data, 
+                $old_data
+            );
+
+            return true;
+        } catch (Exception $e) {
+            throw new JsonErrorException($e->getMessage() . $e->getFile() . $e->getLine(), 400);
+        }
+    }
+
+    /**
+     * 添加日志
+     * @author lingjiawen
+     */
+    public static function addWalmartLog(array $base_info = [], int $type = 0, array $new_data = [], $old_data = []): void
+    {
+        $insert_data = [];
+        $remark = [];
+        if (ChannelAccountLog::INSERT == $type) {
+            $insert_data = $new_data;
+        }
+        if (ChannelAccountLog::DELETE == $type) {
+            $insert_data = (array)$old_data;
+        }
+        if (ChannelAccountLog::UPDATE == $type) {
+            foreach ($new_data as $k => $v) {
+                if (isset(self::$log_config[$k]) and isset($old_data[$k]) and $v != $old_data[$k]) {
+                    $remark[] = ChannelAccountLog::getRemark(self::$log_config[$k], $type, $k, $v, $old_data[$k]);
+                    $insert_data[$k] = $old_data[$k];
+                }
+            }
+        }
+        $insert_data and ChannelAccountLog::addLog([
+            'channel_id' => ChannelAccountConst::channel_Walmart,
+            'account_id' => $base_info['account_id'],
+            'type' => $type,
+            'remark' => json_encode($remark, JSON_UNESCAPED_UNICODE),
+            'operator_id' => $base_info['operator_id'],
+            'operator' => $base_info['operator'],
+            'data' => json_encode($insert_data, JSON_UNESCAPED_UNICODE),
+            'create_time' => input('server.REQUEST_TIME'),
+        ]);
+    }
+
+    /**
+     * 获取日志
+     */
+    public function getWalmartLog(array $req = []): array
+    {
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 10;
+        $account_id = isset($req['id']) ? intval($req['id']) : 0;
+
+        return (new ChannelAccountLog)->getLog(
+            ChannelAccountConst::channel_Walmart, 
+            $account_id, 
+            true, 
+            $page, 
+            $pageSize
+        );
+    }
+}

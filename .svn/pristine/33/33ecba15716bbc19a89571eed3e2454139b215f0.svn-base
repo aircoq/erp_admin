@@ -1,0 +1,270 @@
+{extend name="base" /}
+{block name="head"}
+<script src="__ASSETS__/js/zTree_v3/js/jquery.ztree.core-3.5.min.js" type="text/javascript"></script>
+<link href="__ASSETS__/js//zTree_v3/css/zTreeStyle/zTreeStyle.css" rel="stylesheet" />
+<style type="text/css">
+    .tab-content{width: 100%;height: 100%; overflow: hidden;}
+    .tab-content .tab-pane{width: 100%;height: 100%;  overflow: hidden;}
+    #error-list > div{
+        border:1px solid red;
+        padding:5px;
+        margin-top:5px;
+    }
+</style>
+{/block}
+{block name="main"}
+<div class="zt_header">
+    {$title}
+    <span>{$version}</span>
+    <span>
+        <button class="btn btn-primary" id="refresh-list">刷新列表</button>
+        {if $is_admin}
+        <button class="btn btn-primary" type="button" id="gen-route-file" data-loading-text="正在生成..."  autocomplete="off">生成路由文件</button>
+        {/if}
+        <button class="btn btn-danger" style="display: none;" id="gen-route-error">错误信息?</button>
+        <span id="gen-result"></span>
+    </span>
+    <span class="zt_download">{$copyright}</span>
+</div>
+<div class="zt_main">
+    <input type="text" name="search_key" placeholder="请输入搜索关键字，url:路由,author:作者">
+    <div class="zt_navi">
+        <div class="zt_navi_inner">
+            <div class="ztree" id="zt_navi_tree"></div>
+        </div>
+    </div>
+    <div class="zt_content" style="overflow: hidden;">
+        <ul id="apiTab" class="nav nav-tabs"></ul>
+        <div class="tab-content"></div>
+    </div>
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                    <h4 class="modal-title" id="myModalLabel">路由生成错误信息</h4>
+                </div>
+                <div class="modal-body" id="error-list">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-dismiss="modal">不关我事</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">我已知晓</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{/block}
+{block name="footer"}
+<script type="text/javascript">
+    let controllers = [];
+    var setting = {
+        view: {
+            selectedMulti: false
+        },
+        callback: {
+            beforeClick: beforeClick,
+            onClick: onClick
+        },
+        data:{
+            key:{
+                children: "actions",
+                name: "title",
+                url:"",
+            }
+        }
+    };
+
+    function search_type(type, key){
+        return type.indexOf(key) >= 0;
+    }
+
+    function search(title, key){
+        let len = key.length;
+        let ret = [];
+        title = title || "";
+        for(let i = 0; i < len; i++){
+            let k = key[i];
+            if(title.indexOf(k)>=0){
+                ret.push(k);
+            }
+        }
+        return ret.length === key.length;
+    }
+    function deepCopy(source) {
+        if(source instanceof Array){
+            let r = [];
+            source.forEach(k=>{
+                r.push(deepCopy(k));
+            });
+            return r;
+        }
+        if(source instanceof Object){
+            let r = {};
+            for(let k in source){
+                r[k] = deepCopy(source[k]);
+            }
+            return r;
+        }
+        return source;
+    }
+
+    $('[name="search_key"]').on('input', function () {
+        let self = $(this);
+        let val = self.val();
+        search_key(val);
+    });
+    $('[name="search_key"]').on('keydown',function(e){
+        if(e.keyCode==13){
+            request_list();
+        }
+    })
+
+    function search_key(val){
+        let type = null;
+        let value = null;
+        let exec = null;
+        if(exec = /^(.*):(.*)/i.exec(val)){
+            type = exec[1];
+            value = exec[2];
+        }
+        let data = [];
+        if(val){
+            deepCopy(controllers).forEach(controller=>{
+                if(search(controller.nickTitle || controller.title, val) && !value){
+                    data.push(controller);
+                }else{
+                    controller.actions = controller.actions.filter((action)=>{
+                        if(type){
+                            return search_type(action[type] || '', value);
+                        }
+                        return search(action.title, val);
+                    });
+                    if(controller.actions.length > 0){
+                        data.push(controller);
+                    }
+                }
+            });
+        }else{
+            data = controllers;
+        }
+
+        zTree = $.fn.zTree.init($("#zt_navi_tree"), setting, data);
+    }
+
+    $('#gen-route-file').on('click',function(){
+        var $btn = $(this).button('loading')
+        $('#gen-result').text('');
+        $('#gen-route-error').hide();
+        $.ajax('/system/gen_routes?test',{
+            success(ret){
+                $('#gen-result').text(ret.msg);
+                if(ret.error.length > 0){
+                    $('#gen-route-error').show();
+                    $('#error-list').html('');
+                    ret.error.forEach(error =>{
+                        $('#error-list').append('<div>'+error+'</div>');
+                    })
+                    $('#myModal').modal('show');
+                }
+                $btn.button('reset')
+            },
+            error(req){
+                let ret = JSON.parse(req.responseText);
+                $('#gen-result').html("<span class='red'>"+ret.message+"</span>");
+            }
+        })
+    });
+    $('#gen-route-error').on('click',function(){
+        $('#myModal').modal('show');
+    })
+    $('#refresh-list').on('click', function(){
+        request_list();
+    });
+    function beforeClick(treeId, treeNode, clickFlag) {
+        if (treeNode.isParent) {
+            zTree.expandNode(treeNode);
+            return false;
+        }else if(!treeNode.isText){
+            return false;
+        }
+        return true;
+    }
+
+    function onClick(event, treeId, treeNode, clickFlag) {
+        if (!treeNode.isParent) {
+            if(treeNode.isText){
+                var tab_id = treeNode.tId;
+                var name = treeNode.title;
+                loadText(tab_id, name, treeNode.name);
+            }
+        }
+    }
+
+    function closeTab(tab) {
+        var id = $(tab).parent().parent().attr('id');
+        $("#" + id).remove();
+        $("#" + id + "_content").remove();
+        //显示最后一个tab
+        id = $("#apiTab").find('>li:last').attr('id');
+        $("#"+id+" > a").click();
+    }
+
+    function loadText(tab_id, title, name){
+        //创建tab
+        var tab_id = tab_id + "_tab";
+        if($("#"+tab_id).length  == 0)
+        {
+            // class="active"
+            $("#apiTab").append('<li id="'+ tab_id +'"><a href="#' + tab_id + '_content" data-toggle="tab">'+ title +' <span class="glyphicon glyphicon-remove" onclick="closeTab(this)" style="cursor:pointer"></span></a></li>');
+        }else{
+            $("#"+tab_id+" > a").click();
+        }
+        var tab_content = tab_id + "_content";
+        if($("#"+tab_content).length == 0)
+        {
+            // active
+            $(".zt_content > .tab-content").append('<div class="tab-pane fade in" id="'+ tab_content +'"><iframe id="zt_text" src="" width="100%" height="100%" frameborder="0"></iframe></div>');
+            $("#"+tab_id+" > a").click();
+        }
+        var content_text = $("#" + tab_content).find("#zt_text");
+        $(content_text).html("<p>加载中……</p>");
+        $(content_text).attr("src","/doc/info?name="+name);
+        initHeight();
+    }
+    var zTree;
+    $(document).ready(function(){
+        request_list();
+        initHeight();
+    });
+
+    function request_list(){
+        $.ajax({
+            url: "/doc/list",
+            dataType: "json",
+            success: function(data){
+                controllers = data.list;
+                console.log(controllers);
+                zTree = $.fn.zTree.init($("#zt_navi_tree"), setting, controllers);
+                if(data.firstId) {
+                    var currentId = data.firstId;
+                    var node = zTree.getNodeByParam("name", currentId);
+                    loadText(node.tId, node.title, currentId);
+                    zTree.selectNode(node);
+                }
+                search_key($('[name="search_key"]').val());
+            }
+        });
+    }
+
+    function initHeight()
+    {
+        $(".tab-content").height($(".zt_content").height() - $("#apiTab").height());
+    }
+
+
+    
+</script>
+{/block}

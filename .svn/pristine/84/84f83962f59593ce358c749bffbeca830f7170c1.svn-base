@@ -1,0 +1,39 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-17
+ * Time: 下午1:50
+ */
+
+namespace swoole;
+
+
+abstract class PipeMessageAction
+{
+    private $data;
+
+    public function __construct($data)
+    {
+        $this->data = $data;
+    }
+
+    public function getData($key = null, $def = null)
+    {
+        if(is_null($key)){
+            return $this->data ?? $def;
+        }
+        return $this->data[$key] ?? $def;
+    }
+
+    public abstract function execute($server, $fromWorkerId = null);
+
+    public static function sendMessage(\swoole_websocket_server $server, PipeMessageAction $action, $distWorkerId)
+    {
+        if($server->worker_id === $distWorkerId){
+            $action->execute($server);
+        }else{
+            $server->sendMessage(serialize($action), $distWorkerId);
+        }
+    }
+}

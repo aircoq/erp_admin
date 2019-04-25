@@ -1,0 +1,77 @@
+<?php
+namespace service\funmart;
+
+/**
+ * Funmart基础数据类
+ * @author linpeng time 2019/3/4 12:10
+ */
+class FunmartLib{
+
+    const API_VERSION = 'v1.1';
+
+    /**
+     * 获得Funmart配置数据
+     * @param string $site
+     * @return array|mixed
+     */
+    public static function getFunmartConfig($site=''){
+        $return = [];
+        $configArr = [
+            'service_url'=>'http://corpapi.funmart.cn/api',
+            // 'service_url'=>'http://dev9527.funmart.cn:1690/api',
+        ];
+
+        //如果站点不为空则取站点数据，否则返回所有站点数据
+        if(!empty($site)){
+            $site = strtoupper($site);//转大写
+            $return = isset($configArr[$site]) ? $configArr[$site] : [] ;
+        }else{
+            $return = $configArr;
+        }
+        return $return;
+    }
+
+    /**
+     * 本地时间转Funmart时间
+     * @param $localDate
+     * @param string $site
+     * @return string
+     * @throws \Exception
+     */
+    public static function getFunmartDate($localDate){
+        if(empty($localDate)){
+            return '1970-01-01 08:00:00';
+        }
+
+        //平台时区  TODO 根据不同平台获取平台时区...
+        $funmartZone = new \DateTimeZone('Etc/GMT-5');//东五区,对应的PHP时区代码是Etc/GMT-5
+
+        $dateTime = new \DateTime($localDate);
+        $dateTime->setTimezone($funmartZone);
+        return $dateTime->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Funmart时间转本地时间
+     * @param $darazDate
+     * @param string $site
+     * @return string
+     * @throws \Exception
+     */
+    public static function getLocalDate($funmartDate){
+        if(empty($funmartDate)){
+            return '1970-01-01 08:00:00';
+        }
+
+        //平台时区  TODO 根据不同平台获取平台时区...
+        $funmartZone = new \DateTimeZone('Etc/GMT-5');//东五区,对应的PHP时区代码是Etc/GMT-5
+
+        //本地时区
+        $localZone = new \DateTimeZone(date_default_timezone_get());
+
+        $dateTime = new \DateTime($funmartDate, $funmartZone);
+        $dateTime->setTimezone($localZone);
+        return $dateTime->format('Y-m-d H:i:s');
+    }
+
+}

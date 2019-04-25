@@ -1,0 +1,305 @@
+<?php
+
+namespace service\Gati;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/5/29
+ * Time: 20:18
+ */
+class GatiApi
+{
+
+    public $hostUrl = 'http://api.gaticn.com:9090/service/parser'; //正式服
+//    protected $hostUrl = 'http://api.gaticn.com:8090/serviceTest/parser'; //测试服
+
+    protected $appId = '';
+
+    protected $key = '';
+
+    protected $timeStamp = '';
+
+    protected $msg = '';
+
+    public function __construct($config = [])
+    {
+        if (!isset($config['customer_code']) || !isset($config['accessToken'])) {
+            $this->msg = '缺少必要参数appId或者key';
+            return false;
+        }
+        $this->appId = $config['customer_code'];
+        $this->key = $config['accessToken'];
+        if (isset($config['timeStamp'])) {
+            $this->timeStamp = $config['timeStamp'];
+        } else {
+            $this->timeStamp = $this->getMsectime();
+        }
+
+    }
+
+
+    /**
+     * @title 1、获取获取有效的取件城市(getPickupCities)
+     * @param $data 数据；
+     * @return mixed josn
+     */
+    public function getPickupCities()
+    {
+        $postData = [
+            'RequestName' => 'getPickupCities',
+            'AppId' => $this->appId,
+            'TimeStamp' => $this->timeStamp,
+            'Sign' => $this->getSign(),
+        ];
+        return $this->authcall($postData);
+    }
+
+    /**
+     * @title 2、获取有效目的地(getDestinations)
+     * @param $serviceCode 数据；
+     * @return mixed josn
+     */
+    public function getDestinations($serviceCode = '')
+    {
+        $postData = [
+            'RequestName' => 'getDestinations',
+            'AppId' => $this->appId,
+            'TimeStamp' => $this->timeStamp,
+            'Sign' => $this->getSign(),
+            'Content' => '{"ServiceCode":"' . $serviceCode . '"}',
+        ];
+        return $this->authcall($postData);
+    }
+
+    /**
+     * @title 3、读取有效服务(getValidServices)
+     * @return mixed josn
+     */
+    public function getValidServices()
+    {
+        $postData = [
+            'RequestName' => 'getValidServices',
+            'AppId' => $this->appId,
+            'TimeStamp' => $this->timeStamp,
+            'Sign' => $this->getSign(),
+            'Content' => '{"CountryCode":"ALL"}',
+        ];
+        return $this->authcall($postData);
+    }
+
+    /**
+     * @title 4、运费计算(getFreight)
+     * @param $content 数据；
+     * $content = [
+     * 'ServiceCode' => '', //String(20)服务代码
+     * 'Country' => '', //String(2)目的地国家二字码
+     * 'PostCode' => '', //String(10)邮编
+     * 'City' => '', //String(20)目的地城市
+     * 'CargoClass' => '', //Int(2)包裹类型
+     * 'Weight' => '', //Float(10,6)总重量
+     * 'Volume' => '', //Float(10,6)总体积
+     * 'Dimensions' => '', //JsonArray    尺寸 长度单位M，精确到2位小数。Volume与Dimensions都提供时，取较大值。Qty：件数，默认1
+     * ];
+     * @return array Freight    Float(10,2)    费用Detail    String(500)    说明
+     */
+    public function getFreight($content = [])
+    {
+        $postData = [
+            'RequestName' => 'getFreight',
+            'AppId' => $this->appId,
+            'TimeStamp' => $this->timeStamp,
+            'Sign' => $this->getSign(),
+            'Content' => json_encode($content),
+        ];
+        return $this->authcall($postData);
+    }
+
+    /**
+     * @title 5、提交运单 (submitShipment)
+     * @param $content 数据；
+     *
+     *
+     * @return mixed josn
+     */
+    public function submitShipment($content)
+    {
+        if(is_array($content)){
+            $content = json_encode($content);
+        }
+        $postData = [
+            'RequestName' => 'submitShipment',
+            'AppId' => $this->appId,
+            'TimeStamp' => $this->timeStamp,
+            'Sign' => $this->getSign(),
+            'Content' => $content,
+        ];
+        return $this->authcall($postData);
+    }
+
+    /**
+     * @title 7、获取Label标签(getLables)
+     * @param $trackNumber array 追踪号；
+     * @param $imageType 面单的类型 PDF / /URL；
+     * @return mixed josn
+     */
+    public function getLables($trackNumber, $imageType = 'PDF')
+    {
+        if (!is_array($trackNumber)) {
+            $trackNumber = [$trackNumber];
+        }
+        $content = [
+            'TrackNumber' => $trackNumber,
+            'ImageType' => $imageType,
+        ];
+        $postData = [
+            'RequestName' => 'getLables',
+            'AppId' => $this->appId,
+            'TimeStamp' => $this->timeStamp,
+            'Sign' => $this->getSign(),
+            'Content' => json_encode($content),
+        ];
+        return $this->authcall($postData);
+    }
+
+    /**
+     * @title 8、读取物流流转信息(getTrackInfo)
+     * @param $trackNumber array 追踪号；
+     * @param $languageType 0：系统默认；100：强制中文；101：强制英文
+     * @return mixed josn
+     */
+    public function getTrackInfo($trackNumber, $languageType = 0)
+    {
+        if (!is_array($trackNumber)) {
+            $trackNumber = [$trackNumber];
+        }
+        $content = [
+            'TrackNumber' => $trackNumber,
+            'LanguageType' => $languageType,
+        ];
+        $postData = [
+            'RequestName' => 'getTrackInfo',
+            'AppId' => $this->appId,
+            'TimeStamp' => $this->timeStamp,
+            'Sign' => $this->getSign(),
+            'Content' => json_encode($content),
+        ];
+        return $this->authcall($postData);
+    }
+
+    /**
+     * @title 9、更新运单重量信息(updateShipmentWeight)
+     * @param $trackNumber array 追踪号；
+     * @param $weight 0：Float(10,3)包裹重量  单位kg 浮点型值用字符串传；例如"Weight":"0.5"单位kg
+     * @param $dimension 0：体积 {"L": "0.10","W": "0.12", "H": "0.13","U": "M"}长度单位m，精确到2位小数
+     * @return mixed josn
+     */
+    public function updateShipmentWeight($trackNumber, $weight = 0, $dimension = '')
+    {
+        if (!is_array($trackNumber)) {
+            $trackNumber = [$trackNumber];
+        }
+        $content = [
+            'TrackNumber' => $trackNumber,
+            'Weight' => $weight,
+        ];
+        if ($dimension) {
+            $content['Dimension'] = $dimension;
+        }
+        $postData = [
+            'RequestName' => 'updateShipmentWeight',
+            'AppId' => $this->appId,
+            'TimeStamp' => $this->timeStamp,
+            'Sign' => $this->getSign(),
+            'Content' => json_encode($content),
+        ];
+        return $this->authcall($postData);
+    }
+
+    /**
+     * @title 已经组装好了授权的；
+     * @param $data 数据；
+     * @return mixed josn
+     */
+    protected function authcall($data)
+    {
+        $extra = [
+            'Content-Type' => 'application/json;charset=UTF-8',
+        ];
+        $data = http_build_query($data);
+        $result = $this->curlPost($this->hostUrl, $data, $extra);
+        if ($result['VerifyCode'] == '00' && $result['ResultCode'] == '0000') {
+            return $result['Data'];
+        } else {
+            $this->msg = $result['ResultMsg'];
+            return false;
+        }
+
+    }
+
+    /**
+     * @title 返回错误信息
+     * @return string msg
+     */
+    public function getErrorMsg()
+    {
+        return $this->msg;
+    }
+
+
+    /**
+     * @title 已经组装好了授权的；
+     * @return mixed josn
+     */
+    protected function getMsectime()
+    {
+        list($msec, $sec) = explode(' ', microtime());
+        $msectime = (float)sprintf('%.0f', (floatval($msec) + floatval($sec)) * 1000);
+        return $msectime;
+    }
+
+    /**
+     * @title 得到签名
+     * @return string sign
+     */
+    protected function getSign()
+    {
+        $sign = 'AppId=' . $this->appId . 'TimeStamp=' . $this->timeStamp . 'Key=' . $this->key;
+        $sign = strtoupper(md5($sign));
+        return $sign;
+    }
+
+
+    /**
+     * post请求提交
+     * @param $url
+     * @param $data
+     * @param array $headers
+     * @param bool $httpCode
+     * @return mixed
+     */
+    public function curlPost($url, $data, $headers = [], $httpCode = false)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_POST, true);
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $response = json_decode($response, true);
+        curl_close($ch);
+        //返回http code状态码
+        if ($httpCode) {
+            return $code;
+        }
+        return $response;
+    }
+}

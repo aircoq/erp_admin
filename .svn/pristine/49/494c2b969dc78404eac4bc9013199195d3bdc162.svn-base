@@ -1,0 +1,59 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-6-16
+ * Time: 下午4:56
+ */
+
+namespace swoole;
+
+
+use think\Config;
+
+class AyncClient
+{
+    private $client;
+    private $clientInstance;
+    private $req_connect = false;
+    private $host;
+    private $port;
+    private $sendCmds = [];
+    public function __construct()
+    {
+        $this->host = Config::get('swoole.host');
+        $this->port = Config::get('swoole.port');
+        $this->client = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_ASYNC);
+        $this->client ->on("connect", function(\swoole_client $cli){
+            $this->clientInstance = $cli;
+            $this->sendMsgs();
+        });
+        $this->client->on("receive", function(\swoole_client $cli, $data){
+        });
+        $this->client->on("error", function(\swoole_client $cli){
+            echo "error\n";
+        });
+        $this->client->on("close", function(\swoole_client $cli){
+            echo "Connection close\n";
+        });
+    }
+
+    private function sendMsgs()
+    {
+        if($this->clientInstance){
+            while ($msg = array_pop($this->sendCmds)){
+                $this->clientInstance->send($msg);
+            }
+        }
+    }
+
+    public function sendCmd($cmd, $params = [])
+    {
+        if(!$this->req_connect){
+            $this->req_connect = true;
+            $this->client->connect($this->host, $this->port);
+        }
+        $this->sendCmds[] = json_encode(['cmd'=>$cmd, 'params'=>$params]);
+        $this->sendMsgs();
+    }
+}

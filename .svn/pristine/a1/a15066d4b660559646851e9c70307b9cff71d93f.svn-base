@@ -1,0 +1,1323 @@
+<?php
+/**
+ * 亚马逊 FBA 配送入库货件服务类
+ * @author wangwei
+ * @date 2018-10-30 20:23:20
+ */
+namespace service\amazon\Inbound;
+
+use service\amazon\Inbound\InboundBaseService;
+use org\XmlHandle;
+
+class  InboundService extends InboundBaseService{
+	
+	/**
+	 * 创建入库货件计划
+	 * @param array $ShipFromAddress //Y	邮寄地址信息
+	 * @example $ShipFromAddress = array(
+	 *			'Name'=>'',// Y 50  名称或公司名称
+	 *			'AddressLine1'=>'',//Y 180  街道地址信息1
+	 *			'AddressLine2'=>'',//N 60  街道地址信息2
+	 *			'City'=>'',//Y 30  城市
+	 *			'DistrictOrCounty'=>'',//N 25  区或县
+	 *			'StateOrProvinceCode'=>'',//N 2 省/自治区/直辖市代码
+	 *			'CountryCode'=>'',//Y 2 国家/地区代码
+	 *			'PostalCode'=>'',//N 30 邮政编码
+	 *	);
+	 * @param array $InboundShipmentPlanRequestItems //N  	入库货件中各商品的 SKU 和数量信息
+	 * @example $InboundShipmentPlanRequestItems = array(
+     *                             0=>array(
+     *                                 'SellerSKU'=>'',//Y 	商品的卖家 SKU
+     *                                 'ASIN'=>'',//N 商品的亚马逊标准识别号 (ASIN)
+     *                                 'Condition'=>'',//N 商品的状况
+     *                                 'Quantity'=>'',//Y 商品数量
+     *                                 'QuantityInCase'=>'',// N 每个包装箱中的商品数量
+     *                              ),
+     *                              ....
+	 * );
+	 * @param string $ShipToCountryCode //Y 目的仓国家二字码
+	 * @param string $LabelPrepPreference //N 您对入库货件标签准备的选项设置 SELLER_LABEL、AMAZON_LABEL_ONLY、AMAZON_LABEL_PREFERRED
+	 */
+	public function createInboundShipmentPlan($ShipFromAddress,$InboundShipmentPlanRequestItems,$ShipToCountryCode,$LabelPrepPreference='SELLER_LABEL'){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'createInboundShipmentPlan_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_CreateInboundShipmentPlanRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//设置ShipFromAddress
+		$ShipFromAddressObj = new \FBAInboundServiceMWS_Model_Address($ShipFromAddress);
+		$request->setShipFromAddress($ShipFromAddressObj);
+		//设置InboundShipmentPlanRequestItems
+		$InboundShipmentPlanRequestItemsObj = new \FBAInboundServiceMWS_Model_InboundShipmentPlanRequestItemList();
+		$InboundShipmentPlanRequestItemssetmember = array();
+		if(!empty($InboundShipmentPlanRequestItems) && isNumericArray($InboundShipmentPlanRequestItems)){
+			foreach ($InboundShipmentPlanRequestItems as $Item){
+				$InboundShipmentPlanRequestItemssetmember[] = new \FBAInboundServiceMWS_Model_InboundShipmentPlanRequestItem($Item);
+			}
+		}
+		$InboundShipmentPlanRequestItemsObj->setmember($InboundShipmentPlanRequestItemssetmember);
+		$request->setInboundShipmentPlanRequestItems($InboundShipmentPlanRequestItemsObj);
+		//设置ShipToCountryCode
+		if(!empty($ShipToCountryCode)){
+			$request->setShipToCountryCode($ShipToCountryCode);
+		}
+		//设置LabelPrepPreference
+		if(!empty($LabelPrepPreference)){
+			$request->setLabelPrepPreference($LabelPrepPreference);
+		}
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'createInboundShipmentPlan');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 创建入库货件
+	 * @param string $ShipmentId
+	 * @param array $InboundShipmentHeader
+	 * @example $InboundShipmentHeader = array(
+	 * 							'ShipmentName'=>'',//Y 您为货件选择的名称。请使用命名规则
+	 * 							'ShipFromAddress'=>array(
+	 * 										'Name'=>'',//Y 50 名称或公司名称
+	 * 										'AddressLine1'=>'',//Y 180 街道地址信息
+	 * 										'AddressLine2'=>'',//N 60 
+	 * 										'City'=>'',//Y 30 城市
+	 * 										'DistrictOrCounty'=>'',//N 25 区或县
+	 * 										'StateOrProvinceCode'=>'',//N 2 省/自治区/直辖市代码
+	 * 										'CountryCode'=>'',//Y 2 国家/地区代码
+	 * 										'PostalCode'=>'',//N 30 邮政编码
+	 * 							),
+	 * 							'DestinationFulfillmentCenterId'=>'',//Y 您的货件将运至的亚马逊配送中心的编号。可以从 CreateInboundShipmentPlan 操作返回的InboundShipmentPlans 响应元素获取此编号 
+	 * 							'LabelPrepPreference'=>'SELLER_LABEL',//Y 	入库货件的标签准备首选项:SELLER_LABEL、AMAZON_LABEL_ONLY、AMAZON_LABEL_PREFERRED、
+	 * 							'AreCasesRequired'=>'',//N  true、false指明入库货件是否包含原厂包装发货商品
+	 * 							'ShipmentStatus'=>'',//Y  WORKING、SHIPPED入库货件的状态,枚举值
+	 * );
+	 * @param array $InboundShipmentItems
+	 * @example $InboundShipmentItems = array(
+	 * 								0=>array(
+	 * 									'ShipmentId'=>'',//N 货件编号
+	 * 									'SellerSKU'=>'',//Y 商品的卖家 SKU
+	 * 									'FulfillmentNetworkSKU'=>'',//N 商品的亚马逊配送网络 SKU
+	 * 									'QuantityShipped'=>'',//Y 要配送的商品数量
+	 * 									'QuantityReceived'=>'',//N 亚马逊配送中心已接收的商品数量
+	 * 									'QuantityInCase'=>'',//N 每个包装箱中的商品数量（仅针对原厂包装发货商品）
+	 * 								),
+	 *                            ....
+	 * );
+	 */
+	public function createInboundShipment($ShipmentId,$InboundShipmentHeader,$InboundShipmentItems){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'createInboundShipment_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_CreateInboundShipmentRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//设置ShipmentId
+		$request->setShipmentId($ShipmentId);
+		//设置InboundShipmentHeader
+		$InboundShipmentHeaderObj = new \FBAInboundServiceMWS_Model_InboundShipmentHeader();
+		$InboundShipmentHeaderObj->setShipmentName($InboundShipmentHeader['ShipmentName']);
+		$ShipFromAddressObj = new \FBAInboundServiceMWS_Model_Address($InboundShipmentHeader['ShipFromAddress']);
+		$InboundShipmentHeaderObj->setShipFromAddress($ShipFromAddressObj);
+		$InboundShipmentHeaderObj->setDestinationFulfillmentCenterId($InboundShipmentHeader['DestinationFulfillmentCenterId']);
+		$InboundShipmentHeaderObj->setLabelPrepPreference($InboundShipmentHeader['LabelPrepPreference']);
+		if(isset($InboundShipmentHeader['AreCasesRequired'])){
+			$InboundShipmentHeaderObj->setAreCasesRequired($InboundShipmentHeader['AreCasesRequired']);
+		}
+		$InboundShipmentHeaderObj->setShipmentStatus($InboundShipmentHeader['ShipmentStatus']);
+		$request->setInboundShipmentHeader($InboundShipmentHeaderObj);
+		//设置InboundShipmentItems
+		$InboundShipmentItemsObj = new \FBAInboundServiceMWS_Model_InboundShipmentItemList();
+		$InboundShipmentItemsSetmember = array();
+		if(!empty($InboundShipmentItems) && isNumericArray($InboundShipmentItems)){
+			foreach ($InboundShipmentItems as $Item){
+				$InboundShipmentItemsSetmember[] = new \FBAInboundServiceMWS_Model_InboundShipmentItem($Item);
+			}
+		}
+		$InboundShipmentItemsObj->setmember($InboundShipmentItemsSetmember);
+		$request->setInboundShipmentItems($InboundShipmentItemsObj);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'createInboundShipment');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 更新入库货件
+	 * @param string $ShipmentId
+	 * @param array $InboundShipmentHeader
+	 * @example $InboundShipmentHeader = array(
+	 * 							'ShipmentName'=>'',//Y 您为货件选择的名称。请使用命名规则
+	 * 							'ShipFromAddress'=>array(
+	 * 										'Name'=>'',//Y 50 名称或公司名称
+	 * 										'AddressLine1'=>'',//Y 180 街道地址信息
+	 * 										'AddressLine2'=>'',//N 60
+	 * 										'City'=>'',//Y 30 城市
+	 * 										'DistrictOrCounty'=>'',//N 25 区或县
+	 * 										'StateOrProvinceCode'=>'',//N 2 省/自治区/直辖市代码
+	 * 										'CountryCode'=>'',//Y 2 国家/地区代码
+	 * 										'PostalCode'=>'',//N 30 邮政编码
+	 * 							),
+	 * 							'DestinationFulfillmentCenterId'=>'',//Y 您的货件将运至的亚马逊配送中心的编号。可以从 CreateInboundShipmentPlan 操作返回的InboundShipmentPlans 响应元素获取此编号
+	 * 							'LabelPrepPreference'=>'SELLER_LABEL',//Y 	入库货件的标签准备首选项:SELLER_LABEL、AMAZON_LABEL_ONLY、AMAZON_LABEL_PREFERRED、
+	 * 							'AreCasesRequired'=>'',//N  false,true指明入库货件是否包含原厂包装发货商品
+	 * 							'ShipmentStatus'=>'',//Y  WORKING、SHIPPED、CANCELLED入库货件的状态,枚举值
+	 * );
+	 * @param array $InboundShipmentItems
+	 * @example $InboundShipmentItems = array(
+	 * 								0=>array(
+	 * 									'ShipmentId'=>'',
+	 * 									'SellerSKU'=>'',
+	 * 									'FulfillmentNetworkSKU'=>'',
+	 * 									'QuantityShipped'=>'',
+	 * 									'QuantityReceived'=>'',
+	 * 									'QuantityInCase'=>'',
+	 * 								),
+	 *                            ....
+	 * );
+	 */
+	public function updateInboundShipment($ShipmentId,$InboundShipmentHeader,$InboundShipmentItems){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'createInboundShipment_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_UpdateInboundShipmentRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//设置ShipmentId
+		$request->setShipmentId($ShipmentId);
+		//设置InboundShipmentHeader
+		$InboundShipmentHeaderObj = new \FBAInboundServiceMWS_Model_InboundShipmentHeader();
+		$InboundShipmentHeaderObj->setShipmentName($InboundShipmentHeader['ShipmentName']);
+		$ShipFromAddressObj = new \FBAInboundServiceMWS_Model_Address($InboundShipmentHeader['ShipFromAddress']);
+		$InboundShipmentHeaderObj->setShipFromAddress($ShipFromAddressObj);
+		$InboundShipmentHeaderObj->setDestinationFulfillmentCenterId($InboundShipmentHeader['DestinationFulfillmentCenterId']);
+		$InboundShipmentHeaderObj->setLabelPrepPreference($InboundShipmentHeader['LabelPrepPreference']);
+		if(isset($InboundShipmentHeader['AreCasesRequired'])){
+			$InboundShipmentHeaderObj->setAreCasesRequired($InboundShipmentHeader['AreCasesRequired']);
+		}
+		$InboundShipmentHeaderObj->setShipmentStatus($InboundShipmentHeader['ShipmentStatus']);
+		$request->setInboundShipmentHeader($InboundShipmentHeaderObj);
+		//设置InboundShipmentItems
+		$InboundShipmentItemsObj = new \FBAInboundServiceMWS_Model_InboundShipmentItemList();
+		$InboundShipmentItemsSetmember = array();
+		if(!empty($InboundShipmentItems) && isNumericArray($InboundShipmentItems)){
+			foreach ($InboundShipmentItems as $Item){
+				$InboundShipmentItemsSetmember[] = new \FBAInboundServiceMWS_Model_InboundShipmentItem($Item);
+			}
+		}
+		$InboundShipmentItemsObj->setmember($InboundShipmentItemsSetmember);
+		$request->setInboundShipmentItems($InboundShipmentItemsObj);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'updateInboundShipment');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 向亚马逊发送入库货件的运输信息
+	 * 最大请求限额为 30 个，恢复速率为每秒钟 2 个请求
+	 * @param string $Param_ShipmentId  货件编号
+	 * @param array $Param_TransportDetails  创建亚马逊合作承运人预计运费，或者通知亚马逊物流非亚马逊合作承运人配送的入库货件已达到所需的信息，根据不同类型数据不同，详细见下面
+	 * @example $Param_TransportDetails = array(
+	 *                                      'PartneredSmallParcelData'=>array(),//亚马逊合作承运人配送小包裹快递入库货件所需的信息
+	 *                                      'NonPartneredSmallParcelData'=>array(),//向亚马逊提供的、关于由非亚马逊合作承运人配送的小包裹快递 货件的信息
+	 *                                      'PartneredLtlData'=>array(),//亚马逊合作承运人配送零担货运/货车荷载 (LTL/FTL)入库货件所需的信息
+	 *                                      'NonPartneredLtlData'=>array()//向亚马逊提供的、关于由非亚马逊合作承运人配送的零担货运/货车荷载 (LTL/FTL) 货件的信
+	 * );
+	 * @param boolean $Param_IsPartnered  是否针对亚马逊合作承运人，true或false
+	 * @param string $Param_ShipmentType  货件类型，SP – 小包裹快递，LTL – 零担货运/货车荷载 (LTL/FTL)
+	 * @return array
+	 */
+	public function putTransportContent($Param_ShipmentId,$Param_TransportDetails,$Param_IsPartnered,$Param_ShipmentType){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'putTransportContent_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+	
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+	
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_PutTransportContentRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置货件编号
+		$request->setShipmentId($Param_ShipmentId);
+		//设置是否针对亚马逊合作承运人
+		$request->setIsPartnered($Param_IsPartnered);
+		//设置货件类型
+		$request->setShipmentType($Param_ShipmentType);
+		//设置通知数据
+		$dnObj = new \FBAInboundServiceMWS_Model_TransportDetailInput();
+		
+		/**
+		 * 亚马逊合作承运人配送小包裹快递入库货件所需的信息
+		 */
+		if(isset($Param_TransportDetails['PartneredSmallParcelData'])){
+			$pspData = $Param_TransportDetails['PartneredSmallParcelData'];
+			
+// 			$pspData = array(
+// // 					'CarrierName'=>'',//不需要
+// 					'PackageList'=>array(
+// 							0=>array(
+// 									'Dimensions'=>array(//货件的尺寸
+// 											'Length'=>'',//float
+// 											'Width'=>'',//float
+// 											'Height'=>'',//float
+// 											'Unit'	=>'',//string
+							
+// 									),
+// 									'Weight'=>array(//货件的重量
+// 											'Value'=>'',//float
+// 											'Unit'=>'',//string
+// 									),
+// 							),
+							
+// 			        )
+// 			);
+			
+			$pspdiObj = new \FBAInboundServiceMWS_Model_PartneredSmallParcelDataInput();
+			//设置承运商名称
+// 			$pspdiObj->setCarrierName($pspData['CarrierName']);//string
+			
+			//设置包裹信息
+			$PackageListObj = new \FBAInboundServiceMWS_Model_PartneredSmallParcelPackageInputList();
+			
+			$members = array();
+			if(!empty($pspData['PackageList']) && is_array($pspData['PackageList'])){
+				foreach ($pspData['PackageList'] as $item){
+					$memberObj = new \FBAInboundServiceMWS_Model_PartneredSmallParcelPackageInput();
+					//设置货件的尺寸
+					$DimensionsObj = new \FBAInboundServiceMWS_Model_Dimensions();
+					$DimensionsObj->setLength($item['Dimensions']['Length']);//float
+					$DimensionsObj->setWidth($item['Dimensions']['Width']);//float
+					$DimensionsObj->setHeight($item['Dimensions']['Height']);//float
+					$DimensionsObj->setUnit($item['Dimensions']['Unit']);//string
+					$memberObj->setDimensions($DimensionsObj);
+					//设置货件的重量
+					$WeightObj = new \FBAInboundServiceMWS_Model_Weight();
+					$WeightObj->setValue($item['Weight']['Value']);//float
+					$WeightObj->setUnit($item['Weight']['Unit']);//string
+					$memberObj->setWeight($WeightObj);
+					//放入数组
+					$members[] = $memberObj;
+				}
+			}
+			$PackageListObj->setmember($members);
+			$pspdiObj->setPackageList($PackageListObj);
+			$dnObj->setPartneredSmallParcelData($pspdiObj);
+		}
+		
+		/**
+		 * 向亚马逊提供的、关于由非亚马逊合作承运人配送的小包裹快递 货件的信息
+		 */
+		if(isset($Param_TransportDetails['NonPartneredSmallParcelData'])){
+			$npspData = $Param_TransportDetails['NonPartneredSmallParcelData'];
+			
+//  			$npspData = array(
+// 					'CarrierName'=>'',//表示配送入库货件的承运人
+// 					'PackageList'=>array(//承运人提供的追踪编码列表
+// 							0=>array(
+// 									'TrackingId'=>'',//承运人提供的包裹追踪编码,最大长度：30 个字符
+// 							),
+// 							1=>array(
+// 									'TrackingId'=>'',
+// 							),
+// 			       )
+// 			); 
+ 			
+ 			/**
+			英国 (UK) 的 CarrierName 值：
+			BUSINESS_POST
+			CITY_LINK
+			DHL_AIRWAYS_INC
+			DHL_UK
+			PARCELFORCE
+			DPD
+			TNT_LOGISTICS_CORPORATION
+			TNT
+			YODEL
+			UNITED_PARCEL_SERVICE_INC
+			OTHER
+			美国 (US) 的 CarrierName 值：
+			
+			DHL_EXPRESS_USA_INC
+			FEDERAL_EXPRESS_CORP
+			UNITED_STATES_POSTAL_SERVICE
+			UNITED_PARCEL_SERVICE_INC
+			OTHER
+			类型：xs:string
+ 			 */
+			
+			$npspdiObj  = new \FBAInboundServiceMWS_Model_NonPartneredSmallParcelDataInput();
+			//设置承运商名称
+			$npspdiObj->setCarrierName($npspData['CarrierName']);//string
+			
+			//设置跟踪号数据
+			$PackageListObj = new \FBAInboundServiceMWS_Model_NonPartneredSmallParcelPackageInputList();
+			
+			$members = array();
+			if(!empty($npspData['PackageList']) && is_array($npspData['PackageList'])){
+				foreach ($npspData['PackageList'] as $item){
+					$memberObj = new \FBAInboundServiceMWS_Model_NonPartneredSmallParcelPackageInput();
+					$memberObj->setTrackingId($item['TrackingId']);
+					$members[] = $memberObj;
+				}
+			}
+			$PackageListObj->setmember($members);
+			$npspdiObj->setPackageList($PackageListObj);
+			$dnObj->setNonPartneredSmallParcelData($npspdiObj);
+		}
+		
+		/**
+		 * 亚马逊合作承运人配送零担货运/货车荷载 (LTL/FTL)入库货件所需的信息
+		 */
+		if(isset($Param_TransportDetails['PartneredLtlData'])){
+			$plData = $Param_TransportDetails['PartneredLtlData'];
+			
+// 			$plData = array(
+// 					'Contact'=>array(//贵公司中负责货件的联系人信息。当承运人对货件有问题时用到的信息
+// 							'Name'=>'',//string
+// 							'Phone'=>'',//string
+// 							'Email'=>'',//string
+// 							'Fax'=>'',//string
+// 			        ),
+// 					'BoxCount'=>'',//货件中包装箱的数量  int
+// 					'SellerFreightClass'=>'',//	货件的重量级别。有关确定重量级别的信息，请联系您的承运人，详细见下面
+// 					'FreightReadyDate'=>'',//承运人可以取件的日期。格式为 ISO 8601
+// 					'PalletList'=>array(//托拍的描述信息
+// 							0=>array(
+// 									'Dimensions'=>array(//托拍的尺寸
+// 											'Length'=>'',//float
+// 											'Width'=>'',//float
+// 											'Height'=>'',//float
+// 											'Unit'=>'',//string
+// 									),
+// 									'Weight'=>array(
+// 											'Value'=>'',//物体的重量
+// 											'Unit'=>'',//重量的单位
+// 									),
+// 									'IsStacked'=>false,//指明当承运人上门取件时，托拍将进行叠放
+// 							),
+// 			        ),
+// 					'TotalWeight'=>array(//货件的总重量
+// 							'Unit'=>'',
+// 							'Value'=>'',
+// 					),
+// 					'SellerDeclaredValue'=>array(//货件中商品的总价值
+// 							'CurrencyCode'=>'',
+// 							'Value'=>'',
+// 					)
+// 			);
+			
+			$pldiObj = new \FBAInboundServiceMWS_Model_PartneredLtlDataInput();
+			//设置负责货件的联系人信息。当承运人对货件有问题时用到的信息
+			if(isset($plData['Contact'])){
+				$ContactObj = new \FBAInboundServiceMWS_Model_Contact();
+				$ContactObj->setName($plData['Contact']['Name']);
+				$ContactObj->setPhone($plData['Contact']['Phone']);
+				$ContactObj->setEmail($plData['Contact']['Email']);
+				$ContactObj->setFax($plData['Contact']['Fax']);
+				$pldiObj->setContact($ContactObj);//必填
+			}
+			
+			//设置货件中包装箱的数量
+			$pldiObj->setBoxCount($plData['BoxCount']);
+			/*
+			 * 设置货件的重量级别。有关确定重量级别的信息，请联系您的承运人
+			 * 可用值有： 50、55、60、 65、70、 77.5、85、 92.5、100、 110、125、 150、175、 200、250、 300、400、 500
+			 */
+			$pldiObj->setSellerFreightClass($plData['SellerFreightClass']);
+			//设置承运人可以取件的日期
+			$pldiObj->setFreightReadyDate($plData['FreightReadyDate']);
+			
+			//设置托拍的描述信息
+			$PalletListObj = new \FBAInboundServiceMWS_Model_PalletList();
+			
+			$members = array();
+			if(!empty($plData['PalletList']) && is_array($plData['PalletList'])){
+				foreach ($plData['PalletList'] as $item){
+					$memberObj = new \FBAInboundServiceMWS_Model_Pallet();
+					//设置托拍的尺寸
+					$DimensionsObj = new \FBAInboundServiceMWS_Model_Dimensions(); 
+					$DimensionsObj->setLength($item['Dimensions']['Length']);
+					$DimensionsObj->setWidth($item['Dimensions']['Width']);
+					$DimensionsObj->setHeight($item['Dimensions']['Height']);
+					$DimensionsObj->setUnit($item['Dimensions']['Unit']);
+					$memberObj->setDimensions($DimensionsObj);
+					//托拍的重量
+					$WeightObj = new \FBAInboundServiceMWS_Model_Weight();
+					$WeightObj->setUnit($item['Weight']['Unit']);
+					$WeightObj->setValue($item['Weight']['Value']);
+					$memberObj->setWeight($WeightObj);
+					//指明当承运人上门取件时，托拍将进行叠放,true – 托拍将进行叠放。false - 托拍不会进行叠放。
+					$memberObj->setIsStacked($item['IsStacked']);
+					//放入数组
+					$members[] = $memberObj;
+				}
+			}
+			$PalletListObj->setmember($members);
+			$pldiObj->setPalletList($PalletListObj);
+			
+			//设置货件的总重量
+			$WeightObj = new \FBAInboundServiceMWS_Model_Weight();
+			$WeightObj->setUnit($plData['TotalWeight']['Unit']);
+			$WeightObj->setValue($plData['TotalWeight']['Value']);
+			$pldiObj->setTotalWeight($WeightObj);
+			
+			//设置货件中商品的总价值
+			$AmountObj = new \FBAInboundServiceMWS_Model_Amount();
+			$AmountObj->setCurrencyCode($plData['SellerDeclaredValue']['CurrencyCode']);
+			$AmountObj->setValue($plData['SellerDeclaredValue']['Value']);
+			$pldiObj->setSellerDeclaredValue($AmountObj);
+			$dnObj->setPartneredLtlData($pldiObj);
+		}
+		
+		
+		/**
+		 * 向亚马逊提供的、关于由非亚马逊合作承运人配送的零担货运/货车荷载 (LTL/FTL) 货件的信
+		 */
+		if(isset($Param_TransportDetails['NonPartneredLtlData'])){
+			$nplData = $Param_TransportDetails['NonPartneredLtlData'];
+			
+// 			$nplData = array(
+// 					'CarrierName'=>'',//表示配送入库货件的承运人
+// 					'ProNumber'=>'',//承运人分配给货件的 PRO 编号,一串数字，长度在 7-10 个字符之间
+// 			);
+
+			/**
+			 * 	英国 (UK) 的 CarrierName 值：
+			 BUSINESS_POST
+			 CITY_LINK
+			 DHL_AIRWAYS_INC
+			 DHL_UK
+			 PARCELFORCE
+			 DPD
+			 TNT_LOGISTICS_CORPORATION
+			 TNT
+			 YODEL
+			 UNITED_PARCEL_SERVICE_INC
+			 OTHER
+			 美国 (US) 的 CarrierName 值：
+			
+			 DHL_EXPRESS_USA_INC
+			 FEDERAL_EXPRESS_CORP
+			 UNITED_STATES_POSTAL_SERVICE
+			 UNITED_PARCEL_SERVICE_INC
+			 OTHER
+			 类型：xs:string
+			 */
+			$npldiObj = new \FBAInboundServiceMWS_Model_NonPartneredLtlDataInput();
+			$npldiObj->setCarrierName($nplData['CarrierName']);
+			$npldiObj->setProNumber($nplData['ProNumber']);
+			$dnObj->setNonPartneredLtlData($npldiObj);
+		}
+		$request->setTransportDetails($dnObj);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'putTransportContent');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 请求入库货件的预计运费
+	 * 最大请求限额为 30 个，恢复速率为每秒钟 2 个请求
+	 * @param string $Param_ShipmentId  货件编号
+	 * @return array
+	 */
+	public function estimateTransportRequest($Param_ShipmentId){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'estimateTransportRequest_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+	
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+	
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_EstimateTransportInputRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置货件编号
+		$request->setShipmentId($Param_ShipmentId);
+	
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'estimateTransportRequest');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 返回入库货件的当前运输信息
+	 * 最大请求限额为 30 个，恢复速率为每秒钟 2 个请求
+	 * @param string $Param_ShipmentId  货件编号
+	 * @return array
+	 */
+	public function getTransportContent($Param_ShipmentId){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'getTransportContent_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+	
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+	
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_GetTransportContentRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置货件编号
+		$request->setShipmentId($Param_ShipmentId);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getTransportContent');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 确认您接受亚马逊合作承运人的预计运费，并请求亚马逊合作承运人配送您的入库货件
+	 * @param string $ShipmentId 货件编号
+	 * @return array
+	 */
+	public function confirmTransportRequest($ShipmentId){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'confirmTransportRequest_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		 */
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_ConfirmTransportInputRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置ShipmentId
+		$request->setShipmentId($ShipmentId);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'confirmTransportRequest');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 取消之前确认的使用亚马逊合作承运人配送入库货件的请求
+	 * @param string $ShipmentId  货件编号
+	 * @return array
+	 */
+	public function voidTransportRequest($ShipmentId){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'voidTransportRequest_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		 */
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_VoidTransportInputRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置ShipmentId
+		$request->setShipmentId($ShipmentId);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'voidTransportRequest');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 获取标签文件
+	 * @param string $ShipmentId 货件编号
+	 * @param string $PageType 枚举值
+	 * @param int $NumberOfPackages 需要贴标的箱子的数量
+	 * @example
+	 * $PageType:
+	 * PackageLabel_Letter_2,PackageLabel_Letter_6,
+	 * PackageLabel_A4_2 ,PackageLabel_A4_4,PackageLabel_Plain_Paper  
+	 */
+	public function getPackageLabels($ShipmentId,$PageType,$NumberOfPackages){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'getPackageLabels_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		 */
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_GetPackageLabelsRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置ShipmentId
+		$request->setShipmentId($ShipmentId);
+		//设置PageType
+		$request->setPageType($PageType);
+		//设置NumberOfPackages
+		$request->setNumberOfPackages($NumberOfPackages);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getPackageLabels');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		
+		return $return;
+	}
+	
+	/**
+	 * 返回用于打印入库货件提单的 PDF 文档数据
+	 * (可用于打印亚马逊合作零担货运/货车荷载 (LTL/FTL)入库货件的提单 (BOL)。亚马逊将压缩 PDF 文档数据)
+	 * @param string $ShipmentId 货件编号
+	 */
+	public function getBillOfLading($ShipmentId){
+		$return = array(
+				'ask' => 0,
+				'data'=>array(),
+				'message'=>'getBillOfLading_error',
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		 */
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_GetBillOfLadingRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置ShipmentId
+		$request->setShipmentId($ShipmentId);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getBillOfLading');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		
+		return $return;
+	}
+	
+	/**
+	 * 根据您指定的条件返回入库货件列表
+	 * @param array $ShipmentStatusList //Y 多个状态数组($ShipmentStatusList、$ShipmentIdList必选其一)
+	 * @param array $ShipmentIdList  //Y 多个id数组($ShipmentStatusList、$ShipmentIdList必选其一)
+	 * @param string $LastUpdatedAfter //N 最后更新时间开始,如:2016-05-18 10:03:09
+	 * @param string $LastUpdatedBefore  //N 最后更新时间结束,如:2016-05-18 10:03:09
+	 * @note 
+	 * 时间参数暂不可用，使用起来会报错，按文档的时间格式改了底层SDK也不行，原因暂不明确 
+	 * WangWei 2017-3-2 18:28:54
+	 * @return array
+	 */
+	public function listInboundShipments($ShipmentStatusList,$ShipmentIdList,$LastUpdatedAfter='',$LastUpdatedBefore=''){
+		$return = array(
+				'ask' => 0,
+				'message'=>'listInboundShipments_error',
+				'NextToken'=>'',//下一页标示
+				'data'=>array(),
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_ListInboundShipmentsRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//设置ShipmentStatusList
+		$ShipmentStatusListObj = new \FBAInboundServiceMWS_Model_ShipmentStatusList();
+		if(!empty($ShipmentStatusList) && isNumericArray($ShipmentStatusList)){
+			$ShipmentStatusListObj->setmember($ShipmentStatusList);
+		}
+		$request->setShipmentStatusList($ShipmentStatusListObj);
+		//设置ShipmentIdList
+		$ShipmentIdListObj = new \FBAInboundServiceMWS_Model_ShipmentIdList();
+		if(!empty($ShipmentIdList) && isNumericArray($ShipmentIdList)){
+			$ShipmentIdListObj->setmember($ShipmentIdList);
+		}
+		$request->setShipmentIdList($ShipmentIdListObj);
+		//设置LastUpdatedAfter
+		if($LastUpdatedAfter){
+			$request->setLastUpdatedAfter(new DateTime($LastUpdatedAfter, new DateTimeZone('UTC')));
+		}
+		//设置LastUpdatedBefore
+		if($LastUpdatedBefore){
+			$request->setLastUpdatedBefore(new DateTime($LastUpdatedBefore, new DateTimeZone('UTC')));
+		}
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		*/
+		$re = $this->executeRequest($service, $request,'listInboundShipments');
+		if($re['ask']){
+			$data = XmlHandle::unserialize($re['data']);
+			$NextToken = isset($data['ListInboundShipmentsResponse']['ListInboundShipmentsResult']['NextToken']) ?
+			$data['ListInboundShipmentsResponse']['ListInboundShipmentsResult']['NextToken'] : '' ;
+			$return['ask'] = 1;
+			$return['data'] = $data;
+			$return['NextToken'] = $NextToken ? $NextToken : '';
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 获取listInboundShipments下一页数据
+	 * @param string $NextToken 下一页标示
+	 */
+	public function listInboundShipmentsByNextToken($NextToken){
+		$return = array(
+				'ask' => 0,
+				'message'=>'listInboundShipmentsByNextToken_error',
+				'NextToken'=>'',//下一页标示
+				'data'=>array(),
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_ListInboundShipmentsByNextTokenRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//设置NextToken
+		$request->setNextToken($NextToken);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		*/
+		$re = $this->executeRequest($service, $request,'listInboundShipmentsByNextToken');
+		if($re['ask']){
+			$data = XmlHandle::unserialize($re['data']);
+			$NextToken = $data['ListInboundShipmentsByNextTokenResponse']['ListInboundShipmentsByNextTokenResult']['NextToken'];
+			$return['ask'] = 1;
+			$return['data'] = $data;
+			$return['NextToken'] = $NextToken ? $NextToken : '';
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 返回指定入库货件的商品列表或在指定时间段内更新的商品列表
+	 * @param string $ShipmentId
+	 * @param dateTime $LastUpdatedAfter
+	 * @param dateTime $LastUpdatedBefore
+	 * @return array
+	 */
+	public function listInboundShipmentItems($ShipmentId,$LastUpdatedAfter='',$LastUpdatedBefore=''){
+		$return = array(
+				'ask' => 0,
+				'message'=>'listInboundShipmentItems_error',
+				'NextToken'=>'',//下一页标示
+				'data'=>array(),
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_ListInboundShipmentItemsRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//设置ShipmentId
+		$request->setShipmentId($ShipmentId);
+		//设置LastUpdatedAfter
+		if($LastUpdatedAfter){
+			$request->setLastUpdatedAfter(new DateTime($LastUpdatedAfter, new DateTimeZone('UTC')));
+		}
+		//设置LastUpdatedBefore
+		if($LastUpdatedBefore){
+			$request->setLastUpdatedBefore(new DateTime($LastUpdatedBefore, new DateTimeZone('UTC')));
+		}
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		*/
+		$re = $this->executeRequest($service, $request,'listInboundShipmentItems');
+		if($re['ask']){
+			$data = XmlHandle::unserialize($re['data']);
+			$NextToken = param($data['ListInboundShipmentItemsResponse']['ListInboundShipmentItemsResult'], 'NextToken','');
+			$return['ask'] = 1;
+			$return['data'] = $data;
+			$return['NextToken'] = $NextToken ? $NextToken : '';
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * listInboundShipmentItems下一页
+	 * @param unknown $NextToken
+	 * @return array
+	 */
+	public function listInboundShipmentItemsByNextToken($NextToken){
+		$return = array(
+				'ask' => 0,
+				'message'=>'listInboundShipmentItemsByNextToken_error',
+				'NextToken'=>'',//下一页标示
+				'data'=>array(),
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_ListInboundShipmentItemsByNextTokenRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//设置NextToken
+		$request->setNextToken($NextToken);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		*/
+		$re = $this->executeRequest($service, $request,'listInboundShipmentItemsByNextToken');
+		if($re['ask']){
+			$data = XmlHandle::unserialize($re['data']);
+			$NextToken = param($data['ListInboundShipmentItemsByNextTokenResponse']['ListInboundShipmentItemsByNextTokenResult'], 'NextToken','');
+			$return['ask'] = 1;
+			$return['data'] = $data;
+			$return['NextToken'] = $NextToken ? $NextToken : '';
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+	
+	/**
+	 * 返回“配送入库货件 API”部分的运行状态
+	 */
+	public function getServiceStatus(){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getServiceStatus_error',
+				'data'=>array(),
+				'requestId'=>'',
+				'errorCode'=>'',
+				'errorType'=>'',
+				'xml'=>'',
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \FBAInboundServiceMWS_Model_GetServiceStatusRequest();
+		//卖家的销售ID
+		$request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+		//设置三方授权Token
+		if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		*/
+		$re = $this->executeRequest($service, $request,'getServiceStatus');
+		if($re['ask']){
+			$return['ask'] = 1;
+			$return['data'] = XmlHandle::unserialize($re['data']);
+			$return['xml'] = $re['data'];
+			$return['message'] = 'success';
+		}else{
+			$return['errorCode'] = $re['errorCode'];
+			$return['errorType'] = $re['errorType'];
+			$return['message'] = $re['message'];
+			$return['xml'] = $re['XML'];
+		}
+		$return['requestId'] = $re['requestId'];
+		return $return;
+	}
+
+	
+}

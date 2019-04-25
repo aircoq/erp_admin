@@ -1,0 +1,89 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-4-19
+ * Time: 下午2:15
+ */
+namespace service\pandao\operation;
+class Product extends Common
+{
+    public function __construct(array $config = [])
+    {
+        parent::__construct($config);
+    }
+
+    /**
+     * RETRIEVE A PRODUCT
+     * @param $params
+     * @return mixed
+     */
+    public function product($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/product/?".http_build_query($params);
+        $response = $this->curlGet($url);
+        return $response;
+    }
+
+    /**
+     * CREATE A PRODUCT
+     * @param $params
+     * @return mixed
+     */
+    public function add($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/product/add";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    /**
+     * UPDATE A PRODUCT
+     * @param $params
+     * @return mixed
+     */
+    public function update($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/product/update";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    /**
+     * enable A PRODUCT
+     * @param $params
+     * @return mixed
+     */
+    public function enable($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/product/enable";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    /**
+     * disable A PRODUCT
+     * @param $params
+     * @return mixed
+     */
+    public function disable($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/product/disable";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     *START A BATCH PRODUCT DOWNLOAD
+     * @param $params
+     * @return mixed
+     */
+    public function downloadJob($params=[]){
+        $url="https://mall.my.com/merchant/wish/api/v2/product/create-download-job";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    /**
+     *get A BATCH PRODUCT DOWNLOAD status
+     * @param $params
+     * @return mixed
+     */
+    public function downloadJobStatus($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/product/get-download-job-status";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+}

@@ -1,0 +1,113 @@
+<?php
+namespace service\funmart;
+
+/**
+ * Funmart异常处理类
+ * @author WangWei 2019-2-20 16:03:34
+ */
+class FunmartException extends \Exception{
+    /** @var string */
+    private $_message = null;
+    /** @var string */
+    private $_requestId = null;
+    /** @var string */
+    private $_requestAction = null;
+    /** @var string */
+    private $_errorCode = null;
+    /** @var string */
+    private $_errorType = null;
+    /** @var string */
+    private $_org = null;
+
+    /**
+     * 构造方法
+     * @param array $errorInfo
+     */
+    public function __construct(array $errorInfo = array()){
+        $this->_message = $errorInfo["Message"];
+        parent::__construct($this->_message);
+
+        if (array_key_exists("Exception", $errorInfo)) {
+            $exception = $errorInfo["Exception"];
+            if ($exception instanceof FunmartException) {
+                $this->_requestAction = $exception->getRequestAction();
+                $this->_errorCode = $exception->getErrorCode();
+                $this->_errorType = $exception->getErrorType();
+                $this->_org= $exception->getORG();
+            }
+        } else {
+            $this->_requestAction = $this->arr_val($errorInfo, "RequestAction");
+            $this->_requestId = $this->arr_val($errorInfo, "RequestId");
+            $this->_errorCode = $this->arr_val($errorInfo, "ErrorCode");
+            $this->_errorType = $this->arr_val($errorInfo, "ErrorType");
+            $this->_org = $this->arr_val($errorInfo, "ORG");
+        }
+    }
+
+    /**
+     * 从数组里取值
+     * @param array $arr
+     * @param string $key
+     * @return unknown|NULL
+     */
+    private function arr_val($arr, $key) {
+        if(array_key_exists($key, $arr)) {
+            return $arr[$key];
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * 获取错误代码
+     * @return NULL|unknown|string
+     */
+    public function getErrorCode(){
+        return $this->_errorCode;
+    }
+
+
+    /**
+     * 获取错误类型
+     * @return NULL|unknown|string
+     */
+    public function getErrorType(){
+        return $this->_errorType;
+    }
+
+
+    /**
+     * 获取错误信息
+     * @return mixed|string
+     */
+    public function getErrorMessage() {
+        return $this->_message;
+    }
+
+    /**
+     * 获取请求接口名
+     * @return NULL|unknown|string
+     */
+    public function getRequestAction() {
+        return $this->_requestAction;
+    }
+
+
+    /**
+     * 获取请求Id
+     * @return NULL|unknown|string
+     */
+    public function getRequestId() {
+        return $this->_requestId;
+    }
+
+
+    /**
+     * 获取返回的原始数据
+     * @return NULL|unknown|string
+     */
+    public function getORG() {
+        return $this->_org;
+    }
+
+}

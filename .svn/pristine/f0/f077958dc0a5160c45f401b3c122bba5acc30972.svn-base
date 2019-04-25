@@ -1,0 +1,71 @@
+<?php
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use service\shipping\operation\Common;
+use org\Xml;
+use org\Curl;
+use think\Loader;
+use think\Exception;
+
+/**
+ * 无api通用接口
+ * @package app\carrier\controller
+ */
+class NoApi {
+    private $result = [
+        'data' => [],
+        'error' => [],
+        'success' => false
+    ];
+
+    /**
+     * 物流下单（直接返回成功）
+     * @param array $config
+     * @param array $order
+     * @param int $type 1-自动 未确认 2-手动
+     * @return array
+     */
+    function createOrder($config, $order, $confirm = true, $type=1)
+    {
+        if (!isset($order['number'])) {
+            $order = $order[0];
+        }
+        if($type==2){
+            $this->result['number'] = $order['number'];
+            $this->result['data']['number'] = '';                                               // 客户订单号
+            $this->result['data']['package_code'] = '';                       // One World包裹处理号
+            $this->result['data']['trackingNumber'] = '';                     // 跟踪号
+            $this->result['data']['has_trackingNumber'] = true;              // 是否有跟踪号
+            $this->result['data']['confirm'] = true;                                            // 是否交运
+            $this->result['data']['label']              = false;                                 // 是否有pdf
+            $this->result['data']['label_url']          = '';                                   // 是否有pdf
+            $this->result['data']['is_weight']          = false;                                // 是否能查询实际重量
+            $this->result['data']['is_fee']             = false;                                // 是否能查询实际费用
+            $this->result['data']['send']               = false;                                // 是否能查询物流订单状态
+            $this->result['success'] = true;
+        } else {
+            $this->result = [
+                'error_msg'=>'未确认，下单失败',
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 删除订单(目前无效)
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = true;
+        return $this->result;
+    }
+
+}

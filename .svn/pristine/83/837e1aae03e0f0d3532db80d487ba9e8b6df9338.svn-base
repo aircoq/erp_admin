@@ -1,0 +1,39 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-17
+ * Time: 下午1:55
+ */
+
+namespace swoole\messageAction;
+
+
+use swoole\PipeMessageAction;
+
+class Subscibe extends PipeMessageAction
+{
+    public  function execute($server, $fromWorkerId = null)
+    {
+        $data = $this->getData();
+        $name = $data['name'];
+        $fd = $data['fd'];
+        $fds = $server->tableSuscribes->get($name, 'fds');
+        if($fds){
+            $fds = unserialize($fds);
+            if(in_array($fd, $fds)){
+                return false;
+            }else{
+                $fds[] = $fd;
+                $fds = serialize($fds);
+                $server->tableSuscribes->set($name, ['fds'=>$fds]);
+                return true;
+            }
+        }else{
+            $fds = serialize([$fd]);
+            $server->tableSuscribes->set($name, ['fds'=>$fds]);
+            dump_detail($fds);
+            return true;
+        }
+    }
+}

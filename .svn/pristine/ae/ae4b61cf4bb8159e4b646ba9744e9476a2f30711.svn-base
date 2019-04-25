@@ -1,0 +1,136 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-21
+ * Time: 上午9:30
+ */
+
+namespace erp;
+
+
+use app\index\service\User;
+use app\warehouse\service\StockOut;
+use think\App;
+use think\Exception;
+use think\Model;
+
+abstract class AbsServer
+{
+    protected $model = null;
+    protected final function invokeServer($serverClass, $vars = [])
+    {
+        return App::invokeClass($serverClass, $vars);
+    }
+
+    public function __construct()
+    {
+        $ref = new \ReflectionClass($this);
+        $properties = $ref->getProperties(\ReflectionProperty::IS_PROTECTED);
+        foreach ($properties as $property){
+            $property->setAccessible(true);
+            $value = $property->getValue($this);
+            if(is_string($value)){
+                $property->setValue($this, new $value);
+            }
+        }
+        try{
+        }catch (\Exception $exception){
+            $class = get_class($this);
+            throw new \Exception("server $class \$model not set model");
+        }
+        if(is_callable([$this, 'initialize'])){
+            $this->initialize();
+        }
+    }
+
+    /**
+     * 获取模型数据
+     * @param $id
+     * @return mixed
+     */
+    public function get($id)
+    {
+        return forward_static_call(['\\'.get_class($this->model),'get'], $id);
+    }
+
+    public function find($where)
+    {
+        return $this->model->where($where)->find();
+    }
+
+    public function all($call)
+    {
+        return forward_static_call(['\\'.get_class($this->model),'all'], $call);
+    }
+
+    protected final function select($where = [])
+    {
+        return $this->model->where($where)->select();
+    }
+
+    /**
+     * 保存模型数据
+     * @param array $data
+     */
+    protected function save($data = [])
+    {
+        return $this->model->save($data);
+    }
+
+    /**
+     * 删除模型数据
+     * @param $id
+     * @return mixed
+     */
+    protected function remove($id)
+    {
+        return $this->model->where('id',$id)->delete();
+    }
+
+
+    protected function uniqueQueuer($queuer)
+    {
+        return QueuerManager::uniqueQueuer($queuer);
+    }
+
+    protected function commonQueuer($queuer)
+    {
+        return QueuerManager::commonQueuer($queuer);
+    }
+
+    /**
+     * 监听过滤器类型
+     * @param $ruletag string
+     * @return $this
+     */
+    protected final function listenFilter($ruletag)
+    {
+        $filters = ErpRbac::getRbac()->selectFilters($ruletag);
+        foreach ($filters as $params){
+            $ref = new \ReflectionClass($ruletag);
+            $object = $ref->newInstance();
+            if($ref->hasProperty('server') && ($server = $ref->getProperty('server'))){
+                $server->setAccessible(true);
+                if(is_null($server->getValue($object))){
+                    $server->setValue($object, $this);
+                }
+            }
+            if($ref->hasProperty('model') && ($model = $ref->getProperty('model'))){
+                $model->setAccessible(true);
+                $value = $model->getValue($object);
+                switch (value_type($value)){
+                    case 'string':
+                        $model->setValue($object, new $value);
+                        break;
+                    case 'null':
+                        $model->setValue($object, $this->model);
+                        break;
+                }
+            }
+            $object->setParam($params);
+            $object->filter();
+        }
+        return $this;
+    }
+}

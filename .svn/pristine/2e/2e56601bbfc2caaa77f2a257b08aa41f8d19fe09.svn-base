@@ -1,0 +1,76 @@
+<?php
+// +----------------------------------------------------------------------
+// | 亚马逊平台
+// +----------------------------------------------------------------------
+// | File  : Amazon.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-21
+// +----------------------------------------------------------------------
+
+namespace imap\platform;
+
+use imap\Mail;
+
+class Paypal extends AbsPlatform
+{
+    protected $platformName   = 'ebay';
+    protected $orderNoRegular = '/^.*(\d{3}-\d{7}-\d{7}).*$/m';
+    protected $siteRegular = '/^.*\.([a-z0-9]+)$/i';
+
+    protected $currentEmailId = 0;
+    protected $box     = 1;
+    protected $orderNo = '';
+
+
+    /**
+     * @see AbsPlatform::isFromThisPlatform()
+     */
+    public function isFromThisPlatform(Mail $mail)
+    {
+       return  true;//!!preg_match('/@amazon|@.*\.amazon/', $mail->fromAddress,$match);
+    }
+
+    /**
+     * @see AbsPlatform::getOrderNo()
+     */
+    public function getOrderNo(Mail $mail)
+    {
+        //if($this->currentEmailId != $mail->id){
+        //    if( preg_match($this->orderNoRegular,$mail->subject,$match) || preg_match($this->orderNoRegular,$mail->getBody(),$match) ) {
+        //        $this->orderNo = $match[1];
+        //    } else {
+        //        $this->orderNo = '';
+        //    }
+        //    $this->currentEmailId = $mail->id;
+        //}
+        //return $this->orderNo;
+        return '';
+    }
+
+
+    /**
+     *  @see AbsPlatform::getBox()
+     */
+    public function getBox(Mail $mail)
+    {
+        //if (preg_match('/^[\w\d-_]+@marketplace\.amazon/', $mail->fromAddress)) {
+        //    $this->box =  2;
+        //} else {
+        //    $this->box = 1;
+        //}
+        return $this->box;
+    }
+
+    /**
+     *  @see AbsPlatform::getSite()
+     */
+    public function getSite(Mail $mail)
+    {
+        //if(preg_match($this->siteRegular, $mail->fromAddress,$match)){
+        //    return $match[1];
+        //}
+        return '';
+    }
+}

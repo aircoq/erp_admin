@@ -1,0 +1,136 @@
+<?php
+namespace org;
+
+/**
+ * xml 操作类
+ * @author RondaFul
+ *
+ */
+class Xml
+{
+    private $xml = NULL;
+    
+    public function __construct()
+    {
+        $this->xml = new \XmlWriter();
+    }
+    
+    /**
+     * array 转xml
+     * @param unknown $data : 数据
+     * @param unknown $rootElement ：根节点
+     * @param unknown $rootAttributes ：根节点属性
+     * @param string $flag
+     * @param string is_attribute : true : 将元素作为属性, 否则为节点. $data中
+     * 包含is_attribute 此元素
+     * example : $data['order'] = [
+            'username' => 'tom',
+            'password' => 123456,
+            'is_attribute' => true,
+            'cargo' => [
+                'width' => 12,  
+                'height' => 12,  
+            ],
+        ];
+     */
+    public function arrayToXml($data, $rootElement, $rootAttributes = [], $flag = false) 
+    {
+        if (!$flag) {
+            $this->xml->openMemory();
+            $this->xml->startDocument('1.0', 'UTF-8');
+            $this->xml->startElement($rootElement);
+            if ($rootAttributes) {
+                foreach ($rootAttributes as $k=>$v) {
+                    $this->xml->writeAttribute($k, $v);
+                }
+            }
+        }
+        foreach ($data as $key=>$value) {
+            if (is_array($value)) {
+                $this->xml->startElement($key);
+                $this->arrayToXml($value, $rootElement, $rootAttributes, true);
+                $this->xml->endElement();
+                continue;
+            }
+            //将元素作为属性
+            if (isset($data['is_attribute'])) {
+                if ($key != 'is_attribute') {
+                    $this->xml->writeAttribute($key, $value);
+                }
+            } else {
+                $this->xml->writeElement($key, $value);
+            }
+        }
+        if (!$flag) {
+            $this->xml->endElement();
+            return $this->xml->outputMemory(true);
+        }
+    }
+    
+    /**
+     * xml 转array
+     * @param unknown $xml
+     * @param string $parse : true 解析属性，否则不解析属性
+     */
+    public static function xmlToArray($xml, $parse = false)
+    {
+        $newResult = [];
+        //禁止引用外部xml实体
+        libxml_disable_entity_loader(true);
+        $result    = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+        $newResult = (array)$result;
+        if ($parse) {
+            $keys  = array_keys($newResult);
+            $count = count($keys);
+            //循环节点数组
+            for($i = 0; $i<$count; $i++) {
+                $temp = [];
+                $key = $keys[$i];
+                //获取当前节点所有属性
+                $attr = $result->$key->attributes();
+                //判断当前节点是否有属性
+                if (count($attr)) {
+                    //获取当前节点的数量(多个同名节点)
+
+                    $nodeCount = $result->$key->count();
+                    //获取有属性节点的对象
+                    $nodeObj = $result->$key;
+                    for($j = 0; $j<$nodeCount; $j++) {
+                        $attrs = [];
+                        //取出当前节点的所有属性
+                        $attrCount = $nodeObj[$j]->attributes()->count();
+                        $m = 0;
+                        //循环获取节点属性
+                        foreach ($nodeObj[$j]->attributes() as $k=>$v) {
+                            //文本
+                            $content = $nodeObj[$j]->__toString();
+                            //属性键$k;
+                            //属性值
+                            $attrVal = $v->__toString();
+                            //多属性处理
+                            if ($attrCount > 1) {
+                                $m++;
+                                $attrs[$k] = $attrVal;
+                                if ($m == $attrCount) {
+                                    $temp[] = [
+                                        $keys[$i] => $content,
+                                        'attr'    => $attrs
+                                    ];
+                                }
+                            } else {
+                                $temp[] = [
+                                    $keys[$i] => $content,
+                                    'attr'    => $attrVal
+                                ];
+                            }
+                        }
+                    }
+                    if ($temp) {
+                        $newResult[$keys[$i]] = $temp;
+                    }
+                }
+            }
+        }
+        return $newResult;
+    }
+}

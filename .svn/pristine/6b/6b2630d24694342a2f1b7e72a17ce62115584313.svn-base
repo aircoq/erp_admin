@@ -1,0 +1,324 @@
+<?php
+
+namespace service\alinew\operation;
+
+use service\alinew\operation\Common;
+
+/**
+ * @desc 站内信
+ * @author johnny <1589556545@qq.com>
+ * @date 2018-04-17 15:18:11
+ */
+class Message extends Common
+{
+
+    /**
+     * @desc 站内信/订单留言获取关系列表
+     * @param int $currentPage 当前页，必填
+     * @param int $pageSize 每页条数，必填
+     * @param int $startTime 开始时间，必须是时间戳，选填
+     * @param int $endTime 结束时间，必须是时间戳，选填
+     * @param boolean $onlyUnDealed 是否只查询未处理会话 选填
+     * @param boolean $onlyUnReaded 是否只查询未读会话 选填
+     * @param int $rank Description 标签值(0,1,2,3,4,5)依次表示为白，红，橙，绿，蓝，紫 选填
+     * @param int $sellerId 卖家账号
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-04-17 15:30:11
+     */
+    public function getRelation($currentPage = 1, $pageSize = 50, $startTime = 0, $endTime = 0, $onlyUnDealed = false, $onlyUnReaded = false, $rank = false, $sellerId = false)
+    {
+        $data = [];
+        //方法参数
+        $data['page'] = $currentPage;
+        $data['pageSize'] = $pageSize;
+        $data['startTime'] = $startTime;
+        $data['endTime'] = $endTime;
+        $data['only_un_dealed'] = $onlyUnDealed;
+        $data['only_un_readed'] = $onlyUnReaded;
+        $data['rank'] = $rank;
+        $data['seller_id'] = $sellerId;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('getRelation');
+        $request->setClassName('Message');
+        $request->setModule('message');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+       // var_dump($res);exit;
+        return $res;
+    }
+
+    /**
+     * 站内信/订单留言查询详情列表*
+     * @param string $channelId
+     * @param string $msgSources
+     * @param int $page
+     * @param int $pageSize
+     * @return array
+     */
+    public function queryMsgDetailList($extern_id='',$channel_id, $page_size = 20,$current_page=1)
+    {
+        $data = [];
+        //方法参数
+        $data['extern_id'] = $extern_id;
+        $data['channel_id'] = $channel_id;
+        $data['page_size'] = $page_size;
+        $data['current_page'] = $current_page;
+       // var_dump($data);
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('queryMsgDetailList');
+        $request->setClassName('Alimsg');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        return $client->execute($request);
+    }
+    
+    /**
+     * 站内信/订单留言获取关系列表*
+     * @param string $channelId
+     * @param string $msgSources
+     * @param int $page
+     * @param int $pageSize
+     * @return array
+     */
+    public function querymsgrelationlist($page_size = 10,$current_page=1,$start_time=null,$only_un_dealed=null,$only_un_readed=null,$rank=null,$seller_id=null,$end_time=null)
+    {
+        $data = [];
+        //方法参数
+        $data['start_time'] = $start_time;
+        $data['only_un_dealed'] = $only_un_dealed;
+        $data['only_un_readed'] = $only_un_readed;
+        $data['rank'] = $rank;
+        $data['seller_id'] = $seller_id;
+        $data['page_size'] = $page_size;
+        $data['current_page'] = $current_page;
+        $data['end_time'] = $end_time;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('querymsgrelationlist');
+        $request->setClassName('Alimsg');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        return $client->execute($request);
+    }
+    
+    /**
+     * 站内信/订单留言更新处理状态
+     * @param string $channelId 通道ID(即关系ID)
+     * @param int $dealStat 处理状态(0未处理,1已处理)
+     * @return array
+     */
+    public function updateMsgProcessed($channelId,$dealStat=1)
+    {
+        $data = [];
+        //方法参数
+        $data['channel_id'] = $channelId;
+        $data['deal_stat'] = $dealStat;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('updateMsgProcessed');
+        $request->setClassName('Alimsg');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        //$request->setToken($this->config['token']);
+        $request->setToken($this->config['accessToken']);
+        $request->setRequestParams(json_encode($data));
+
+        return $client->execute($request);
+
+    }
+
+    /**
+     * 站内信/订单留言打标签
+     * @param string $channelId 通道ID(即关系ID)
+     * @param int $rank 标签值(0,1,2,3,4,5)依次表示为白，红，橙，绿，蓝，紫
+     * @return array
+     */
+    public function updateMsgRank($channelId,$rank)
+    {
+
+        $data = [];
+        //方法参数
+        $data['channel_id'] = $channelId;
+        $data['rank'] = $rank;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('updateMsgRank');
+        $request->setClassName('Alimsg');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        //$request->setToken($this->config['token']);
+        $request->setToken($this->config['accessToken']);
+        $request->setRequestParams(json_encode($data));
+
+        return $client->execute($request);
+
+    }
+
+
+    /**
+     * 新增站内信/订单留言(即回复消息)
+     * @param $seller_id 卖家登录帐号
+     * @param $message_type 消息类型,product(商品)、member(会员，包含店铺)、order(订单)
+     * @param $buyer_id 买家登录帐号
+     * @param null $content 消息内容
+     * @param null $extern_id 针对不同类型填对应关联对象的ID，如果messageType为product时填入productId值(必填)；
+     * 如果messageType为order时填入orderId值(必填)；如果messageType为member时请输入0
+     * @param null $channel_id 已废弃
+     * @param img_path|null $  图片地址
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function addMsg($seller_id,$message_type,$buyer_id,$content=null,$extern_id=null,$channel_id=null,$img_path=null)
+    {
+
+        $data = [];
+        //方法参数
+        $data['seller_id'] = $seller_id;
+        $data['message_type'] = $message_type;
+        $data['buyer_id'] = $buyer_id;
+        $data['content'] = $content;
+        $data['extern_id'] = $extern_id;
+        $data['channel_id'] = $channel_id;
+        $data['img_path'] = $img_path;
+        
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('addMsg');
+        $request->setClassName('Alimsg');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        //$request->setToken($this->config['token']);
+        $request->setToken($this->config['accessToken']);
+        $request->setRequestParams(json_encode($data));
+
+       $res=$client->execute($request);
+        return $res;
+    }
+
+    /**
+     * 站内信/订单留言更新已读
+     * @param $channel_id 通道ID，即关系ID
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function updateMsgRead($channel_id)
+    {
+
+        $data = [];
+        //方法参数
+        $data['channel_id'] = $channel_id;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('updateMsgRead');
+        $request->setClassName('Alimsg');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        //$request->setToken($this->config['token']);
+        $request->setToken($this->config['accessToken']);
+        $request->setRequestParams(json_encode($data));
+
+        return $client->execute($request);
+
+    }
+    
+    /**
+     * 根据买家ID获取站内信对话ID（必须用对应的卖家账号授权信息调用接口才能查到对话ID）
+     * @param string $buyer_id 买家loginId
+     * @return unknown|ResultSet|mixed
+     */
+    public function queryMsgChannelIdByBuyerId($buyer_id)
+    {
+        $data = [];
+        //方法参数
+        $data['buyer_id'] = $buyer_id;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('queryMsgChannelIdByBuyerId');
+        $request->setClassName('Alimsg');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+//         $request->setToken($this->config['accessToken']);
+        $request->setRequestParams(json_encode($data));
+        
+        return $client->execute($request);
+    }
+    
+    /**
+     * 根据买家loginId查询站内信
+     * @param string $buyer_login_id  买家loginId
+     * @param string $extern_id  商品ID或者订单ID,也可以为空
+     * @param number $page_size  每页条数(pageSize取值范围(0~100) 最多返回前5000条数据)
+     * @param number $current_page  当前页数
+     * @return unknown|ResultSet|mixed
+     */
+    public function queryMsgDetailListByBuyerID($buyer_login_id='', $extern_id='', $page_size=10, $current_page=1)
+    {
+        $data = [];
+        //方法参数
+        $data['buyer_login_id'] = $buyer_login_id;
+        $data['extern_id'] = $extern_id;
+        $data['page_size'] = $page_size;
+        $data['current_page'] = $current_page;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('queryMsgDetailListByBuyerID');
+        $request->setClassName('Alimsg');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        
+        return $client->execute($request);
+    }
+    
+    /**
+     * API获取所有详情数据
+     * @param int $channelId
+     * @param string $msgSources
+     * @return array
+     */
+    public function getAllDetails($channelId, $msgSources = 'message_center')
+    {
+        $page = 1;
+        $pageSize = 20;
+        $result = [];
+        $data = [];
+        do {
+            $res = $this->queryMsgDetailList('',$channelId,$page,$pageSize);
+            $data = $res['response'];
+            if(!empty($data)){
+                $result = array_merge($result,$data);
+                $page++;
+            }
+        } while (count($data)==$pageSize);
+        return $result;
+    }
+    
+}

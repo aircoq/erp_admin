@@ -1,0 +1,132 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Updater: PHIll
+ * Date: 17-3-8
+ * Time: 下午6:15
+ */
+namespace app\common\service;
+
+class OrderStatusConst
+{
+    //未付款
+    const NotPaying = 0;
+    //标记为已付款
+    const IsPaying = 65536;
+    //留言信息
+    const MessageInformation = 65537;
+    //查询留言信息
+    const MessageInformationCheck = "0_1";
+    //订单地址错误
+    const AddressWrong = 65538;
+    //查询订单地址错误
+    const AddressWrongCheck = "0_2";
+    //商品未知
+    const CommodityIsUnknown = 65540;
+    //付款金额错误
+    const APaymentError = 66048;
+    //一买家多订单
+    const MoreThanOneBuyerOrders = 65568;
+    //审核缺货(注意，这里不是分配缺货)
+    const OutOfStock = 65600;
+    //过期
+    const Overdue = 65664;
+    //需人工审核
+    const YouReviewThe = 65792;
+    //异常单临界点
+    const Abnormal = 66047;
+    //标记为已审
+    const Audited = 65793;
+    //无法分配仓库
+    const CannotAllocateWarehouse = 65544;
+    //邮寄方式错误
+    const MailError = 65552;
+    /**
+     * @doc 待配货
+     */
+    const ForDistribution = 196608;
+    //已分配库存
+    const AllocatedInventory = 196609;
+    //已上传无跟踪号
+    const UploadedWithoutTrackingNumber = 462848;
+    //已上传已取跟踪号
+    const UploadedAlreadyTakeTrackingNumber = 471040;
+    //已上传未取跟踪号
+    const UploadedYetTakeTrackingNumber = 466944;
+    //等待交运
+    const WaitForTheShipment = '3_12288';
+    //申报地址错误
+    const DeclareTheAddressWrong = 196864;
+    //申报价错误
+    const DeclareThePriceError = 197120;
+    //超重
+    const OverWeight = 197632;
+    //已转交
+    const HasBeenPassedOnTo = 983041;
+    //未标记
+    const NotMarked = 983042;
+    //已发货
+    const HasBeenShipped = 983044;
+    //已签收
+    const HaveToSignFor = 983048;
+    //无人签收
+    const WithOutToSignFor = 983056;
+    //申请退货
+    const ToApplyForRefundGoods = 983072;
+    //申请换货
+    const ToApplyForReplacement = 983104;
+    //已重发
+    const HaveToResend = 983168;
+    //已收到退换货
+    const HasReceivedReturn = 983296;
+    //申请退款
+    const ToApplyForRefund = 2031617;
+    //已退款
+    const HaveRefund = 2031618;
+    //缺货
+    const StockOut = 2097153;
+    //已生成采购申请
+    const GeneratedPurchasingApplication = 2162690;
+    //已生成采购单
+    const GeneratedPurchaseOrder = 2162692;
+    //采购中
+    const InTheProcurement = 2162696;
+    //采购缺货
+    const PurchasingOutOfStock = 2162704;
+    //拦截
+    const HoldUp = 4194304;
+    //表示作废
+    const SaidInvalid = 4294967295;
+    //取消作废
+    const Cancel = 4294967296;
+    //表示刷单订单
+    const Brush = 9999999999;
+    //查询待配货
+    const AllocatedInventoryCheck = '1_0';
+    //查询缺货单
+    const StockOutCheck = '16_1';
+    //查询商品未知
+    const ProductDontKownCheck = "0_4";
+    //查询无法分配库存
+    const CannotAllocateWarehouseCheck = "0_8";
+    //查询需要人工审核
+    const YouReviewTheCheck = "0_256";
+    //查询邮寄方式错误
+    const MailErrorCheck = "0_16";
+    //查询缺货单
+    const StockOutCheck2 = "0_64";
+    const OverdueCheck = "0_128";
+    // 确认交运状态位 20
+    const OrderConfirmStatus = 0x80000;
+    // 配货成功 18 
+    const OrderAllocatiedStatus = 0x30001;
+    // 缺货大状态位 22
+    const OrderLackStatus = 0x200000;
+    //退款位
+    const RefundStatus = 1048576;
+    //售后单申请换货
+    const ReplacementStatus = 64;
+    //售后单申请退货
+    const RefundGoodsStatus = 32;
+}

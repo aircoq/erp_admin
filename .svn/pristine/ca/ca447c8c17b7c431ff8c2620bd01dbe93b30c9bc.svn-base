@@ -1,0 +1,10 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+
+class Saicheng extends Base
+{
+    protected $is_open_water = 1;
+}

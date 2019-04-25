@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr>
+                <td style="width:100pt;border:solid 1pt #000;border-bottom:0;border-right:0;">
+                     <div>  <img width="100%" src="<?php echo $icon;?>" /> </div><br>
+                    <div style="width:110pt;font-size:8pt;line-height:9pt;text-align:center"><strong> Small Packet By Air</strong></div>
+                    <div style="width:110pt;font-size:8pt;line-height:15pt;text-align:center"><?php echo $country_code; ?><?php echo $prime_code; ?></div>
+                </td>
+                <td style="border:solid 1pt #000;border-bottom:0;border-left:0;font-size:8pt;">
+                    <div style="float:right;text-align:center; margin-right: 2pt;margin-left: 2pt;margin-top: 2pt">
+                        <span style="display:inline-block; ">
+                            <img style="width:140pt;height:40pt" src="<?php echo $this->imgSrc($shipping_number);?>">
+                        </span>
+                        <span style="text-align:center;"> <?php echo $shipping_number;?></span>
+                    </div>
+                </td>
+            </tr>
+
+
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr>
+                <td style="width:130pt;border-left:solid 1pt #000;padding:0 2pt;font-size:8pt;line-height:10pt;word-break:break-all;word-wrap:break-word;">
+                    <span style="font-size:8pt;line-height:10pt;">
+                        From：<?php echo $sender['sender_name'] ?> <br>
+                        地址：<?php echo $sender['sender_street'];?>,
+                            <?php echo $sender['sender_district'];?>,
+                            <?php echo $sender['sender_city'];?>,
+                            <?php echo $sender['sender_state'];?><br>
+                    <br>
+                        寄件人电话： <?php echo $sender['sender_mobile'];?>
+                </td>
+                <td rowspan="2"
+                    style="vertical-align:top;border:solid 1pt #000;border-bottom:none;font-size:8pt;line-height:11pt;word-wrap:break-word;padding:0 2pt;">
+                    Ship To:<?php echo $name;?> <br>
+                    收件人地址：<?php echo $street.$street2;?>
+                        <?php echo $city?>,
+                        <?php echo $province?><br>
+                        <?php echo $country_en_name;?><br>
+                    邮编： <?php echo $zip?>    <span style= "padding-left:40pt;font-size:20pt;"></span> <br>
+                    电话：<?php echo $phone?>  <span style="padding-left:10pt;font-size:10pt;"></span>
+                </td>
+            </tr>
+            <tr>
+                <td style="border:solid 1pt #000;font-size:6pt;line-height:6pt;">自编号：<?php echo $number;?>
+                </td>
+            </tr>
+            <tr>
+                <td style="border:solid 1pt #000;border-bottom:none;font-size:6pt;line-height:10pt;"> 退件单位：<?php echo $warehouse_id==2?'中山市邮政局函件集邮局商函广告公司':'金华市小包分局'?>
+                </td>
+                <td style="border-right:solid 1pt #000;;padding:0 2pt;font-size:8pt;line-height:10pt;text-align:center"> <?php echo $country_name;?>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div style="width:270pt;">
+            <table cellpadding="0" cellspacing="0"
+                   style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:6pt;line-height:10pt;">
+                <tbody>
+                <tr  style="border:solid 1pt #000;" >
+                    <td style="width:15pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word">
+                        No
+                    </td>
+                    <td style="width:15pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word">
+                        Qty
+                    </td>
+                    <td style="width:100pt;padding:0 2pt;border:solid 1pt #000;border-top:none;word-wrap:break-word">
+                        Description Of Contents
+                    </td>
+                    <td style="width:30pt;padding:0 2pt;border:solid 1pt #000;text-align:center;">Kg.</td>
+                    <td style="border:solid 1pt #000;width:35pt;padding:0 2pt;text-align:left;"> Val(US $) </td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:left;"> Goods origin</td>
+                </tr>
+                <?php foreach ($list as $k=>$v):?>
+                    <tr style="font-weight:bold;">
+                        <td style="width:160pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                            <?php echo $k+1;?>
+                        </td>
+                        <td style="width:160pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                            <?php echo $v['qty'];?>
+                        </td>
+                        <td style="border:solid 1pt #000;word-wrap:break-word;vertical-align:middle;padding:2pt">
+                            <?php echo $v['declared_name_en'];?>*<?php echo $v['declared_name_cn'];?>
+                        </td>
+                        <td style="border:solid 1pt #000;text-align:center;padding:2pt;">  <?php echo number_format($v['declared_weight']/1000,3,'.','');?></td>
+                        <td style="border:solid 1pt #000;text-align:center;padding:2pt;"> <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?> </td>
+                        <td style="border:solid 1pt #000;text-align:center;padding:2pt;"> China
+                        </td>
+                    </tr>
+
+
+                <?php endforeach;?>
+                <tr  style="font-weight:bold;">
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;"> Total Gross Weight(Kg)</td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;">  <?php echo number_format($total_weight/1000,3,'.','');?></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"> <?php echo number_format($total_value,2,'.','');?></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"></td>
+                </tr>
+                <tr>
+                    <td colspan="6"
+                        style="border:solid 1pt #000;border-bottom:0;word-wrap:break-word;font-size:6pt;line-height:8pt;padding:2pt; 2pt;">
+                        I certify that the particulars given in this declaration are correct and this item does not
+                        contain any dangerous articles prohibited by legislation or by postal or customs regulations.
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="6" style="border:solid 1pt #000;border-top:0;word-wrap:break-word;padding:0 2pt;">
+                        <div style="float:left;width:180pt;font-size:6pt;line-height:8pt;font-weight:bold;">
+                            Sender’s signature date signed:
+
+                            <br/>
+                            <br/>
+                            <br/>
+                        </div>
+
+                        <div style="float:left;width:84pt;font-size:13pt;line-height:10pt;font-weight:bold;text-align:right;">
+                            CN22
+                        </div>
+                        <div style="clear:both;"></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+
+
+</body>
+</html>

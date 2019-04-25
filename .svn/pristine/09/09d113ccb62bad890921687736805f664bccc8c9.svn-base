@@ -1,0 +1,139 @@
+<?php
+namespace service\shopee\operation;
+
+use think\Exception;
+
+class Order extends Common
+{
+
+    public function getOrder($page = 1, $startTime = '')
+    {
+        $data = $this->getBaseConfig();
+        $offset = ($page-1)*50;
+        $data['pagination_offset'] = $offset;
+        if ($startTime) {
+            $data['update_time_from'] = $startTime;
+            $data['update_time_to'] = time();
+        }
+        $url = "https://partner.shopeemobile.com/api/v1/orders/basics";
+        $header =  $this->getHeader($data,$url);
+        try{
+            $ret = $this->doPost($url, $data, $header);
+
+            if(isset($ret['error'])){
+                throw  new Exception($ret['error'].(isset($ret['msg'])?":".$ret['msg']:''));
+            }
+            return $ret;
+        }catch (Exception $ex){
+            throw $ex;
+        }
+    }
+    public function getList($page = 1, $startTime = ''){
+        try{
+            $result = [];
+            $aOrdersn = [];
+            $list = $this->getOrder($page, $startTime);
+            if(isset($list['orders'])){
+                foreach ($list['orders'] as $v) {
+                    $aOrdersn[] = $v['ordersn'];
+                }
+            }
+            if ($aOrdersn) {
+                $result = $this->getDetail($aOrdersn);
+            }
+            $result['more'] = $list['more']??'';
+            return $result;
+
+        }catch (Exception $ex){
+            throw $ex;
+        }
+    }
+
+
+    public function getDetail(array $aOrderId){
+        $url = 'https://partner.shopeemobile.com/api/v1/orders/detail';
+        $postData = $this->getBaseConfig(['ordersn_list'=>$aOrderId]);
+        $header =  $this->getHeader($postData,$url,false);
+        return $this->doPost($url, $postData, $header,false);
+    }
+
+    public function getEscrowDetails($OrderId){
+        $url = 'https://partner.shopeemobile.com/api/v1/orders/my_income';
+        $postData = $this->getBaseConfig(['ordersn'=>$OrderId]);
+        $header =  $this->getHeader($postData,$url,false);
+        return $this->doPost($url, $postData, $header,false);
+    }
+
+    /**
+     * 卖方取消订单
+     * @param string $ordersn
+     * @param string $cancel_reason
+     * @param int $item_id
+     * @param int $variation_id
+     * @return mixed
+     */
+    public function cancelOrder($ordersn, $cancel_reason, $item_id, $variation_id)
+    {
+        $url = 'https://partner.shopeemobile.com/api/v1/orders/cancel';
+        $postData = $this->getBaseConfig([
+            'ordersn' => $ordersn,
+            'cancel_reason' => $cancel_reason,
+            'item_id' => $item_id,
+            'variation_id' => $variation_id
+            ]);
+        $header =  $this->getHeader($postData,$url,false);
+        return $this->doPost($url, $postData, $header,false);
+    }
+
+    /**
+     * 卖方接受买方取消订单
+     * @param string $ordersn
+     * @return mixed
+     */
+    public function acceptBuyerCancellation($ordersn)
+    {
+        $url = 'https://partner.shopeemobile.com/api/v1/orders/buyer_cancellation/accept';
+        $postData = $this->getBaseConfig(['ordersn' => $ordersn]);
+        $header =  $this->getHeader($postData,$url,false);
+        return $this->doPost($url, $postData, $header,false);
+    }
+
+    /**
+     * 卖方拒绝买方取消订单
+     * @param string $ordersn
+     * @return mixed
+     */
+    public function rejectBuyerCancellation($ordersn)
+    {
+        $url = 'https://partner.shopeemobile.com/api/v1/orders/buyer_cancellation/reject';
+        $postData = $this->getBaseConfig(['ordersn' => $ordersn]);
+        $header =  $this->getHeader($postData,$url,false);
+        return $this->doPost($url, $postData, $header,false);
+    }
+
+
+    /**
+     * 根据状态获取订单
+     * @param string $status UNPAID/READY_TO_SHIP/COMPLETED/IN_CANCEL/CANCELLED/TO_RETURN
+     * @param int $create_time_from
+     * @param int $create_time_to
+     * @param int $pagination_offset
+     * @param int $pagination_entries_per_page
+     * @return mixed
+     */
+    public function getOrdersByStatus($status, $create_time_from=0, $create_time_to=0, $pagination_offset=0, $pagination_entries_per_page=10)
+    {
+        $url = 'https://partner.shopeemobile.com/api/v1/orders/get';
+        $postData = $this->getBaseConfig();
+        $postData['order_status'] = $status;
+        $create_time_from && $postData['create_time_from'] = $create_time_from;
+        $create_time_to && $postData['create_time_to'] = $create_time_to;
+        $postData['pagination_offset'] = $pagination_offset;
+        $postData['pagination_entries_per_page'] = $pagination_entries_per_page;
+        $header =  $this->getHeader($postData,$url,false);
+        return $this->doPost($url, $postData, $header,false);
+    }
+
+
+
+}

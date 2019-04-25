@@ -1,0 +1,210 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-9
+ * Time: 下午3:03
+ */
+
+namespace swoole;
+
+
+
+use app\common\cache\Cache;
+use app\index\service\AbsTasker;
+use think\exception\ErrorException;
+
+class ProcessManager
+{
+    public $workers = [
+
+    ];
+    private $mainPid = null;
+    /**
+     * @var \swoole_process
+     */
+    private $mainProcess = null;
+
+    public function __construct()
+    {
+    }
+
+    public function start()
+    {
+        echo "processManager start\n";
+        $this->mainProcess = new \swoole_process(function(\swoole_process $process){
+            $process->name('taskQueue');
+            $process->workers = [];
+            do{
+                $msg = $process->pop();
+                $cmd = json_decode($msg);
+                $result = !$this->cmd($process, $cmd);
+            }while($result);
+        });
+        $this->mainProcess->useQueue(hashCode64(__FILE__),1);
+        $this->mainPid = $this->mainProcess->start();
+        $this->send(['cmd'=>'init']);
+    }
+
+    private function init()
+    {
+        $cache = Cache::store('process');
+        $tasks = $cache->tasks();
+        foreach ($tasks as $task => $num){
+            $this->startTasker($task, $num);
+        }
+    }
+
+    public function send($msg)
+    {
+        if(!is_string($msg)){
+            $msg = json_encode($msg);
+        }
+        $this->mainProcess->push($msg);
+    }
+
+    public function addTasker($task, $num)
+    {
+        try{
+            $taskObj = new $task();
+            if($taskObj instanceof AbsTasker){
+                $this->startTasker($task, $num);
+                $cache = Cache::store('process');
+                $cache->addTask($task, $num);
+            }
+        }catch (ErrorException $exception){
+        }
+    }
+
+    public function mdfTasker($task, $num)
+    {
+        $cache = Cache::store('process');
+        if($oldNum = $cache->getTask($task)){
+            if($oldNum === $num){
+                return;
+            }
+            if($oldNum > $num){
+                for($i = $num; $i < $oldNum; $i++){
+                    $this->killProcess("taskQueue:$task-$i");
+                }
+            }
+            if($oldNum < $num){
+                for($i = $oldNum; $i < $num; $i++){
+                    $taskProcess = new TaskProcess($task);
+                    $this->openProcess("taskQueue:$task-$i", [$taskProcess, "execute"]);
+                }
+            }
+            $cache->addTask($task, $num);
+        }else{
+            $this->addTasker($task, $num);
+        }
+    }
+
+    public function startTasker($task, $num)
+    {
+        for($nth =0 ; $nth < $num; $nth++){
+            $taskProcess = new TaskProcess($task);
+            $this->openProcess("taskQueue:$task-$nth", [$taskProcess, "execute"]);
+        }
+    }
+
+    public function addProcess()
+    {
+
+    }
+
+    /**
+     * @param $cmd
+     * @return bool 返回true则关闭，返回false为继续
+     */
+    public function cmd(\swoole_process $process, $cmd) : bool
+    {
+        $this->mainProcess = $process;
+        switch ($cmd->cmd){
+            case 'init':
+                $this->init();
+                return false;
+            case 'kill':
+                $this->killProcess($cmd->data->tag);
+                return false;
+            case 'process':
+                $this->openProcess($cmd->data->tag, function(\swoole_process $process)use($cmd){
+                    $process->name($cmd->data->tag);
+                    while (true){
+                        try{
+                            $msg = $process->pop();
+                            $cmd = json_decode($msg);
+                            if($cmd->task){
+                                echo "task\n";
+                            }else{
+                                echo "nottask\n";
+                            }
+                        }catch (ErrorException $exception){
+                            echo "exp:".$exception->getMessage()."\n";
+                        }
+                    }
+                });
+                return false;
+            case 'task':
+                $this->addTasker($cmd->data->tag, $cmd->data->num);
+                return false;
+            case 'task_mdf':
+                $this->mdfTasker($cmd->data->tag, $cmd->data->num);
+                return false;
+            case 'shutdown':
+                $this->shutdown();
+                return false;
+            default:
+                $worker = $this->getWorker($cmd->cmd);
+                if($worker){
+                    $worker->push(json_encode($cmd->data));
+                }else{
+                    echo "not exist {$cmd->cmd} process\n";
+                }
+                return true;
+        }
+    }
+
+    public function openProcess($tag, $callback)
+    {
+        if(!isset($this->mainProcess->workers[$tag])){
+            $process = new \swoole_process($callback);
+            $process->name($tag);
+            $process->useQueue(0,1);
+            $process->start();
+            $this->mainProcess->workers[$tag] = $process;
+        }
+
+    }
+
+    public function killProcess($tag)
+    {
+        if(isset($this->mainProcess->workers[$tag])){
+            \swoole_process::kill($this->mainProcess->workers[$tag]->pid);
+            \swoole_process::wait();
+            unset($this->mainProcess->workers[$tag]);
+        }
+    }
+
+    /**
+     * @param $tag
+     * @return bool | \swoole_process
+     */
+    public function getWorker($tag)
+    {
+        if(isset($this->mainProcess->workers[$tag])){
+            return $this->mainProcess->workers[$tag];
+        }else{
+            return false;
+        }
+    }
+
+    private function shutdown()
+    {
+        foreach ($this->mainProcess->workers as $tag =>$worker){
+            $this->killProcess($tag);
+        }
+        \swoole_process::kill($this->mainProcess->pid);
+        \swoole_process::wait();
+    }
+}

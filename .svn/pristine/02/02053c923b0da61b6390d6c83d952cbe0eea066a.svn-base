@@ -1,0 +1,140 @@
+<?php
+
+/**
+ * Created by PhpStorm.
+ * User: lanshushu
+ * Date: 2018/7/17
+ * Time: 16:53
+ */
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class Apac extends Base
+{
+    protected $is_open_water = 1;
+
+    public function createLabel($code, $order)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+    /*
+     * @desc 邮编格式转化
+     * @params $country_code 国家编码
+     * @params $zip 邮编
+     * @return string
+     */
+    public function getZipFormat($zip)
+    {
+        if (!$zip) {
+            return '';
+        }
+        $zip_0 = substr($zip, 0, 3);
+        if (($zip_0 >= '000' && $zip_0 <= '005') || ($zip_0 >= '010' && $zip_0 <= '069') || ($zip_0 >= '074' && $zip_0 <= '078') || ($zip_0 >= '080' && $zip_0 <= '087') || ($zip_0 >= '090' && $zip_0 <= '099') || ($zip_0 >= '105' && $zip_0 <= '109') || ($zip_0 >= '117' && $zip_0 <= '229') || $zip_0 == '115') {
+            $code = '1F';
+        } elseif (($zip_0 >= '110' && $zip_0 <= '114') || $zip_0 == '103' || $zip_0 == '116') {
+            $code = '1P';
+        } elseif (($zip_0 >= '070' && $zip_0 <= '073') || $zip_0 == '079' || ($zip_0 >= '088' && $zip_0 <= '089')) {
+            $code = '1Q';
+        } elseif (($zip_0 >= '100' && $zip_0 <= '102') || $zip_0 == '104') {
+            $code = '1R';
+        } elseif (($zip_0 >= '950' && $zip_0 <= '953') || ($zip_0 >= '956' && $zip_0 <= '973') || ($zip_0 >= '975' && $zip_0 <= '976') || $zip_0 == '979' || ($zip_0 >= '986' && $zip_0 <= '999') || $zip_0 == '942') {
+            $code = '2F';
+        } elseif (($zip_0 >= '980' && $zip_0 <= '985')) {
+            $code = '2P';
+        } elseif (($zip_0 >= '800' && $zip_0 <= '812')) {
+            $code = '2Q';
+        } elseif (($zip_0 >= '945' && $zip_0 <= '948')) {
+            $code = '2R';
+        } elseif (($zip_0 >= '940' && $zip_0 <= '941') || ($zip_0 >= '943' && $zip_0 <= '944') || ($zip_0 >= '954' && $zip_0 <= '955') || $zip_0 == '949') {
+            $code = '2U';
+        } elseif (($zip_0 >= '977' && $zip_0 <= '978') || $zip_0 == '974') {
+            $code = '2V';
+        } elseif (($zip_0 >= '400' && $zip_0 <= '429') || $zip_0 == '439' || ($zip_0 >= '450' && $zip_0 <= '455') || $zip_0 == '459' || ($zip_0 >= '470' && $zip_0 <= '471') || ($zip_0 >= '475' && $zip_0 <= '477') || $zip_0 == '480' || ($zip_0 >= '483' && $zip_0 <= '485') || ($zip_0 >= '490' && $zip_0 <= '491') || ($zip_0 >= '493' && $zip_0 <= '497') || ($zip_0 >= '500' && $zip_0 <= '529') || $zip_0 == '533' || $zip_0 == '536' || $zip_0 == '540' || ($zip_0 >= '546' && $zip_0 <= '548') || ($zip_0 >= '550' && $zip_0 <= '609') || $zip_0 == '612' || ($zip_0 >= '617' && $zip_0 <= '619') || $zip_0 == '621' || $zip_0 == '624' || $zip_0 == '632' || $zip_0 == '635' || $zip_0 == '659' || $zip_0 == '663' || ($zip_0 >= '642' && $zip_0 <= '643') || ($zip_0 >= '650' && $zip_0 <= '653') || ($zip_0 >= '669' && $zip_0 <= '699') || ($zip_0 >= '740' && $zip_0 <= '758') || ($zip_0 >= '760' && $zip_0 <= '769') || $zip_0 == '771' || ($zip_0 >= '785' && $zip_0 <= '787') || ($zip_0 >= '789' && $zip_0 <= '799')) {
+            $code = '3F';
+        } elseif (($zip_0 >= '460' && $zip_0 <= '469') || ($zip_0 >= '472' && $zip_0 <= '474') || ($zip_0 >= '478' && $zip_0 <= '479')) {
+            $code = '3P';
+        } elseif (($zip_0 >= '498' && $zip_0 <= '499') || ($zip_0 >= '530' && $zip_0 <= '532') || ($zip_0 >= '534' && $zip_0 <= '535') || ($zip_0 >= '537' && $zip_0 <= '539') || ($zip_0 >= '541' && $zip_0 <= '545') || ($zip_0 >= '610' && $zip_0 <= '611') || $zip_0 == '549') {
+            $code = '3Q';
+        } elseif (($zip_0 >= '772' && $zip_0 <= '778') || $zip_0 == '759' || $zip_0 == '770') {
+            $code = '3R';
+        } elseif (($zip_0 >= '613' && $zip_0 <= '616') || ($zip_0 >= '622' && $zip_0 <= '623') || ($zip_0 >= '625' && $zip_0 <= '631') || ($zip_0 >= '633' && $zip_0 <= '634') || ($zip_0 >= '636' && $zip_0 <= '639') || $zip_0 == '620') {
+            $code = '3U';
+        } elseif (($zip_0 >= '434' && $zip_0 <= '436') || ($zip_0 >= '481' && $zip_0 <= '482') || ($zip_0 >= '486' && $zip_0 <= '489') || $zip_0 == '492') {
+            $code = '3C';
+        } elseif (($zip_0 >= '779' && $zip_0 <= '784') || $zip_0 == '788') {
+            $code = '3D';
+        } elseif (($zip_0 >= '440' && $zip_0 <= '449')) {
+            $code = '3H';
+        } elseif (($zip_0 >= '640' && $zip_0 <= '641') || ($zip_0 >= '644' && $zip_0 <= '649') || ($zip_0 >= '654' && $zip_0 <= '658') || ($zip_0 >= '660' && $zip_0 <= '662') || ($zip_0 >= '664' && $zip_0 <= '668')) {
+            $code = '3V';
+        } elseif (($zip_0 >= '430' && $zip_0 <= '433') || ($zip_0 >= '437' && $zip_0 <= '438') || ($zip_0 >= '456' && $zip_0 <= '458')) {
+            $code = '3X';
+        } elseif (($zip_0 >= '813' && $zip_0 <= '828') || ($zip_0 >= '835' && $zip_0 <= '839') || ($zip_0 >= '848' && $zip_0 <= '849') || ($zip_0 >= '856' && $zip_0 <= '858') || ($zip_0 >= '861' && $zip_0 <= '862') || ($zip_0 >= '864' && $zip_0 <= '897') || ($zip_0 >= '917' && $zip_0 <= '918') || ($zip_0 >= '922' && $zip_0 <= '939') || $zip_0 == '833' || $zip_0 == '854' || $zip_0 == '854' || $zip_0 == '899' || $zip_0 == '906' || $zip_0 == '909') {
+            $code = '4F';
+        } elseif (($zip_0 >= '900' && $zip_0 <= '904')) {
+            $code = '4P';
+        } elseif (($zip_0 >= '850' && $zip_0 <= '853') || ($zip_0 >= '859' && $zip_0 <= '860') || $zip_0 == '855' || $zip_0 == '863') {
+            $code = '4Q';
+        } elseif (($zip_0 >= '919' && $zip_0 <= '921')) {
+            $code = '4R';
+        } elseif (($zip_0 >= '910' && $zip_0 <= '916')) {
+            $code = '4U';
+        } elseif (($zip_0 >= '829' && $zip_0 <= '832') || ($zip_0 >= '840' && $zip_0 <= '847') || $zip_0 == '834' || $zip_0 == '898') {
+            $code = '4V';
+        } elseif (($zip_0 >= '300' && $zip_0 <= '320') || ($zip_0 >= '322' && $zip_0 <= '326') || ($zip_0 >= '334' && $zip_0 <= '339') || ($zip_0 >= '341' && $zip_0 <= '346') || ($zip_0 >= '348' && $zip_0 <= '399') || ($zip_0 >= '700' && $zip_0 <= '739')) {
+            $code = '5F';
+        } elseif (($zip_0 >= '330' && $zip_0 <= '333') || $zip_0 == '340') {
+            $code = '5P';
+        } elseif (($zip_0 >= '327' && $zip_0 <= '329') || $zip_0 == '321' || $zip_0 == '347') {
+            $code = '5Q';
+        } elseif (($zip_0 >= '006' && $zip_0 <= '009')) {
+            $code = '5R';
+        } else {
+            $code = '1F';
+        }
+
+        if (!$code)
+            return '';
+        return $code;
+
+    }
+
+    private function getLabelType($country_code)
+    {
+
+        return self::LABEL_TYPE[$country_code] ?? $country_code;
+    }
+
+    const LABEL_TYPE = [
+        '2' => 'zs',
+        '6' => 'jh',
+    ];
+
+    //author by lanShuShu 金华仓 中山仓CNPOST
+    private function label_CNPOST($order)
+    {
+        $labelType = $this->getLabelType($order['warehouse_id']);
+        $order['zoneZip'] = $this->getZipFormat($order['zip']);
+        return $this->display('CNPOST_' . $labelType, $order);
+    }
+
+
+}

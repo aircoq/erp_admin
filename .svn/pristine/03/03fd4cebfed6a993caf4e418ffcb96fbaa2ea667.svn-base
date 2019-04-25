@@ -1,0 +1,196 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0077)http://lilangda.tongtool.com/process/new/warehouse/print?0.013180876675128239 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:300pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;font-size:10pt;overflow-x:hidden;page-break-after:always;margin: 0 auto;">
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;margin-top:20pt;">
+            <tr style="width:260pt;height:40pt;">
+                <td style="">
+                    CHANGI AIRFREIGHT<br>
+                    CENTRE <strong>PO BOX 1192</strong> S<br>
+                    INGAPORE 918118
+                </td>
+                <td style="font-size:12pt;font-weight:bold;text-align:center">
+                  C
+
+                </td>
+                <td style="border:1pt #000 solid;">
+                    <div style="text-align:center">
+                        <strong>PP</strong>   60077
+
+                    </div>
+                    <div style="text-align:center">
+                        SINGPORE
+
+                    </div>
+
+
+                </td>
+
+
+            </tr>
+            <br>
+            <tr style="width:260pt;height:40pt;">
+                <td style="font-size:10pt;width:150pt;">
+                    <strong>TO:</strong><?php echo $name?><br>
+                    <strong>Tel:</strong><?php echo $phone;?><br>
+                    <?php echo $street.' '.$street2;?>
+                    <?php echo $province?>
+                    <?php echo $city.''.$zip;?><br>
+                    <strong><?php echo $country_en_name?></strong>
+                </td>
+                <td  style="font-size:8pt;font-weight:bold;text-align:center;padding-left:100pt;">
+                    <div style="border:1pt #000 solid;width:60pt;height:23pt;">
+                        AIR MAIL
+                        航PAR AVION空
+
+                    </div >
+
+                    <div style="width:60pt;font-size:12pt;border:1pt solid #000;border-top:0;height:15pt;">
+                        <?php echo $country_code?>
+
+                    </div>
+                    <div style="width:60pt;font-size:12pt;height:15pt;">
+                   627
+                    </div>
+
+                </td>
+
+            </tr>
+
+            <tr style="width:260pt";>
+                <td style="font-size:14pt;font-weight:bold;padding-left:70pt;">
+                  <?php echo $shipping_number?>
+                </td>
+            </tr>
+            <tr >
+                <td >
+                    <img  style="width:200pt;padding-left:40pt;" src="<?php echo $this->imgSrc($shipping_number,'self')?>">
+
+                </td>
+
+            </tr>
+
+            <tr style=" ">
+                <td style="display:inline-block;padding-left:10pt;font-size:8pt;float:left;border:1pt solid;width:260pt;">
+                    SGGH 【755856403】  RefNO: <?php echo $number;?><br>
+                </td>
+
+            </tr>
+            <tr style="">
+                <td style="display:inline-block;padding-left:10pt;font-size:8pt;float:left;border:1pt solid;border-top:none;width:260pt;">
+                    CS: S7251 SD: S2896 (X011)
+                </td>
+            </tr>
+            <tbody>
+
+            </tbody>
+        </table>
+
+
+        <table cellpadding="0" cellspacing="0"
+             style="width:263pt;table-layout:fixed;border-collapse:collapse;margin-top:20pt;">
+
+                <tr style="border:solid 1pt #000;font-size: 5pt;border-bottom: none;width:260pt;">
+                    <td colspan="3" style="border:solid 1pt #000;font-size: 5pt;border-bottom: none;">
+                        <strong>CUSTOMS
+                            DECLARATION </strong>   May be opened officially
+                    </td>
+                </tr>
+                <tr style="border:solid 1pt #000;font-size: 5pt;border-bottom: none;width:260pt;">
+                    <td colspan="3" style="border:solid 1pt #000;text-align:center;font-size:8pt;border-bottom:none;bottom-right:none;">
+                        <strong>Postal administration </strong>        <span style="padding-left:20pt;" <strong>Important</strong>See instructions on the back </span>
+                    </td>
+                </tr>
+                <tr style="border:solid 1pt #000;font-size: 8pt;width:260pt;">
+                    <td colspan="3" style="border:solid 1pt #000;font-size: 7pt">
+                        <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAANCAIAAAAmMtkJAAAAjElEQVQoFWP8//8/A7mABVnjwYMHHz58iCyCzGZmZo6OjkYWYUS2OSQkZO3atbq6usgqIOw7d+58//4dWTFIHMiHg+Dg4NraWjgXmXHixAl2dnZkESCbCdMS4kVGNRMfVmCVFAUYlkQiIyOD6YInT54ABYFxiyyFovns2bPPnj1DlkZmA5Onl5cXsggABJ9huP96iX0AAAAASUVORK5CYII=">
+                        Gift &nbsp;&nbsp;&nbsp;
+                        <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAANCAIAAAAmMtkJAAAAjElEQVQoFWP8//8/A7mABVnjwYMHHz58iCyCzGZmZo6OjkYWYUS2OSQkZO3atbq6usgqIOw7d+58//4dWTFIHMiHg+Dg4NraWjgXmXHixAl2dnZkESCbCdMS4kVGNRMfVmCVFAUYlkQiIyOD6YInT54ABYFxiyyFovns2bPPnj1DlkZmA5Onl5cXsggABJ9huP96iX0AAAAASUVORK5CYII=">
+                        Documents&nbsp;&nbsp;
+                        <br>
+
+                        <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAANCAIAAAAmMtkJAAAAjElEQVQoFWP8//8/A7mABVnjwYMHHz58iCyCzGZmZo6OjkYWYUS2OSQkZO3atbq6usgqIOw7d+58//4dWTFIHMiHg+Dg4NraWjgXmXHixAl2dnZkESCbCdMS4kVGNRMfVmCVFAUYlkQiIyOD6YInT54ABYFxiyyFovns2bPPnj1DlkZmA5Onl5cXsggABJ9huP96iX0AAAAASUVORK5CYII=">
+                      &nbsp;&nbsp; Commercial sample
+                        <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAQCAIAAACdjxhxAAABT0lEQVQ4EWP8//8/A2WAiTLtIN0saEZs27btzZs3aIIg7r9PZ/ddcgr29vf3R5NlRPOIgYHBxYsXdXV10dQBjbh89aGcnNzDhw/RpYBGIAMTE5PZs2cji0DYPw/V+uTMVVNTw5QiMiz+3j3xRUiNG91+MJ84I/69PvaMV00Eu2Lsoui2fTt2ldlEHj3ooapwGPHt/p5J2YEpc+7+Ban7dfbMXx1zVnSD8Rnx5/KG1XdUfU3udVevev6P4c+tY5/lLIVx2IaRLsAms+hGlQFj9Rt/gFVSw073usdP+S0UmZ9dwu4MHP4DK+ayKKkzs6hqEDFjMYtmY3iG3QQGBrR41tfXB6qUgQFpCQF2RkYOAUlpGRmgODBpoakHctFdMXny5A8fPiDZ9/v2illXbDICZZiBgjw8PEhSUCZ6AsdUwfDz5092dnYsEsQbgVszRAYAYdu7acCnvnUAAAAASUVORK5CYII=">
+                        OtherTick one of more boxes
+                    </td>
+                </tr>
+        </table>
+
+
+            <table cellpadding ="0" cellspacing="0" style="width:260pt;height:60pt;padding:2pt;table-layout:fixed;border-collapse:collapse;font-size:6pt;">
+                <tbody>
+                <tr style="height:20pt;">
+                    <td style="width:130pt;padding-top: 2pt;border:solid 1pt #000;border-top:none;word-wrap:break-word;">
+                        Quantity and detailed description of contents</td>
+                    <td style="width:65pt;padding:0 2pt;border:solid 1pt #000;border-top:none;;border-left:none;text-align:center;"> Weight
+                        (In kg)</td>
+                    <td style="border:solid 1pt #000;width:58pt;border-top:none;border-left:none;padding:0 2pt;text-align:left;"> Value(USD) </td>
+                </tr>
+                <?php foreach ($list as $k=>$v):?>
+                <tr>
+
+                    <td style="width:130pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                        <?php echo $v['declared_name_en'];?>
+                    </td>
+
+                    <td style="border:solid 1pt #000;text-align:center;padding:2pt;">  <?php echo number_format($v['declared_weight']/1000,3,'.','');?></td>
+                    <td style="border:solid 1pt #000;text-align:center;padding:2pt;"> <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?> </td>
+
+                </tr>
+                <tr>
+                    <td style="width:130pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                        For commercial items only
+                        If known,HS tariffnumber and
+                        country of origin of goods
+                    </td>
+                    <td style="border:solid 1pt #000;text-align:center;padding:2pt;">
+                        Total weight( In kg)
+                    </td>
+                    <td style="border:solid 1pt #000;text-align:center;padding:2pt;">
+                        Total Value(USD)
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width:130pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                    </td>
+                    <td style="border:solid 1pt #000;text-align:center;padding:2pt;">
+                        <?php echo number_format($total_weight/1000,3,'.','');?>
+                    </td>
+                    <td style="border:solid 1pt #000;text-align:center;padding:2pt;">
+                        <?php echo number_format($total_value,2,'.','')?></td>
+                    <?php endforeach;?>
+                </tr>
+                <tr>
+                    <td colspan="6"
+                        style="border:solid 1pt #000;word-wrap:break-word;font-size:7pt;line-height:10pt;padding:0 2pt;">
+                        I, the undersigned, whose name and address are given on this item, certify
+                        that this declaration is correct and that this item does not contain any
+                        dangerous goods or other content prohibited by legislation or by the
+                        general conditions of PostNL BV.<br>
+                        <strong>Date and sender’s signature:</strong> <span style="padding-left:50pt;"> <strong>Frankie</strong></span>
+                    </td>
+
+
+                </tr>
+                </tbody>
+
+
+        </table>
+
+
+
+
+</body>
+</html>

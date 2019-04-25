@@ -1,0 +1,417 @@
+<?php
+namespace service\aliexpress\operation;
+use service\aliexpress\operation\Common;
+use think\Exception;
+
+/**
+ * Created by ZenStudio.
+ * User: Hot-Zr
+ * Date: 2017年3月20日
+ * Time: 09：25
+ * Info: 用来处理 aliexpress Post产品的接口。
+ */
+class PostProduct extends Common
+{
+	protected $client_id;
+	protected $client_secret;
+	protected $access_token;
+	protected $refresh_token ;
+	protected $server_host = 'http://gw.api.alibaba.com:80/openapi/';
+	protected $namespace = '';
+	protected $name = '';
+	
+    /**
+     * @info 设置基础属性
+     * @param unknown $arrConfig
+     * @return \service\aliexpress\operation\Postproduct
+     */
+    
+    public function setConfig($arrConfig=[])
+    {
+    	foreach ($arrConfig as $k=>$v)
+    	{
+    		$this->$k= $v;
+    	}
+    	return $this;
+    }
+    
+    /**
+     * @info 发送数据
+     * @param unknown $arrData
+     */
+    private function buildSend($arrData=[])
+    {
+        try{
+            $urlPath = implode('/',['param2',1,$this->namespace,$this->name,$this->client_id]);
+            foreach ($arrData as $k=>$val)
+            {
+                if(is_array($val))
+                {
+                    $val = json_encode($val);
+                }
+                $arrData[$k]=$val;
+                
+            }
+            $arrData['access_token'] = $this->accessToken;
+            $arrData['_aop_datePattern'] = 'yyyy-MM-dd HH:mm:ss';
+            //$arrData['_aop_signature'] = $this->apiSign($arrData, $urlPath,$this->client_secret);
+            $strUrl = $this->server_host.$urlPath;//.'?'.http_build_query($arrData);
+            $result = $this->requestAliexpress($strUrl,$arrData);
+            //$result = $this->curlPost($strUrl, $arrData);
+            //return json_decode($result, true);
+            return $result;
+        }catch(Exception $ex){
+            return ['error_code'=>$ex->getMessage()];
+        }
+
+    }
+    
+    
+    /**
+     * @info 延长商品有效期
+     * @param 参数  商品ID : $productId
+     * @return array 
+     */
+    public function renewExpire($productId)
+    {
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'alibaba.ae.product.renewExpire';
+        $arrData['productId'] = $productId;
+        return self::buildSend($arrData);
+    }
+    
+    /**
+	*@info 发布多语言产品（试用）
+	*
+    */              
+    public function postMultilanguageAeProduct($arrData = [])
+    {
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'alibaba.product.postMultilanguageAeProduct';
+        return self::buildSend($arrData);
+    }
+    
+    /**
+     * @info 查询商品状态
+     */
+	public function findAeProductStatusById($productId)
+	{
+		$arrData['productId'] = $productId;
+		$this->namespace = 'aliexpress.open';
+		$this->name = 'api.findAeProductStatusById';
+		return self::buildSend($arrData);
+	}
+    
+	/**
+	*@info 商品违禁词查询
+	*/
+	public function findAeProductProhibitedWords ($arrData = [])
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.findAeProductProhibitedWords';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	*@info 编辑SKU的可售库存 
+	*/
+	public function editMutilpleSkuStocks($arrData =[])
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.editMutilpleSkuStocks';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 * @info 编辑商品单个SKU库存 
+	 */
+	public function editSingleSkuStock($arrData =[])
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.editSingleSkuStock';
+        return self::buildSend($arrData);
+	}
+	/**
+	 *info 编辑商品的单个SKU价格信息。
+	 */
+	public function editSingleSkuPrice($arrData =[])
+	{
+	    $this->namespace = 'aliexpress.open';
+	    $this->name = 'api.editSingleSkuPrice';
+	    return self::buildSend($arrData);
+	}
+	
+	/**	
+	*info 编辑商品的多语言标题或详描 
+	 */
+	public function editMultilanguageProduct($arrData =[])
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.editMultilanguageProduct';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 获取卖家可用橱窗数
+	 */
+	public function getRemainingWindows()
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.getRemainingWindows';
+        return self::buildSend();
+	}
+	
+	/**
+	 *info 创建产品分组
+	 */
+	public function createProductGroup ($arrData = [])
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.createProductGroup';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info根据类目id获得适用的尺码表信息列表 
+	 */
+	public function getSizeChartInfoByCategoryId  ($categoryId)
+	{
+		$arrData['categoryId'] = $categoryId;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.getSizeChartInfoByCategoryId';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 修改商品所引用的尺码模板
+	 */
+	public function setSizeChart($arrData = [])
+	{
+	    $this->namespace = 'aliexpress.open';
+	    $this->name = 'api.setSizeChart';
+	    return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 卖家橱窗使用详情查询 
+	 */
+	public function getWindowProducts()
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.getWindowProducts';
+        return self::buildSend();
+	}
+	
+	/**
+	 *info 编辑商品类目属性
+	 */
+	public function editProductCategoryAttributes ($arrData = [])
+	{
+	    $this->namespace = 'aliexpress.open';
+	    $this->name = 'api.editProductCategoryAttributes';
+	    return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 商品分组设置
+	 */
+	public function setGroups ($arrData = [])
+	{
+	    $this->namespace = 'aliexpress.open';
+	    $this->name = 'api.setGroups';
+	    return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 查询指定商品ID所在产品分组 
+	 */
+	public function queryProductGroupIdByProductId ($productId)
+	{
+		$arrData['productId'] = $productId;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.queryProductGroupIdByProductId';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 获取当前会员的产品分组
+	 */
+	public function getProductGroupList()
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.getProductGroupList';
+        return self::buildSend();
+	}
+	
+	/**
+	 *info 编辑产品类目、属性、sku 
+	 */
+	public function editProductCidAttIdSku($arrData = [])
+	{
+	    $this->namespace = 'aliexpress.open';
+	    $this->name = 'api.editProductCidAttIdSku';
+	    return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 编辑商品的单个字段
+	 */
+	public function editSimpleProductFiled($arrData = [])
+	{
+	    $this->namespace = 'aliexpress.open';
+	    $this->name = 'api.editSimpleProductFiled';
+	    return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 获取属性需要优化的商品列表 
+	 */
+	public function getAtributeMissingProductList ($arrData = [])
+	{
+	    $this->namespace = 'aliexpress.open';
+	    $this->name = 'api.getAtributeMissingProductList';
+	    return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 通过淘宝产品的url进行单品认领 
+	 */
+	public function claimTaobaoProducts4API ($url)
+	{
+		$arrData['url']=$url;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.claimTaobaoProducts4API';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 商品橱窗设置
+	 */
+	public function setShopwindowProduct  ($productIdList)
+	{
+		$arrData['productIdList']=$productIdList;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.setShopwindowProduct';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 服务模板查询
+	 */
+	public function queryPromiseTemplateById ($templateId = -1)
+	{
+		$arrData['templateId']=$templateId;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.queryPromiseTemplateById';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 获取淘宝原始产品信息
+	 */
+	public function listTbProductByIds($productIds)
+	{
+		$arrData['productIds']=$productIds;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.listTbProductByIds';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 查询信息模板列表
+	 */
+	public function findAeProductDetailModuleListByQurey ($arrData = [])
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.findAeProductDetailModuleListByQurey';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 查询单个信息模板详情
+	 */
+	public function findAeProductModuleById($moduleId)
+	{
+		$arrData['moduleId'] = $moduleId;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.findAeProductModuleById';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 商品上架
+	 */
+	public function onlineAeProduct($productIds)
+	{
+		$arrData['productIds'] = $productIds;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.onlineAeProduct';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 商品下架 
+	 */
+	public function offlineAeProduct  ($productIds)
+	{
+		$arrData['productIds'] = $productIds;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.offlineAeProduct';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info修改编辑商品信息
+	 */
+	public function editAeProduct ($arrData = [])
+	{
+	    $this->namespace = 'aliexpress.open';
+	    $this->name = 'api.editAeProduct';
+	    return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 获取单个产品信息
+	 */
+	public function findAeProductById  ($productId)
+	{
+		$arrData['productId'] = $productId;
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.findAeProductById';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 商品列表查询接口 
+	 */
+	public function findProductInfoListQuery($arrData = [])
+	{
+		$this->namespace = 'aliexpress.open';
+        $this->name = 'api.findProductInfoListQuery';
+        return self::buildSend($arrData);
+	}
+	
+	/**
+	 *info 发布产品信息
+	 */
+    public function postAeProduct($arrData = [])
+    {
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'api.postAeProduct';
+        return self::buildSend($arrData);
+    }
+	
+	
+    /**测试
+     *info 查询商户信息
+     */
+    public function queryMerchantCertificationInfo ($adminMemberSeq)
+    {
+    
+        $arrData['adminMemberSeq'] = $adminMemberSeq;
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'alibaba.ae.userauth.queryMerchantCertificationInfo';
+        return self::buildSend($arrData);
+    }
+	
+}

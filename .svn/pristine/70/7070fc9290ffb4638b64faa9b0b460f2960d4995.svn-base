@@ -1,0 +1,1750 @@
+[21-Mar-2018 16:19:17 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Controller\Index::favicon.ico() in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:89
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 89
+[21-Mar-2018 16:28:57 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Controller\Index::favicon.ico() in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:89
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 89
+[21-Mar-2018 16:41:09 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('Basic NTYzNjgxO...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(11): Swagger\Client\Api\OpenApiApi->fetchToken('Basic NTYzNjgxO...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:43:40 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(11): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken', '56368199', 'b5b4acbb5b204d8...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:43:43 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(11): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken', '56368199', 'b5b4acbb5b204d8...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:44:16 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(11): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...', '56368199', 'b5b4acbb5b204d8...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:48:31 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(11): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:09 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:10 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:10 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:10 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:10 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:10 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:11 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:11 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:11 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:11 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:49:11 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:26 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:27 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:27 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:27 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:28 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:57:29 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [0] cURL error 60: SSL certificate problem: unable to get local issuer certificate (see http://curl.haxx.se/libcurl/c/libcurl-errors.html) in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 16:58:08 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://open.edisebay.com/v1/api/FetchToken` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"Invalid token","timestamp":1521622722963,"messageId":null},"token":null,"expireDat (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 17:01:33 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/FetchToken` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"Invalid token","timestamp":1521622927664,"messageId":null},"token":null,"expireDat (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 17:02:22 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/FetchToken` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"Invalid token","timestamp":1521622976657,"messageId":null},"token":null,"expireDat (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('/api/FetchToken')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\Index.php(10): Swagger\Client\Api\OpenApiApi->fetchToken('/api/FetchToken', '56368199', 'b5b4acbb5b204d8...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(89): Swagger\Client\Controller\Index->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 18:05:20 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"messageId is missing.","timestamp":1521626754781,"messageId":null},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(14): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:05:42 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"messageId is missing.","timestamp":1521626776635,"messageId":null},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(14): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:11:11 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"messageId is missing.","timestamp":1521627105578,"messageId":""},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(20): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:11:12 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"messageId is missing.","timestamp":1521627107503,"messageId":""},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(20): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:12:12 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"messageId is missing.","timestamp":1521627167108,"messageId":""},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:13:41 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"messageId is missing.","timestamp":1521627256073,"messageId":""},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:14:00 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"ebayId is missing.","timestamp":1521627275511,"messageId":"222"},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:20:15 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [401] Client error: `POST https://api.edisebay.com/v1/api/v1/api/GetAddressPreferenceList` resulted in a `401 Unauthorized` response:
+{"error":"Request is Unauthorized.","exception":"com.connext.gateway.exception.UnauthorizedException","message":"Token f (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:20:22 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [401] Client error: `POST https://api.edisebay.com/v1/api/v1/api/GetAddressPreferenceList` resulted in a `401 Unauthorized` response:
+{"error":"Request is Unauthorized.","exception":"com.connext.gateway.exception.UnauthorizedException","message":"Token f (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:21:51 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [401] Client error: `POST https://api.edisebay.com/v1/api/v1/api/FetchToken` resulted in a `401 Unauthorized` response:
+{"error":"Request is Unauthorized.","exception":"com.connext.gateway.exception.UnauthorizedException","message":"Invalid (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('Basic NTYzNjgxO...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(11): Swagger\Client\Api\OpenApiApi->fetchToken('Basic NTYzNjgxO...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(23): Swagger\Client\Controller\AbstractController->fetchToken()
+#3 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(12): Swagger\Client\Controller\AbstractController->getAccessToken(false)
+#4 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 18:23:40 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://open.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"unauthorized ebayId: 333","timestamp":1521627855455,"messageId":"222"},"data":null (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-281-...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-281-...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:23:49 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [401] Client error: `POST https://api.edisebay.com/v1/api/v1/api/FetchToken` resulted in a `401 Unauthorized` response:
+{"error":"Request is Unauthorized.","exception":"com.connext.gateway.exception.UnauthorizedException","message":"Invalid (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2363
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2338): Swagger\Client\Api\OpenApiApi->fetchTokenWithHttpInfo('Basic NTYzNjgxO...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(11): Swagger\Client\Api\OpenApiApi->fetchToken('Basic NTYzNjgxO...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(23): Swagger\Client\Controller\AbstractController->fetchToken()
+#3 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(12): Swagger\Client\Controller\AbstractController->getAccessToken(false)
+#4 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2363
+[21-Mar-2018 18:25:33 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://api.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"unauthorized ebayId: 333","timestamp":1521627968412,"messageId":"222"},"data":null (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-281-...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-281-...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:25:36 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://api.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"unauthorized ebayId: 333","timestamp":1521627971348,"messageId":"222"},"data":null (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-281-...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-281-...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:26:07 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://api.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"unauthorized ebayId: 333","timestamp":1521628002012,"messageId":"222"},"data":null (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-281-...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-281-...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:26:38 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://api.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"unauthorized ebayId: 333","timestamp":1521628033520,"messageId":"222"},"data":null (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-281-...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-281-...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[21-Mar-2018 18:46:59 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"Invalid value for name","timestamp":1521629254073,"messageId":"11"},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(31): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:47:33 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"Invalid value for name","timestamp":1521629287792,"messageId":"11"},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(31): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:47:35 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"Invalid value for name","timestamp":1521629290375,"messageId":"11"},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(31): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:47:45 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"Invalid value for name","timestamp":1521629300200,"messageId":"11"},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(31): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:48:39 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"district is missing.","timestamp":1521629354190,"messageId":"11"},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(31): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:50:47 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"Invalid value for street1","timestamp":1521629481566,"messageId":"11"},"data":null (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(32): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:51:09 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"postcode is missing.","timestamp":1521629504399,"messageId":"11"},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(32): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:51:47 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020027,"message":"Invalid value for province","timestamp":1521629542110,"messageId":"11"},"dat (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(33): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:52:56 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020011,"message":"Address cascading relationship error","timestamp":1521629610581,"messageId": (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(34): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:54:15 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020011,"message":"Address cascading relationship error","timestamp":1521629689880,"messageId": (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(34): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:54:19 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020011,"message":"Address cascading relationship error","timestamp":1521629694031,"messageId": (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(34): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:57:35 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020014,"message":"Address of the same name already exists","timestamp":1521629890122,"messageI (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(33): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:57:56 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020014,"message":"Address of the same name already exists","timestamp":1521629911041,"messageI (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(33): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:57:58 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020014,"message":"Address of the same name already exists","timestamp":1521629912615,"messageI (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(33): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[21-Mar-2018 18:58:01 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020014,"message":"Address of the same name already exists","timestamp":1521629916328,"messageI (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(33): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[22-Mar-2018 09:33:07 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\favicon.ico' not found in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:90
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 90
+[22-Mar-2018 09:35:59 Asia/Shanghai] PHP Notice:  Undefined index: token in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 17
+[22-Mar-2018 09:38:13 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/GetAddressPreferenceList` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":33,"message":"ebayId is missing.","timestamp":1521682727372,"messageId":"11"},"data":null}
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:2911
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(2885): Swagger\Client\Api\OpenApiApi->getAddressPreferenceListWithHttpInfo('Bearer TGT-16-i...', Object(GuzzleHttp\Psr7\Request))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(22): Swagger\Client\Api\OpenApiApi->getAddressPreferenceList('Bearer TGT-16-i...', Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 2911
+[22-Mar-2018 09:48:03 Asia/Shanghai] PHP Notice:  Undefined variable: result in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php on line 32
+[22-Mar-2018 09:51:29 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client error: ...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 09:52:48 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client} error:...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 09:56:18 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client} error:...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 09:56:24 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client} error:...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 09:58:26 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client} error:...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 09:58:27 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client} error:...')
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 09:59:59 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client} error:...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 10:00:01 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client} error:...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 10:00:02 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): GuzzleHttp\json_decode('{Client} error:...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 10:47:04 Asia/Shanghai] PHP Warning:  include(D:\wwwroot\ebay\SwaggerClient-php\src\Template\index.php): failed to open stream: No such file or directory in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 43
+[22-Mar-2018 10:47:04 Asia/Shanghai] PHP Warning:  include(): Failed opening 'D:\wwwroot\ebay\SwaggerClient-php\src\Template\index.php' for inclusion (include_path='.;C:\php\pear') in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 43
+[22-Mar-2018 10:47:43 Asia/Shanghai] PHP Warning:  include(D:\wwwroot\ebay\SwaggerClient-php\src\Template\index.php): failed to open stream: No such file or directory in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 43
+[22-Mar-2018 10:47:43 Asia/Shanghai] PHP Warning:  include(): Failed opening 'D:\wwwroot\ebay\SwaggerClient-php\src\Template\index.php' for inclusion (include_path='.;C:\php\pear') in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 43
+[22-Mar-2018 10:57:32 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020014,"message":"Address of the same name already exists","timestamp":1521687486606,"messageI (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(37): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[22-Mar-2018 11:22:13 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Controller\Index::index1() in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:91
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 91
+[22-Mar-2018 11:39:23 Asia/Shanghai] PHP Notice:  Undefined offset: 1 in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 36
+[22-Mar-2018 11:41:22 Asia/Shanghai] PHP Notice:  Undefined offset: 1 in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 37
+[22-Mar-2018 11:41:39 Asia/Shanghai] PHP Notice:  Undefined offset: 1 in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 37
+[22-Mar-2018 11:43:27 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [400] Client error: `POST https://sandbox.edisebay.com/v1/api/AddAddressPreference` resulted in a `400 Bad Request` response:
+{"status":{"resultCode":44020027,"message":"Invalid value for province","timestamp":1521690241463,"messageId":"11"},"dat (truncated...)
+ in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:125
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(99): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(39): Swagger\Client\Api\OpenApiApi->addAddressPreference('Bearer TGT-16-i...', Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125
+[22-Mar-2018 11:44:55 Asia/Shanghai] PHP Notice:  Undefined offset: 1 in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 37
+[22-Mar-2018 12:31:00 Asia/Shanghai] PHP Notice:  Undefined index: token in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 19
+[22-Mar-2018 15:13:18 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(32): GuzzleHttp\json_decode('<!DOCTYPE html>...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(37): Swagger\Client\Controller\AbstractController->getMessage(Object(Swagger\Client\ApiException))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 15:14:55 Asia/Shanghai] PHP Notice:  Undefined variable: flag in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 18
+[22-Mar-2018 15:14:55 Asia/Shanghai] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function Swagger\Client\Api\OpenApiApi::__construct(), 0 passed in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 11 and at least 2 expected in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:72
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(11): Swagger\Client\Api\OpenApiApi->__construct()
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(24): Swagger\Client\Controller\AbstractController->fetchToken('https://sandbox...', '56368199', 'b5b4acbb5b204d8...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(23): Swagger\Client\Controller\AbstractController->getAccessToken('https://sandbox...', '56368199', 'b5b4acbb5b204d8...')
+#3 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#4 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#5 { in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 72
+[22-Mar-2018 15:15:07 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(32): GuzzleHttp\json_decode('<!DOCTYPE html>...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(37): Swagger\Client\Controller\AbstractController->getMessage(Object(Swagger\Client\ApiException))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 15:17:36 Asia/Shanghai] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function Swagger\Client\Api\OpenApiApi::__construct(), 0 passed in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 11 and at least 2 expected in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:72
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(11): Swagger\Client\Api\OpenApiApi->__construct()
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(25): Swagger\Client\Controller\AbstractController->fetchToken('https://sandbox...', '56368199', 'b5b4acbb5b204d8...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(23): Swagger\Client\Controller\AbstractController->getAccessToken('https://sandbox...', '56368199', 'b5b4acbb5b204d8...')
+#3 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#4 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#5 { in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 72
+[22-Mar-2018 15:20:04 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(33): GuzzleHttp\json_decode('<!DOCTYPE html>...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(37): Swagger\Client\Controller\AbstractController->getMessage(Object(Swagger\Client\ApiException))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 15:20:29 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php(33): GuzzleHttp\json_decode('<!DOCTYPE html>...', true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(37): Swagger\Client\Controller\AbstractController->getMessage(Object(Swagger\Client\ApiException))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[22-Mar-2018 15:41:00 Asia/Shanghai] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function Swagger\Client\Controller\AbstractController::getAccessToken(), 0 passed in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php on line 21 and exactly 3 expected in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php:16
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(21): Swagger\Client\Controller\AbstractController->getAccessToken()
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AbstractController.php on line 16
+[22-Mar-2018 15:59:27 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\Index, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\FetchToken.php on line 23
+[22-Mar-2018 16:09:49 Asia/Shanghai] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function Swagger\Client\Api\OpenApiApi::addAddressPreferenceRequest(), 1 passed in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 125 and exactly 2 expected in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php:277
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(125): Swagger\Client\Api\OpenApiApi->addAddressPreferenceRequest(Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php(107): Swagger\Client\Api\OpenApiApi->addAddressPreferenceWithHttpInfo(Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddAddressPreference.php(42): Swagger\Client\Api\OpenApiApi->addAddressPreference(Object(Swagger\Client\Model\AddAddressPreferenceRequest))
+#3 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddAddressPreference->index()
+#4 D:\wwwroot\ebay\SwaggerClient-php\index.php( in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\OpenApiApi.php on line 277
+[22-Mar-2018 16:10:43 Asia/Shanghai] PHP Notice:  Undefined property: Swagger\Client\Configuration::$host in D:\wwwroot\ebay\SwaggerClient-php\lib\Configuration.php on line 265
+[22-Mar-2018 17:42:20 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\ShipToAddressRequest::setName() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackage.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(91): Swagger\Client\Controller\AddPackage->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackage.php on line 35
+[23-Mar-2018 09:15:55 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\favicon.ico' not found in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:90
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 90
+[23-Mar-2018 09:15:55 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\favicon.ico' not found in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:90
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 90
+[23-Mar-2018 09:27:31 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined function dump() in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:61
+Stack trace:
+#0 [internal function]: {closure}('Swagger\\Client\\...')
+#1 [internal function]: spl_autoload_call('Swagger\\Client\\...')
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(92): class_exists('Swagger\\Client\\...')
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 61
+[23-Mar-2018 11:18:51 Asia/Shanghai] PHP Warning:  preg_replace_callback_array() expects parameter 3 to be integer, string given in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:20:35 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:37 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:38 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:39 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:39 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:39 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:39 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:39 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:39 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:39 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:24:39 Asia/Shanghai] PHP Warning:  preg_replace(): The /e modifier is no longer supported, use preg_replace_callback instead in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 98
+[23-Mar-2018 11:31:50 Asia/Shanghai] PHP Notice:  Undefined variable: 1 in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 99
+[23-Mar-2018 11:34:04 Asia/Shanghai] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function Swagger\Client\Api\DefaultEbayClient::getAddressPreferenceList(), 0 passed in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 99 and exactly 1 expected in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2915
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php(99): Swagger\Client\Api\DefaultEbayClient->getAddressPreferenceList()
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetAddressPreferenceList.php(33): Swagger\Client\Api\DefaultEbayClient->execute(Object(Swagger\Client\Model\GetAddressPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\GetAddressPreferenceList->index()
+#3 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#4 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2915
+[25-Mar-2018 16:56:16 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\favicon.ico' not found in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 101
+[25-Mar-2018 16:56:16 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\favicon.ico' not found in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 101
+[25-Mar-2018 17:36:01 Asia/Shanghai] PHP Fatal error:  Uncaught ArgumentCountError: Too few arguments to function Swagger\Client\Api\DefaultEbayClient::getConsignPreferenceListRequest(), 1 passed in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 3215 and exactly 2 expected in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php:3367
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php(3215): Swagger\Client\Api\DefaultEbayClient->getConsignPreferenceListRequest(Object(Swagger\Client\Model\GetConsignPreferenceListRequest))
+#1 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php(3197): Swagger\Client\Api\DefaultEbayClient->getConsignPreferenceListWithHttpInfo(Object(Swagger\Client\Model\GetConsignPreferenceListRequest))
+#2 D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php(99): Swagger\Client\Api\DefaultEbayClient->getConsignPreferenceList(Object(Swagger\Client\Model\GetConsignPreferenceListRequest))
+#3 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetConsignPreferenceList.php( in D:\wwwroot\ebay\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 3367
+[25-Mar-2018 17:41:25 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\GetConsignPreferenceListResponses::getConsignPreferenceList() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetConsignPreferenceList.php:40
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\GetConsignPreferenceList->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetConsignPreferenceList.php on line 40
+[25-Mar-2018 18:28:32 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 20
+[25-Mar-2018 19:26:33 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 20
+[25-Mar-2018 19:26:55 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:50 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:51 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:52 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:52 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:52 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:52 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:52 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:52 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:52 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:27:52 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:28:03 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:28:17 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:28:18 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:28:51 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\GetConsignPreferenceList, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetDropoffSiteList.php on line 16
+[25-Mar-2018 19:44:26 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateAddressPreferenceRequestData::setType() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateAddressPreference.php:32
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateAddressPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateAddressPreference.php on line 32
+[25-Mar-2018 19:49:03 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setStreet1() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:34
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 34
+[25-Mar-2018 19:49:11 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setProvince() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 35
+[25-Mar-2018 19:49:23 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setCity() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 35
+[25-Mar-2018 19:49:29 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setDistrict() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 35
+[25-Mar-2018 19:49:31 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setDistrict() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 35
+[25-Mar-2018 19:49:35 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setMobile() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 35
+[25-Mar-2018 19:49:41 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setCountryCode() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 35
+[25-Mar-2018 19:49:45 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setContact() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 35
+[25-Mar-2018 19:49:48 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\UpdateConsignPreferenceRequestData::setPostcode() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 35
+[25-Mar-2018 20:05:19 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\PickupAddressRequest::setStreet4() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php:42
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\UpdateConsignPreference->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\UpdateConsignPreference.php on line 42
+[26-Mar-2018 09:41:53 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\favicon.ico' not found in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php on line 101
+[26-Mar-2018 10:42:17 Asia/Shanghai] PHP Notice:  Undefined variable: data in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AssignService.php on line 32
+[26-Mar-2018 10:59:28 Asia/Shanghai] PHP Fatal error:  Cannot declare class Swagger\Client\Controller\ConfirmPackages, because the name is already in use in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\DeletePackages.php on line 20
+[26-Mar-2018 13:17:48 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\PackageInfoWithoutServiceRequest::setServiceId() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackageWithoutService.php:73
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\AddPackageWithoutService->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackageWithoutService.php on line 73
+[26-Mar-2018 13:20:40 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\PackageInfoWithoutServiceRequest::setServiceId() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackageWithoutService.php:73
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\AddPackageWithoutService->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackageWithoutService.php on line 73
+[26-Mar-2018 14:17:11 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetLabel.php(38): GuzzleHttp\json_decode(NULL, true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\GetLabel->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[26-Mar-2018 14:17:40 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: json_decode error: Syntax error in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php:304
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\GetLabel.php(38): GuzzleHttp\json_decode(NULL, true)
+#1 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\GetLabel->index()
+#2 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#3 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\functions.php on line 304
+[26-Mar-2018 14:25:19 Asia/Shanghai] PHP Notice:  Undefined variable: itemid in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackageWithoutService.php on line 54
+[26-Mar-2018 14:25:19 Asia/Shanghai] PHP Notice:  Undefined variable: itemid in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackageWithoutService.php on line 55
+[26-Mar-2018 14:33:15 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Model\PackageInfoWithoutServiceRequest::setServiceId() in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackageWithoutService.php:35
+Stack trace:
+#0 D:\wwwroot\ebay\SwaggerClient-php\bootstrap.php(102): Swagger\Client\Controller\AddPackageWithoutService->index()
+#1 D:\wwwroot\ebay\SwaggerClient-php\index.php(2): require('D:\\wwwroot\\ebay...')
+#2 {main}
+  thrown in D:\wwwroot\ebay\SwaggerClient-php\lib\Controller\AddPackageWithoutService.php on line 35
+[26-Mar-2018 16:20:08 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\swaggerclient-php' not found in C:\wamp64\www\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 101
+[26-Mar-2018 16:20:48 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\swaggerclient-php' not found in C:\wamp64\www\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 101
+[26-Mar-2018 16:23:24 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\SwaggerClient-php' not found in C:\wamp64\www\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 101
+[26-Mar-2018 16:24:37 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\SwaggerClient-php' not found in C:\wamp64\www\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 101
+[26-Mar-2018 16:28:48 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\SwaggerClient-php' not found in C:\wamp64\www\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 101
+[26-Mar-2018 16:29:19 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Class 'Swagger\Client\Controller\SwaggerClient-php' not found in C:\wamp64\www\SwaggerClient-php\bootstrap.php:101
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 101
+[26-Mar-2018 16:54:35 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to undefined method Swagger\Client\Controller\Index::bbb() in C:\wamp64\www\SwaggerClient-php\bootstrap.php:103
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\index.php(2): require()
+#1 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 103
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[26-Mar-2018 17:04:04 Asia/Shanghai] PHP Notice:  Undefined variable: path in C:\wamp64\www\SwaggerClient-php\lib\Template\index.php on line 22
+[11-Apr-2018 16:15:56 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [404] Client error: `POST https://sandbox.edisebay.com/v1.5/api/FetchToken` resulted in a `404 Not Found` response:
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8' />
+  <meta name='keywords' content='' />
+  <meta name='descri (truncated...)
+ in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://sandbox...', '56368199', 'b5b4acbb5b204d8...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://sandbox...', '56368199', 'b5b4acbb5b204d8...')
+#2 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\FetchToken->index()
+#3 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#4 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[13-Apr-2018 16:25:52 Asia/Shanghai] PHP Fatal error:  Uncaught Swagger\Client\ApiException: [404] Client error: `POST https://istslb01.eastasia.cloudapp.azure.com/v1.5/api/FetchToken` resulted in a `404 Not Found` response:
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8' />
+  <meta name='keywords' content='' />
+  <meta name='descri (truncated...)
+ in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', 'abcd', '123456')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', 'abcd', '123456')
+#2 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\FetchToken->index()
+#3 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#4 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[31-Jul-2018 14:10:18 Asia/Shanghai] PHP Fatal error:  Uncaught Error: Call to a member function getAddressId() on null in C:\wamp64\www\SwaggerClient-php\lib\Controller\AddAddressPreference.php:42
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\AddAddressPreference->index()
+#1 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#2 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\lib\Controller\AddAddressPreference.php on line 42
+[31-Jul-2018 16:23:54 Asia/Shanghai] PHP Fatal error:  Uncaught InvalidArgumentException: Invalid value for 'page_size', must be one of '0', '1' in C:\wamp64\www\SwaggerClient-php\lib\Model\GetLabelRequestData.php:286
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabel.php(31): Swagger\Client\Model\GetLabelRequestData->setPageSize(33)
+#1 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\GetLabel->index()
+#2 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#3 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\lib\Model\GetLabelRequestData.php on line 286
+[01-Aug-2018 11:40:06 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:53 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:54 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:55 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:55 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:55 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:55 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:55 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:56 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:56 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:44:56 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:01 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:01 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:02 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:04 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:05 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:05 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:36 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:37 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:46:38 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 11:47:49 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Swagger\Client\ApiException' with message '[0] Error creating resource: [message] fopen(): Unable to find the wrapper &quot;https&quot; - did you forget to enable it when you configured PHP?
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324
+[message] fopen(https://istslb01.eastasia.cloudapp.azure.com/v1/api/FetchToken): failed to open stream: Invalid argument
+[file] C:\wamp64\www\SwaggerClient-php\vendor\guzzlehttp\guzzle\src\Handler\StreamHandler.php
+[line] 324' in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php:2356
+Stack trace:
+#0 C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php(2331): Swagger\Client\Api\DefaultEbayClient->fetchTokenWithHttpInfo('https://istslb0...', '34425611', '1a857739209b49e...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\FetchToken.php(18): Swagger\Client\Api\DefaultEbayClient->fetchToken('https://istslb0...', '34425611', '1a857739209b49e...')
+#2 C:\wamp64\www\SwaggerClien in C:\wamp64\www\SwaggerClient-php\lib\Api\DefaultEbayClient.php on line 2356
+[01-Aug-2018 16:39:52 Asia/Shanghai] PHP Parse error:  syntax error, unexpected variable (T_VARIABLE) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 32
+[06-Aug-2018 10:24:51 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Exception' with message 'Swagger\Client\Controller\GetLabelListRequestData not find.' in C:\wamp64\www\SwaggerClient-php\bootstrap.php:62
+Stack trace:
+#0 [internal function]: {closure}('Swagger\\Client\\...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php(30): spl_autoload_call('Swagger\\Client\\...')
+#2 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\GetLabelList->index()
+#3 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#4 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 62
+[06-Aug-2018 10:27:15 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Exception' with message 'Swagger\Client\Controller\GetLabelListRequestData not find.' in C:\wamp64\www\SwaggerClient-php\bootstrap.php:62
+Stack trace:
+#0 [internal function]: {closure}('Swagger\\Client\\...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php(30): spl_autoload_call('Swagger\\Client\\...')
+#2 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\GetLabelList->index()
+#3 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#4 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 62
+[06-Aug-2018 10:45:07 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Exception' with message 'Swagger\Client\Controller\GetLabelRequestData not find.' in C:\wamp64\www\SwaggerClient-php\bootstrap.php:62
+Stack trace:
+#0 [internal function]: {closure}('Swagger\\Client\\...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php(32): spl_autoload_call('Swagger\\Client\\...')
+#2 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\GetLabelList->index()
+#3 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#4 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 62
+[06-Aug-2018 13:58:06 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Exception' with message 'Swagger\Client\Controller\GetLabelRequestData not find.' in C:\wamp64\www\SwaggerClient-php\bootstrap.php:62
+Stack trace:
+#0 [internal function]: {closure}('Swagger\\Client\\...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php(32): spl_autoload_call('Swagger\\Client\\...')
+#2 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\GetLabelList->index()
+#3 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#4 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 62
+[06-Aug-2018 14:00:24 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Exception' with message 'Swagger\Client\Controller\GetLabelRequestData not find.' in C:\wamp64\www\SwaggerClient-php\bootstrap.php:62
+Stack trace:
+#0 [internal function]: {closure}('Swagger\\Client\\...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php(32): spl_autoload_call('Swagger\\Client\\...')
+#2 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\GetLabelList->index()
+#3 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#4 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 62
+[06-Aug-2018 14:01:52 Asia/Shanghai] PHP Fatal error:  Uncaught exception 'Exception' with message 'Swagger\Client\Controller\GetLabelRequestData not find.' in C:\wamp64\www\SwaggerClient-php\bootstrap.php:62
+Stack trace:
+#0 [internal function]: {closure}('Swagger\\Client\\...')
+#1 C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php(32): spl_autoload_call('Swagger\\Client\\...')
+#2 C:\wamp64\www\SwaggerClient-php\bootstrap.php(108): Swagger\Client\Controller\GetLabelList->index()
+#3 C:\wamp64\www\SwaggerClient-php\index.php(2): require('C:\\wamp64\\www\\S...')
+#4 {main}
+  thrown in C:\wamp64\www\SwaggerClient-php\bootstrap.php on line 62
+[06-Aug-2018 14:05:48 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 48
+[06-Aug-2018 14:05:48 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:05:48 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:05:48 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:05:48 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:05:48 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:05:48 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:05:48 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322
+[06-Aug-2018 14:05:55 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 48
+[06-Aug-2018 14:05:55 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:05:55 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:05:55 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:05:55 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:05:55 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:05:55 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:05:55 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322
+[06-Aug-2018 14:06:31 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 47
+[06-Aug-2018 14:06:31 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:06:31 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:06:31 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:06:31 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:31 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:31 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:31 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 47
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 47
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 47
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:32 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 47
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 47
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP Parse error:  syntax error, unexpected '=>' (T_DOUBLE_ARROW) in C:\wamp64\www\SwaggerClient-php\lib\Controller\GetLabelList.php on line 47
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP Stack trace:
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   1. {main}() C:\wamp64\www\SwaggerClient-php\index.php:0
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   2. require() C:\wamp64\www\SwaggerClient-php\index.php:2
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   3. class_exists() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   4. spl_autoload_call() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   5. Composer\Autoload\ClassLoader->loadClass() C:\wamp64\www\SwaggerClient-php\bootstrap.php:102
+[06-Aug-2018 14:06:33 Asia/Shanghai] PHP   6. Composer\Autoload\includeFile() C:\wamp64\www\SwaggerClient-php\vendor\composer\ClassLoader.php:322

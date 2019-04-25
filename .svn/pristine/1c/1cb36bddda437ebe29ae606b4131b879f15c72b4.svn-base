@@ -1,0 +1,68 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class Daiyun extends Base
+{
+
+    protected $is_open_water = 1;
+    public function isCanDeclare($code)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "canDeclare_".$code  ;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('此渠道不能预览报关单' . $strFun);
+        }
+        return $this->$strFun($code);
+    }
+    private function canDeclare_A1610200(){
+        return 1;
+    }
+
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 2);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+    public function createDeclareLabel($code,$order){
+        $strFun = "declareLabel_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        return $this->$strFun($order);
+    }
+
+    //author by lan 泽西邮政平邮
+    private function label_A1610200($order)
+    {
+        return $this->display('A1610200', $order);
+    }
+
+    //author by lan 泽西邮政挂号
+    private function label_A1610201($order)
+    {
+        return $this->display('A1610201', $order);
+    }
+
+    //author by lan 泽西邮政平邮(报关单)
+    private function declareLabel_A1610200($order)
+    {
+        return $this->display('declare_A1610200', $order);
+    }
+}

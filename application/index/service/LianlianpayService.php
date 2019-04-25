@@ -1,0 +1,273 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2019/3/21
+ * Time: 16:58
+ */
+
+namespace app\index\service;
+
+use think\Db;
+use think\Request;
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\model\account\LianlianpayAccount;
+
+
+class LianlianpayService
+{
+    protected $model;
+    /**
+     * @var \app\common\cache\driver\User
+     */
+    protected $cache;
+
+    public function __construct()
+    {
+        if (is_null($this->model)) {
+            $this->model = new LianlianpayAccount();
+        }
+        if (is_null($this->cache)) {
+            $this->cache = Cache::store('user');
+        }
+
+    }
+
+    /**
+     * 接收错误并返回,当你调用此类时，如果遇到需要获取错误信息时，请使用此方法。
+     * @return mixed
+     */
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * 获取列表
+     * @return array
+     * @throws \think\Exception
+     */
+    public function getLianlianpayList()
+    {
+        $request = Request::instance();
+        $params = $request->param();
+
+        $order = 'a.id';
+        $sort = 'desc';
+        $sortArr = [
+            'channel_id' => 'a.channel_id',
+            'account_id' => 'a.account_id',
+            'site_code' => 'a.site_code',
+            'create_time' => 'a.create_time',
+        ];
+        if (!empty($params['order_by']) && !empty($sortArr[$params['order_by']])) {
+            $order = $sortArr[$params['order_by']];
+        }
+        if (!empty($params['sort']) && in_array($params['sort'], ['asc', 'desc'])) {
+            $sort = $params['sort'];
+        }
+
+        $where = $this->getWhere($params);
+        $page = $request->get('page', 1);
+        $pageSize = $request->get('pageSize', 10);
+        $field = 'a.id,a.server_id,a.channel_id,a.site_code,a.operator_id,a.lianlian_account,a.lianlian_name,
+        a.status,a.create_id,a.create_time,a.account_id,server.name as ip_name,server.ip as ip_address';
+
+        $count = $this->model->alias('a')
+            ->join('server','a.server_id=server.id','LEFT')
+            ->where($where)
+            ->count();
+        $list = $this->model->alias('a')
+            ->join('server','a.server_id=server.id','LEFT')
+            ->field($field)
+            ->where($where)
+            ->order($order, $sort)
+            ->page($page, $pageSize)
+            ->select();
+
+        foreach ($list as $key => $item) {
+            $item['account_code'] = '';
+            $item['account_id'] = $item['account_id'] != 0 ? $item['account_id'] : '';
+            $result = Cache::store('account')->getAccountByChannel($item['channel_id']);
+            if (!empty($result)) {
+                foreach ($result as $k => $v) {
+                    if ($v['id'] == $item['account_id']) {
+                        $item['account_code'] = $v['code'];
+                    }
+                }
+            }
+
+            $list[$key]['channel'] = Cache::store('Channel')->getChannelName($item['channel_id']);
+            $list[$key]['create'] = $this->cache->getOneUserRealname($item['create_id']);
+            $list[$key]['operator'] = $this->cache->getOneUserRealname($item['operator_id']);
+            $list[$key]['create_time'] = date('Y-m-d H:i:s',$item['create_time']);
+        }
+        $result = [
+            'data' => $list,
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'count' => $count,
+        ];
+        return $result;
+
+    }
+
+    /**
+     * @ttitle 根据ID查询记录
+     * @param $id
+     * @return array|bool|false|\PDOStatement|string|\think\Model
+     * @throws \think\Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function read($id)
+    {
+        $info = $this->model
+            ->alias('a')
+            ->field('a.*,server.name as ip_name,server.ip as ip_address')
+            ->join('server','a.server_id=server.id','LEFT')
+            ->where(['a.id' => $id])->find();
+        if (!$info) {
+            $this->error = '查询无记录';
+            return false;
+        }
+
+        $info['account_code'] = '';
+        $info['account_id'] = $info['account_id'] != 0 ? $info['account_id'] : '';
+        $result = Cache::store('account')->getAccountByChannel($info['channel_id']);
+        if (!empty($result)) {
+            foreach ($result as $k => $v) {
+                if ($v['id'] == $info['account_id']) {
+                    $info['account_code'] = $v['code'];
+                }
+            }
+        }
+
+        $info['site_code'] =  json_decode($info['site_code'])??'';
+        $info['operator'] =  $this->cache->getOneUserRealname($info['operator_id']);
+        $info['create']   =  $this->cache->getOneUserRealname($info['create_id']);
+        $info['create_time']   =  date('Y-m-d H:i:s',$info['create_time']);
+        $info['update_time']   =  date('Y-m-d H:i:s',$info['update_time']);
+        return $info;
+    }
+
+    /**
+     * 保存记录信息
+     * @param $data
+     * @return array|bool|false|\PDOStatement|string|\think\Model
+     * @throws \think\exception\DbException
+     */
+    public function save($data)
+    {
+        Db::startTrans();
+        try {
+            $this->model->allowField(true)->isUpdate(false)->save($data);
+            $new_id = $this->model->id;
+            Db::commit();
+        } catch (JsonErrorException $e) {
+            $this->error = $e->getMessage();
+            Db::rollback();
+            return false;
+        }
+
+        $info = $this->model->field(true)->where(['id' => $new_id])->find();
+        $info['create_time'] = date('Y-m-d H:i:s',$info['create_time']);
+        return $info;
+    }
+
+    /**
+     * @param $id
+     * @param $data
+     * @return array|bool|false|\PDOStatement|string|\think\Model
+     * @throws \think\Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function update($id, $data)
+    {
+        if (!$this->read($id)) {
+            return false;
+        }
+
+        Db::startTrans();
+        try {
+            unset($data['id']);
+            $this->model->allowField(true)->save($data, ['id' => $id]);
+            Db::commit();
+        } catch (JsonErrorException $e) {
+            $this->error = $e->getMessage(). $e->getFile() . $e->getLine();
+            Db::rollback();
+            return false;
+        }
+
+        $info = $this->model->field(true)->where(['id' => $id])->find();
+        $info['operator'] =  $this->cache->getOneUserRealname($info['operator_id']);
+        $info['create']   =  $this->cache->getOneUserRealname($info['create_id']);
+        return $info;
+    }
+
+    /**
+     * 编辑
+     * @param $id
+     * @return bool|string
+     * @throws \think\Exception
+     * @throws \think\exception\DbException
+     */
+    public function editStatus($id, $status)
+    {
+        $result = $this->read($id);
+
+        if (!$result) {
+            return false;
+        }
+        $data['status'] = 0;
+        if ($status == 1) {
+            $data['status'] = 1;
+        }
+        return $this->model->edit($data, ['id'=>$id]);
+    }
+
+    /**
+     * 查询条件获取
+     * @param $params
+     * @return array
+     */
+    public function getWhere($params)
+    {
+        $where = [];
+        if (isset($params['status']) && $params['status'] !== '') {
+            $where['a.status'] = ['eq', $params['status']];
+        }
+
+        if (isset($params['channel_id']) && ($params['channel_id'] >0)) {
+            $where['a.channel_id'] = ['eq', $params['channel_id']];
+        }
+
+        if (isset($params['site_code']) && ($params['site_code'] !== '')) {
+            $where['a.site_code'] = ['like', '%'.$params['site_code'].'%'];
+        }
+
+        if (isset($params['account_code']) && ($params['account_code'] !== '')) {
+            $where['a.account_id'] = ['eq', $params['account_code']];
+        }
+
+        if (isset($params['ip_name']) && ($params['ip_name'] !== '')) {
+            $where['server.name'] = ['like', '%'.$params['ip_name'].'%'];
+        }
+
+        if (isset($params['ip_address']) && ($params['ip_address'] !== '')) {
+            $where['server.ip'] = ['like', '%'.$params['ip_address'].'%'];
+        }
+
+        if (isset($params['operator_id']) && ($params['operator_id'] !== '')) {
+            $where['a.operator_id'] = ['eq', $params['operator_id']];
+        }
+
+        return $where;
+    }
+
+
+}

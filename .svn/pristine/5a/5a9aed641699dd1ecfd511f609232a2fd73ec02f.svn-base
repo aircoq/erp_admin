@@ -1,0 +1,426 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+/**
+ * @title 万邑通
+ * @author starzhan <397041849@qq.com>
+ */
+class WinitISP extends Base
+{
+
+    protected $is_open_water = 1;
+
+    public function createLabel($code, $order)
+    {
+        $code = str_replace('-', '_', $code);
+        $code = str_replace('|', '_', $code);
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 1) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 1);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+    /**
+     * @title WP-MYP101|YW10000008 eDS易递宝-马来西亚渠道（平邮）-eBay|深圳ISP仓
+     * @param $order
+     * @return string
+     * @author starzhan <397041849@qq.com>
+     */
+    private function label_WP_MYP101_YW10000008($order)
+    {
+        return $this->display('WP_MYP101_YW10000008', $order);
+    }
+
+    public function getZoneCode($countryCode){
+        $zoneMap=[];
+        $zoneMap['RU']='21';
+        $zoneMap['US']='22';
+        $zoneMap['GB']='23';
+        $zoneMap['BR']='24';
+        $zoneMap['AU']='25';
+        $zoneMap['FR']='26';
+        $zoneMap['ES']='27';
+        $zoneMap['CA']='28';
+        $zoneMap['IL']='29';
+        $zoneMap['IT']='30';
+        $zoneMap['DE']='31';
+        $zoneMap['CL']='32';
+        $zoneMap['SE']='33';
+        $zoneMap['BY']='34';
+        $zoneMap['NO']='35';
+        $zoneMap['NL']='36';
+        $zoneMap['UA']='37';
+        $zoneMap['CH']='38';
+        $zoneMap['MX']='39';
+        $zoneMap['PL']='40';
+        if(!$countryCode){
+            return '';
+        }
+        return isset($zoneMap[$countryCode])?$zoneMap[$countryCode]:'';
+    }
+    public function getsortingCode($countryCode){
+        $sortingCodeMap=[];
+        $sortingCodeMap['AL']='5';
+        $sortingCodeMap['DZ']='5';
+        $sortingCodeMap['AF']='5';
+        $sortingCodeMap['AR']='5';
+        $sortingCodeMap['AE']='5';
+        $sortingCodeMap['AW']='6';
+        $sortingCodeMap['OM']='4';
+        $sortingCodeMap['AZ']='4';
+        $sortingCodeMap['Z2']='5';
+        $sortingCodeMap['EG']='5';
+        $sortingCodeMap['ET']='5';
+        $sortingCodeMap['IE']='3';
+        $sortingCodeMap['EE']='4';
+        $sortingCodeMap['AD']='5';
+        $sortingCodeMap['AO']='5';
+        $sortingCodeMap['AI']='6';
+        $sortingCodeMap['AG']='6';
+        $sortingCodeMap['AT']='2';
+        $sortingCodeMap['AU']='8';
+        $sortingCodeMap['BB']='6';
+        $sortingCodeMap['PG']='5';
+        $sortingCodeMap['BS']='6';
+        $sortingCodeMap['PK']='4';
+        $sortingCodeMap['PY']='6';
+        $sortingCodeMap['PS']='4';
+        $sortingCodeMap['BH']='5';
+        $sortingCodeMap['PA']='5';
+        $sortingCodeMap['BR']='5';
+        $sortingCodeMap['BY']='4';
+        $sortingCodeMap['BM']='6';
+        $sortingCodeMap['DM']='2';
+        $sortingCodeMap['GP']='5';
+        $sortingCodeMap['MQ']='3';
+        $sortingCodeMap['MS']='5';
+        $sortingCodeMap['PW']='6';
+        $sortingCodeMap['CH']='4';
+        $sortingCodeMap['PL']='3';
+        $sortingCodeMap['YE']='6';
+        $sortingCodeMap['Z4']='6';
+        $sortingCodeMap['Z4']='5';
+        $sortingCodeMap['BT']='5';
+        $sortingCodeMap['BF']='5';
+        $sortingCodeMap['BI']='5';
+        $sortingCodeMap['KP']='4';
+        $sortingCodeMap['DK']='3';
+        $sortingCodeMap['DE']='8';
+        $sortingCodeMap['TL']='5';
+        $sortingCodeMap['TG']='5';
+        $sortingCodeMap['DO']='6';
+        $sortingCodeMap['RU']='7';
+        $sortingCodeMap['EC']='5';
+        $sortingCodeMap['ER']='5';
+        $sortingCodeMap['FR']='4';
+        $sortingCodeMap['FO']='5';
+        $sortingCodeMap['PF']='5';
+        $sortingCodeMap['GF']='6';
+        $sortingCodeMap['VA']='5';
+        $sortingCodeMap['PH']='4';
+        $sortingCodeMap['FJ']='5';
+        $sortingCodeMap['FI']='3';
+        $sortingCodeMap['CV']='5';
+        $sortingCodeMap['GM']='5';
+        $sortingCodeMap['CG']='5';
+        $sortingCodeMap['CD']='5';
+        $sortingCodeMap['CO']='5';
+        $sortingCodeMap['CR']='6';
+        $sortingCodeMap['GD']='6';
+        $sortingCodeMap['GL']='6';
+        $sortingCodeMap['GE']='5';
+        $sortingCodeMap['CU']='5';
+        $sortingCodeMap['GP']='6';
+        $sortingCodeMap['GU']='5';
+        $sortingCodeMap['GY']='6';
+        $sortingCodeMap['KZ']='4';
+        $sortingCodeMap['HT']='6';
+        $sortingCodeMap['KR']='2';
+        $sortingCodeMap['NL']='8';
+        $sortingCodeMap['AN']='6';
+        $sortingCodeMap['ME']='5';
+        $sortingCodeMap['HN']='6';
+        $sortingCodeMap['KI']='5';
+        $sortingCodeMap['DJ']='5';
+        $sortingCodeMap['KG']='4';
+        $sortingCodeMap['GN']='5';
+        $sortingCodeMap['CA']='4';
+        $sortingCodeMap['GH']='5';
+        $sortingCodeMap['JN']='5';
+        $sortingCodeMap['GA']='5';
+        $sortingCodeMap['KH']='5';
+        $sortingCodeMap['CZ']='3';
+        $sortingCodeMap['ZW']='5';
+        $sortingCodeMap['CM']='5';
+        $sortingCodeMap['CP']='5';
+        $sortingCodeMap['QA']='4';
+        $sortingCodeMap['KY']='6';
+        $sortingCodeMap['CC']='5';
+        $sortingCodeMap['CI']='5';
+        $sortingCodeMap['KW']='5';
+        $sortingCodeMap['HR']='8';
+        $sortingCodeMap['KE']='5';
+        $sortingCodeMap['CK']='5';
+        $sortingCodeMap['LV']='4';
+        $sortingCodeMap['LS']='5';
+        $sortingCodeMap['LA']='5';
+        $sortingCodeMap['LB']='5';
+        $sortingCodeMap['LT']='4';
+        $sortingCodeMap['LR']='5';
+        $sortingCodeMap['LY']='5';
+        $sortingCodeMap['LI']='5';
+        $sortingCodeMap['RE']='5';
+        $sortingCodeMap['LU']='4';
+        $sortingCodeMap['RW']='5';
+        $sortingCodeMap['RO']='4';
+        $sortingCodeMap['MG']='5';
+        $sortingCodeMap['MV']='5';
+        $sortingCodeMap['MT']='4';
+        $sortingCodeMap['MW']='5';
+        $sortingCodeMap['MY']='2';
+        $sortingCodeMap['ML']='5';
+        $sortingCodeMap['MK']='5';
+        $sortingCodeMap['MH']='5';
+        $sortingCodeMap['MQ']='6';
+        $sortingCodeMap['YT']='5';
+        $sortingCodeMap['MU']='5';
+        $sortingCodeMap['MR']='5';
+        $sortingCodeMap['US']='4';
+        $sortingCodeMap['VI']='6';
+        $sortingCodeMap['MN']='4';
+        $sortingCodeMap['BD']='5';
+        $sortingCodeMap['PE']='5';
+        $sortingCodeMap['MM']='5';
+        $sortingCodeMap['MD']='5';
+        $sortingCodeMap['MA']='5';
+        $sortingCodeMap['MC']='5';
+        $sortingCodeMap['MZ']='5';
+        $sortingCodeMap['MZ']='5';
+        $sortingCodeMap['MX']='5';
+        $sortingCodeMap['NA']='5';
+        $sortingCodeMap['ZA']='5';
+        $sortingCodeMap['NR']='5';
+        $sortingCodeMap['NP']='5';
+        $sortingCodeMap['NI']='6';
+        $sortingCodeMap['NE']='5';
+        $sortingCodeMap['NG']='5';
+        $sortingCodeMap['NU']='5';
+        $sortingCodeMap['NO']='8';
+        $sortingCodeMap['NF']='5';
+        $sortingCodeMap['PW']='5';
+        $sortingCodeMap['PN']='5';
+        $sortingCodeMap['PT']='3';
+        $sortingCodeMap['JP']='1';
+        $sortingCodeMap['SE']='8';
+        $sortingCodeMap['CH']='3';
+        $sortingCodeMap['SV']='6';
+        $sortingCodeMap['AS']='5';
+        $sortingCodeMap['RS']='5';
+        $sortingCodeMap['SL']='5';
+        $sortingCodeMap['SN']='5';
+        $sortingCodeMap['CY']='4';
+        $sortingCodeMap['SC']='5';
+        $sortingCodeMap['SA']='4';
+        $sortingCodeMap['ST']='5';
+        $sortingCodeMap['KN']='5';
+        $sortingCodeMap['LC']='6';
+        $sortingCodeMap['SM']='5';
+        $sortingCodeMap['PM']='6';
+        $sortingCodeMap['PM']='6';
+        $sortingCodeMap['LK']='4';
+        $sortingCodeMap['SK']='2';
+        $sortingCodeMap['SI']='4';
+        $sortingCodeMap['SZ']='5';
+        $sortingCodeMap['SD']='5';
+        $sortingCodeMap['SR']='5';
+        $sortingCodeMap['SB']='5';
+        $sortingCodeMap['SO']='5';
+        $sortingCodeMap['TJ']='4';
+        $sortingCodeMap['TH']='2';
+        $sortingCodeMap['TZ']='5';
+        $sortingCodeMap['TO']='5';
+        $sortingCodeMap['TT']='6';
+        $sortingCodeMap['TN']='5';
+        $sortingCodeMap['TV']='5';
+        $sortingCodeMap['TR']='4';
+        $sortingCodeMap['TM']='4';
+        $sortingCodeMap['WF']='5';
+        $sortingCodeMap['VU']='5';
+        $sortingCodeMap['GT']='6';
+        $sortingCodeMap['VE']='5';
+        $sortingCodeMap['BN']='5';
+        $sortingCodeMap['UG']='5';
+        $sortingCodeMap['UA']='4';
+        $sortingCodeMap['UY']='6';
+        $sortingCodeMap['UZ']='4';
+        $sortingCodeMap['ES']='4';
+        $sortingCodeMap['GR']='3';
+        $sortingCodeMap['SG']='2';
+        $sortingCodeMap['DF']='5';
+        $sortingCodeMap['NZ']='4';
+        $sortingCodeMap['HU']='8';
+        $sortingCodeMap['SY']='4';
+        $sortingCodeMap['JM']='6';
+        $sortingCodeMap['AM']='4';
+        $sortingCodeMap['YE']='5';
+        $sortingCodeMap['IQ']='5';
+        $sortingCodeMap['IR']='5';
+        $sortingCodeMap['IL']='8';
+        $sortingCodeMap['IT']='3';
+        $sortingCodeMap['IN']='2';
+        $sortingCodeMap['ID']='2';
+        $sortingCodeMap['GB']='8';
+        $sortingCodeMap['VG']='6';
+        $sortingCodeMap['JO']='5';
+        $sortingCodeMap['Z7']='5';
+        $sortingCodeMap['VN']='4';
+        $sortingCodeMap['ZM']='5';
+        $sortingCodeMap['ZR']='6';
+        $sortingCodeMap['TD']='5';
+        $sortingCodeMap['GI']='5';
+        $sortingCodeMap['CL']='6';
+        $sortingCodeMap['CF']='5';
+        $sortingCodeMap['MO']='0';
+        $sortingCodeMap['TW']='0';
+        $sortingCodeMap['HK']='0';
+        if(!$countryCode){
+            return '';
+        }
+
+        return isset($sortingCodeMap[$countryCode])?$sortingCodeMap[$countryCode]:'';
+    }
+
+    public function getchargeCode($countryCode,$postalCode){
+        if($countryCode=='CA'){
+            $str1=    substr($postalCode, 0, 1);
+            if($str1=='S' || $str1=='T' || $str1=='V' || $str1=='X' || $str1=='Y'){
+                return '1';
+            }else{
+                return '2';
+            }
+        }
+        return '';
+    }
+
+    /**
+     * @title ISP031040|CPSZS 线上中国邮政平常小包+（中邮揽收）|深圳e仓
+     * @param $order
+     * @return string
+     * @author starzhan <397041849@qq.com>
+     */
+    private function label_ISP031040_CPSZS($order)
+    {
+
+        $order['sortingCode'] = $this->getsortingCode($order['country_code']);
+        $order['zoneCode'] = $this->getZoneCode($order['country_code']);
+        $order['changeCode'] = $this->getchargeCode($order['country_code'],$order['zip']);
+        return $this->display('ISP031040_CPSZS', $order);
+    }
+
+
+
+    private function fenqu($countryCode){
+        $aFenqu = [
+            'AU'=>2,
+            'CA'=>2,
+            'DE'=>2,
+            'ES'=>2,
+            'FR'=>2,
+            'GB'=>2,
+            'IL'=>2,
+            'IT'=>2,
+            'NO'=>3,
+            'RU'=>3,
+            'US'=>2,
+            'NZ'=>2,
+            'NL'=>2,
+            'SE'=>3,
+            'BR'=>4,
+            'DK'=>3
+        ];
+        if(!$countryCode){
+            return '';
+        }
+        return isset($aFenqu[$countryCode])?$aFenqu[$countryCode]:'';
+    }
+    private function kouan($countryCode,$postalCode){
+        $str1=    substr($postalCode, 0, 1);
+        if($countryCode=='US'){
+            if(in_array($str1,[0,1,2,3])){
+                return 'JFK';
+            }
+            $str2 = substr($postalCode, 0, 3);
+            if(   ($str2>=850 &&$str2<=891) || ($str2>=900&&$str2<=935 ) ){
+                return 'LAX';
+            }
+            if(   ($str2>=967 &&$str2<=968)  ){
+                return 'HNL';
+            }
+            if(in_array($str1,[8,9])){
+                return 'SFO';
+            }
+        }
+        if($countryCode=='AU'){
+            if(in_array($str1,[0,1,2])){
+                return 'SYD';
+            }
+            if(in_array($str1,[3,5,7,8])){
+                return 'MEL';
+            }
+            if(in_array($str1,[4,9])){
+                return 'BNE';
+            }
+            if(in_array($str1,[6])){
+                return 'PER';
+            }
+        }
+        if($countryCode=='CA'){
+            $a = range('A','P');
+            if(in_array($str1,$a)){
+                return 'YTO';
+            }
+            $b= range('R','Y');
+            if(in_array($str1,$b)){
+                return 'YVR';
+            }
+        }
+        return '';
+    }
+
+    /**
+     * @title WP-HKP101|YW10000008 eDS易递宝 – 香港渠道(平邮) – eBay|深圳ISP仓
+     * @param $order
+     * @return string
+     * @author starzhan <397041849@qq.com>
+     */
+    private function label_WP_HKP101_YW10000008($order){
+        $order['fenqu'] = $this->fenqu($order['country_code']);
+        $order['kouan'] = $this->kouan($order['country_code'],$order['zip']);
+        return $this->display('WP_HKP101_YW10000008', $order);
+    }
+
+    /**
+     * @title WP-MYP101|YW10000007  万邑邮选-马来西亚渠道（平邮）-ebay易递宝|义乌ISP仓
+     * @param $order
+     * @author starzhan <397041849@qq.com>
+     */
+    public function label_WP_MYP101_YW10000007($order){
+        return $this->display('WP_MYP101_YW10000007', $order);
+    }
+
+}

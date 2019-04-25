@@ -1,0 +1,45 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+use app\common\model\Order;
+use think\Exception;
+
+class Pdd extends Base
+{
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+
+
+    //author by lan yunda
+    private function label_yunda($order){
+        $orderModel = new Order();
+        $orderInfo = $orderModel->field('channel_order_number,buyer_id')->where(['id' => $order['order_id']])->find();
+        $order['channel_order_id']=$orderInfo['channel_order_number'];
+        return $this->display('yunda',$order);
+    }
+
+
+
+
+
+
+
+}

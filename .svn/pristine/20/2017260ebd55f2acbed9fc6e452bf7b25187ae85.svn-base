@@ -1,0 +1,362 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-1-7
+ * Time: 上午9:13
+ */
+namespace service\joom\operation;
+use think\Exception;
+class Product extends Common
+{
+    /**
+     * @var null
+     */
+    public $access_token;
+    public $account_id=0;
+
+    /** 构造函数
+     * Product constructor.
+     * @param $config
+     */
+    public function __construct($config)
+    {
+        $this->access_token = $config['access_token'];
+        if(isset($config['id']))
+        {
+            $this->account_id=$config['id'];
+        }
+    }
+
+    /**
+     * 发布商品信息
+     * @param array $data
+     * @return array
+     */
+    public function postProduct(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/product/add";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data']??[],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 更新商品信息
+     * @param array $data
+     * @return array
+     */
+    public function updateProduct(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/product/update";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data']??[],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 商品上架
+     * @param array $data
+     * @return array
+     */
+    public function enableProduct(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/product/enable";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data']??[],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 商品下架
+     * @param array $data
+     * @return array
+     */
+    public function disableProduct(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/product/disable";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data']??[],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * Returns a list of all your products currently on the Joom platform
+     * @param array $data
+     * @return array
+     */
+    public function listAllProducts(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/product/multi-get";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlGet($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'] ];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 删除产品的所有附图
+     * @param array $data
+     * @return array
+     */
+    public function RemoveProductExtraImages(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/product/remove-extra-images";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'] ];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 查询商品信息
+     * @param array $data
+     * @return array
+     */
+    public function retrieveProduct(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/product";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlGet($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'] ];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+
+    /**
+     * 发布商品变体信息
+     * @param array $data
+     * @return array
+     */
+    public function postVariant(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/variant/add";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data']??[],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 查询变体信息
+     * @param array $data
+     * @return array
+     */
+    public function retrieveVariant(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/variant";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlGet($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 更新变体信息
+     * @param array $data
+     * @return array
+     */
+    public function updateVariant(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/variant/update";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data']??[],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (\Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 修改变体的sku
+     * @param array $data
+     * @return array
+     */
+    public function changeVariantSku(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/variant/change-sku";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 变体上架
+     * @param array $data
+     * @return array
+     */
+    public function enableVariant(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/variant/enable";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 变体下架
+     * @param array $data
+     * @return array
+     */
+    public function disableVariant(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/variant/disable";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 更新变体库存
+     * @param array $data
+     * @return array
+     */
+    public function updateVariantInventory(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/variant/update-inventory";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlPost($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * 更新变体库存
+     * @param array $data
+     * @return array
+     */
+    public function listAllProductVariants(array $data)
+    {
+        try{
+            $url = "https://api-merchant.joom.com/api/v2/variant/update-inventory";
+            $data['access_token']=$this->access_token;
+            $response = $this->curlGet($url,$data);
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code']];
+                //程序还要更改数据库里的product_id
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception("File:{$exp->getFile()};Line{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+}

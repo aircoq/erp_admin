@@ -1,0 +1,200 @@
+<?php
+
+namespace paypal;
+
+use app\common\cache\Cache;
+use think\Exception;
+
+class PayPalDisputeApi extends PayPalRestBase
+{
+
+    private $is_test = false;
+
+    public function __construct($account)
+    {
+        parent::__construct($account);
+    }
+
+
+    /**
+     * 拉取paypal列表
+     * @param $params
+     * @return array
+     */
+    public function getDispute($params)
+    {
+        $url = '/v1/customer/disputes';
+
+       // $body['start_time'] = $params['start_time'];
+        $body['page_size'] = 10;
+
+        $items = [];
+        while (true) {
+            $result = $this->authCall($url, $body);
+            if (empty($result['items'])) {
+                break;
+            }
+            $items = array_merge($items, $result['items']);
+            if (empty($result['links']) || empty($result['links'][2]['href'])) {
+                break;
+            }
+            $url = $result['links'][2]['href'];
+            $body = [];
+        }
+        return $items;
+    }
+
+    /**
+     * 拉取paypal详情
+     * @param $dispute_id
+     * @return array|mixed|string
+     */
+    public function getDisputeDetail($dispute_id)
+    {
+        $url = '/v1/customer/disputes/' . $dispute_id;
+
+        //不需要额外的参数；
+        $data = $this->authCall($url, [], 'GET', $code);
+        return $data;
+    }
+
+
+    /**
+     * 给买家发送信息
+     * @param $content
+     */
+    public function sendMessage($dispute_id, $data)
+    {
+        //if ($this->is_test) {
+        //    return true;
+        //}
+        $url = '/v1/customer/disputes/'. $dispute_id. '/send-message';
+        $body = json_encode(['message' => $data['message']]);
+        $data = $this->authCall($url, $body, 'POST', $code);
+        if ($code == 200) {
+            return true;
+        }
+        throw new Exception('发送失败|'. json_encode($data, JSON_UNESCAPED_UNICODE));
+    }
+
+
+    /**
+     * 同意买家退款
+     * @param $content
+     */
+    public function acceptClaim($dispute_id, $post)
+    {
+        if ($this->is_test) {
+            return true;
+        }
+        $url = '/v1/customer/disputes/'. $dispute_id. '/accept-claim';
+
+        $post = json_encode($post);
+        $data = $this->authCall($url, $post, 'POST', $code);
+        if ($code == 200) {
+            return true;
+        }
+        throw new Exception('提交失败|'. json_encode($data, JSON_UNESCAPED_UNICODE));
+    }
+
+
+    /**
+     * 创建提议
+     * @param $content
+     */
+    public function makeOffer($dispute_id, $post)
+    {
+        if ($this->is_test) {
+            return true;
+        }
+        $url = '/v1/customer/disputes/'. $dispute_id. '/make-offer';
+        $post = json_encode($post);
+        $data = $this->authCall($url, $post, 'POST', $code);
+        if ($code == 200) {
+            return true;
+        }
+        throw new Exception('提交失败|'. json_encode($data, JSON_UNESCAPED_UNICODE));
+    }
+
+
+    /**
+     * 提供证据文件
+     * @param $content
+     */
+    public function provideEvidence($dispute_id, $post)
+    {
+        if ($this->is_test) {
+            return true;
+        }
+        if (empty($post['input']) || empty($post['file1'])) {
+            throw new Exception('证据内容不完整 或 上传文件不存在');
+        }
+
+        $url = '/v1/customer/disputes/'. $dispute_id. '/provide-evidence';
+        $content_type = 'multipart/related';
+
+        $data = [];
+        foreach ($post as $key=>$val) {
+            if (strpos($val, 'file') !== false) {
+                $data[$key] = new \CURLFile($val);
+            } else {
+                $data[$key] = new \CURLFile($val, 'application/json', 'provide_evidence_input_body.json');
+            }
+        }
+
+        $result = $this->authCall($url, $data, 'POST', $code, 120, 1, $content_type);
+        if ($code == 200) {
+            return true;
+        }
+        throw new Exception('提交失败|'. json_encode($result, JSON_UNESCAPED_UNICODE));
+    }
+
+
+    /**
+     * 申诉
+     * @param $content
+     */
+    public function appeal($dispute_id, $post)
+    {
+        if ($this->is_test) {
+            return true;
+        }
+        $url = '/v1/customer/disputes/'. $dispute_id. '/appeal';
+        $content_type = 'multipart/related';
+
+        $data = [];
+        foreach ($post as $key=>$val) {
+            if (strpos($val, 'file') !== false) {
+                $data[$key] = new \CURLFile($val);
+            } else {
+                $data[$key] = new \CURLFile($val, 'application/json', 'dispute_appeal_input_body.json');
+            }
+        }
+
+        $result = $this->authCall($url, $data, 'POST', $code, 120, 1, $content_type);
+        if ($code == 200) {
+            return true;
+        }
+        throw new Exception('提交失败|'. json_encode($result, JSON_UNESCAPED_UNICODE));
+    }
+
+
+    /**
+     * 确认客户发来的信息
+     * @param $content
+     */
+    public function acknowledgeReturnItem($dispute_id, $post)
+    {
+        if ($this->is_test) {
+            return true;
+        }
+        $url = '/v1/customer/disputes/'. $dispute_id. '/acknowledge-return-item';
+        $body = json_encode($post);
+        $data = $this->authCall($url, $body, 'POST', $code);
+        if ($code == 200) {
+            return true;
+        }
+        throw new Exception('发送失败|'. json_encode($data, JSON_UNESCAPED_UNICODE));
+    }
+
+}

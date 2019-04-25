@@ -1,0 +1,235 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.45092694875537176 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<!--2 美国-->
+<!--1 开始-->
+<div id="page1" style="width:270pt;padding:2pt;font-size:9pt;line-height:10pt;font-family:Arial;margin:0 auto;background:white;page-break-after:always;">
+    <table cellpadding="0" cellspacing="0" style="border: 1pt solid #000; width:260pt;table-layout:fixed;word-wrap:break-word;border-collapse:collapse;margin: 0 auto;margin-top: 10pt">
+        <tbody>
+        <tr>
+            <td colspan="12" style="text-align: center;">
+                <div style="text-align: center;margin-top: 1pt;"> <?php echo $shipping_number?></div>
+                <div style="text-align: center;">
+                    <img style="width:180pt;" src="<?php echo $this->imgSrc($shipping_number);?>"></div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="6" style="width:60pt;text-align:center;font-size:7pt;vertical-align: top; ">
+                COMMERCIAL INVOICE
+            </td>
+            <td colspan="6" style="text-align: center;font-size:7pt;vertical-align: top; ">
+                May be opened officially
+            </td>
+
+        </tr>
+
+
+        <tr  style="border:1pt solid #000;border-bottom: none">
+            <td colspan="6" style="font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                <span style="margin-top:5pt;margin-left: 60pt"><img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAPCAIAAACN07NGAAAAgUlEQVQoFWP8//8/A4mABa6+panp9KnTcC5WhqmZaU1dHULPo4cP5eTkPL29sKoGCm7fug2oBshA6AFyVNVUvby9cem5c/v2lcuXgbJMuFTgER/V8+cSvcIAJU5v37q9betWXDEDlIVIIfTIycsD09vM6TNw6QGKA9MbkGQkI10DAO7FKVF/qojDAAAAAElFTkSuQmCC"></span> Documents
+            </td>
+            <td colspan="6" style="font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAPCAIAAACN07NGAAAAgUlEQVQoFWP8//8/A4mABa6+panp9KnTcC5WhqmZaU1dHULPo4cP5eTkPL29sKoGCm7fug2oBshA6AFyVNVUvby9cem5c/v2lcuXgbJMuFTgER/V8+cSvcIAJU5v37q9betWXDEDlIVIIfTIycsD09vM6TNw6QGKA9MbkGQkI10DAO7FKVF/qojDAAAAAElFTkSuQmCC">Commercial sample
+            </td>
+        </tr>
+        <tr >
+            <td colspan="6" style="font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                <span style="margin-left: 60pt;margin-bottom:5pt;">
+                    <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAPCAIAAACN07NGAAAAgUlEQVQoFWP8//8/A4mABa6+panp9KnTcC5WhqmZaU1dHULPo4cP5eTkPL29sKoGCm7fug2oBshA6AFyVNVUvby9cem5c/v2lcuXgbJMuFTgER/V8+cSvcIAJU5v37q9betWXDEDlIVIIfTIycsD09vM6TNw6QGKA9MbkGQkI10DAO7FKVF/qojDAAAAAElFTkSuQmCC">Gift
+                </span>
+            </td>
+            <td colspan="6" style="font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAASCAIAAAA2bnI+AAABjElEQVQ4EWP8//8/AwPD/n37DuzfD2QQAxwcHR2dnFggSi9furRh3XodXV0eHh48mr98+XLl8mVhYWGETqBqSSmphqZGVTU1PDpv37qVm50DUcCERx1+Kahr8SuCyB4+fHjzpk1vXr+GcInS+f379/v37+/du3fnrl3fP3+B6CTKtQ8fPkxLSwNqmDVzppy8PLF2rlu3bteuXdHR0VZWVlycnCwsUGci7Pzw4cPmzZsvXrwIMRJIQkQuXbrEz8/v6+urr68PlwIyEDpfvnjR2dW1fv36d+/e/fnz5+vXr9euXWtra+Pi4urs7JSRkUHWhqIT6AGgN4BCQC8BPbZ48WKgtqqqqtjYWDQ9EC4ibDk5ObW0tISEhYE+mTdvHisrq7+/v4WFhaioKFadCNdCpG1tbYGB8fTpUwUFhdTUVFzaGP69QtgJN1ge6OxZs5iY0A2FKwAxfl9D6Hz+7FlDXT3BFA9UBtLJyArVqaunFxAUCBIiBFRUVYCKGdgMGSH5k5B6LPJ4PYNFPUIIANcDjJyKWPMFAAAAAElFTkSuQmCC">sale of goods
+            </td>
+        </tr>
+        <tr >
+            <td colspan="4" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                Detailed Description of Contents
+            </td>
+            <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                Weight(kg)
+            </td>
+            <td colspan="1" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                Qty
+            </td>
+            <td colspan="1" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                Value
+            </td>
+            <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                city of origin
+            </td>
+            <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                HS Tariff #
+            </td>
+
+        </tr>
+        <?php foreach ($product_list as $k=>$v):?>
+            <tr >
+                <td colspan="4" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                    <?php echo $v['title_en'];?>
+                </td>
+                <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                    <?php echo number_format($v['weight']/1000,3);?>
+                </td>
+                <td colspan="1" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                    <?php echo $v['channel_sku_quantity']?>
+                </td>
+                <td colspan="1" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                    <?php echo $v['channel_sku_price'];?>
+                </td>
+                <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                    CN
+                </td>
+                <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+
+                </td>
+
+            </tr>
+        <?php if (count($product_list)<1){?>
+                <tr style="height: 30pt">
+                    <td colspan="4" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+
+                    </td>
+                    <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+
+                    </td>
+                    <td colspan="1" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+
+                    </td>
+                    <td colspan="1" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+
+                    </td>
+                    <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+
+                    </td>
+                    <td colspan="2" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+
+                    </td>
+                </tr>
+          <?php  }?>
+
+        <?php endforeach;?>
+
+        <tr>
+            <td colspan="12" style="border:1pt solid #000;font-size:5pt;line-height:8pt;word-wrap:break-word;vertical-align:top;text-align: left">
+                Customer Ref:  P<?php echo $number;?>
+            </td>
+
+
+
+        </tr>
+
+        <tr>
+            <td colspan="5" style="border:1pt solid #000;border-right:none;font-size:5pt;word-wrap:break-word;vertical-align:top;text-align: right">
+                Total
+            </td>
+
+            <td colspan="2" style="border:1pt solid #000;font-size:5pt;word-wrap:break-word;vertical-align:bottom; text-align: center">
+                <?php echo number_format($product_weight/1000,3);?>
+            </td>
+            <td colspan="5" style="border:1pt solid #000;font-size:5pt;word-wrap:break-word;vertical-align:bottom; text-align: left">
+                <?php echo $fr_currency ?>&nbsp;&nbsp;&nbsp;<?php echo $product_value;?>
+            </td>
+
+        </tr>
+        <tr>
+            <td colspan="12" style="border:1pt solid #000;border-right:none;border-bottom:none;font-size:5pt;vertical-align:top;text-align: left">
+                I, the undersigned, whose name and address are given on the item, certify that the
+                particulars given in the declaration are correct and that this item does not contain any
+                dangerous articles prohibited by legislation or by customs regulations.
+            </td>
+
+
+
+        </tr>
+        <tr>
+            <td colspan="6" style="border:1pt solid #000;border-right:none;border-top:none;font-size:6pt;vertical-align:top;text-align: left">
+                Date and Sender's signature<br>
+                <?php echo date('Y-m-d',$pay_time+60*60*24*3)?><br><br>
+
+            </td>
+            <td colspan="6" style="border:1pt solid #000;border-left:none;border-top:none;font-size:7pt;vertical-align:top;text-align: left">
+                1069626(MH)
+            </td>
+
+
+
+        </tr>
+
+        </tbody>
+    </table>
+</div>
+<!--1 结束-->
+<!--2 开始-->
+<div id="page2" style="width:270pt;padding:2pt;font-size:9pt;line-height:10pt;font-family:Arial;margin:0 auto;background:white;page-break-after:always;">
+    <table cellpadding="0" cellspacing="0" style="border: 1pt solid #000; width:260pt;table-layout:fixed;word-wrap:break-word;border-collapse:collapse;;margin: 0 auto">
+        <tbody>
+        <tr>
+            <td colspan="6" style="text-align: center;">
+
+            </td>
+            <td colspan="6" style="text-align: left;">
+                <div style="margin-top: 10pt;font-size: 6pt">
+                    PREPAID<br>
+                JERSEY<br>
+                PAID 810<br>
+                JERSEY,JE1 1AA
+                </div>
+            </td>
+
+        </tr>
+        <tr>
+            <td colspan="12" style="text-align: center;height: 50pt">
+
+
+            </td>
+
+        </tr>
+        <tr>
+            <td colspan="6" style="text-align: left;font-size: 7pt;">
+                <div style="margin-left: 10pt ">
+                    To:<br>
+                    <?php echo strtoupper($name);?><br>
+                    <?php echo strtoupper($street).' '.strtoupper($street2);?><br>
+                    <?php echo strtoupper($city)?>  <?php echo strtoupper($province)?> <br>
+
+                </div>
+
+            </td>
+            <td colspan="6" style="text-align: center;font-size: 7pt;font-weight: bold;"><?php echo $country_code?></td>
+        </tr>
+        <tr>
+            <td colspan="12" style="text-align: center;height: 30pt">
+
+
+            </td>
+
+        </tr>
+        <tr>
+            <td colspan="12" style="text-align: left;font-size:7pt;">
+                <div style="margin-left: 10pt">
+                    <?php echo strtoupper($city)?>  <?php echo strtoupper($province)?><br>
+                    <?php echo $zip?><br>
+                    <?php echo strtoupper($country_en_name)?>
+                </div>
+            </td>
+
+        </tr>
+
+        </tbody>
+    </table>
+
+</div>
+<!--2 结束-->
+
+
+
+<!--2 澳大利亚-->
+
+</body>
+</html>

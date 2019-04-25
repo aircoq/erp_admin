@@ -1,0 +1,241 @@
+<?php
+namespace service\shipping\operation;
+use app\order\service\PackageService;
+use app\common\model\Order;
+use app\common\cache\Cache;
+use org\Curl;
+use think\Exception;
+use umka\UmkaBaseApi;;
+use app\common\service\ChannelAccountConst;
+/**
+ *umka线上物流
+ * @class Umka
+ * @package service\shipping\operation
+ */
+class Umka  extends UmkaBaseApi
+{
+    // 配置信息
+    private $_config = [
+        'url'   => 'http://open.wangjigroup.com/api/order/',
+        'header'   => [],
+    ];
+    protected $client_id = '';
+    protected $client_secret = '';
+    protected $access_token = '';
+    protected $refresh_token = '';
+    protected $password = '';
+    protected $username = '';
+    protected $account_id = 0;
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return boolean
+     */
+    private function formatHeader($channel_account_id)
+    {
+
+        $umkaAcount = Cache::store('UmkaAccount')->readAccount($channel_account_id);
+        if (empty($umkaAcount['client_id'] )|| empty($umkaAcount['client_secret']) || empty($umkaAcount['access_token']) ) {
+            throw new Exception('缺少必要授权信息');
+        }
+       $this->access_token =$umkaAcount['access_token'];
+        return true ;
+    }
+    /**
+     * 获取平台订单号
+     * @param array $config 账号 token配置
+     * @return array
+     */
+    public function getChannelNumber($package_id)
+    {
+        //获取交易号
+        $packageService = new PackageService();
+        $order_ids = $packageService->getOrderIdsByPackageId($package_id);
+        $orderModel = new Order();
+        $detailList = $orderModel->field('channel_order_number')->where(['id' => ['in', $order_ids]])->select();
+        $channel_order_number = [];
+        foreach ($detailList as $d => $detail) {
+            if (!in_array($detail['channel_order_number'], $channel_order_number)) {
+                array_push($channel_order_number, $detail['channel_order_number']);
+            }
+        }
+        $channel_order_ids = implode(',', $channel_order_number);
+        if(empty($channel_order_ids)){
+            throw new Exception('订单号不能为空');
+        }
+        return $channel_order_ids;
+    }
+
+    /**
+     * 创建物流订单
+     * @param array $config
+     * @param $order
+     * @return array
+     */
+    public function createOrder(array $config,$order,$confirm = false)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if($order['channel_id']!=ChannelAccountConst::Channel_umka){
+                throw new Exception('不是umka平台不能选择此渠道');
+            }
+            if($this->formatHeader($order['channel_account_id'])) {
+                $channel_order_ids=$this->getChannelNumber($order['package_id']);
+                $param=[
+                    'deliveryNumber'=>$channel_order_ids,
+                    'trackingProvider'=>$order['shipping_method_code'],
+                ];
+                $url = $this->_config['url'].'shippingOnline' ;
+                $response = $this->authcall($url,'POST', $param);
+                //日志记录
+                $arr_log = [
+                    'url' => $this->_config['url'],
+                    'header' => '',
+                    'request' => json_encode($param),
+                    'response' => json_encode($response)
+                ];
+                if (isset($response['code']) && $response['code'] == 200 && isset($response['data']['trackingNumber']) && !empty($response['data']['trackingNumber'])) {
+                    $this->result['data']['number'] = $order['number'];                            // 客户订单号
+                    $this->result['data']['package_code'] = '';                              // One World包裹处理号
+                    $this->result['data']['trackingNumber'] = $response['data']['trackingNumber'];                            // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];                           // 是否有跟踪号
+                    $this->result['data']['confirm'] = true;                                                 // 是否交运
+                    $this->result['data']['label'] = true;                              // 是否有pdf
+                    $this->result['data']['label_url'] = '';                              // 是否有pdf
+                    $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                    $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                    $this->result['success'] = true;
+                } else {
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+                    $this->result['error'] = [
+                        'error_msg' => $response['error_description'] ?? '下单失败',
+                        'error_code' => 1  // 1为错误， 2为包裹已经提交
+                    ];
+                }
+            }
+        }catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = true;
+        return $this->result;
+    }
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        $this->result['number'] = $order['number'];
+        if($this->formatHeader($order['channel_account_id'])){
+            if(!$order['shipping_number']){
+                throw new Exception('没有跟踪号面单获取失败');
+            }
+            $channel_order_ids=$this->getChannelNumber($order['package_id']);
+            $param=[
+                'deliveryNumber'=>$channel_order_ids,
+            ];
+            $url = $this->_config['url'].'shippingLabel' ;
+            $response = $this->authcall($url,'GET', $param);
+            // 处理响应内容
+            if (isset($response['code'])  && $response['code']==200 && isset($response['data']['shippingLabelAddress']) && !empty($response['data']['shippingLabelAddress'])) {
+                $responseString  = Curl::curlGet($response['data']['shippingLabelAddress']);
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'],base64_encode($responseString),'pdf');
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+            } else {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $response['error_description']??'获取面单失败'
+                ];
+            }
+        } else {
+            $this->result['error'] = [
+                'error_msg'  => '网络错误,连接不上服务器',
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * 获取跟踪号
+     */
+    public function getTrackingNumber($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['success']  = true;
+        return $this->result;
+    }
+
+
+
+
+    public function getExpress(array $config)
+    {
+       $data = [
+            [
+                'code' => 'YunExpress',
+                'name' => '云途物流',
+                'has_tracking_number' => 1],
+           [
+                'code' => 'Yun Express AM',
+                'name' => '云途物流经济小包',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code'=>'Joom Logistics',
+                'name'=>'Joom Logistics',
+                'has_tracking_number'=>1
+            ],[
+                'code'=>'Yun Express',
+                'name'=>'云途线上物流',
+                'has_tracking_number'=>1
+            ],
+        ];
+        foreach ($data as $value){
+            $result[] = [
+                'code'=>$value['code'],
+                'name'=>$value['name'],
+            ];
+        }
+        $this->result['data'] = $result;
+        $this->result['success'] = true;
+        return $this->result;
+    }
+}

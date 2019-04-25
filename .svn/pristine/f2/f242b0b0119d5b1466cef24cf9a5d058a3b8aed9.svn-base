@@ -1,0 +1,177 @@
+<?php
+
+namespace PaypalClient\Inventory;
+
+
+use PaypalClient\PayPalLib;
+use PaypalClient\RequestService;
+use think\Exception;
+
+/**
+ * 交易清单接口服务类
+ * @author Jacky 2017-9-24 23:31:05
+ */
+class InventoryService extends RequestService {
+    
+    /**
+     * 获取交易信息明细
+     * list   付款项字段
+     *
+     * paymentstatus     Completed为付款成功
+     */
+    public function GetTransactionDetails($transactionId){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'ack'=>'',//paypal状态标识
+            'count'=>0,//数据条数
+            'http_statu'=>'',
+            'errors'=>array(),
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、整理参数
+         */
+        if(empty($transactionId)){
+            $return['message'] = 'transactionId Not Empay';
+            return $return;
+        }
+        $params = array(
+            'transactionId'=>$transactionId
+        );
+        
+        /**
+         * 2、设置请求
+         */
+        $this->setRequest('GetTransactionDetails',$params);
+        
+        /**
+         * 3、调用公共请求方法
+        */
+        try {
+            //执行请求
+            $option=array(
+                'TimeOut'=>25  //超时时间
+            );
+            $re = $this->executeRequest($option);
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['ack'] = $re['ack'];
+            $return['count'] = count($re['data']['list']);
+            $return['http_statu'] = $re['http_statu'];
+            $return['data'] = $re['data'];
+            $return['errors'] = $re['errors'];
+            $return['org_data'] = $re['org_data'];
+        } catch (Exception $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['ack'] = $e->getAck();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['errors'] = $e->getErrors();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 搜索满足指定条件的交易的交易记录
+     * 注意：可以从TransactionSearch API调用返回的最大事务数为100
+     * @example $params = array(
+     *                      'startDate'=>'',//Y 最早交易日期(北京时间,下同)
+     *                      'endDate'=>'',//N 最晚交易日期
+     *                      'email'=>'',//N 买家的电子邮件地址
+     *                      'receiver'=>'',//N 接收者的电子邮件地址
+     *                      'receiptId'=>'',//N PayPal帐户进行搜索可选收据ID。此字段不适用于销售点交易
+     *                      'transactionId'=>'',//N 交易ID
+     *                      'invnum'=>'',//N 按照您为原始交易设置的发票识别密钥进行搜索。该字段在记录中搜索商家销售的商品。字符长度和限制：最多127个单字节字符，不允许使用通配符
+     *                      'acct'=>'',//N 原始交易设置的信用卡号
+     *                      'auctionItemNumber'=>'',//N 按拍卖品号搜索所购商品。此字段不适用于销售点
+     *                      'transactionClass'=>'',//N 交易类型，见：https://developer.paypal.com/docs/classic/api/merchant/TransactionSearch_API_Operation_NVP/#payer-name-fields
+     *                      'amt'=>'',//N 交易金额
+     *                      'currencyCode'=>'',//N 币种，见：https://developer.paypal.com/docs/classic/api/currency_codes/
+     *                      'status'=>'',//N 交易状态
+     *                      'profileId'=>'',//N 用于唯一标识重复配置文件的字母数字字符串（由PayPal生成）。您可以在TransactionSearch API操作中指定配置文件ID，以获取与识别的配置文件关联的所有付款
+     * );
+     * transactionClass:
+     *      All - 所有交易分类
+     *      Sent - 只发送付款
+     *      Received - 收到付款
+     *      MassPay - 只有大量支付
+     *      MoneyRequest - 只有钱请求
+     *      FundsAdded - 只有资金加入才能平衡
+     *      FundsWithdrawn - 只有从余额中退出的资金
+     *      Referral - 仅涉及转介的交易
+     *      Fee - 只有涉及费用的交易
+     *      Subscription - 仅涉及订阅的交易
+     *      Dividend - 只有涉及股息的交易
+     *      Billpay - 仅涉及BillPay交易的交易
+     *      Refund - 只有涉及资金的交易
+     *      CurrencyConversions - 仅涉及货币兑换的交易
+     *      BalanceTransfer - 仅涉及余额转帐的交易
+     *      Reversal - 只有涉及BillPay逆转的交易
+     *      Shipping - 仅涉及UPS运输费用的交易
+     *      BalanceAffecting - 只有影响帐户余额的交易
+     *      ECheck - 仅涉及eCheck的交易
+     */
+    public function TransactionSearch($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'ack'=>'',//paypal状态标识
+            'count'=>0,//数据条数
+            'http_statu'=>'',
+            'errors'=>array(),
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、整理参数
+         */
+        if(!isset($params['startDate'])){
+            $params['startDate'] = '1999-01-01 00:00:00';
+        }
+        //时间格式转换
+        $params['startDate'] = PayPalLib::getPayPalDate($params['startDate']);
+        if(isset($params['endDate'])){
+            $params['endDate'] = PayPalLib::getPayPalDate($params['endDate']);
+        }
+        
+        /**
+         * 2、设置请求
+         */
+        $this->setRequest('TransactionSearch',$params);
+        
+        /**
+         * 3、调用公共请求方法
+        */
+        try {
+            //执行请求
+            $option=array(
+                'TimeOut'=>60  //超时时间
+            );
+            $re = $this->executeRequest($option);
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['ack'] = $re['ack'];
+            $return['count'] = isset($re['data']['list']) ? count($re['data']['list']) : 0;
+            $return['http_statu'] = $re['http_statu'];
+            $return['data'] = $re['data'];
+            $return['errors'] = $re['errors'];
+            $return['org_data'] = $re['org_data'];
+        } catch (PayPal_Exception $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['ack'] = $e->getAck();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['errors'] = $e->getErrors();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+}

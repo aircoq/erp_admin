@@ -1,0 +1,102 @@
+<?php
+
+
+namespace service\shopee\operation;
+
+use think\Exception;
+
+class Logistics extends Common
+{
+    public function getParameterForInit($ordersn)
+    {
+        
+        $url = 'https://partner.shopeemobile.com/api/v1/logistics/init_parameter/get';
+
+        $data = $this->getBaseConfig();
+
+        $data['ordersn'] = $ordersn;
+        $header = $this->getHeader($data, $url);
+        try {
+            $ret = $this->doPost($url, $data, $header);
+            if (isset($ret['error'])) {
+                throw  new Exception($ret['error'] . (isset($ret['msg']) ? ":" . $ret['msg'] : ''));
+            }
+            return $ret;
+        } catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    public function getBranch($ordersn)
+    {
+        $url = 'https://partner.shopeemobile.com/api/v1/logistics/branch/get';
+        $data = $this->getBaseConfig();
+        $data['ordersn'] = $ordersn;
+        $header = $this->getHeader($data, $url);
+        try {
+            $ret = $this->doPost($url, $data, $header);
+            if (isset($ret['error'])) {
+                throw  new Exception($ret['error'] . (isset($ret['msg']) ? ":" . $ret['msg'] : ''));
+            }
+            return $ret;
+        } catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    public function init($ordersn, $typeData)
+    {
+
+        $url = 'https://partner.shopeemobile.com/api/v1/logistics/init';
+        $data = $this->getBaseConfig();
+        $data['ordersn'] = $ordersn;
+        $data = array_merge($data, $typeData);
+        $header = $this->getHeader($data, $url);
+        try {
+            $ret = $this->doPost($url, $data, $header);
+            if (isset($ret['error'])) {
+                throw  new Exception($ret['error'] . (isset($ret['msg']) ? ":" . $ret['msg'] : ''));
+            }
+            return $ret;
+        } catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    public function getAirwayBill($ordersn_list, $is_batch = false)
+    {
+        $url = 'https://partner.shopeemobile.com/api/v1/logistics/airway_bill/get_mass';
+        $data = $this->getBaseConfig();
+        $data['ordersn_list'] = $ordersn_list;
+        $data['is_batch'] = $is_batch;
+        $header = $this->getHeader($data, $url, false);
+        try {
+            $ret = $this->doPost($url, $data, $header, false);
+            if (isset($ret['error'])) {
+                throw  new Exception($ret['error'] . (isset($ret['msg']) ? ":" . $ret['msg'] : ''));
+            }
+            return $ret;
+        } catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    public function getLogistics()
+    {
+
+        $url = 'https://partner.shopeemobile.com/api/v1/logistics/channel/get';
+        $data = $this->getBaseConfig();
+        $header = $this->getHeader($data, $url, false);
+        try {
+            $ret = $this->doPost($url, $data, $header, false);
+            if (isset($ret['error'])) {
+                throw  new Exception($ret['error'] . (isset($ret['msg']) ? ":" . $ret['msg'] : ''));
+            }
+            return $ret;
+        } catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+
+}

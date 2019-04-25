@@ -1,0 +1,15 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: huangweijie
+ * Date: 2018/12/27
+ * Time: 15:54
+ */
+
+namespace Logistics\Exceptions;
+
+
+class Exception extends \Exception
+{
+
+}

@@ -1,0 +1,774 @@
+<?php
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\model\ebay\EbayAccount;
+use app\common\model\ebay\EbaySite;
+use service\shipping\operation\Common;
+use app\common\model\ebay\EbayOrderDetail;
+use app\common\model\OrderSourceDetail;
+use app\common\model\Order;
+use app\common\cache\Cache;
+use think\Exception;
+use think\Validate;
+use app\common\model\OrderPackage;
+
+/**
+ *  Apac 亚太物流
+ */
+class Apac
+{
+    private $url = 'https://api.apacshipping.ebay.com.hk/aspapi/v4/ApacShippingService?WSDL';
+
+    private $soapclient;
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    private $_config = [
+        'Version'               => '4.0.0',
+        'AppID'                 => 'ShenYanh-FastLine-PRD-b57734100-aaa0fbc8',
+        'AppCert'               => 'PRD-577341007be2-2627-488b-8a70-5c62',
+        'APIDevUserID'          => '96a1eee5-e4cb-43bb-89ff-1943863b91a4',
+        'APISellerUserID'       => '',
+        'APISellerUserToken'    => '',
+        'MessageID'             => '15914190458'
+    ];
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    function __construct(){
+        $i = 0;
+        do{
+            try{
+                libxml_disable_entity_loader(false);
+                $options = [
+                    'http'=>['protocol_version'=>1.0],
+                    'ssl'   => [
+                        'verify_peer'          => false
+                    ],
+                    'https' => [
+                        'curl_verify_ssl_peer'  => false,
+                        'curl_verify_ssl_host'  => false
+                    ]
+                ];
+                $this->soapclient = new \SoapClient($this->url,array('stream_context' => stream_context_create($options)));
+                break;
+            }catch (\SoapFault $soapFault){
+                sleep(1);
+                $i++;
+                if($i>=3){
+                    Cache::store('LogisticsLog')->setLogisticsLog('SoapFault1',$soapFault->getMessage());
+                    throw new Exception('网络错误，请稍后再试');
+                }
+            }
+        }while($i<3);
+    }
+
+    private function setConfig($accountId)
+    {
+        $account = EbayAccount::get($accountId);
+        if(empty($account)){
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => '未找到Ebay账号信息',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        if(empty($account['account_name'])||empty($account['token'])){
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => '缺少Ebay账号授权信息',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['AppID']     = $account['app_id'];
+        $this->_config['AppCert']     = $account['cert_id'];
+        $this->_config['APIDevUserID']     = $account['dev_id'];
+        $this->_config['APISellerUserID']     = $account['account_name'];
+        $this->_config['APISellerUserToken']  = $account['token'];
+        return true;
+    }
+
+    /**
+     * 创建订单
+     * @param array $config
+     * @param array $order
+     * @param bool $confirm
+     * @return array
+     */
+    public function createOrder(array $config, array $order, $confirm = false)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->checkData('create',$order)){
+                return $this->result;
+            }
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            $params = $this->buildData($order);
+            $response    = $this->soapclient->AddAPACShippingPackage(['AddAPACShippingPackageRequest'=>$params]);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->url,
+                'header'=>'',
+                'request'=>$params,
+                'response'=>$response
+            ];
+
+            if($response->AddAPACShippingPackageResult->Ack=='Success' && $response->AddAPACShippingPackageResult->TrackCode){
+                Cache::store('LogisticsLog')->setLogisticsData($order['number'],$order['shipping_id'], array('trackingNumber'=>$response->AddAPACShippingPackageResult->TrackCode));
+                $this->result['data']['number']             = '';      // 客户订单号
+                $this->result['data']['package_code']       = '';      // One World包裹处理号
+                $this->result['data']['trackingNumber']     = $response->AddAPACShippingPackageResult->TrackCode;  // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm']            = false;                              // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = true;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+            }else{
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+
+                $this->result['error'] = [
+                    'error_msg'  => is_array($response->AddAPACShippingPackageResult->NotificationList->Notification) ?
+                            implode('--',array_column(json_decode(json_encode($response->AddAPACShippingPackageResult->NotificationList->Notification),true), 'Message')) :
+                            $response->AddAPACShippingPackageResult->NotificationList->Notification->Message,
+                    'error_code' => 1
+                ];
+            }
+            //号码重复问题
+            if($this->result['success']==false && strstr(param($this->result['error'], 'error_msg'), 'record Already exists')){
+                $repeat_data = Cache::store('LogisticsLog')->getLogisticsData($this->result['number'], $order['shipping_id']);
+                if(param($repeat_data, 'trackingNumber')){
+                    $this->result['data']['number']             = '';      // 客户订单号
+                    $this->result['data']['package_code']       = '';      // One World包裹处理号
+                    $this->result['data']['trackingNumber']     = $repeat_data['trackingNumber'];  // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                    $this->result['data']['confirm']            = false;                              // 是否交运
+                    $this->result['data']['label']              = true;                              // 是否有pdf
+                    $this->result['data']['label_url']          = '';                              // 是否有pdf
+                    $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                    $this->result['data']['send']               = true;                              // 是否能查询物流订单状态
+                    $this->result['success']                    = true;
+                }else {
+                    $where['package_upload_status'] = ['>', 0];
+                    $where['shipping_id'] = ['=', $order['shipping_id']];
+                    $where['order_id'] = ['=', $order['order_id']];
+                    $order_count = (new OrderPackage())->where($where)->count();
+                    if($order_count>0){
+                        $this->result['error'] = [
+                            'error_msg'  => '同一个订单只允许上传一个包裹，请更换其他线下邮寄方式！',
+                            'error_code' => 1
+                        ];
+                    }else{
+                        $package_number = '154269320751,154276260036,154276260036,154275982442,154276253259,154276520962,154276520965,154276598057,154276611942,154276695146,154276702648,154276702648,154276702648,154276705121,154276785038,154276792936,154276797433,154276874554,154276884301,154276884344,154276971381,154276973437,154277061628,154277061670,154277063423,154277150956,154277322028,154277332144,154277422353,154277507293,154277693052,154277693052,154277693052';
+                        $package_number .= ',154276668269,154276695180,154276702642,154276785082,154276792928,154276705110,154276705108,154276792980,154276882412,154276973406,154276705117,154277054096,154277150903,154277150990,154277332128,154277152773,154277322013,154277322056,154277597056,154277602021,154277397388,154277397398,154277422327 ,154277602059 ,154277602073,154277512519 ,154276973412,154276598096,154276611937,154276658510,154274542372,154275441936,154276432730';
+                        $package_number_arr = explode(',', $package_number);
+                        if(in_array($order['number'], $package_number_arr)){
+                            $info = $trackingNumber = $this->getTrackingNumber1($config, $order);
+                            if($info['success'] && param($info, 'trackingNumber')){
+                                $this->result['data']['number']             = '';      // 客户订单号
+                                $this->result['data']['package_code']       = '';      // One World包裹处理号
+                                $this->result['data']['trackingNumber']     = $info['trackingNumber'];  // 跟踪号
+                                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                                $this->result['data']['confirm']            = false;                              // 是否交运
+                                $this->result['data']['label']              = true;                              // 是否有pdf
+                                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                                $this->result['data']['send']               = true;                              // 是否能查询物流订单状态
+                                $this->result['success']                    = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }catch(Exception $ex){
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 确认订单
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function confirm(array $config, array $order){
+        try {
+            $this->result['number'] = $order['number'];
+            if(!$this->checkData('confirm',$order)){
+                return $this->result;
+            }
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            $params = $this->_config;
+            $params['Carrier'] = $order['shipping_method_code'];
+            $params['TrackCode'] = $order['shipping_number'];
+            $params['PickUpRequestDateTime'] = date('c');
+            $response    = $this->soapclient->ConfirmAPACShippingPackage(['ConfirmAPACShippingPackageRequest'=>$params]);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->url,
+                'header'=>'',
+                'request'=>$params,
+                'response'=>$response
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+
+            if($response->ConfirmAPACShippingPackageResult->Ack=='Success'){
+                $this->result['data']['number']             = '';      // 客户订单号
+                $this->result['data']['package_code']       = '';      // One World包裹处理号
+                $this->result['data']['trackingNumber']     = '';  // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm']            = true;                              // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = true;                              // 是否能查询物流订单状态
+                $this->result['data']['warehouse_id']       = $order['warehouse_id'];
+                $this->result['success'] = true;
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $response->ConfirmAPACShippingPackageResult->NotificationList->Notification->Message
+                ];
+            }
+            //已经交运
+            if($this->result['success'] == false && strstr(param($this->result['error'] , 'error_msg'), 'Order has already been confirmed')){
+                $this->result['data']['number']             = '';      // 客户订单号
+                $this->result['data']['package_code']       = '';      // One World包裹处理号
+                $this->result['data']['trackingNumber']     = '';  // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm']            = true;                              // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = true;                              // 是否能查询物流订单状态
+                $this->result['data']['warehouse_id']       = $order['warehouse_id'];
+                $this->result['success'] = true;
+            }
+        }catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 取消并删除在交运前的订单。交运后的订单无法取消。
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel(array $config, array $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            if($order['confirm']==1){
+                $this->result['error'] = [
+                    'error_msg'=>'已交运订单不能取消',
+                    'error_code'=>1
+                ];
+                return $this->result;
+            }
+            if(!$this->checkData('confirm',$order)){
+                return $this->result;
+            }
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            $params = $this->_config;
+            $params['Carrier'] = $order['shipping_method_code'];
+            $params['TrackCode'] = $order['shipping_number'];
+            $response    = $this->soapclient->CancelAPACShippingPackage(['CancelAPACShippingPackageRequest'=>$params]);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->url,
+                'header'=>'',
+                'request'=>$params,
+                'response'=>$response
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            if($response->CancelAPACShippingPackageResult->Ack=='Success'){
+                $this->result['success'] = true;
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $response->CancelAPACShippingPackageResult->Notification->Message
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+
+    /**
+     * 重新发货，会返回新的追踪号，最多重发3次
+     * @param $order
+     * @return array
+     */
+    public function reCreateOrder($order){
+        try {
+            $params = $this->_config;
+            $params['Carrier'] = $order['shipping_method_code'];
+            $params['TrackCode'] = $order['shipping_number'];
+            $response    = $this->soapclient->RecreateAPACShippingPackage(['RecreateAPACShippingPackageRequest'=>$params]);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->url,
+                'header'=>'',
+                'request'=>$params,
+                'response'=>$response
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            if($response->RecreateAPACShippingPackageResult->Ack=='Success'){
+                $this->result['data']['trackingNumber'] = $response->RecreateAPACShippingPackageResult->TrackCode;
+                $this->result['success'] = true;
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $response->RecreateAPACShippingPackageResult->Notification->Message
+                ];
+            }
+        }catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取标签
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order){
+        try{
+            $this->result['number'] = $order['number'];
+            if(!$this->checkData('confirm',$order)){
+                return $this->result;
+            }
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            $params = $this->_config;
+            $params['Carrier'] = $order['shipping_method_code'];
+            $params['TrackCode'] = $order['shipping_number'];
+            $params['PageSize'] = 1;
+            $response    = $this->soapclient->GetAPACShippingLabel(['GetAPACShippingLabelRequest'=>$params]);
+            if($response->GetAPACShippingLabelResult->Ack=='Success'){
+                $pdf = $response->GetAPACShippingLabelResult->Label;
+                if(strpos($pdf,'%PDF')===false){
+                    throw new Exception('面单下载失败');
+                }
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'],base64_encode($pdf),'pdf');
+//                $path = $order['path'];
+//                if (!is_dir($path)){
+//                    mkdir($path,0777);  // 创建文件夹test,并给777的权限（所有权限）
+//                }
+//                $filename = $path . '/'.$order['number']. '.pdf';    // 写入的文件
+//                file_put_contents($filename,$pdf,FILE_APPEND);
+//                $this->result['data']['body'] = base64_encode($pdf);
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '获取失败'
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    public function getExpress($config){
+        $data = [
+            ['code'=>'CNPOST','name'=>'CNPOST',''],
+            ['code'=>'UBI','name'=>'UBI'],
+            ['code'=>'DHL eCommerce','name'=>'DHL eCommerce']
+        ];
+        $this->result['success'] = true;
+        $this->result['data'] = $data;
+        return $this->result;
+    }
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageStatus($config,$order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            if(!$this->checkData('confirm',$order)){
+                return $this->result;
+            }
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            $params = $this->_config;
+            $params['Carrier'] = $order['shipping_method_code'];
+            $params['TrackCode'] = $order['shipping_number'];
+            $response    = $this->soapclient->GetAPACShippingPackageStatus(['GetAPACShippingPackageStatusRequest'=>$params]);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->url,
+                'header'=>'',
+                'request'=>$params,
+                'response'=>$response
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            if($response->GetAPACShippingPackageStatusResult->Ack=='Success'){
+                $status = $response->GetAPACShippingPackageStatusResult->Status;
+                $this->result['data']['is_send'] = $status==10 ? true : false;
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '获取失败'
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 组装apac所需数据
+     */
+    private function buildData($data){
+        //获取平台订单信息
+        $orderModel = new Order();
+        $orderInfo = $orderModel->field('transaction_id,buyer_id, buyer, site_code')->where(['id' => $data['order_id']])->find();
+        //获取站点信息
+        $siteModel = new EbaySite();
+        $siteInfo = $siteModel->field('siteid')->where(['abbreviation'=>$orderInfo['site_code']])->find();
+
+        $orderDetail = $data['product'];
+        $item = [];
+        foreach($orderDetail as $k=>$detail){
+            $orderSourceDetailModel = new OrderSourceDetail();
+            $orderSourceDetailInfo = $orderSourceDetailModel->field('channel_item_id,channel_sku_title,transaction_id')->where(['id'=>$detail['order_source_detail_id']])->find();
+            $declared = isset($data['declared_info'][$k]) ? $data['declared_info'][$k] : [];
+            $title = !isset($declared['declared_name_en']) ? '' : $declared['declared_name_en'];
+            if($data['shipping_method_code']=='CNPOST'){
+                $title = empty($declared['declared_name_cn']) ? $detail['title_cn'] : $declared['declared_name_cn'];
+            }
+            $item_transaction = $orderSourceDetailInfo['channel_item_id'].'-'.$orderSourceDetailInfo['transaction_id'];
+            if(isset($item[$item_transaction])){
+                $item[$item_transaction]['SoldQTY'] = $item[$item_transaction]['SoldQTY']+$detail['qty'];
+                $item[$item_transaction]['PostedQTY'] = $item[$item_transaction]['PostedQTY']+$detail['qty'];
+            } else {
+                $item[$item_transaction] = [
+                    'EBayItemID'         => $orderSourceDetailInfo['channel_item_id'],  //eBay 物品号 必填
+                    'EBayTransactionID'  => $orderSourceDetailInfo['transaction_id'],   //eBay 交易号，拍卖的物品请输入 0  必填
+                    'EBayBuyerID'        => $orderInfo['buyer_id'] ? $orderInfo['buyer_id'] : $orderInfo['buyer'],            			//eBay 买家 ID 必填
+                    'EBayItemTitle'      => $orderSourceDetailInfo['channel_sku_title'],// eBay 商品标题，这里只显示英文名
+                    'EBayEmail'          => $data['email'],          			        //买家 eBay 电邮
+                    'SoldQTY'            => $detail['qty'],            		            //卖出数量
+                    'PostedQTY'          => $detail['qty'],            		            //寄货数量，不能为 0  必填
+                    'SalesRecordNumber'  => '',          			                    //用户从 eBay 上下载的时 eBay 销售编号
+                    'OrderSalesRecordNumber' => '',       		                        //订单销售编号，如果在 eBay 上合并订单，会产生一个新的SalesRecordNumber
+                    'OrderID'            =>'',                                          //eBay 合并订单时生成的 一个新合并订单时生成的 一个新合并订单时生成的 一个新合并订单时生成的 一个新合并订单时生成的 一个新Order ID
+                    'EBaySiteID'         => $siteInfo['siteid'],                     	//站点 ID
+                    'ReceivedAmount'     => '',             		                    //实际收到金额
+                    'PaymentDate'        => '',                                         //买家付款日期
+                    'SoldPrice'          => '',         			                    //卖出总价
+                    'SoldDate'           => '',                                         //卖出日期
+                    'CurrencyCode'       => '',          		                        //货币符号
+                    'EBayMessage'        => '',              	                        //买家 eBay 留言
+                    'PayPalEmail'        => '',                     			        //买家 PayPal 电邮地址
+                    'PayPalMessage'      => '',              				            //买家 PayPal 留言
+                    'Note'               => '',             				            //附注
+                    'SKU'                =>[
+                        'SKUID' => '',
+                        'DeclaredValue' => !isset($declared['declared_value']) ? 0 : number_format($declared['declared_value'],2),  //物品申报价值
+                        'Weight' => $detail['weight']/1000,                                                                                 //物品重量（千克），可用值 0-2
+                        'CustomsTitle'=>$title,                                                                                             //英文报关名称 .国际 e邮宝包裹请填中文报关名
+                        'CustomsTitleEN' => !isset($declared['declared_name_en']) ? '' : $declared['declared_name_en'],             		//英文报关名称
+                        'OriginCountryCode' => "CN",                   					                                                    //原产地名称，可用值请填写原产国英文名称
+                        'OriginCountryName' => "China",                					                                                    //原产地
+                        'HTSNumber'=>'',                                                                                                    //关税代码，最小长度为 2
+                    ]
+                ];
+            }
+        }
+        $data['street'] = $data['street2'] ? $data['street'].' '.$data['street2'] : $data['street'];
+
+        $data['email'] = $data['email']=='Invalid Request' ? '' : $data['email'];
+        //收件人
+        $ShipToAddress      = [
+            'Contact' => $data['name'],
+            'Company' => '',
+            'Street' => $data['street'],
+            'City' => $data['city'],
+            'Province' => $data['province'],
+            'CountryCode' => $data['country_code'],
+            'Postcode' => $data['zip'],
+            'Phone' => $data['phone']?$data['phone']:$data['tel'],
+            'Email' => $data['email'],
+        ];
+
+        $PickUpAddress = [
+            "Contact" => $data['pickup']['pickup_name'],
+            "Company" => $data['pickup']['pickup_company'],
+            "Street"  => $data['pickup']['pickup_street'],
+            "District" => $data['pickup']['pickup_district'],
+            "City" => $data['pickup']['pickup_city'],
+            "Province" => $data['pickup']['pickup_state'],
+            "Postcode" => $data['pickup']['pickup_zipcode'],
+            'CountryCode'=>'CN',
+            "Email" => $data['pickup']['pickup_email'],
+            "Mobile" => $data['pickup']['pickup_mobile'],
+            'Phone' => $data['pickup']['pickup_mobile'],
+        ];
+        //寄件人地址信息
+        $ShipFromAddress    = [
+            "Contact" => $data['sender']['sender_name'],
+            "Company" => $data['sender']['sender_company'],
+            "Street"  => $data['sender']['sender_street'],
+            "District" => $data['sender']['sender_district'],
+            "City" => $data['sender']['sender_city'],
+            "Province" => $data['sender']['sender_state'],
+            "Postcode" => $data['sender']['sender_zipcode'],
+            'CountryCode'=>$data['sender']['sender_country'],
+            "Email" => $data['sender']['sender_email'],
+            "Mobile" => $data['sender']['sender_mobile'],
+        ];
+
+        //退货地址信息
+        $ReturnAddress = [
+            "Contact" => $data['refund']['refund_name'],
+            "Company" => $data['refund']['refund_company'],
+            "Street"  => $data['refund']['refund_street'],
+            "District" => $data['refund']['refund_district'],
+            "City" => $data['refund']['refund_city'],
+            "Province" => $data['refund']['refund_province'],
+            "Postcode" => $data['refund']['refund_zipcode'],
+            'CountryCode'=>'CN',
+        ];
+        $ShippingPackage = [];
+        if(in_array($data['shipping_method_code'], ['UBI','DHL eCommerce'])){
+            $ShippingPackage = [
+                                    'Description'=>'',
+                                    'Length'=>0,
+                                    'Width'=>0,
+                                    'Height'=>0,
+                                    'Incoterms'=>'',
+                                    'CollectionInstructions'=>'',
+                                    'DeliveryInstructions'=>'',
+                                ];
+        /*    $ShippingPackage = [
+                                    'Description'=>'',
+                                    'Length'=>($data['length']/1000),
+                                    'Width'=>($data['width']/1000),
+                                    'Height'=>($data['height']/1000),
+                                    'Incoterms'=>'',
+                                    'CollectionInstructions'=>'',
+                                    'DeliveryInstructions'=>'',
+                                ];*/
+        }
+
+        $params = $this->_config;
+        $params['Carrier'] = $data['shipping_method_code'];
+        //$params['Service'] = 'E-PARCEL';//对CNPOST，可用值EPACK;对UBI Australia，可用值E-PARCEL;对UBI Canada，可用值Expedited;对DHL eCommerce，可用值PPS         选填
+
+        $params['OrderDetail'] = [
+            "DropOffLocation"   =>'',                       //对于DHL eCommerce包裹，当揽收方式为卖家自送时，必须填写可用值：SHA – 上海;SZX – 深圳;HKG – 香港
+            "PickUpAddress"     =>$PickUpAddress,           //揽收地址信息。请参考揽收地址代码表。国际 e 邮宝的订单必须使用中文地址。UBI 和 DHL eCommerce 的订单必须使用英文地址。
+            "ShipFromAddress"   =>$ShipFromAddress,         //寄件人地址信息。必须以英文填写。
+            "ShipToAddress"     =>$ShipToAddress,           //收件人地址信息。此地址将被打印在标签的收件人地址一栏中。支持英语及俄语。
+            "ReturnAddress"     =>$ReturnAddress,           //退货地址信息。对国际 e 邮宝，请填写中文地址，并且必须保持与寄件人地址是中英文翻译的关系。。对 UBI 和 DHL eCommerce 请填写英文地址。
+            "ItemList"          =>array("Item"=>array_values($item)),     //货品信息
+            "EMSPickUpType"     =>0,  //揽收方式，可用值：0 - 上门揽收 1 - 卖家自送
+        ];
+        if(!empty($ShippingPackage)){
+            $params['OrderDetail']['ShippingPackage'] = $ShippingPackage;//UBI 和 DHL eCommerce 包裹必填字段。国际 e 邮宝包裹不需填写。
+        }
+
+        return $params;
+    }
+
+    /**
+     *
+     * 验证用户授权是否成功
+     */
+    public function verifyAPACShippingUser($config){
+        $params = $config;
+        $params['Carrier'] = 'CNPOST';
+        try {
+            //$response    = $this->soapclient->call('VerifyAPACShippingUser', $params);
+            print_r($params);
+            $response    = $this->soapclient->VerifyAPACShippingUser(array("VerifyAPACShippingUserRequest"=>$params));
+            Cache::store('LogisticsLog')->setLogisticsLog('11111111111111',$params);
+        } catch (Exception $ex) {
+
+        }
+    }
+
+    /**
+     * 数据验证
+     * @param $scene
+     * @param $data
+     * @return bool
+     */
+    private function checkData($scene,$data)
+    {
+        $rule = [
+            ['channel_account_id','require|integer','缺少Ebay账号ID|Ebay账号ID类型为integer'],
+            ['channel_id','egt:1','该物流方式只支持Ebay平台'],
+            ['shipping_id','require|integer','缺少shipping_id|shipping_id类型为integer'],
+            ['shipping_method_code','require','缺少shipping_method_code'],
+            ['process_code','require','缺少process_code'],
+            ['shipping_number','require','缺少shipping_number'],
+        ];
+        $validate = new Validate($rule);
+        $validate->scene('create', ['channel_account_id', 'channel_id']);
+        $validate->scene('confirm', ['channel_account_id', 'shipping_number','shipping_method_code']);
+        if (!$validate->scene($scene)->check($data)) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => $validate->getError(),
+                'error_code' => 1
+            ];
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @desc 获取跟踪号
+     * @param array $config
+     * @param array $order
+     */
+    public function getTrackingNumber1($config, $order)
+    {
+        $result['success'] = false;
+        try {
+            $result['number'] = $order['number'];
+            //获取交易号/物品好
+            $orderSourceDetail = new OrderSourceDetail();
+            $params = $this->_config;
+            $params['Carrier'] = $config['shipping_method_code'];
+            $params['EBayItemID'] = '';
+            $params['EBayTransactionID'] = '';
+
+            foreach ($order['product'] as $key => $item) {
+                $orderSource = $orderSourceDetail->where('id', $item['order_source_detail_id'])->field('transaction_id,channel_item_id')->find();
+                $params['EBayItemID'] = $orderSource['channel_item_id'];
+                $params['EBayTransactionID'] = $orderSource['EBayTransactionID'];
+                break;
+            }
+            $response = $this->soapclient->GetAPACShippingTrackCode(['GetAPACShippingTrackCodeRequest' => $params]);
+            if ($response->GetAPACShippingTrackCodeResult->Ack == 'Success' && $response->GetAPACShippingTrackCodeResult->TrackCode) {
+                $result['trackingNumber'] =  $response->GetAPACShippingTrackCodeResult->TrackCode;
+                $result['success'] = true;
+            } else {
+                $result['success'] = false;
+            }
+        }catch (Exception $EX){
+            cache::handler()->set('apc:'.$order['number'], $EX->getMessage());
+            $result['success'] = false;
+        }
+        return $result;
+    }
+
+
+
+    public function  createOrderTest($order){
+        $this->result['number'] = $order['number'];
+        if(!$this->setConfig($order['channel_account_id'])){
+            return $this->result;
+        }
+        $params = $this->_config;
+        $params['Carrier'] = $order['shipping_method_code'];
+        $params['EBayItemID'] = $order['channel_item_id'];
+        $params['EBayTransactionID'] = $order['transaction_id'];
+        $response = $this->soapclient->GetAPACShippingTrackCode(['GetAPACShippingTrackCodeRequest' => $params]);
+        if ($response->GetAPACShippingTrackCodeResult->Ack == 'Success' && $response->GetAPACShippingTrackCodeResult->TrackCode) {
+            $params_cancel=$this->_config;
+            $params_cancel['Carrier'] = $order['shipping_method_code'];
+            $params_cancel['TrackCode'] = $response->GetAPACShippingTrackCodeResult->TrackCode;
+            $response_cancel = $this->soapclient->CancelAPACShippingPackage(['CancelAPACShippingPackageRequest'=>$params_cancel]);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->url,
+                'header'=>'',
+                'request'=>$params,
+                'response'=>$response
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            if($response_cancel->CancelAPACShippingPackageResult->Ack=='Success'){
+                $this->result['success'] = true;
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $response_cancel->CancelAPACShippingPackageResult->Notification->Message
+                ];
+            }
+        } else {
+            $result['success'] = false;
+        }
+        return $this->result;
+    }
+    /**
+     *
+     */
+//    private function setConfig($config){
+//        $this->aPISellerUserID  = $config['aPISellerUserID'];
+//        $this->aPISellerUserToken  = $config['aPISellerUserToken'];
+//    }
+}

@@ -1,0 +1,46 @@
+<?php
+namespace service\pm;
+
+/**
+ * PriceMinister基础数据类
+ * @author wangwei 2019-2-27 16:41:21
+ */
+class PriceMinisterLib{
+	
+	/**
+	 * API请求域名
+	 * @var string
+	 */
+	const API_DOMAIN = 'https://ws.priceminister.com';
+	
+	/**
+	 * 国家代码映射
+	 * @param string $countryCode  国家代码
+	 */
+	public static function countryCodeMap($countryCode){
+		$countryCode = trim($countryCode);//去空格
+		$countryCode = strtoupper($countryCode);//转大写
+		$map = array(
+				'FX'=>'FR',//法国
+		);
+		return  isset($map[$countryCode]) ? $map[$countryCode] : $countryCode;
+	}
+	
+	/**
+	 * PM时间转本地时间
+	 * @param datetime $pmDate 22/03/2017-17:11 为 2017-03-22 17:11:00
+	 */
+	public static function getLocDate($pmDate){
+		$locDate = '0000-00-00 00:00:00';
+		if(!empty($pmDate)){
+			//拆分日期时间
+			preg_match('/(\d{2})\/(\d{2})\/(\d{4})-(\d{2}):(\d{2})/', $pmDate,$matches);
+			if(!empty($matches)){
+				$date = $matches[3].'-'.$matches[2].'-'.$matches[1].' '.$matches[4].':'.$matches[5].':00';
+				$locDate = date ( 'Y-m-d H:i:s', strtotime ( $date ) );
+			}
+		}
+		return $locDate;
+	}
+	
+}

@@ -1,0 +1,24 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-5-28
+ * Time: 下午3:40
+ */
+
+namespace service\shopee\operation;
+
+
+class Attributes extends Common
+{
+    private  $baseUrl="https://partner.shopeemobile.com/api/v1/item/attributes/";
+    /**
+     * @param $params
+     * @return mixed
+     */
+    public function get($params){
+        $url=$this->baseUrl.__FUNCTION__;
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+}

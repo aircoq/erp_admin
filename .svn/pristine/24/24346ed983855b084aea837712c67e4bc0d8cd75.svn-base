@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * Description of Wish
+ * @datetime 2017-5-19  15:26:24
+ * @author joy
+ */
+
+namespace command;
+use think\console\Command;
+use think\console\Input;
+use think\console\input\Option;
+use think\console\Output;
+
+
+class Wish extends Command{
+    
+    protected function configure()
+    {
+        // 指令配置
+        $this
+        ->setName('wish')
+        ->addOption('job', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->addOption('status', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->addOption('download', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('stat', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('publish', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+	    ->addOption('cronpublish', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('map', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+		->addOption('health', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->setDescription('command entrance');
+    }
+   
+    protected function execute(Input $input, Output $output)
+    {
+
+        if ($input->getOption('job')) 
+        {
+            $task = new \app\listing\task\WishProductDownloadJob;
+        }
+        if ($input->getOption('status')) {
+            $task = new \app\listing\task\WishProductDownloadJobStatus;
+        }
+        if ($input->getOption('download')) {
+            $task = new \app\listing\task\WishProductDownload;
+        } 
+		if ($input->getOption('stat')) {
+            $task = new \app\listing\task\WishProductStat;
+        } 
+		if ($input->getOption('publish')) {
+            $task = new \app\publish\task\WishPublish;
+        } 
+		if ($input->getOption('cronpublish')) {
+            $task = new \app\publish\task\WishCronPublish;
+        } 
+        if ($input->getOption('map')) {
+            $task = new \app\publish\task\GoodsPublishMapWish;
+        } 
+		if ($input->getOption('health')) {
+            $task = new \app\listing\task\WishHealthData;
+        } 
+        if($task)
+        {
+            $task->execute();
+        }else{
+            echo 'please input start command'.PHP_EOL;
+        }
+        
+    }
+}

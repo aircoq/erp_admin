@@ -1,0 +1,475 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: zhangdongdong
+ * Date: 2019/3/21
+ * Time: 21:27
+ */
+
+namespace Waimao\AmazonMws;
+
+use DateTime;
+use Exception;
+
+class AmazonMultiCore
+{
+    protected $urlbase;
+    protected $urlbranch;
+    protected $options = [];
+    protected $config;
+    protected $env;
+    protected $rawResponses = array();
+    protected $store;
+
+    /**
+     * AmazonCore constructor sets up key information used in all Amazon requests.
+     */
+    public function __construct(array $s,array $a)
+    {
+        $this->store = $s;
+        $this->setStore($s);
+        $this->setOption($a);
+
+        $this->env = __DIR__ . '/environment.php';
+        include($this->env);
+        if (isset($AMAZON_VERSION_FEEDS)) {
+            $this->options['Version'] = $AMAZON_VERSION_FEEDS;
+        }
+        $this->options['SignatureVersion'] = 2;
+        $this->options['SignatureMethod'] = 'HmacSHA256';
+    }
+
+    /**
+     * Checks whether or not the response is OK.
+     *
+     * Verifies whether or not the HTTP response has the 200 OK code. If the code
+     * is not 200, the incident and error message returned are logged.
+     * @param array $r <p>The HTTP response array. Expects the array to have
+     * the fields <i>code</i>, <i>body</i>, and <i>error</i>.</p>
+     * @return boolean <b>TRUE</b> if the status is 200 OK, <b>FALSE</b> otherwise.
+     */
+    protected function checkResponse($r)
+    {
+        if (!is_array($r) || !array_key_exists('code', $r)) {
+            $this->log("No Response found", 'Warning');
+            return false;
+        }
+        if ($r['code'] == 200) {
+            return true;
+        } else {
+            $xml = simplexml_load_string($r['body'])->Error;
+            $this->log("Bad Response! " . $r['code'] . " " . $r['error'] . ": " . $xml->Code . " - " . $xml->Message,
+                'Urgent');
+            return false;
+        }
+    }
+
+    /**
+     * Sets the store values.
+     *
+     * This method sets a number of key values from the config file. These values
+     * include your Merchant ID, Access Key ID, and Secret Key, and are critical
+     * for making requests with Amazon. If the store cannot be found in the
+     * config file, or if any of the key values are missing,
+     * the incident will be logged.
+     * @param string $s <p>The store name to look for.</p>
+     * @throws Exception If the file can't be found.
+     */
+    public function setStore($s)
+    {
+        $store = $s;
+        if (array_key_exists('merchantId', $store)) {
+            $this->options['SellerId'] = $store['merchantId'];
+        } else {
+            $this->log("Merchant ID is missing!", 'Warning');
+        }
+        if (array_key_exists('keyId', $store)) {
+            $this->options['AWSAccessKeyId'] = $store['keyId'];
+        } else {
+            $this->log("Access Key ID is missing!", 'Warning');
+        }
+        if (!array_key_exists('secretKey', $store)) {
+            $this->log("Secret Key is missing!", 'Warning');
+        }
+        if (array_key_exists('authToken', $store) && !empty($store['authToken'])) {
+            $this->options['MWSAuthToken'] = $store['authToken'];
+        }
+        // Overwrite Amazon service url if specified
+        if (array_key_exists('amazonServiceUrl', $store)) {
+            $this->urlbase = $store['amazonServiceUrl'];
+        }
+
+    }
+
+
+    public function setOption($a)
+    {
+        if (is_array($a)) {
+            foreach ($a as $k=>$v) {
+                $this->options[$k] = $v;
+            }
+        }
+    }
+
+    /**
+     * Writes a message to the log.
+     *
+     * This method adds a message line to the log file defined by the config.
+     * This includes the priority level, user IP, and a backtrace of the call.
+     * @param string $msg <p>The message to write to the log.</p>
+     * @param string $level [optional] <p>The priority level of the message.
+     * This is merely for the benefit of the user and does not affect how
+     * the code runs. The values used in this library are "Info", "Warning",
+     * "Urgent", and "Throttle".</p>
+     * @return boolean <b>FALSE</b> if the message is empty, NULL if logging is muted
+     * @throws Exception If the file can't be written to.
+     */
+    protected function log($msg, $level = 'Info')
+    {
+        if ($msg != false) {
+            $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+
+            $muteLog = Config::get('amazon-mws.muteLog');
+
+            switch ($level) {
+                case('Info'):
+                    $loglevel = 'info';
+                    break;
+                case('Throttle'):
+                    $loglevel = 'info';
+                    break;
+                case('Warning'):
+                    $loglevel = 'notice';
+                    break;
+                case('Urgent'):
+                    $loglevel = 'error';
+                    break;
+                default:
+                    $loglevel = 'info';
+            }
+            //call_user_func(array('Log', $loglevel), $msg);
+
+            if (isset($muteLog) && $muteLog == true) {
+                return;
+            }
+
+            if (isset($userName) && $userName != '') {
+                $name = $userName;
+            } else {
+                $name = 'guest';
+            }
+
+            if (isset($backtrace) && isset($backtrace[1]) && isset($backtrace[1]['file']) && isset($backtrace[1]['line']) && isset($backtrace[1]['function'])) {
+                $fileName = basename($backtrace[1]['file']);
+                $file = $backtrace[1]['file'];
+                $line = $backtrace[1]['line'];
+                $function = $backtrace[1]['function'];
+            } else {
+                $fileName = basename($backtrace[0]['file']);
+                $file = $backtrace[0]['file'];
+                $line = $backtrace[0]['line'];
+                $function = $backtrace[0]['function'];
+            }
+            if (isset($_SERVER['REMOTE_ADDR'])) {
+                $ip = $_SERVER['REMOTE_ADDR'];
+                if ($ip == '127.0.0.1') {
+                    $ip = 'local';
+                }//save some char
+            } else {
+                $ip = 'cli';
+            }
+
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns options array.
+     *
+     * Gets the options for the object, for debugging or recording purposes.
+     * Note that this also includes key information such as your Amazon Access Key ID.
+     * @return array All of the options for the object.
+     */
+    public function getOptions()
+    {
+        return $this->options;
+    }
+
+    /**
+     * Generates timestamp in ISO8601 format.
+     *
+     * This method creates a timestamp from the provided string in ISO8601 format.
+     * The string given is passed through <i>strtotime</i> before being used. The
+     * value returned is actually two minutes early, to prevent it from tripping up
+     * Amazon. If no time is given, the current time is used.
+     * @param string $time [optional] <p>The time to use. Since this value is
+     * passed through <i>strtotime</i> first, values such as "-1 hour" are fine.
+     * Defaults to the current time.</p>
+     * @return string Unix timestamp of the time, minus 2 minutes.
+     */
+    protected function genTime($time = false)
+    {
+        if (!$time) {
+            $time = time();
+        } else {
+            $time = strtotime($time);
+
+        }
+        return date(DateTime::ISO8601, $time - 120);
+
+    }
+
+    /**
+     * Handles generation of the signed query string.
+     *
+     * This method uses the secret key from the config file to generate the
+     * signed query string.
+     * It also handles the creation of the timestamp option prior.
+     * @return string query string to send to cURL
+     * @throws Exception if config file or secret key is missing
+     */
+    protected function genQuery()
+    {
+        if (array_key_exists('secretKey', $this->store)) {
+            $secretKey = $this->store['secretKey'];
+        } else {
+            throw new Exception("Secret Key is missing!");
+        }
+
+        unset($this->options['Signature']);
+        $this->options['Timestamp'] = $this->genTime();
+        $this->options['Signature'] = $this->_signParameters($this->options, $secretKey);
+        return $this->_getParametersAsString($this->options);
+    }
+
+
+    /**
+     * Gives the latest response data received from Amazon.
+     * Response arrays contain the following keys:
+     * <ul>
+     * <li><b>head</b> - The raw HTTP head, including the response code and content length</li>
+     * <li><b>body</b> - The raw HTTP body, which will almost always be in XML format</li>
+     * <li><b>code</b> - The HTTP response code extracted from the head for convenience</li>
+     * <li><b>answer</b> - The HTTP response message extracted from the head for convenience</li>
+     * <li><b>ok</b> - Contains a <b>1</b> if the response was normal, or <b>0</b> if there was a problem</li>
+     * <li><b>headarray</b> - An associative array of the head data, for convenience</li>
+     * </ul>
+     * @param int $i [optional] <p>If set, retrieves the specific response instead of the last one.
+     * If the index for the response is not used, <b>FALSE</b> will be returned.</p>
+     * @return array associative array of HTTP response or <b>FALSE</b> if not set yet
+     */
+    public function getLastResponse($i = null)
+    {
+        if (!isset($i)) {
+            $i = count($this->rawResponses) - 1;
+        }
+        if ($i >= 0 && isset($this->rawResponses[$i])) {
+            return $this->rawResponses[$i];
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Gives all response code received from Amazon.
+     * @return array list of associative arrays of HTTP response or <b>FALSE</b> if not set yet
+     * @see getLastResponse
+     */
+    public function getRawResponses()
+    {
+        if (!empty($this->rawResponses)) {
+            return $this->rawResponses;
+        } else {
+            return false;
+        }
+    }
+
+
+    public function buildQuery($url, $param, $timeOut = 30)
+    {
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeOut);
+        curl_setopt($ch, CURLOPT_FORBID_REUSE, 1);
+        curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1);
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        if (!empty($param)) {
+            if (!empty($param['Header'])) {
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $param['Header']);
+            }
+            if (!empty($param['Post'])) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $param['Post']);
+            }
+        }
+
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        return $ch;
+    }
+
+    //Functions from Athena:
+    /**
+     * Get url or send POST data
+     * @param string $url
+     * @param array $param ['Header']
+     *               $param['Post']
+     * @return array $return['ok'] 1  - success, (0,-1) - fail
+     *               $return['body']  - response
+     *               $return['error'] - error, if "ok" is not 1
+     *               $return['head']  - http header
+     */
+    function fetchURL($url, $param)
+    {
+        $return = array();
+
+        $ch = $this->buildQuery($url, $param);
+        $data = curl_exec($ch);
+        if (curl_errno($ch)) {
+            $return['ok'] = -1;
+            $return['error'] = curl_error($ch);
+            return $return;
+        }
+
+        if (is_numeric(strpos($data, 'HTTP/1.1 100 Continue'))) {
+            $data = str_replace('HTTP/1.1 100 Continue', '', $data);
+        }
+        $data = preg_split("/\r\n\r\n/", $data, 2, PREG_SPLIT_NO_EMPTY);
+        if (!empty($data)) {
+            $return['head'] = (isset($data[0]) ? $data[0] : null);
+            $return['body'] = (isset($data[1]) ? $data[1] : null);
+        } else {
+            $return['head'] = null;
+            $return['body'] = null;
+        }
+
+        $matches = array();
+        $data = preg_match("/HTTP\/[0-9.]+ ([0-9]+) (.+)\r\n/", $return['head'], $matches);
+        if (!empty($matches)) {
+            $return['code'] = $matches[1];
+            $return['answer'] = $matches[2];
+        }
+
+        $data = preg_match("/meta http-equiv=.refresh. +content=.[0-9]*;url=([^'\"]*)/i", $return['body'], $matches);
+        if (!empty($matches)) {
+            $return['location'] = $matches[1];
+            $return['code'] = '301';
+        }
+
+        if ($return['code'] == '200' || $return['code'] == '302') {
+            $return['ok'] = 1;
+        } else {
+            $return['error'] = (($return['answer'] and $return['answer'] != 'OK') ? $return['answer'] : 'Something wrong!');
+            $return['ok'] = 0;
+        }
+
+        foreach (preg_split('/\n/', $return['head'], -1, PREG_SPLIT_NO_EMPTY) as $value) {
+            $data = preg_split('/:/', $value, 2, PREG_SPLIT_NO_EMPTY);
+            if (is_array($data) and isset($data['1'])) {
+                $return['headarray'][$data['0']] = trim($data['1']);
+            }
+        }
+
+        curl_close($ch);
+        return $return;
+    }
+    // End Functions from Athena
+
+    // Functions from Amazon:
+    /**
+     * Reformats the provided string using rawurlencode while also replacing ~, copied from Amazon
+     *
+     * Almost the same as using rawurlencode
+     * @param string $value
+     * @return string
+     */
+    protected function _urlencode($value)
+    {
+        return rawurlencode($value);
+        return str_replace('%7E', '~', rawurlencode($value));
+    }
+
+    /**
+     * Fuses all of the parameters together into a string, copied from Amazon
+     * @param array $parameters
+     * @return string
+     */
+    protected function _getParametersAsString(array $parameters)
+    {
+        $queryParameters = array();
+        foreach ($parameters as $key => $value) {
+            $queryParameters[] = $key . '=' . $this->_urlencode($value);
+        }
+        return implode('&', $queryParameters);
+    }
+
+    /**
+     * validates signature and sets up signing of them, copied from Amazon
+     * @param array $parameters
+     * @param string $key
+     * @return string signed string
+     * @throws Exception
+     */
+    protected function _signParameters(array $parameters, $key)
+    {
+        $algorithm = $this->options['SignatureMethod'];
+        $stringToSign = null;
+        if (2 === $this->options['SignatureVersion']) {
+            $stringToSign = $this->_calculateStringToSignV2($parameters);
+            //            var_dump($stringToSign);
+        } else {
+            throw new Exception("Invalid Signature Version specified");
+        }
+        return $this->_sign($stringToSign, $key, $algorithm);
+    }
+
+    /**
+     * generates the string to sign, copied from Amazon
+     * @param array $parameters
+     * @return type
+     */
+    protected function _calculateStringToSignV2(array $parameters)
+    {
+        $data = 'POST';
+        $data .= "\n";
+        $endpoint = parse_url($this->urlbase);
+        $data .= $endpoint['host'];
+        $data .= "\n";
+        $uri = array_key_exists('path', $endpoint) ? $endpoint['path'] : null;
+        if (!isset ($uri)) {
+            $uri = "/";
+        }
+        $uriencoded = implode("/", array_map(array($this, "_urlencode"), explode("/", $uri)));
+        $data .= $uriencoded;
+        $data .= "\n";
+        uksort($parameters, 'strcmp');
+        $data .= $this->_getParametersAsString($parameters);
+        return $data;
+    }
+
+    /**
+     * Runs the hash, copied from Amazon
+     * @param string $data
+     * @param string $key
+     * @param string $algorithm 'HmacSHA1' or 'HmacSHA256'
+     * @return string
+     * @throws Exception
+     */
+    protected function _sign($data, $key, $algorithm)
+    {
+        if ($algorithm === 'HmacSHA1') {
+            $hash = 'sha1';
+        } else {
+            if ($algorithm === 'HmacSHA256') {
+                $hash = 'sha256';
+            } else {
+                throw new Exception ("Non-supported signing method specified");
+            }
+        }
+
+        return base64_encode(
+            hash_hmac($hash, $data, $key, true)
+        );
+    }
+}

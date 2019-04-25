@@ -1,0 +1,76 @@
+<?php
+
+namespace umka;
+use org\Curl;
+
+use app\common\cache\Cache;
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/5/22
+ * Time: 15:48
+ */
+class UmkaAccountApi
+{
+    /**
+     * @var null
+     */
+    public $access_token;
+
+    public function __construct($access_token = '')
+    {
+        $this->access_token = $access_token;
+    }
+
+    /**获取token值
+     *@param $data
+     * @return mixed
+     */
+    public function get_access_token($data) {
+        $url = 'http://open.wangjigroup.com/oauth/token?';
+        $postData = [
+            'client_id' => $data['client_id'],
+            'client_secret' =>$data['client_secret'],
+            'grant_type' =>'password',
+            'username' => $data['name'],
+            'password' => $data['password'],
+        ];
+        $response = Curl::curlGet($url.http_build_query($postData));
+        return json_decode($response, true);
+    }
+
+    /**
+     * 刷新access_token
+     * @param $params
+     * @return array|bool|mixed
+     */
+    public function refreshToken($params) {
+        $url = 'http://open.wangjigroup.com/oauth/token?';
+        $postData = [
+            'client_id' => $params['client_id'],
+            'client_secret' =>$params['client_secret'],
+            'grant_type' =>'refresh_token',
+            'refresh_token' => $params['refresh_token'],
+        ];
+        $response = Curl::curlGet($url.http_build_query($postData));
+        return json_decode($response, true);
+
+        }
+    /** 检查token是否已过期
+     * @param $data
+     * @return array|bool
+     */
+    public function checkToken($data)
+    {
+        if (!isset($data['expiry_time']) && !isset($data['refresh_token'])) {
+            return false;
+        }
+        if ($data['expiry_time'] < (time() + 24 * 3600)) {
+            //已过期了
+            return $this->refreshToken($data);
+        }
+        return ['state' => true];
+    }
+
+}
+

@@ -1,0 +1,24 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-28
+ * Time: 下午4:05
+ */
+
+namespace erp;
+
+
+class PageRule extends AbsAccessRule
+{
+    protected $type = self::TYPE_PAGE;
+    public  function setParam($param)
+    {
+        // TODO: Implement setParam() method.
+    }
+
+    public function jsonSerialize()
+    {
+        
+    }
+}

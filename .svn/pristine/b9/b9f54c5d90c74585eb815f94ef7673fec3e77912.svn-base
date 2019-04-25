@@ -1,0 +1,730 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use org\Curl;
+use think\Exception;
+use app\goods\service\GoodsHelp;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+use app\common\model\OrderDetail;
+/**
+ * author by lanshushu
+ *  ShiHang 中邮小包订单纯电池
+ */
+class ChinaPostBattery
+{
+    private static $service = null;
+    // 配置信息
+    private $_config = [
+
+        'url'   =>'http://xb.shenzhenpost.com.cn:7003/xbzz/services/mailSearch?wsdl',    //线上地址
+//        'url'   =>'http://test01.routdata.com/selfsys/services/mailSear?wsdl',    //测试地址
+        'header' => [
+            'Content-type:application/json;charset=utf-8'
+        ],
+        'custName'=>'',
+        'loginName'=>'',
+        'loginPwd'=>''
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return array | void
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_secret']) || empty($config['client_id']) ||empty($config['interface_user_password'])) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['custName'] = $config['client_secret'];
+        $this->_config['loginName'] = $config['client_id'];
+        $this->_config['loginPwd'] = $config['interface_user_password'];
+        return true;
+    }
+
+
+
+
+    /**
+     * 渠道列表
+     * @param string $orderNumber
+     * @return $newResult : 返回所有渠道列表
+     */
+    public function getExpress($config)
+    {
+        $data = [
+            ['code'=>'1','name'=>'航空'],
+            ['code'=>'2','name'=>'空运水陆路'],
+            ['code'=>'3', 'name'=>'水陆路'],
+            ['code'=>'JPPS','name'=>'日本专线'],
+            ['code'=>'UKPS','name'=>'英国专线'],
+            ['code'=>'WNBPS','name'=>'英国 WNB 专线'],
+            ['code'=>'DEPS','name'=>'德国专线'],
+            ['code'=>'ESPS','name'=>'西班牙专线'],
+            ['code'=>'FRPS','name'=>'法国专线'],
+            ['code'=>'USPS','name'=>'美国经济专线'],
+            ['code'=>'USLPK','name'=>'纯电专线'],
+        ];
+
+        $result = [];
+        foreach($data as $value){
+            $result[] = [
+                'code'=>$value['code'],
+                'name'=>$value['name'],
+            ];
+
+        }
+        $this->result['success'] = true;
+        $this->result['data'] = $result;
+        return $this->result;
+
+    }
+
+    /**
+     * SimonBelieve 提交shoppe订单
+     * @param unknown $data : 订单信息数组
+     * @return $newResult : 结果信息数组
+     */
+    public function createOrder($config,$order,$confirm = true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $data['transType'] = $order['shipping_method_code'];
+            $data['custName'] = $this->_config['custName'];
+            $data['loginName'] = $this->_config['loginName'];
+            $data['loginPwd'] = $this->_config['loginPwd'];
+            $data['busiType'] = 61;
+            $data['orderList'][] = $this->buildData($order);
+            libxml_disable_entity_loader(false);
+            $client = new \SoapClient($this->_config['url']);
+            $requestData = ['in0'=>json_encode($data)];
+            $response = $client->prepareReceiveOrderData($requestData);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->_config['url'],
+                'header'=>'',
+                'request'=>$data,
+                'response'=>$response
+            ];
+            $response_data=isset($response->out)?json_decode($response->out,true):json_decode($response,true);
+            if (is_array($response_data) && isset($response_data['succQty']) && $response_data['succQty']>0) {
+                $this->result['data']['number']             = $order['number'];                            // 客户参考号
+                $this->result['data']['package_code']       = $response_data['succOrderLists'][0]['processCode'];  // 运单号
+                $this->result['data']['trackingNumber']     = $response_data['succOrderLists'][0]['trackingNumber'];   // 跟踪号
+                $this->result['data']['has_trackingNumber'] = true; // 是否有跟踪号
+                $this->result['data']['confirm']            = false;                               // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+            }else{
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                $this->result['error'] = [
+                    'error_msg'  => $response_data['failOrderLists'][0]['errorMsg']??'未知错误',
+                    'error_code' => 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 包裹交运
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2017-12-28 11:59:11
+     */
+    public function confirm($config, $order)
+    {
+
+        if(!$order['shipping_number']){
+            $this->result['error'] = [
+                'error_msg'  =>'缺少跟踪号',
+                'error_code' => 1
+            ];
+            return $this->result;
+        }
+        $this->result['number'] = $order['number'];
+        if(!$this->formatHeader($config)){
+            return $this->result;
+        }
+        $data['custName'] = $this->_config['custName'];
+        $data['loginName'] = $this->_config['loginName'];
+        $data['loginPwd'] = $this->_config['loginPwd'];
+        $data['definedOrder'] =$order['number'];
+        libxml_disable_entity_loader(false);
+        $client = new \SoapClient($this->_config['url']);
+        $requestData = ['in0'=>json_encode($data)];
+        $response = $client->confirmOrderData($requestData);
+        $result=isset($response->out)?json_decode($response->out,true):json_decode($response,true);
+        if(isset($result['resCode'])){
+            $this->result['success'] = true;
+            $this->result['data']['confirm'] = true;
+            $this->result['data']['trackingNumber'] =$order['shipping_number'];
+            $this->result['data']['label'] = false;
+            $this->result['data']['package_code'] = '';                              //包裹处理号
+            $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];                           // 是否有跟踪号
+            $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+            $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+            $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+            $this->result['data']['warehouse_id'] = $order['warehouse_id'];
+            $this->result['success'] = true;
+        }else{
+            $this->result['error'] = [
+                'error_msg'  =>$result['resMsg']??'交运失败',
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 删除订单（暂时不可用）
+     * @param number $orderId
+     * @param string $customerId
+     */
+    public function cancel($config,$order)
+    {
+
+        /*if($this->formatHeader($config)){
+            $data['custName'] = $this->_config['custName'];
+            $data['loginName'] = $this->_config['loginName'];
+            $data['loginPwd'] = $this->_config['loginPwd'];
+            $data['definedOrder']=isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number']: $data['number'] ;//客户订单号，客户数据库中必须是唯一值，校验订单是否重复推送
+            libxml_disable_entity_loader(false);
+            $client = new \SoapClient($this->_config['url']);
+            $response = $client->deleteOrderData(json_encode($data));
+            // 处理响应内容
+            if (is_array($response)) {
+                $this->result['success'] = true;
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }*/
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+
+    }
+
+
+    /**
+     * 获取跟踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getTrackingNumber($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = true;
+        return $this->result;
+    }
+
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+            if($order['label_source_type']=='1'  && !empty($order['shipping_number']) && isset($order['package_id']) ){
+                (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+                ];
+                $this->result['number'] = $order['number'];
+                return $this->result;
+            }
+    }
+    public function buildData($data){
+        //产品信息
+        $ItemArr = [];
+        $transport_property=[];
+        foreach($data['declared_info'] as $k=>$declared){
+            $declared = isset($data['declared_info'][$k]) ? $data['declared_info'][$k] : [];
+            $transport_property[]=(new GoodsHelp)->getTPropertiesTextBySkuId($k);
+            $ItemArr[] = [
+                'declared_name_en'     => $declared['declared_name_en'],   //英文海关申报品名
+                'declared_name_ch'     => $declared['declared_name_cn'],  //中文海关申报品名
+                'mailInnerAmount'   => $declared['qty'],               //申报数量
+                'mailPrice' => number_format($declared['declared_value'],1),
+                'mailInnerWeight'     => intval(number_format($declared['declared_weight'])),   //申报重量，单位g,没有小数点
+            ];
+        }
+        $street=$data['city'].' '.$data['province'].' '.$data['street'].''.$data['street2'];
+        $street=str_replace('&','&amp;',$street);
+        $street=str_replace('<','&lt;',$street);
+        $street=str_replace('>','&gt;',$street);
+        $street=str_replace("'",'&apos;',$street);
+        $street=str_replace('"','&quot;',$street);
+        //国家信息
+        $countryList = Cache::store('country')->getCountry();
+        $countryCode = $this->countryCode($data['country_code']);
+        $result = [];
+        $result['countryName']=$countryList[$data['country_code']]['country_cn_name'];
+        $result['countryCode']=$countryCode;
+        $result['receiverName']=$data['name'];
+        $result['receiverAddress']=$street;
+        $result['receiverPhone']=empty($data['phone'])?$data['tel']:$data['phone'];
+        $result['mailWeight']=intval(number_format($data['declared_weight']));
+        $result['receiverCountry']=$data['country_name']; //收件人英文国家名
+        $result['receiverArea']=$data['province']; //收件人英文州名
+        $result['receiverCity']=$data['city']; //收件人英文城市名
+        $result['senderName']=$data['sender']['sender_name']; //寄件人姓名（英文）
+        $result['senderProvince']=$data['sender']['sender_state']; //寄件人省名（英文）
+        $result['senderCity']=$data['sender']['sender_city']; //寄件人城市名（英文）
+        $result['senderAddress']=$data['sender']['sender_street']; //寄件人地址（英文）
+        $result['senderPhone']=$data['sender']['sender_phone']; //寄件人电话
+        $result['mailInnerType']=5; //内件类型代码, 1：礼品;2：文件;3、商品货样;4、退回物品;5、其他
+        $result['mailInnerName']=$ItemArr[0]['declared_name_ch']; //内件名称
+        $result['mailInnerEngName']=str_replace('，','',$ItemArr[0]['declared_name_en']); //内件英文名称
+        $result['mailInnerWeight']=intval($ItemArr[0]['mailInnerWeight']); //单件重量，单位为克，不允许出现小数点
+        $result['mailInnerAmount']=$ItemArr[0]['mailInnerAmount']; //内件数量
+        $result['mailPrice']=$ItemArr[0]['mailPrice']; //申报价值,不允许为小数
+        $result['produceAddress']='CN'; //产地
+        $result['withBatteryType']=strpos(implode('',$transport_property),'电池')===false?'noBattery':'withBattery'; //是否带电
+        $result['deliveryPost']=$data['zip']; //寄达局邮编,俄罗斯收寄必须填写 6 位数字的邮编
+        $result['localMailCode']='';//本地条码，公司内部条码;
+        $result['definedNo']=$data['number'] ;//自定义信息,自定义唯一编码
+        $result['senderPostCode']=$data['sender']['sender_zipcode'];//寄件人邮编,如 518000
+        $result['accUserMobilePhone']=$data['tel'] ;//收件人移动电话
+        $result['definedOrder']=isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number']: $data['number'] ;//客户订单号，客户数据库中必须是唯一值，校验订单是否重复推送
+
+        return $result;
+
+    }
+
+    private  function  errorInfo(){
+        $data=[
+            'B0001'=>' 国家代码错误，没有找到对应的计费区业务',
+            'B0002'=>'邮件条码为空',
+            'B0003'=>'协议国际挂号小包邮件号码格式错误',
+            'B0004'=>'导入的数据中存在重复的邮件号码',
+            'B0005'=>'导入的邮件号码已使用过',
+            'B0006'=>'存在必填项寄达国名称为空的数据',
+            'B0007'=>'无效的寄达国名称',
+            'B0008'=>'寄达局邮编不正确，邮件需填入正确的邮编(6 位数字)',
+            'B0009'=>'寄达局邮编不正确，邮政编码不能以 0 开头',
+            'B0010'=>'收寄必须填写收件人姓名',
+            'B0011'=>'收寄收件人姓名不能含有中文',
+            'B0012'=>'收寄必须填写收件人',
+            'B0013'=>'收寄收件人地址不能含有中文',
+            'B0014'=>'收寄收件人地址必须含有空格',
+            'B0015'=>'收件人地址长度超长,最大长度不能超过 200(一个俄文或中文长度为 2)',
+            'B0016'=>'收寄必须填写收件人电话',
+            'B0017'=>'收寄收件人电话不能含有中文',
+            'B0018'=>'邮件重量必须为整数',
+            'B0019'=>'英文国家名不能为空',
+            'B0020'=>'收寄必须填写收件人英文州名',
+            'B0021'=>'收寄收件人英文州名不能含有中文',
+            'B0022'=>'收寄必须填写收件人英文城市名',
+            'B0023'=>'收寄收件人英文城市名不能含有中文',
+            'B0024'=>'收寄必须填写寄件人姓名',
+            'B0025'=>'收寄寄件人姓名不能含有中文',
+            'B0026'=>'收寄必须填写寄件人省份英文',
+            'B0027'=>'收寄寄件人省份英文不能含有中文',
+            'B0028'=>'收寄必须填写寄件人城市英文',
+            'B0029'=>'收寄 寄件人城市英文不能含有中文',
+            'B0030'=>'收寄必须填写寄件人地址',
+            'B0031'=>'收寄寄件人地址不能含有中文',
+            'B0032'=>'寄件人地址长度超长,最大长度不能超过 120(一个俄文或中文长度为 2)',
+            'B0033'=>'收寄必须填写寄件人电话',
+            'B0034'=>'收寄寄件人电话不能含有中文',
+            'B0035'=>'内件类型代码错误',
+            'B0036'=>'收寄必须填写内件类型代码',
+            'B0037'=>'收寄内件类型代码不能含有中文',
+            'B0038'=>'收寄必须填写 内件名称中文',
+            'B0039'=>'收寄必须填写内件英文名称',
+            'B0040'=>'收寄内件英文名称不能含有中文',
+            'B0041'=>'内件重量错误',
+            'B0042'=>'内件件数不能大于 9999',
+            'B0043'=>'内件件数错误',
+            'B0044'=>'内件单价错误',
+            'B0045'=>'粤港小包邮件号码格式错误',
+            'B0046'=>'请检查该粤港小包条码是否已申请或已使用',
+            'B0047'=>'协议国际平常小包邮件号码格式错误',
+            'B0048'=>'英文国家名不能含有中文',
+            'B0049'=>'寄达国名称错误，没有找到对应的计费区',
+            'B0051'=>'协议国际平常小包邮件号码格式错误,必须为 11 为数字',
+            'B0052'=>'协议国际平常小包邮件号码未分配给该客户,不允许导入',
+            'B0053'=>'协议国际平常小包邮件号码已存在其他批次号中,不允许导入',
+            'B0000'=>'订单(挂件)导入成功',
+            'B0110'=>'挂件导入出现错误',
+            'B0120'=>'挂件导入数据格式不正确',
+            'B0130'=>'客户名称(全名)验证失败',
+            'B0140'=>'国际小包自助系统的用户名或密码验证失败',
+            'B0150'=>'邮件数量已超过 100 个',
+            'B0160'=>'邮件数量为 0 个',
+            'B0170'=>'运输方式为空',
+            'B0180'=>'接口导入失败，没有找到符合要求的数据',
+            'B0190'=>'挂件追加成功',
+            'B0200'=>'客户传入的批次号码系统中不存在,无法进行挂件数据追加',
+            'B0201'=>'客户未传入挂件批次号，无法进行平件挂件重导',
+            'B0202'=>'协议国际平常小包类型标识为空',
+            'B0203'=>'协议国际平常小包值不是 5',
+            'B0204'=>'协议国际平常小包 数据操作类型为空',
+            'B0205'=>'协议国际平常小包 数据操作类型非新增或删除',
+            'B0206'=>'协议国际平常小包 该批次已经提交，无法再新增或删除',
+            'B0207'=>'协议国际平常小包 批次号为空无法删除',
+            'B0208'=>'客户传入的平件批次号码系统中不存在,无法删除',
+            'B0209'=>'客户传入的批次号码已经提交，不允许删除',
+            'B0210'=>'删除平件挂件信息的请求格式错误',
+            'B0211'=>'删除平件挂件信息成功',
+            'B0212'=>'删除平件挂件信息失败',
+            'B0213'=>'客户传入的平件核称顺序号为空,不允许删除平件挂件',
+            'B0214'=>'客户传入的平件核称顺序号与实际不符合,不允许删除平件挂件',
+            'B0215'=>'客户传入的平件核称顺序号非数字，不允许删除平件挂件',
+            'B0216'=>'客户申请邮件条码类型为空',
+            'B0217'=>'客户申请邮件条码类型不正确',
+            'B0218'=>'系统分配邮件条码失败',
+            'B0219'=>'客户申请邮件条码成功',
+            'B0220'=>'邮件条码池资源不足,请联系营销经理',
+            'B0221'=>'系统分配邮件条码出现异常',
+            'B0222'=>'客户申请邮件条码个数非数字',
+            'B0223'=>'客户申请邮件条码个数必须大于 0',
+            'B0224'=>'客户申请邮件条码个数每次不能超过 1000 个',
+            'B0225'=>'客户申请邮件条码报文格式错误',
+            'B0226'=>'邮件重量必须是大于 0 的整数',
+            'B0227'=>'邮件重量不能为空',
+            'B0228'=>'平件导入成功',
+            'B0229'=>'平邮跟踪查询的请求格式错误',
+            'B0230'=>'推送失败，生成订单号或平邮核称顺序号异常',
+            'B0231'=>'邮件条码已导入',
+            'B0232'=>'发往美国的邮件寄达局邮编必须是 5 位数字',
+            'B0281'=>'线上客户名称不存在',
+            'B0282'=>'请确认线上客户自助系统帐号是否存',
+            'B0283'=>'户绑定邮件条码个数每次不能超过 200 个',
+            'B0284'=>'客户绑定邮件条码个数是 0 个',
+            'B0285'=>'客户绑定邮件的报文格式异常',
+            'B0286'=>'邮件绑定成功',
+            'B0287'=>'邮件绑定失败',
+            'B0288'=>'西班牙邮件需填入正确的邮编(5 位数字)',
+            'B0289'=>'推送失败条码，存在非线上邮件或邮件规则未维护',
+            'B0290'=>'存在条码其他客户已绑定，此批次绑定失败请确认',
+            'B0291'=>'邮件绑定数据库异常',
+            'B0292'=>'业务类型不存在',
+            'B0293'=>'运输方式不存在',
+            'B0294'=>'订单号不存在',
+            'B0295'=>'订单号已存在',
+            'B0296'=>'确认发货失败',
+            'B0297'=>'订单存在部分错误信息',
+            'B0298'=>'寄达局邮编为空',
+            'B0299'=>'订单已提交',
+            'B0300'=>'字段超长',
+            'B0301'=>'订单跟踪号未分配',
+            'B0302'=>'禁止发货国家',
+            'B0303'=>'获取平件批次号成功',
+            'B0304'=>'获取平件批次号失败',
+            'B0305'=>'申请平件批次号报文格式不正确',
+            'B0306'=>'寄达国家无效',
+            'B0307'=>'挂件，增强小包邮件号码格式错误',
+            'B0308'=>'协议挂件，禁止发货国家',
+            'B0309'=>'运输方式渠道代码异常',
+            'B0310'=>'业务类型是中欧班列，运输类型必须是水陆路',
+            'B0311'=>'业务类型是中欧班列，根据国家运输方式和业务类型判断当前订单不允许导入',
+            'B0312'=>'订单的业务类型 businessType 值，必须是 8(中欧班列)或 4(挂件)',
+            'B0313'=>'Shopee 订单的业务类型 businessType，必须是 4(挂件)，5(平件)或 41(跟踪小包)',
+            'B0314'=>'非 Shopee 子客户,禁止条码申请',
+            'B0315'=>'国家简码不允许为空',
+            'B0316'=>'国家简码不存在，请确认国家简码是否正确或联系邮政客服确认',
+            'B0317'=>'国家简码对应国家名称为空',
+            'B0318'=>'国家简码对应拼音码为空',
+            'B0319'=>'运输方式不允许为空',
+            'B0320'=>'运输方式值非法',
+            'B0321'=>'订单号不允许为空',
+            'B0322'=>'订单号订单号已存',
+            'B0323'=>'根据客户 ID 和条码类型申请 Shopee 邮件条码为空',
+            'B0324'=>'Shopeet 条码池资源不足或异常，请联系客服确认',
+            'B0325'=>'申请的 Shopeet 条码已存在',
+            'B0326'=>'申请的 Shopeet 条码为空，请联系客服确认',
+            'B0327'=>'条码类型不允许为空',
+            'B0328'=>'条码类型值不符合要求',
+            'B0700'=>'查询成功',
+            'B0701'=>'查询失败',
+            'B0702'=>'报文格式异常',
+            'S0000'=>'写入数据库失败',
+            'S0001'=>'写入邮件主表失败',
+            'S0002'=>'写入内件表失败',
+            'S0003'=>'写入扩展表失败',
+            'S0004'=>'系统通用错误',
+            'B0330'=>'条码类型，寄达国不允许',
+            'B0338'=>'邮件内件重量不允许为空',
+            'B0339'=>'邮件内件重量必须大于 0',
+        ];
+        return $data;
+    }
+    private function  countryCode($country_code){
+        if(!$country_code){
+            return '';
+        }
+        $zoneMap = [];
+        $zoneMap["AD"] = 'ADE';
+        $zoneMap["AT"] = 'ADL';
+        $zoneMap["AU"] = 'ADLY';
+        $zoneMap["AL"] = 'AEBN';
+        $zoneMap["DZ"] = 'AEJL';
+        $zoneMap["IE"] = 'AEL';
+        $zoneMap["AF"] = 'AFH';
+        $zoneMap["AO"] = 'AGL';
+        $zoneMap["AR"] = 'AGT';
+        $zoneMap["EG"] = 'AJ';
+        $zoneMap["AI"] = 'AKLD';
+        $zoneMap["AW"] = 'ALB';
+        $zoneMap["AE"] = 'ALQ';
+        $zoneMap["OM"] = 'AM2';
+        $zoneMap["AZ"] = 'ASBJ';
+        $zoneMap["ET"] = 'ASEB';
+        $zoneMap["EE"] = 'ASNY';
+        $zoneMap["AC"] = 'ASSD';
+        $zoneMap["AG"] = 'ATGH';
+        $zoneMap["BB"] = 'BBDS';
+        $zoneMap["PG"] = 'BBYX';
+        $zoneMap["BW"] = 'BCWN';
+        $zoneMap["BT"] = 'BD5';
+        $zoneMap["IS"] = 'BD6';
+        $zoneMap["PR"] = 'BDLG';
+        $zoneMap["BY"] = 'BELS';
+        $zoneMap["BA"] = 'BH';
+        $zoneMap["BS"] = 'BHM';
+        $zoneMap["BG"] = 'BJLY';
+        $zoneMap["BF"] = 'BJNF';
+        $zoneMap["PK"] = 'BJST';
+        $zoneMap["BH"] = 'BL7';
+        $zoneMap["PL"] = 'BL8';
+        $zoneMap["BI"] = 'BLD';
+        $zoneMap["PY"] = 'BLG';
+        $zoneMap["PF"] = 'BLNX';
+        $zoneMap["BE"] = 'BLS';
+        $zoneMap["PS"] = 'BLST';
+        $zoneMap["BO"] = 'BLWY';
+        $zoneMap["BZ"] = 'BLZ';
+        $zoneMap["BM"] = 'BMDQ';
+        $zoneMap["BJ"] = 'BN';
+        $zoneMap["PA"] = 'BNM';
+        $zoneMap["BR"] = 'BX';
+        $zoneMap["GQ"] = 'CDJN';
+        $zoneMap["KP"] = 'CX';
+        $zoneMap["TL"] = 'DDW';
+        $zoneMap["TG"] = 'DG0';
+        $zoneMap["DE"] = 'DG9';
+        $zoneMap["DK"] = 'DM';
+        $zoneMap["DO"] = 'DMNJ';
+        $zoneMap["DM"] = 'DMNK';
+        $zoneMap["EC"] = 'EGDE';
+        $zoneMap["RU"] = 'ELS';
+        $zoneMap["ER"] = 'ELTL';
+        $zoneMap["VA"] = 'FDG';
+        $zoneMap["CV"] = 'FDJ';
+        $zoneMap["FR"] = 'FG';
+        $zoneMap["FJ"] = 'FJ';
+        $zoneMap["FK"] = 'FKLQ';
+        $zoneMap["FI"] = 'FL';
+        $zoneMap["PH"] = 'FLB';
+        $zoneMap["FO"] = 'FLQ';
+        $zoneMap["GF"] = 'FSGY';
+        $zoneMap["WF"] = 'FTNQ';
+        $zoneMap["CU"] = 'GB';
+        $zoneMap["GM"] = 'GBY';
+        $zoneMap["GU"] = 'GD';
+        $zoneMap["GP"] = 'GDLP';
+        $zoneMap["CG"] = 'GG';
+        $zoneMap["CD"] = 'GGMZ';
+        $zoneMap["CO"] = 'GLBY';
+        $zoneMap["GE"] = 'GLJY';
+        $zoneMap["GL"] = 'GLLD';
+        $zoneMap["VC"] = 'GLND';
+        $zoneMap["GD"] = 'GLND1';
+        $zoneMap["CR"] = 'GSDL';
+        $zoneMap["GY"] = 'GYN';
+        $zoneMap["HT"] = 'HD';
+        $zoneMap["HN"] = 'HDLS';
+        $zoneMap["KR"] = 'HG';
+        $zoneMap["NL"] = 'HL';
+        $zoneMap["ME"] = 'HS';
+        $zoneMap["MNE"] = 'HS';
+        $zoneMap["AN"] = 'HSAD';
+        $zoneMap["KZ"] = 'HSKS';
+        $zoneMap["ZW"] = 'JBBW';
+        $zoneMap["DJ"] = 'JBT';
+        $zoneMap["KG"] = 'JEJS';
+        $zoneMap["CZ"] = 'JK';
+        $zoneMap["KI"] = 'JLBS';
+        $zoneMap["HU"] = 'XYL';
+        $zoneMap["IN"] = 'YD1';
+        $zoneMap["JO"] = 'YD2';
+        $zoneMap["IT"] = 'YDL';
+        $zoneMap["ID"] = 'YDNX';
+        $zoneMap["GB"] = 'YG';
+        $zoneMap["UK"] = 'YG';
+        $zoneMap["IR"] = 'YL';
+        $zoneMap["IQ"] = 'YLK';
+        $zoneMap["YE"] = 'YM';
+        $zoneMap["JM"] = 'YMJ';
+        $zoneMap["AM"] = 'YMNY';
+        $zoneMap["VN"] = 'YN';
+        $zoneMap["IL"] = 'YSL';
+        $zoneMap["VG"] = 'YSWE';
+        $zoneMap["GI"] = 'ZBLT';
+        $zoneMap["ZM"] = 'ZBY';
+        $zoneMap["TD"] = 'ZD';
+        $zoneMap["CF"] = 'ZF';
+        $zoneMap["CL"] = 'ZL';
+        $zoneMap["GH"] = 'JN';
+        $zoneMap["CA"] = 'JND';
+        $zoneMap["IC"] = 'JNLQ';
+        $zoneMap["XA"] = 'JNLQ';
+        $zoneMap["GN"] = 'JNY';
+        $zoneMap["GW"] = 'JNYB';
+        $zoneMap["GA"] = 'JP';
+        $zoneMap["KH"] = 'JPZ';
+        $zoneMap["CK"] = 'KKQD';
+        $zoneMap["TC"] = 'KKSQ3';
+        $zoneMap["HR"] = 'KLDY';
+        $zoneMap["KM"] = 'KML5';
+        $zoneMap["CM"] = 'KML6';
+        $zoneMap["KY"] = 'KMQD';
+        $zoneMap["KE"] = 'KNY';
+        $zoneMap["CI"] = 'KTDW';
+        $zoneMap["QA"] = 'KTE';
+        $zoneMap["KW"] = 'KWT';
+        $zoneMap["LR"] = 'LBLY';
+        $zoneMap["LB"] = 'LBN';
+        $zoneMap["LY"] = 'LBY';
+        $zoneMap["RO"] = 'LMNY';
+        $zoneMap["RE"] = 'LNWD';
+        $zoneMap["LU"] = 'LSB';
+        $zoneMap["LS"] = 'LST';
+        $zoneMap["LT"] = 'LTW';
+        $zoneMap["LV"] = 'LTWY';
+        $zoneMap["LA"] = 'LW';
+        $zoneMap["RW"] = 'LWD';
+        $zoneMap["PG"] = 'MBYX';
+        $zoneMap["MM "] = 'MD';
+        $zoneMap["MG"] = 'MDJS';
+        $zoneMap["MV"] = 'MEDF';
+        $zoneMap["MD"] = 'MEDW';
+        $zoneMap["MT"] = 'MET';
+        $zoneMap["MN"] = 'MG7';
+        $zoneMap["US"] = 'MG8';
+        $zoneMap["BD"] = 'MJLG';
+        $zoneMap["FM"] = 'MKLN';
+        $zoneMap["PE"] = 'ML0';
+        $zoneMap["ML"] = 'ML9';
+        $zoneMap["MA"] = 'MLG';
+        $zoneMap["MK"] = 'MQD';
+        $zoneMap["MZ"] = 'MSBK';
+        $zoneMap["MH"] = 'MSE';
+        $zoneMap["VI"] = 'MSWE';
+        $zoneMap["MQ"] = 'MTNK';
+        $zoneMap["MS"] = 'MTSL';
+        $zoneMap["MX"] = 'MXG';
+        $zoneMap["NU"] = 'NA';
+        $zoneMap["NP"] = 'NBE';
+        $zoneMap["ZA"] = 'NF';
+        $zoneMap["NI"] = 'NJLG';
+        $zoneMap["NR"] = 'NL';
+        $zoneMap["NA"] = 'NMBY';
+        $zoneMap["NE"] = 'NRE';
+        $zoneMap["NG"] = 'NRLY';
+        $zoneMap["NO"] = 'NW';
+        $zoneMap["PT"] = 'PTY';
+        $zoneMap["PW"] = 'PW';
+        $zoneMap["JP"] = 'RB';
+        $zoneMap["SE"] = 'RD';
+        $zoneMap["CH"] = 'RS';
+        $zoneMap["BLM"] = 'SBTL';
+        $zoneMap["ST"] = 'SDMH';
+        $zoneMap["SV"] = 'SEWD';
+        $zoneMap["RS"] = 'SEWY';
+        $zoneMap["SRB"] = 'SEWY';
+        $zoneMap["SK"] = 'SLFK';
+        $zoneMap["SL"] = 'SLLA';
+        $zoneMap["LK"] = 'SLLK';
+        $zoneMap["SR"] = 'SLN';
+        $zoneMap["SI"] = 'SLWN';
+        $zoneMap["LC"] = 'SLXY';
+        $zoneMap["MF"] = 'SMD';
+        $zoneMap["SM"] = 'SMLR';
+        $zoneMap["AS"] = 'SMY';
+        $zoneMap["SN"] = 'SNJE';
+        $zoneMap["CY"] = 'SPLS';
+        $zoneMap["SC"] = 'SSE';
+        $zoneMap["SA"] = 'STAL';
+        $zoneMap["SZ"] = 'SWSL';
+        $zoneMap["VC"] = 'SWST';
+        $zoneMap["TR"] = 'TEQ';
+        $zoneMap["TH"] = 'TG';
+        $zoneMap["TO"] = 'TJ';
+        $zoneMap["TJ"] = 'TJKS';
+        $zoneMap["TM"] = 'TKMS';
+        $zoneMap["TT"] = 'TLND';
+        $zoneMap["TN"] = 'TNS';
+        $zoneMap["TZ"] = 'TSNY';
+        $zoneMap["TV"] = 'TWL';
+        $zoneMap["GT"] = 'WDML';
+        $zoneMap["UG"] = 'WGD';
+        $zoneMap["UA"] = 'WKL';
+        $zoneMap["BN"] = 'WL';
+        $zoneMap["UY"] = 'WLG';
+        $zoneMap["WF"] = 'WLSQ';
+        $zoneMap["VU"] = 'WNAT';
+        $zoneMap["VE"] = 'WNRL';
+        $zoneMap["UZ"] = 'WZBK';
+        $zoneMap["ES"] = 'XBY';
+        $zoneMap["SG"] = 'XJP';
+        $zoneMap["NC"] = 'XKLD';
+        $zoneMap["GR"] = 'XL';
+        $zoneMap["EH"] = 'XSHL';
+        $zoneMap["WS"] = 'XSMY';
+        $zoneMap["NZ"] = 'XXL';
+        if (!$zoneMap[$country_code])
+            return '';
+        return $zoneMap[$country_code];
+    }
+
+
+}

@@ -1,0 +1,135 @@
+<?php
+
+namespace service\ebay;
+
+use think\Loader;
+use org\Curl;
+use org\EbayXml;
+use app\common\cache\Cache;
+
+#17-04-11 rocky
+class EbayApi extends EbayBaseApi
+{
+    protected $headers; 
+    protected $requesBody;
+    protected $response;
+
+    /***
+     * ebay 创建头信息
+    */
+    public function createHeaders()
+    {
+        $this->headers = array (
+            'X-EBAY-API-COMPATIBILITY-LEVEL: ' . $this->compatLevel,
+            'X-EBAY-API-DEV-NAME: ' . $this->devID,
+            'X-EBAY-API-APP-NAME: ' . $this->appID,
+            'X-EBAY-API-CERT-NAME: ' . $this->certID,
+            'X-EBAY-API-CALL-NAME: ' . $this->verb,
+            'X-EBAY-API-SITEID: ' . $this->siteID,
+        );
+        return $this;
+    }
+
+    public function sendHttpRequest2(){
+        $response=$this->curlPost($this->serverUrl,$this->requesBody,$this->headers);#发送CURL请求
+        $this->response = $this->xmlToArray($response);
+        return $this->response;
+    }
+
+    public function xmlToArray($xml){
+        $xmlObj=new EbayXml($xml);
+        return $xmlObj->xml;
+    }
+    
+    public function __set($name,$value){
+        $this->$name=$value;
+        return $this;
+    }
+
+    public function __get($name){
+        if(isset($this->$name)){
+            return $this->$name;
+        }else{
+            return null;
+        }
+    }
+
+    /**
+     * CURL POST
+     * @param unknown $url
+     * @param unknown $data
+     * @param string $header : 请求首部
+     * @return mixed
+     */
+    public function curlPost($url, $data, $headers = [])
+    {
+        $ch = curl_init();
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 500);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response;
+    }
+
+    public function sendHttpRequestMulti($data){
+        $response=$this->curlPostMulti($this->serverUrl,$data,$this->headers);#发送CURL请求
+        #\think\Log::write(json_encode($response));
+        return $response;
+    }
+
+    /**
+     * CURL POST
+     * @param unknown $url
+     * @param unknown $data
+     * @param string $header : 请求首部
+     * @return mixed
+     */
+    public function curlPostMulti($url, $data=[], $headers = [])
+    {
+        $mh = curl_multi_init();//创建curlMulti语柄
+        $conn = [];
+        foreach($data as $k => $v){
+            $conn[$k] = curl_init();
+            if($headers)curl_setopt($conn[$k], CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($conn[$k], CURLOPT_URL, $url);
+            curl_setopt($conn[$k], CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($conn[$k], CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($conn[$k], CURLOPT_POST, true);
+            curl_setopt($conn[$k], CURLOPT_POSTFIELDS, $v);
+            curl_setopt($conn[$k], CURLOPT_TIMEOUT, 500);
+            curl_setopt($conn[$k], CURLOPT_RETURNTRANSFER, 1);
+            curl_multi_add_handle ($mh,$conn[$k]);
+        }
+        #执行批处理句柄
+        $active = null;
+        do{
+            $mrc = curl_multi_exec($mh,$active);//当无数据，active=true
+        }while($mrc == CURLM_CALL_MULTI_PERFORM);//当正在接受数据时
+            while($active && $mrc == CURLM_OK){//当无数据时或请求暂停时，active=true
+                do{
+                    $mrc = curl_multi_exec($mh, $active);
+                }while($mrc == CURLM_CALL_MULTI_PERFORM);
+        }
+        $resInfo=[];
+        foreach ($data as $k2 => $v2) {
+            curl_error($conn[$k2]);
+            $response = curl_multi_getcontent($conn[$k2]);//获得返回信息
+            $headerResponse = curl_getinfo($conn[$k2]);//返回头信息
+            $resInfo[$k2] = $this->xmlToArray($response);//获得返回信息
+            curl_multi_remove_handle($mh,$conn[$k2]);//释放资源
+            curl_close($conn[$k2]);//关闭语柄
+        }
+        curl_multi_close($mh);
+        return $resInfo;
+    }
+
+
+}

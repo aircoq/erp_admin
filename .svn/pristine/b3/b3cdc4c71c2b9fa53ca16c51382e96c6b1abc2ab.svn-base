@@ -1,0 +1,143 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr>
+                <td colspan="6" style="border:1pt solid #000;">
+                    <div style="padding-left: 1pt;font-size: 6pt;font-weight: bold">
+                        TAIPEI TAIWAN<br>
+                        ROC<br>
+                        POSTAGE PAID<br>
+                        LICENCE NO.TP 6874<br>
+
+                    </div>
+                </td>
+                <td colspan="6" style="border:1pt solid #000;font-size: 6pt;font-weight:bold;text-align: left; vertical-align: top">
+
+                  <div style="float: left;width: 20pt;"><img style="width: 20pt" src="data:image/png;base64,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"></div>
+                    <div style="float: left;font-weight: bold;line-height: 20pt;">CHUNGHWA POST CO.,LTD.</div>
+                    <div style="clear: both"></div>
+                    <div style="width:100pt;float: left;">From:
+                        P.O.Box 100561-017005 ,Taipei,Taiwan
+                        This Parcel is Transit in Taiwan Free Zone</div>
+                    <div style="float: right;font-size: 10pt">CN22</div>
+                </td>
+            </tr>
+
+
+            <tr style="font-size:10pt;font-weight: bold;">
+                <td colspan="12" style="text-align: center;height: 40pt">
+                    <div style="padding-top: 2pt"><img style="height: 30pt" src="<?php echo $this->imgSrc($shipping_number);?>"></div>
+                    <?php echo $shipping_number;?>
+                </td>
+
+            </tr>
+            <tr style="font-size:10pt;font-weight: bold;height:20pt">
+                <td colspan="12" style="border:1pt solid #000;text-align: left;" >
+                    <div style="padding: 1pt;font-size: 7pt">
+                        Send To:<br>
+                        Name:<?php echo $name;?><br>
+                        Address: <?php echo $street.' '.$street2?> ,<?php echo $city;?> ,<?php echo $province;?>   <?php echo $zip;?> &nbsp;<?php echo $country_en_name;?>
+                         <br>Tel: <?php echo $phone;?> / <?php echo $tel;?>
+                    </div>
+
+                </td>
+
+            </tr>
+            <tr >
+                <td colspan="12" style="border:1pt solid #000;text-align: left;" >
+                    <div style="padding: 1pt;font-size: 8pt">
+
+                        ✔Gift &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        □Commercial sample &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        □Document &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        □Other
+                    </div>
+
+                </td>
+
+            </tr>
+
+
+
+            <tr style="line-height: 8.5pt;font-size: 5pt;">
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+                    Quantity and detailed description of contents
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;">Weight(kg)</td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left">Value</td>
+            </tr>
+            <?php foreach ($list as $k=>$v):?>
+            <tr style="line-height: 8.5pt;font-size: 5pt;">
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+                    <?php echo $v['declared_name_en']?>   <?php echo $v['sku']?>
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;"><?php echo number_format($v['declared_weight']/1000,3);?></td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left"><?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?></td>
+            </tr>
+            <?php endforeach;?>
+            <tr style="line-height: 8.5pt;font-size: 5pt;">
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+                    For commercial items only if known, HS tariff
+                    number and country of origin of goods.
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;">Total weight</td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left">Total Value</td>
+            </tr>
+            <tr style="line-height: 8.5pt;font-size: 5pt;">
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;"> <?php echo number_format($total_weight/1000,2,'.','');?></td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left"> <?php echo number_format($total_value,3,'.','');?></td>
+            </tr>
+
+
+
+            <tr style="border:1pt solid #000;vertical-align: top;border-bottom: none">
+                <td colspan="12"  style="text-align: left; font-size: 5pt">
+                    I,the undersigned,whose name and address are given on the item, certify that the particulars given in<br>
+                    this declaration are correct and that this item does not contain any dangerous article or articles<br>
+                    prohibited by legislation or by postal or customs regulations<br>
+                    <font style="font-weight: bold">Date and sender's signature:</font>
+
+                </td>
+
+
+            </tr>
+            <tr style="border:1pt solid #000;vertical-align: top;border-top: none">
+                <td colspan="9"  style="text-align: left; font-size: 5pt"> </td>
+                <td colspan="3"  style="text-align: left; font-size: 5pt;font-weight: bold"> HUANG,TSUN-MING</td>
+            </tr>
+            <tr style="vertical-align: top;line-height: 9pt;font-size: 5pt;">
+                <td colspan="5"  style="text-align: left;">
+                    P<?php echo $number?>
+                </td>
+                <td colspan="3"  style="text-align: left;">
+
+                </td>
+                <td colspan="4"  style="text-align: center;font-weight: bold">
+                    <?php echo $process_code?>
+                </td>
+
+
+            </tr>
+
+
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

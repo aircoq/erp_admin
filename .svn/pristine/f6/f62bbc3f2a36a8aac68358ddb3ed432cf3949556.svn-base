@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.14818135562030665 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="font-weight:bold;padding:2pt;width:270pt;font-family:Arial;font-size:10pt;overflow-x:hidden;font-size:10pt;line-height:12pt;page-break-after:always">
+        <div style="width:260pt;font-size:10pt;line-height:11pt;word-wrap:break-word;min-height:100pt;margin-top:20pt;padding-left:3pt;">
+            <span style="display:inline-block;font-size:14pt; "> To: <?php echo $name;?> </span> <br> <span
+                    style="padding-left:5pt;display:inline-block;margin:8pt 0;"> Adds: <?php echo $street.$street2;?> </span>
+            <br> <span style="padding-left:5pt;display:inline-block;">  <?php echo $city?><br>   <?php echo $province?>  </span><br> <span
+                    style="padding-left:5pt;display:inline-block;"><?php echo $country_en_name?></span> <br> <b>ZIP: </b> <?php echo $zip;?> <br>
+            <b>TEL: </b> <?php echo $phone;?> <br></div>
+        <div style="width:268pt;">
+            <div style="width:50pt;font-size:24pt;text-align:center;padding-top:2pt;float:left;font-weight: bold;line-height: 30pt;">
+                <?php echo $country_code?>
+            </div>
+            <div style="width:218pt;font-size:9pt;text-align:center;padding-top:2pt;float:left"><span
+                        style="display:inline-block;height:35pt;line-height:35pt;overflow-y:hidden;font-weight:normal">
+                    <img  style="margin-bottom:5pt" width="80%" src="<?php echo $this->imgSrc($shipping_number);?>" /> </span> <br>
+                <?php echo $shipping_number;?>
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt;margin:7pt 0;"><span style="display:inline-block;width:125pt;text-align:center">RefNO: <?php echo $number;?></span>
+            <span style="display:inline-block;width:120pt;text-align:center"></span></div>
+    </div> <!--报关单-->
+
+</div>
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

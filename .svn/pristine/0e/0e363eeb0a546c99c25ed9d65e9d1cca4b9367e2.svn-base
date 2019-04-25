@@ -1,0 +1,47 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: TOM
+ * Date: 2017/11/24
+ * Time: 14:59
+ */
+namespace  Waimao\AmazonMws;
+
+class Config
+{
+    public static function get($config)
+    {
+        $config_arr = explode('.',$config);
+        $configFile = $config_arr[0];
+        $configFlag = $config_arr[1];
+        $configContent =  require_once(__DIR__.'/config/'.$configFile.'.php');
+        /*
+        array(3) {
+          ["store"]=>
+          array(1) {
+            ["store1"]=>
+            array(5) {
+              ["merchantId"]=>
+              string(0) ""
+              ["marketplaceId"]=>
+              string(0) ""
+              ["keyId"]=>
+              string(0) ""
+              ["secretKey"]=>
+              string(0) ""
+              ["amazonServiceUrl"]=>
+              string(34) "https://mws-eu.amazonservices.com/"
+            }
+          }
+          ["AMAZON_SERVICE_URL"]=>
+          string(31) "https://mws.amazonservices.com/"
+          ["muteLog"]=>
+          bool(false)
+        }
+         * */
+        $configValue = $configContent[$configFlag];
+        return $configValue;
+    }
+
+
+}

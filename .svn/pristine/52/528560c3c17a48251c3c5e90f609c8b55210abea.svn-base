@@ -1,0 +1,163 @@
+<?php
+
+namespace yandex;
+
+use app\common\cache\Cache;
+use yandex\YandexBaseApi;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/1/6
+ * Time: 17:25
+ */
+class YandexOrderApi extends YandexBaseApi
+{
+    public function __construct($params)
+    {
+        parent::__construct($params);
+    }
+
+    /**
+     * @title 返回当前需要完成的所有订单。
+     * @param int $page
+     * @param int $pageSize
+     * @param string $startTime
+     * @param string $endTime
+     * @return bool
+     */
+    public function getOrderLists( $page = 1,$pageSize = 10,$startTime = '', $endTime = '')
+    {
+        $url = 'https://api.partner.market.yandex.ru/v2/campaigns/'.$this->shop_id.'/orders.json';
+        $params = [
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ];
+        if($startTime){
+            $params['fromDate'] = is_numeric($startTime) ? date('d-m-Y', $startTime) : $startTime;
+        }
+        if($endTime){
+            $params['toDate'] = is_numeric($endTime) ? date('d-m-Y', $endTime) : $endTime;
+        }
+        $result = $this->authcall($url,'GET', $params);
+
+        if(isset($result['orders'][0])){
+            return $result;
+        }
+        return false;
+    }
+
+
+    /**
+     * 通过订单ID，拿取订单信息用于更新；
+     * @param $order_id 订单ID
+     */
+    public function getOrdersById($order_id)
+    {
+        $url = 'https://api.partner.market.yandex.ru/v2/campaigns/'.$this->shop_id.'/orders/'.$order_id.'.json';
+        $result = $this->authcall($url,'GET', '');
+        if(isset($result['order']['id'])){
+            return $result;
+        }
+        return false;
+    }
+
+    /**
+     * 发货订单
+     * @param $order_id
+     * @param string $tracking_number
+     * @param string $itemList 商品库存 sku 列表
+     * @return mixed
+     */
+    public function fulfillOne($order_id, $tracking_number = '', $itemList = '')
+    {
+//        $url = 'https://api.partner.market.yandex.ru/v2/campaigns/'.$this->shop_id.'/orders/'.$order_id.'/status.json';
+        $url = 'https://api.partner.market.yandex.ru/v2/campaigns/'.$this->shop_id.'/orders/'.$order_id.'/status.json';
+        $postData = [
+            'order' => [
+                'status' => 'DELIVERY',
+            ],
+        ];
+        $postData = json_encode($postData);
+        $result = $this->authcall($url,'PUT', $postData);
+
+        return $this->fulfillTwo($order_id);
+    }
+
+    public function fulfillTwo($order_id)
+    {
+        $url = 'https://api.partner.market.yandex.ru/v2/campaigns/'.$this->shop_id.'/orders/'.$order_id.'/status.json';
+        $postData = [
+            'order' => [
+                'status' => 'PICKUP',
+            ],
+        ];
+        $postData = json_encode($postData);
+        $result = $this->authcall($url,'PUT', $postData);
+
+        if(isset($result['order']['status']) && $result['order']['status'] == 'PICKUP'){
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 订单退款
+     * @param $order_id 订单ID
+     * @param $reason_code 退款代码 1--店无法履行订单 2--产品缺货 3--客户提供错误地址信息
+     * @return bool
+     */
+    public function refund($order_id, $reason_code)
+    {
+
+    }
+
+    /**
+     * 取消订单商品
+     * @param $order_id
+     * @param $items [{'sku'=>'ads1123','quamtity'=>1},{} ...]
+     * @param $refundReason 取消原因
+     * @return mixed
+     */
+    public function cancel($order_id, $items, $refundReason)
+    {
+        $mehod = 'OrderRpc.updateTrackNumber';
+        $params = [
+            'code' => $order_id,
+            'refundReason' => $refundReason,
+            'items' => $items,
+        ];
+        $result = $this->authcall($mehod, $params);
+        return $result;
+    }
+
+
+
+
+    /**
+     * 提交线上发货请求
+     * @param string $order_ids
+     * @param string $ship_note
+     * @param string $tracking_provider
+     * @return array
+     *
+     */
+    public function fulfillOnline($order_ids = '', $ship_note = '', $tracking_provider = 'Yandex Logistics')
+    {
+
+    }
+
+
+
+    /**
+     * 获取订单面单
+     * @param $order_id 订单ID
+     * @return bool
+     */
+    public function shippingLabel($order_id)
+    {
+
+    }
+
+
+}

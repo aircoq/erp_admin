@@ -1,0 +1,42 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 18-3-19
+ * Time: 下午8:38
+ */
+
+namespace swoole\cmd;
+
+
+use swoole\PipeMessageAction;
+use swoole\SwooleCmd;
+use swoole\SwooleCmdResult;
+
+class KillTask extends SwooleCmd
+{
+    public  function execute(\swoole_websocket_server $server) :SwooleCmdResult
+    {
+        $result = new SwooleCmdResult($this);
+        list('key'=>$key, 'task'=>$task) = $this->data;
+        if($task){
+            $taskInfo = $server->tableTask->get($task);
+            if($taskInfo && ($taskInfo['task'] === $key)){
+                system("kill -9 {$taskInfo['pid']}");
+                $result->setResult($taskInfo);
+            }else{
+                $result->setResult('not match '.$key);
+            }
+            return $result;
+        }
+        $rr = [];
+        foreach ($server->tableTask as $task => $info) {
+            if($info['task'] === $key){
+                system("kill -9 {$info['pid']}");
+                $rr[] = $info;
+            }
+        }
+        $result->setResult($rr);
+        return $result;
+    }
+}

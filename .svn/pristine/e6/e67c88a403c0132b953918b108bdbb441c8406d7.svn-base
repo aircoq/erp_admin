@@ -1,0 +1,146 @@
+<?php
+/**
+ * 亚马逊修改商品价格 API 服务类
+ * @author wangwei 2019-3-6 18:07:14
+ */
+namespace service\amazon\Feed;
+
+use service\amazon\Feed\Base\FeedService;
+
+class PriceFeedService extends FeedService
+{
+    protected $_feedType = '_POST_PRODUCT_PRICING_DATA_';
+    
+    /**
+     * 提交价格
+     * @param array $Param_PriceArray
+     * @param string | array $Param_MarketplaceIdList  商城 ID(数组或字符串)
+     * @param bool $Param_PurgeAndReplace  启用清除并替换功能
+     */
+    public function submitPriceByArray(
+    		$Param_PriceArray,
+    		$Param_MarketplaceIdList=array(),
+    		$Param_PurgeAndReplace=false
+    		){
+    	$return = array(
+    			'ask' => 0,
+    			'message'=>'submitPriceByArray_error',
+    			'data'=>array(
+    					'FeedSubmissionId'=>'',//上传数据提交的唯一编码
+    					'requestId'=>'',//请求id
+    					'FeedContent'=>'',//XML请求数据
+    					'FeedType'=>'',//已提交的上传数据类型,FeedType 枚举
+    					'SubmittedDate'=>'',//提交上传数据的日期和时间
+    					'FeedProcessingStatus'=>'',//所提交的上传数据的处理状态
+    			),
+    	);
+    	if(empty($Param_PriceArray)){
+    		$return['message'] = '提交的价格数据不能为空';
+    		return $return;
+    	}
+    	//整理价格数据格式
+    	$priceData = $this->sortOutData($Param_PriceArray);
+    	//获取XML文本
+    	$Param_FeedContent = $this->getXmlContent($priceData);
+    	$Param_FeedType = $this->_feedType;
+    	return $this->submitFeed($Param_FeedContent, $Param_FeedType,$Param_MarketplaceIdList,$Param_PurgeAndReplace);
+    }
+    
+    /**
+     * 整理价格数据格式
+     * @param array $Param_PriceArray  提交改价请求数据（注意是二维数组）
+     * Example :
+     * $Param_PriceArray = array(
+     *      0=>array(
+     *                'seller_sku'=>'销售SKU',
+     *                'standard_price_currency'=>'标准价格币种',
+     *                'standard_price'=>'标准价格',
+     *                
+     *                'b2b_price'=>'b2b价格',
+     *                'b2b_qty_price_type'=>'价格类型，percent、fixed',
+     *                'b2b_price1'=>'',
+     *                'b2b_qty1'=>'',
+     *                'b2b_price2'=>'',
+     *                'b2b_qty2'=>'',
+     *                'b2b_price3'=>'',
+     *                'b2b_qty3'=>'',
+     *                'b2b_price4'=>'',
+     *                'b2b_qty4'=>'',
+     *                'b2b_price5'=>'',
+     *                'b2b_qty5'=>'',
+     *                
+     *                'has_discount'=>'0',//是否设置打折价格，0：不打折，1：打折,
+     *                'discount_price'=>'打折价格',
+     *                'discount_price_currency'=>'打折价格币种',
+     *                'discount_start_date'=>'打折开始时间',
+     *                'discount_end_date'=>'打折结束时间',
+     *          ),
+     *      1=>array(
+     *            ..........
+     *          )    
+     *     );
+     *   
+     * @return array
+     */
+    public function sortOutData($Param_PriceArray){
+        // 数组，请严格按照该格式拼装
+        $data = array();
+        $data['Header'] = array(
+            'DocumentVersion' => '1.01',
+            'MerchantIdentifier' => $this->_tokenConfig['MERCHANT_ID']
+        );
+        $data['MessageType'] = 'Price';
+        foreach($Param_PriceArray as $k => $v){
+            $arr = array(
+                'Message' => array(
+                    'MessageID' => $k + 1,
+                    'OperationType' => 'Update',
+                    'Price' => array(
+                        'SKU' => $v['seller_sku'],
+                        'StandardPrice currency=' . $v['standard_price_currency'] . '' => $v['standard_price']
+                    )
+                )
+            );
+            //b2b分段基础价格
+            if(isset($v['b2b_price']) && $v['b2b_price']){
+            	$arr['Message']['Price']['BusinessPrice']=$v['b2b_price'];
+            }
+            //b2b分段价格
+            if(isset($v['b2b_qty_price_type']) && ($v['b2b_qty_price_type']=='percent' || $v['b2b_qty_price_type']=='fixed')){
+            	$arr['Message']['Price']['QuantityPriceType']=$v['b2b_qty_price_type'];
+            	if($v['b2b_qty1'] && $v['b2b_price1']){
+            		$arr['Message']['Price']['QuantityPrice']['QuantityPrice1']=$v['b2b_price1'];
+            		$arr['Message']['Price']['QuantityPrice']['QuantityLowerBound1']=$v['b2b_qty1'];
+            		if($v['b2b_qty2'] && $v['b2b_price2']){
+            			$arr['Message']['Price']['QuantityPrice']['QuantityPrice2']=$v['b2b_price2'];
+            			$arr['Message']['Price']['QuantityPrice']['QuantityLowerBound2']=$v['b2b_qty2'];
+            			if($v['b2b_qty3'] && $v['b2b_price3']){
+            				$arr['Message']['Price']['QuantityPrice']['QuantityPrice3']=$v['b2b_price3'];
+            				$arr['Message']['Price']['QuantityPrice']['QuantityLowerBound3']=$v['b2b_qty3'];
+            				if($v['b2b_qty4'] && $v['b2b_price4']){
+            					$arr['Message']['Price']['QuantityPrice']['QuantityPrice4']=$v['b2b_price4'];
+            					$arr['Message']['Price']['QuantityPrice']['QuantityLowerBound4']=$v['b2b_qty4'];
+            					if($v['b2b_qty5'] && $v['b2b_price5']){
+            						$arr['Message']['Price']['QuantityPrice']['QuantityPrice5']=$v['b2b_price5'];
+            						$arr['Message']['Price']['QuantityPrice']['QuantityLowerBound5']=$v['b2b_qty5'];
+            					}
+            				}
+            			}
+            		}
+            	}
+            }
+            //打折的价格，如果有则设置
+            if(isset($v['has_discount']) && $v['has_discount']=='1' 
+            	&& isset($v['discount_price']) && $v['discount_price'] !='0.00' 
+            	&& isset($v['discount_price_currency']) && $v['discount_price_currency'] !=''){
+            	$arr['Message']['Price']['Sale'] = array(
+            			'StartDate' => date('Y-m-d\TH:i:s.000\Z', strtotime($v['discount_start_date'])),
+            			'EndDate' => date('Y-m-d\TH:i:s.000\Z', strtotime($v['discount_end_date'])),
+            			'SalePrice currency=' . $v['discount_price_currency'] . '' => $v['discount_price'],
+            	);
+            }
+            $data[] = $arr;
+        }
+        return $data;
+    }
+}

@@ -1,0 +1,476 @@
+<?php
+
+namespace service\shipping\operation;
+
+use think\Exception;
+use SoapClient;
+use app\common\cache\Cache;
+use org\Curl;
+use app\carrier\service\PackageLabelFileService;
+use app\common\model\OrderDetail;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+/**
+ * @desc 文慧-拆分后的
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-01-04 14:16:11
+ */
+class WenhuiLast
+{
+
+    private $url = 'http://120.24.58.188:8086/xms/services/order?wsdl'; //总的API接口
+    private $result = ['data' => [], 'error' => [], 'success' => false]; //结果信息,标准化
+
+    /**
+     * @desc 获取文慧-拆分后的运输方式
+     * @param array $config 配置文件信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-08 10:48：11
+     */
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+
+    public function getExpress($config)
+    {
+        try {
+            //发送请求
+            $client = new SoapClient($this->url, array('encoding' => 'UTF-8'));
+            $res = $client->getTransportWayList($config['client_secret']);
+            //获取失败，抛出异常
+            if (false == $res->success) {
+                throw new Exception($res->error->errorInfo);
+            }
+            //获取成功，循环取数据
+            $data = []; //返回的数组
+            foreach ($res->transportWays as $item) {
+                $data[] = [
+                    'name' => $item->name,
+                    'code' => $item->code,
+                    'has_tracking_number' => $item->autoFetchTrackingNo == 'Y' ? 1 : 0
+                ];
+            }
+            $this->result = ['success' => true, 'data' => $data];
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 创建订单
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @param Boolean $confirm 是否在创建的时候交运
+     * @param Boolean $changeCarrier 改变物流方式
+     * @return array $this->result 成功或失败的信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-09 10:46:11
+     */
+    public function createOrder($config, $order, $confirm = true, $changeCarrier = false)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            //组装请求数据
+            $data = $this->requestOrderData($order, $changeCarrier);
+            //发送请求
+            libxml_disable_entity_loader(false);
+            $client = new SoapClient($this->url, array('encoding' => 'UTF-8'));
+            $action = $confirm ? 'createAndAuditOrder' : 'createOrder';
+            $res = $client->$action($config['client_secret'], $data);
+            //添加日志记录
+//            $this->addRequestLog($action, $this->url, '', $data, $res, $order['number']);
+
+            //获取失败抛出异常
+            if (false == $res->success) {
+                $arr_log = [
+                    'action' => $action,
+                    'url' => $this->url,
+                    'header' => '',
+                    'request' => $data,
+                    'response' => $res
+                ];
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+                throw new Exception($res->error->errorInfo);
+            }
+
+            $this->responseOrderData($res, $config, $confirm);
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取物流商运单号
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @return array $this->result 成功或失败的信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-27 11:34:11
+     */
+    public function getTrackingNumber($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            //发送请求
+            $client = new SoapClient($this->url, array('encoding' => 'UTF-8'));
+            $res = $client->lookupOrder($config['client_secret'], ['orderId' => $order['process_code']]);
+            //添加日志记录
+            $this->addRequestLog('getTrackingNumber', $this->url, '', ['orderId' => $order['process_code']], $res, $order['number']);
+            //获取失败，抛出异常
+            if (false == $res->success) {
+                throw new Exception($res->error->errorInfo);
+            }
+            $this->result['data']['trackingNumber'] = $res->order->trackingNo ?: '';  // 跟踪号
+            $this->result['success'] = true;
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 包裹交运
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-11 14:54:11
+     */
+    public function confirm($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            //发送请求
+            $client = new SoapClient($this->url, array('encoding' => 'UTF-8'));
+            $res = $client->auditOrder($config['client_secret'], $order['process_code']);
+            //添加日志记录
+            $this->addRequestLog('auditOrder', $this->url, '', [$config['client_secret'], $order['process_code']], $res, $order['number']);
+            //获取失败，抛出异常
+            if(true == $res->success){
+                $this->result['data']['number']             = '';
+                $this->result['data']['package_code']       = '';
+                $this->result['data']['trackingNumber'] = $res->trackingNo ?? '';
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm']            = true;
+                $this->result['data']['label'] = true;                                          // 是否有pdf
+                $this->result['data']['label_url'] = '';                                        // 是否有pdf
+                $this->result['data']['is_weight'] = false;                                     // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                                        // 是否能查询实际费用
+                $this->result['data']['send'] = true;
+                $this->result['success'] = true;
+            }elseif(strstr($res->error->errorInfo,'状态已经为已预报')){
+                $this->result['success'] = true;
+                $this->result['data']['number']             = '';
+                $this->result['data']['package_code']       = '';
+                $this->result['data']['trackingNumber'] = $order['shipping_number'];
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm']            = true;
+                $this->result['data']['label'] = true;                                          // 是否有pdf
+                $this->result['data']['label_url'] = '';                                        // 是否有pdf
+                $this->result['data']['is_weight'] = false;                                     // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                                        // 是否能查询实际费用
+                $this->result['data']['send'] = true;
+                $this->result['success'] = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg' => $res->error->errorInfo ?? '预报失败',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 包裹删除
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-11 15:32:11
+     */
+    public function cancel($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            //发送请求
+            libxml_disable_entity_loader(false);
+            $client = new SoapClient($this->url, array('encoding' => 'UTF-8'));
+            $res = $client->deleteOrder($config['client_secret'], $order['process_code']);
+            //添加日志记录
+            $this->addRequestLog('deleteOrder', $this->url, '', [$config['client_secret'], $order['process_code']], $res, $order['number']);
+            //获取失败，抛出异常
+            if (false == $res->success) {
+                throw new Exception($res->error->errorInfo);
+            }
+            $this->result['success'] = true;
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取面单
+     * @param type $config 配置信息
+     * @param type $order 包裹信息
+     * @param type $type 面单类型 1 PDF ,0 html
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-11 15:46:11
+     */
+    public function getLabel($config, $order, $type = 1)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(empty($order['shipping_number'])){
+                $this->result['error'] = [
+                    'error_msg' => '请检查是否已交运',
+                    'error_code' => 1
+                ];
+                return $this->result;
+            }
+            if($order['label_source_type']=='1'  && isset($order['package_id']) ){
+                 (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+                ];
+                return $this->result;
+            }
+            if(in_array($order['shipping_method_code'],['ELS-ZXDB','ZGYZ-ZZGH'])){
+                $url='http://120.24.58.188:8086/xms/client/order_online!printPdf.action?userToken='.$config['client_secret'].'&trackingNo='.$order['shipping_number'];
+                $responseString=Curl::curlget($url);
+            }else{
+                //组装请求数据
+                $client = new SoapClient($this->url, array('encoding' => 'UTF-8'));
+                $data = $this->printData($order, $type);
+                $res = $client->printOrder($config['client_secret'], $data);
+                //添加日志记录
+                $this->addRequestLog('printOrder', $this->url, '', $data, $res, $order['number']);
+                if (false == $res->success) {
+                    throw new Exception($res->error->errorInfo);
+                }
+
+                $responseString = Curl::curlGet($res->url);
+            }
+            if(strpos($responseString,'%PDF')===false){
+                throw new Exception('面单下载失败');
+            }
+            //处理返回的数据信息
+            $service = new PackageLabelFileService();
+            $url = $service->uploadLabelFile($order['number'], base64_encode($responseString), 'pdf');
+            $this->resultPrint($url, $type);
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 组织面单获取成功之后的数据
+     * @param string $url 文件存储的地址
+     * @param string $type 文件后缀
+     * @param sting $number 包裹number
+     * @author Jimmy <554511322@qq.com>
+     * @date 2017-12-28 16:41:11
+     */
+    private function resultPrint($url, $type)
+    {
+        try {
+            //成功就组装返回的数据
+            $this->result['data']['src'] = $url;  // PDF地址
+            $this->result['data']['type'] = $type ? 'pdf' : 'html';
+            $this->result['success'] = true;
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 打印数据
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-11 15:47:11
+     */
+    private function printData($order, $type)
+    {
+        try {
+            $res = [];
+            $res['oid'] = $order['process_code'];
+            $res['printSelect'] = 15;
+            $res['pageSizeCode'] = 7;
+//            $res['showCnoBarcode'] = '';
+//            $res['downloadPdf'] = '';
+//            $res['showRecycleTags'] = '';
+            return $res;
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 组装创建订单时的数据信息
+     * @param array $data 包裹数据信息
+     * @return type 接口请求的数据信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-09 19:37:11
+     */
+    private function requestOrderData($data)
+    {
+        try {
+            $res = [];
+            $res['orderNo'] = isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number'] : $data['number'];
+            $res['trackingNo'] = '';
+            $res['transportWayCode'] = $data['shipping_method_code'];
+            $res['cargoCode'] = 'W';
+            $res['originCountryCode'] = $data['sender']['sender_code'] ?: 'CN';
+            $data['country_code'] =  $data['country_code'] == 'PR' ? 'PRI': $data['country_code'];
+            $res['destinationCountryCode'] = $data['country_code'];
+            $res['pieces'] = '1L';
+            $res['shipperCompanyName'] = $data['sender']['sender_company'];
+            $res['shipperName'] = $data['sender']['sender_name'];
+            $res['shipperAddress'] = $data['sender']['sender_country'] . $data['sender']['sender_city'] . $data['sender']['sender_street'];
+            $res['shipperTelephone'] = $data['sender']['sender_phone'];
+            $res['shipperMobile'] = $data['sender']['sender_mobile'];
+            $res['shipperPostcode'] = $data['sender']['sender_zipcode'];
+            $res['consigneeCompanyName'] = $data['pickup']['pickup_company'];
+            $res['consigneeName'] = $data['name'];
+            $res['street'] = $data['street'].' '.$data['street2'];
+            $res['city'] = $data['city'];
+            $res['province'] = $data['province'];
+            $res['consigneePostcode'] = (new \service\shipping\operation\Cloudway())->getZipFormat($data['country_code'], $data['zip']);
+            $res['consigneeTelephone'] = $data['phone'];
+            $res['consigneeMobile'] = $data['tel'];
+            $res['weight'] = $data['estimated_weight']/1000;
+            $res['insured'] = 'N';
+            $res['goodsCategory'] = 'G';
+            $res['goodsDescription'] = '';
+            //申报明细
+            foreach ($data['declared_info'] as $val) {
+                $temp[] = [
+                    'name' => $val['declared_name_en'],
+                    'cnName' => $val['declared_name_cn'],
+                    'pieces' => $val['qty'],
+                    'netWeight' => $val['declared_weight']/1000,
+                    'unitPrice' => $val['declared_value'],
+                    'productMemo' => '',
+                    'customsNo' => '',
+                ];
+            }
+            $res['declareItems'] = $temp;
+            return $res;
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 组织订单新增成功之后的数据
+     * @param array $res 成功返回的数据
+     * @param array $config 配置信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2017-12-27 17:12:11
+     */
+    private function responseOrderData($res, $config, $confirm)
+    {
+        try {
+            //成功就组装返回的数据
+            $this->result['data']['number'] = '';                                           // 客户订单号
+            $this->result['data']['package_code'] = $res->id ?? '';               // One World包裹处理号
+            $this->result['data']['trackingNumber'] = $res->trackingNo ?? '';          // 跟踪号
+            $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];    // 是否有跟踪号
+            $this->result['data']['confirm'] = $confirm;                                        // 是否交运
+            $this->result['data']['label'] = true;                                          // 是否有pdf
+            $this->result['data']['label_url'] = '';                                        // 是否有pdf
+            $this->result['data']['is_weight'] = false;                                     // 是否能查询实际重量
+            $this->result['data']['is_fee'] = false;                                        // 是否能查询实际费用
+            $this->result['data']['send'] = true;                                           // 是否能查询物流订单状态
+            $this->result['success'] = true;
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 添加请求日志
+     * @param string $action 请求的方法
+     * @param string $url 请求的URL地址
+     * @param arrary $header 请求的头部文件信息
+     * @param array $data post提交的内容
+     * @param array $responseJson 返回的数据信息
+     * @param string $number 包裹号
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-11 15:00:00
+     */
+    private function addRequestLog($action, $url, $header, $data, $responseJson, $number)
+    {
+        try {
+            $arr_log = [
+                'action' => $action,
+                'url' => $url,
+                'header' => $header,
+                'request' => $data,
+                'response' => $responseJson
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($number, $arr_log);
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * 获取包裹实际重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config,$order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $client = new SoapClient($this->url, array('encoding' => 'UTF-8'));
+            $res = $client->lookupOrder($config['client_secret'], ['orderId' => $order['process_code']]);
+            if (true == $res->success) {
+                if($res->order){
+                    $this->result['data'] = [
+                        'real_weight'=>$res->order->balanceWeight,//物流商称重
+                        'real_fee'=>$res->order->transportFee,       //物流费用
+                        'currency'=>'',  //币种
+                    ];
+                }
+            }else{
+                throw new Exception($res->error->errorInfo);
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+}

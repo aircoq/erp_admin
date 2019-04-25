@@ -1,0 +1,42 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-24
+ * Time: 上午11:26
+ */
+
+namespace erp;
+
+
+abstract class AbsAccessRule implements \JsonSerializable
+{
+    const TYPE_FILTER = 1;
+    const TYPE_VISIT = 2;
+    const TYPE_PAGE = 3;
+    protected $ruleParam = [];
+    protected $title;
+    protected $type;
+
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    public function getTitle()
+    {
+        return $this->title;
+    }
+
+
+    public abstract function setParam($param);
+
+    /**
+     * @return string
+     */
+    public final function __toString()
+    {
+        return json_encode($this->jsonSerialize());
+    }
+
+}

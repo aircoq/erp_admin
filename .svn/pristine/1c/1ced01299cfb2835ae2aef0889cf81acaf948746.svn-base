@@ -1,0 +1,102 @@
+<?php
+namespace service\aliexpress\operation;
+
+use service\aliexpress\operation\Common;
+
+/**
+ *  aliexpress 订单管理
+ */
+class Order extends Common
+{
+
+    /**
+     * 拉取订单
+     * @param unknown $config ： 秘钥数组
+     * @param number $page : 分页数
+     * @param string $startTime ： 从当前时间点开始拉取
+     * @return $newResult : 返回速卖通所有账号订单
+     */
+    public function getOrder($page = 1, $startTime = '',$status='',$timeZone='CCT')
+    {
+        //$newResult = [];
+        //$urlPath = 'param2/1/aliexpress.open/api.findOrderListQuery/' . $this->client_id;
+        $data['page'] = $page;
+        $data['pageSize'] = 50;
+        if ($startTime) {
+            $data['createDateStart'] = $startTime;
+            $data['createDateEnd'] = date('Y-m-d H:i:s', time());
+        }
+        if ($status) {
+            $data['orderStatus'] = $status;
+        }
+        $data['_aop_datePattern'] = 'yyyy-MM-dd HH:mm:ss';
+        $data['_aop_timeZone'] = $timeZone;
+        $data['access_token'] = $this->accessToken;
+        //$signature = $this->apiSign($data, $urlPath, $config['client_secret']);
+        $url = "http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.findOrderListQuery/{$this->client_id}";
+        //$data['_aop_signature'] = $signature;
+        $result = $this->requestAliexpress($url,$data);
+        //$result = $this->curlPost($url, $data);
+        //$newResult = json_decode($result, true);
+        unset($data);
+        return $result;
+    }
+
+    /**
+     * 获取订单详情
+     * @param unknown $config
+     * @param number $orderId 
+     * @param string $fieldList： 
+         * 暂不支持。需要返回的订单对象字段。
+         * 多个字段用“,”分隔。如果想返回整个子对象，该字段不设值。 
+         * 目前支持以下字段：id,gmtCreate,orderStatus,sellerOperatorAliid,sellerOperatorLoginId,paymentType ,initOderAmount,orderAmount,escrowFee
+     * @param string $extInfoBitFlag
+     * @return $newResult ： 获取单个订单的订单详情
+     */
+    public function getOrderDetail($orderId = 0, $fieldList = 'orderStatus', $extInfoBitFlag = '',$timeZone='CCT')
+    {
+        //$newResult = [];
+        //$urlPath = 'param2/1/aliexpress.open/api.findOrderById/' . $config['client_id'];
+        $data['orderId'] = $orderId;
+        $data['fieldList'] = $fieldList;
+        if ($extInfoBitFlag) {
+            $data['extInfoBitFlag'] = $extInfoBitFlag;
+        }
+        $data['_aop_datePattern'] = 'yyyy-MM-dd HH:mm:ss';
+        // $data['_aop_timeZone'] = $timeZone;
+        $data['access_token'] = $this->accessToken;
+        //$signature = $this->apiSign($data, $urlPath, $config['client_secret']);
+        
+        $url = "http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.findOrderById/{$this->client_id}";
+        //$data['_aop_signature'] = $signature;
+        $result = $this->requestAliexpress($url,$data);
+        //$result = $this->curlPost($url, $data);
+        //$newResult = json_decode($result, true);
+        unset($data);
+        return $result;
+    }
+    
+    /**
+     * 延长买家收货时间
+     * @param type $orderId  需要延长的订单ID
+     * @param type $day     请求延长的具体天数
+     * @return type
+     */
+    public function extendsBuyerAcceptGoodsTime($orderId,$day,$timeZone='CCT')
+    {
+        //$newResult = [];
+        //$urlPath = 'param2/1/aliexpress.open/api.extendsBuyerAcceptGoodsTime/' . $this->client_id;
+        $data['orderId'] = $orderId;
+        $data['day'] = $day;
+        $data['_aop_datePattern'] = 'yyyy-MM-dd HH:mm:ss';
+        // $data['_aop_timeZone'] = $timeZone;
+        $data['access_token'] = $this->accessToken;
+        //$signature = $this->apiSign($data, $urlPath, $this->client_secret);
+        $url = "http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.extendsBuyerAcceptGoodsTime/".$this->client_id;
+        //$data['_aop_signature'] = $signature;
+        $result = $this->requestAliexpress($url,$data);
+        //$result = $this->curlPost($url, $data);
+        //$newResult = json_decode($result, true);
+        return $result;
+    }
+}

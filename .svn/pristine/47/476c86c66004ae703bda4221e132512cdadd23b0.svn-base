@@ -1,0 +1,344 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: laiyongfeng
+ * Date: 2018/11/10
+ * Time: 17:50
+ */
+
+namespace service\shipping\operation;
+
+use app\common\cache\Cache;
+use org\Curl;
+use org\Xml;
+use think\Exception;
+use app\carrier\service\PackageLabelFileService;
+
+
+
+/**
+ * 乐天物流
+ * Class Hlt
+ * @package service\shipping\operation
+ */
+class Hlt
+{
+    // 配置信息
+    private $_config = [
+        'url'   => 'http://47.92.33.48:8086/xms/services/order?wsdl',//线上
+        'userToken'=>'',
+    ];
+    protected $result   = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    /**
+     * @desc 组装header信息
+     * @param array $config
+     * @throws Exception
+     */
+    private function formatHeader(array $config)
+    {
+        //$config['accessToken'] = '722480e259544d2f8553b6415308f11c';
+        if (empty($config['accessToken'])) {
+            throw new Exception('账号授权信息缺失');
+        }
+        $this->_config['userToken'] = $config['accessToken'];
+        libxml_disable_entity_loader(false);
+        $this->_client = new \SoapClient($this->_config['url'], array ('encoding' => 'UTF-8' ));
+    }
+
+    /**
+     * 获取所有物流渠道
+     * @param array $config
+     * @return array
+     */
+    public function getExpress(array $config)
+    {
+        try{
+            $this->formatHeader($config);
+            $result = $this->_client->getTransportWayList($this->_config['userToken']);
+            if($result->success  && $result->transportWays) {
+                $data = [];
+                foreach($result->transportWays as $item) {
+                    $data[] = ['code'=>$item->code, 'name'=>$item->name];
+                }
+                $this->result['success'] = true;
+                $this->result['data'] = $data;
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['error']['errorInfo'] ?? '未知错误',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 组装创建订单信息
+     * @param array $order
+     * @return array
+     */
+    private function buildOrderData($order)
+    {
+        $street = $order['street2'] ?  $order['street'].' '.$order['street2'] : $order['street'];
+        $request['orderNo'] = $order['number'];
+        $request['transportWayCode'] = $order['shipping_method_code'];
+        $request['cargoCode'] = 'W';
+        $request['originCountryCode'] = $order['sender']['sender_country'];
+        $request['destinationCountryCode'] = $order['country_code'];
+        $request['pieces'] = 1;
+        $request['shipperCompanyName'] = $order['sender']['sender_company'];
+        $request['shipperName'] = $order['sender']['sender_name'];
+        $request['shipperAddress'] = $order['sender']['sender_street'];
+        $request['shipperTelephone'] = $order['sender']['sender_phone'];
+        $request['shipperMobile'] = $order['sender']['sender_mobile'];
+        $request['shipperPostcode'] = $order['sender']['sender_zipcode'];
+        $request['shipperCity'] = $order['sender']['sender_city'];
+        $request['shipperProvince'] = $order['sender']['sender_state'];
+        $request['consigneeName'] = $order['name'];
+        $request['street'] = $street;
+        $request['city'] = $order['city'];
+        $request['province'] = $order['province'];
+        $request['consigneePostcode'] = $order['zip'];
+        $request['consigneeTelephone'] = $order['tel'];
+        $request['consigneeMobile'] = $order['phone'];
+        $request['weight'] = sprintf("%.3f", $order['estimated_weight']/1000);
+        $request['insured'] = 'N';
+        $request['goodsCategory'] = 'O';
+        $goods= [];
+        foreach ($order['declared_info'] as $declared) {
+            $goods[] = array(
+                'name'      => $declared['declared_name_en'],
+                'cnName'      => $declared['declared_name_cn'],
+                'pieces'    => $declared['qty'],
+                'netWeight' => sprintf("%.3f", $declared['declared_weight']/1000),
+                'unitPrice' => $declared['declared_value'],
+                'productMemo' => $declared['sku']
+            );
+        }
+        $request['declareItems']  =  $goods;
+        return $request;
+    }
+
+
+    /**
+     * @desc 创建订单
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @param Boolean $confirm 是否在创建的时候交运
+     * @return array
+     */
+    public function createOrder($config, $order, $confirm = true)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+
+            //组装请求数据
+            $data = $this->buildOrderData($order);
+            $action = $confirm ? 'createAndAuditOrder' : 'createOrder';
+            $response = $this->_client->$action($this->_config['userToken'], $data);
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=> $data,
+                'response'=> $response
+            ];
+            if($response->success && $response->id) {
+                $this->result['data']['number']             = $order['number'];                            // 客户订单号
+                $this->result['data']['package_code']       =  $response->id;                              // One World包裹处理号
+                $this->result['data']['trackingNumber']     =  $response->trackingNo ?? '';                            // 跟踪号
+                $this->result['data']['has_trackingNumber'] = true ;                           // 是否有跟踪号
+                $this->result['data']['confirm']            = $confirm;                                                 // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+            }else {
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                $this->result['error'] = [
+                    'error_msg'  => $response->error->errorInfo ?? '未知错误',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 包裹交运
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @return array
+     */
+    public function confirm($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+            //发送请求
+            $res =  $this->_client->auditOrder($this->_config['userToken'], $order['process_code']);
+            if(true == $res->success){
+                $this->result['data']['number']             = '';
+                $this->result['data']['package_code']       = '';
+                $this->result['data']['trackingNumber'] = $res->trackingNo ?? '';
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm']            = true;
+                $this->result['data']['label'] = true;                                          // 是否有pdf
+                $this->result['data']['label_url'] = '';                                        // 是否有pdf
+                $this->result['data']['is_weight'] = false;                                     // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                                        // 是否能查询实际费用
+                $this->result['data']['send'] = true;
+                $this->result['success'] = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg' => $res->error->errorInfo ?? '预报失败',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 取跟踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    function getTrackingNumber($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+            //发送请求
+            $res =  $this->_client->lookupOrder($this->_config['userToken'], ['orderId' => $order['process_code']]);
+            //获取失败，抛出异常
+            if (false == $res->success) {
+                throw new Exception($res->error->errorInfo);
+            }
+            $this->result['data']['trackingNumber'] = $res->order->trackingNo ?: '';  // 跟踪号
+            $this->result['success'] = true;
+        }catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取真实重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config, $order)
+    {
+    }
+
+    /**
+     * @desc 取消删除包裹
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config,$order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+            //发送请求
+            $res = $this->_client->deleteOrder($this->_config['userToken'], $order['process_code']);
+            //获取失败，抛出异常
+            if (false == $res->success) {
+                throw new Exception($res->error->errorInfo);
+            }
+            $this->result['success'] = true;
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取面单
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->formatHeader($config);
+            $this->result['number'] = $order['number'];
+            if(empty($order['shipping_number'])){
+                $this->result['error'] = [
+                    'error_msg' => '请检查是否已交运',
+                    'error_code' => 1
+                ];
+                return $this->result;
+            };
+            $data['oid'] = $order['process_code'];
+            $data['printSelect'] = 15;
+            $data['pageSizeCode'] = 7;
+            //组装请求数据
+            $res = $this->_client->printOrder($this->_config['userToken'], $data);
+            if (false == $res->success) {
+                throw new Exception($res->error->errorInfo);
+            }
+            $responseString = Curl::curlGet($res->url);
+            if(strpos($responseString,'%PDF')===false){
+                throw new Exception('面单下载失败');
+            }
+            //处理返回的数据信息
+            $service = new PackageLabelFileService();
+            $url = $service->uploadLabelFile($order['number'], base64_encode($responseString), 'pdf');
+            $this->result['data']['src'] = $url;  // PDF地址
+            $this->result['data']['type'] = 'pdf';
+            $this->result['success'] = true;;
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+        return $this->result;
+    }
+}

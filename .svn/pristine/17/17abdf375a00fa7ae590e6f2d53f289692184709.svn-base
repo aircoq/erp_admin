@@ -1,0 +1,137 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: zhangdongdong
+ * Date: 2019/3/21
+ * Time: 21:39
+ */
+
+namespace Waimao\AmazonMws;
+
+use Exception;
+
+class AmazonMultiRequest
+{
+    /** @var int 最大并发连接数  */
+    public $maxConnections = 100;
+
+    /** @var int 最大请求时间 */
+    public $timeOut = 30;
+
+    public $accountIds = [];
+
+    /** @var array 请求的对象及结果集 */
+    public $requestLists = [];
+
+    public function __construct($maxConnections = 100, $timeout = 30)
+    {
+        $this->maxConnections = $maxConnections;
+    }
+
+
+    /**
+     * @param int $accountId 帐号数据；
+     * @param array $data 提交的数据；
+     * @return bool
+     */
+    public function addFeedRequestList($list) : bool
+    {
+        if (empty($list)) {
+            return true;
+        }
+        foreach ($list as $key=>$val) {
+            $accountId = $val['account_id'] ?? $key;
+            $this->addFeedRequest($accountId, $val['xml'], $val['type']);
+        }
+        return true;
+    }
+
+
+    /**
+     * @param int $accountId 帐号数据；
+     * @param array $data 提交的数据；
+     * @return bool
+     */
+    public function addFeedRequest(int $accountId, string $feed, $type) : bool
+    {
+        $count = count($this->accountIds);
+        if (in_array($accountId, $this->accountIds)) {
+            $count--;
+        }
+        if ($count >= $this->maxConnections) {
+            return false;
+        }
+        if (empty($type)) {
+            return false;
+        }
+        $options['Action'] = 'SubmitFeed';
+        $options['FeedType'] = $type;
+        $this->requestLists[$accountId] = new AmazonRequest($accountId, $options, $feed, $this->maxConnections);
+        return true;
+    }
+
+
+    /**
+     * 开始提交
+     * @return bool
+     */
+    public function submit()
+    {
+        $chArr = [];
+
+        $requestLists = $this->getRequestLists();
+        if (empty($requestLists)) {
+            return false;
+        }
+
+        foreach ($requestLists as $accountId=>$request) {
+            $chArr[$accountId] = $request->buildCurl();
+        }
+        $mh = curl_multi_init(); //1 创建批处理cURL句柄
+
+        foreach($chArr as $ch){
+            curl_multi_add_handle($mh, $ch); //2 增加句柄
+        }
+
+        $active = null;
+
+        do{
+            $mrc = curl_multi_exec($mh, $active); //3 执行批处理句柄
+        }while ($mrc == CURLM_CALL_MULTI_PERFORM); //4
+
+        //$num = 0;
+        while ($active && $mrc == CURLM_OK) {
+            while (curl_multi_exec($mh, $active) == CURLM_CALL_MULTI_PERFORM);
+            if (-1 != $selectResult = curl_multi_select($mh)) {
+                //$num = 0;
+                do {
+                    $mrc = curl_multi_exec($mh, $active);//继续执行需要处理的$ch句柄。
+                } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+            }
+        }
+        $result = [];
+        foreach($chArr as $k => $ch){
+            $result[$k] = curl_multi_getcontent($ch); //5 获取句柄的返回值
+            $requestLists[$k]->setResponse($result[$k]);
+            curl_multi_remove_handle($mh, $ch);//6 将$mh中的句柄移除
+        }
+        curl_multi_close($mh); //7 关闭全部句柄
+
+        return true;
+    }
+
+    public function getResponses()
+    {
+        return [];
+    }
+
+    public function getRequest($index) : AmazonRequest
+    {
+        return $this->requestLists[$index] ?? null;
+    }
+
+    public function getRequestLists() :array
+    {
+        return $this->requestLists;
+    }
+}

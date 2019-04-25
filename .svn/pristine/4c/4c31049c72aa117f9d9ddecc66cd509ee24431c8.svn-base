@@ -1,0 +1,86 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-20
+ * Time: 下午5:41
+ */
+
+namespace rpc;
+
+use app\common\service\Param;
+use Nette\Reflection\ClassType;
+use Nette\Utils\Reflection;
+
+class ModuleAgent
+{
+    private static $load =false;
+    private static $apis = [];
+    protected function remoteCall($module, $api, ...$params)
+    {
+        $remoteModule = new ModuleClient($module);
+        return $remoteModule->remoteCall($api, ...$params);
+    }
+
+    protected function localApi($api, $params)
+    {
+        if(isset(self::$apis[$api])){
+            list($class, $method) = self::$apis[$api];
+            return call_user_func([new $class, $method],$params);
+        }else{
+            error_log(var_export(self::$apis, true));
+            return ['code'=>'fail','message'=>'not define this api'];
+        }
+    }
+
+    public function __invoke($api, $params)
+    {
+        if(!self::$load){
+            $this->loadApis();
+        }
+        return $this->localApi($api, $params);
+    }
+
+    /**
+     * @rpc(desc="获取模块RPC集",url="module/rpcs")
+     */
+    public function moduleApis($params)
+    {
+        $result = [];
+        foreach (self::$apis as $url => $api){
+            list($class,$method, $desc) = $api;
+            $result[$url] = $desc;
+        }
+        return $result;
+    }
+
+    private function loadApis()
+    {
+        $modules = $this->getRpcModules();
+        foreach ($modules as $module){
+            $reflection = new ClassType($module);
+            $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
+            foreach ($methods as $method){
+                if($rpc = $method->getAnnotation('rpc')){
+                    $param = new Param($rpc);
+                    $param(0)('url');
+                    $rpcUrl = $param->getValue($method->getName());
+                    $param(1)('desc');
+                    $rpcDesc = $param->getValue("没有描述信息");
+                    self::$apis[$rpcUrl] = [$module, $method->name,$rpcDesc];
+                }
+                error_log(var_export($method->getAnnotation('rpc'), true));
+            }
+        }
+        self::$load = true;
+    }
+
+    private function getRpcModules()
+    {
+        if(file_exists(APP_PATH.'rpc_module.php')){
+            return include APP_PATH."rpc_module.php";
+        }else{
+            return [];
+        }
+    }
+}

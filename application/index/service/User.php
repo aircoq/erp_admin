@@ -1,0 +1,1139 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-2-27
+ * Time: 上午10:03
+ */
+
+namespace app\index\service;
+
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\exception\RelateDeleteException;
+use app\common\interfaces\IAssociatedDelete;
+use app\common\model\DepartmentUserMap;
+use app\common\model\McaNode;
+use app\common\model\RoleUser;
+use app\common\model\User as UserModel;
+use app\common\model\Department;
+use app\common\model\UserSimulationOnLog;
+use app\common\service\Common;
+use app\common\service\UniqueQueuer;
+use app\index\queue\AccountUserMapDelQueue;
+use app\index\service\Department as DepartmentServer;
+use app\system\server\Menu;
+use erp\AbsServer;
+use think\Db;
+use think\Exception;
+use app\index\service\UserLog;
+
+class User extends AbsServer implements IAssociatedDelete
+{
+
+    const UserSales = 'sales';         //销售
+    const UserPurchase = 'purchase';   //采购员
+    const UserCustomer = 'customer';   // 客服
+
+    private $hasWheres = [];
+    private $wheres = [];
+    private $page = 1;
+    private $pageSize = 20;
+    private $roleServer;
+    /**
+     * @var \app\common\cache\driver\User
+     */
+    private $cache;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->roleServer = new Role();
+        $this->cache = Cache::store('user');
+    }
+
+    public static function relateDelete($id)
+    {
+        if (RoleUser::get(['role_id' => $id])) {
+            throw new RelateDeleteException("请先解绑该角色的用户");
+        }
+    }
+
+    public function getUser($userId)
+    {
+        return $this->cache->getOneUser($userId);
+    }
+
+    /**
+     * @param $channel_id
+     * @return array
+     */
+    public function getUsers($channel_id)
+    {
+        $model = new UserModel();
+        $depServer = new Department();
+        $deps = $depServer->getDepsByChannel($channel_id, function ($dep) {
+            return $dep->id;
+        });
+        $result = [];
+        if ($deps) {
+            $model->where('department_id', 'in', $deps);
+            $model->field('realname,id');
+            $datas = $model->select();
+            foreach ($datas as $data) {
+                $result[] = [
+                    'label' => $data->realname,
+                    'value' => $data->id
+                ];
+            }
+        }
+        return $result;
+    }
+
+    public function where($where)
+    {
+        $this->wheres = $where;
+    }
+
+    public function hasWhere($hasWhere)
+    {
+        $this->hasWheres = $hasWhere;
+    }
+
+    public function page($page, $pageSize)
+    {
+        $this->page = $page;
+        $this->pageSize = $pageSize;
+    }
+
+    public function count()
+    {
+        return UserModel::hasWhereHeighten($this->hasWheres)->where($this->wheres)->count();
+    }
+
+    public function lists()
+    {
+        $users = UserModel::hasWhereHeighten($this->hasWheres)->field('id,username,realname,job,status,job_number,on_job')->where($this->wheres)->page($this->page,
+            $this->pageSize)->select();
+        $departmentServer = new DepartmentServer();
+        $departmentUserMapService = new DepartmentUserMapService();
+        $allRole = Cache::store('Role')->getRole();
+        $role = new Role();
+        foreach ($users as $user) {
+            $user['on_job'] = intval($user['on_job']);
+            $department_ids = $departmentUserMapService->getDepartmentByUserId($user['id']);
+            $departmentInfo = '';
+            foreach ($department_ids as $d => $department) {
+                if (!empty($department)) {
+                    $departmentInfo .= $departmentServer->getDepartmentNames($department) . '   ,   ';
+                }
+            }
+            $departmentInfo = rtrim($departmentInfo, '   ,   ');
+            $user['department'] = $departmentInfo;
+            $user['role'] = $role->getRoleNameByUserId($user->id,$allRole);
+        }
+        return $users;
+    }
+
+
+    /** 获取不同类型的员工信息
+     * @param $type
+     * @param $content
+     * @param $page
+     * @param $pageSize
+     * @return array
+     */
+    public function staff($type, $content, $page, $pageSize)
+    {
+        $typeArr = explode("-", $type);
+        $type = $typeArr[0];
+        $jobIb = 0;
+        if (count($typeArr) == 2) {
+            $workType = $typeArr[1];
+            $JobService = new JobService();
+            $jobIb = $JobService->getIdByCode($workType);
+        }
+        $where = [];
+        $user_where = [];
+        if (empty($page) && empty($pageSize)) {
+            $page = 1;
+            $pageSize = 5000;
+        }
+        if ($type == 'proposal') {
+            $type = 'purchase';
+            $virtualType = 1;
+        }
+        $where['job'] = ['=', $type];
+        if (!empty($content)) {
+            $user_where['realname'] = ['like', '%' . $content . '%'];
+        }
+        $departmentModel = new Department();
+        $userModel = new UserModel();
+        $departments = $departmentModel->where($where)->select();
+        $departmentIds = [];
+        $departmentUserMapService = new DepartmentUserMapService();
+        foreach ($departments as $department) {
+            array_push($departmentIds, $department['id']);
+            //查子节点
+            $subclass = $departmentModel->where(['pid' => $department['id']])->select();
+            foreach ($subclass as $sub => $node) {
+                array_push($departmentIds, $node['id']);
+            }
+        }
+        if ($type != 'purchase' || isset($virtualType)) {
+            $user_where['status'] = ['=', 1];
+        }
+        $user_where['on_job'] = 1;
+        if (!empty($departmentIds)) {
+            $user_ids = $departmentUserMapService->getUserByDepartmentId($departmentIds);
+            $userList = $userModel->field('id,realname,job')->where($user_where)->where(function ($query) use (
+                $type,
+                $user_ids
+            ) {
+                $query->where(['job' => $type])->whereOr('id', 'in', $user_ids);
+            })->page($page, $pageSize)->select();
+        } else {
+            $user_where['job'] = ['=', $type];
+            $userList = $userModel->field('id,realname,job')->where($user_where)->page($page, $pageSize)->select();
+        }
+        $userData = [];
+        $code = Cache::store('job')->getJob();
+        $departmentServer = new DepartmentServer();
+        $job_user_id = [];
+        if ($jobIb) {
+            $job_user_id = $departmentUserMapService->getUserIdByJobId($jobIb);
+        }
+        //查出人员的职务与部门)
+        foreach ($userList as $key => $value) {
+            if ($jobIb) {
+                if (!in_array($value['id'], $job_user_id)) {
+                    continue;
+                }
+            }
+            $temp['id'] = $value['id'];
+            $temp['realname'] = $value['realname'];
+            $temp['job'] = $code[$value['job']]['name'] ?? $value['job'];
+            $department_ids = $departmentUserMapService->getDepartmentByUserId($value['id']);
+            $department = '';
+            foreach ($department_ids as $d => $department) {
+                $department .= $departmentServer->getDepartmentNames($department);
+            }
+            $department = rtrim($department, ',');
+            $temp['department_id'] = $department;
+            array_push($userData, $temp);
+        }
+        return $userData ?: [];
+    }
+
+    /**
+     * 获取当前用户
+     * @return int
+     */
+    public static function getCurrent()
+    {
+        $userInfo = Common::getUserInfo();
+        return $userInfo->user_id;
+    }
+
+    public function getRoles($userId)
+    {
+        $roleUser = new RoleUser();
+        $roleUser->where('user_id', $userId);
+        $roles = $roleUser->select();
+        $role_ids = [];
+        foreach ($roles as $role) {
+            $role_ids[] = $role['role_id'];
+        }
+        return $role_ids;
+    }
+
+    public function permission()
+    {
+        $userId = static::getCurrent();
+        $roles = $this->getRoles($userId);
+        $apis = [];
+        foreach ($roles as $role) {
+            $roleApis = $this->roleServer->getPermission($role);
+            $apis = array_merge_plus($apis, $roleApis);
+
+        }
+        $ignoreApis = Node::getIgnoreVistsApi();
+        return [
+            'roles' => $roles,
+            'apis' => array_merge($apis, $ignoreApis),
+        ];
+    }
+
+    public function getUserInfo($userId)
+    {
+        if ($user = $this->getUser($userId)) {
+            $roleIds = $this->getRoles($userId);
+            $user['role_ids'] = $roleIds;
+            return $user;
+        } else {
+            throw new JsonErrorException("没有找到该用户");
+        }
+    }
+
+    /**
+     * 获取上级人员信息
+     * @param $user_id
+     * @return array
+     * @throws \think\Exception
+     */
+    public function getSuperiorInfo($user_id, $addMe = true)
+    {
+        $departments = Cache::store('department')->tree();
+        $userInfo = Cache::store('user')->getOneUser($user_id);
+        $superior = [];
+        $departmentUserMapService = new DepartmentUserMapService();
+        if (!empty($userInfo)) {
+            $department_ids = $departmentUserMapService->getDepartmentByUserId($userInfo['id']);
+            if (!empty($department_ids)) {
+                foreach ($department_ids as $k => $department_id) {
+                    $leader_id = $departments[$department_id]['leader_id'] ?? [];
+                    if (!in_array($user_id, $leader_id)) {
+                        foreach ($leader_id as $l => $id) {
+                            array_push($superior, $id);
+                        }
+                    }
+                    $parents = $departments[$department_id]['parents'] ?? [];
+                    if (!empty($parents)) {
+                        foreach ($parents as $key => $value) {
+                            if (isset($departments[$value])) {
+                                $leader_id = $departments[$value]['leader_id'];
+                                if (!empty($leader_id)) {
+                                    foreach ($leader_id as $l => $id) {
+                                        array_push($superior, $id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        array_push($superior, $user_id);
+        $superior = array_unique($superior);
+        if (!$addMe) {
+            $superior = array_diff($superior, [$user_id]);
+        }
+        sort($superior);
+        return $superior;
+    }
+
+    /**
+     * 新增员工
+     * @param $params
+     * @throws \Exception
+     */
+    public function add($params)
+    {
+        $userModel = new UserModel();
+        $roleUserModel = new RoleUser();
+        $userInfo = Common::getUserInfo();
+        $departmentUserMapService = new DepartmentUserMapService();
+        if (isset($params['job_number']) && !empty($params['job_number'])) {
+            $count = $userModel->where(['job_number' => $params['job_number']])->count();
+            if ($count > 0) {
+                throw new JsonErrorException('工号已被使用');
+            }
+        }
+        //以字母开头，长度在8~18之间，只能包含字符、数字和下划线
+        $ok = preg_match_all("/^[a-zA-Z\d_]{7,17}$/", $params['password'], $array);
+        if (empty($ok)) {
+            throw new JsonErrorException('密码以字母开头，长度在8~18之间，只能包含字符、数字和下划线');
+        }
+        Db::startTrans();
+        try {
+            $password = $params['password'];
+            $salt = $userModel->getSalt();
+            $mcryptPassword = $userModel->getHashPassword($password, $salt);
+            $params['password'] = $mcryptPassword;
+            $params['salt'] = $salt;
+            $params['create_time'] = time();
+            $userModel->allowField(true)->isUpdate(false)->save($params);
+            $id = $userModel->id;
+            $roleIdArr = explode(',', $params['role_id']);
+            $roleData = [];
+            foreach ($roleIdArr as $roleId) {
+                $roleData[] = ['role_id' => $roleId, 'user_id' => $id];
+            }
+            $roleUserModel->saveAll($roleData);
+            $departmentData = json_decode($params['department_id'], true);
+            $departmentUserMapService->add($id, $departmentData);
+            Cache::store('user')->delete();
+            $UserLog = new UserLog();
+            $UserLog->add($params['realname'])->save($id, $userInfo['user_id'], $userInfo['realname']);
+            Db::commit();
+        } catch (Exception $e) {
+            Db::rollback();
+            throw new JsonErrorException('新增失败');
+        }
+    }
+
+    /**
+     * 更新用户
+     * @param $id
+     * @param $params
+     * @throws \Exception
+     */
+    public function update($id, $params)
+    {
+        $userModel = new UserModel();
+        $roleUserModel = new RoleUser();
+        $departmentUserMapService = new DepartmentUserMapService();
+        $userInfo = Common::getUserInfo();
+        $old = $userModel->where('id', $id)->find();
+        $oldDepartment = [];
+        $oldRule = [];
+        if (isset($params['role_id'])) {
+            $oldRule = $roleUserModel->where('user_id', $id)->column('role_id');
+        }
+        if (isset($params['department_id'])) {
+            $departmentList = $departmentUserMapService->getMap($id);
+            $sort = [];
+            foreach ($departmentList as $key => $value) {
+                $temp['id'] = $value['department_id'];
+                $temp['job_id'] = intval($value['job_id']);
+                $sort[] = $temp['id'];
+                array_push($oldDepartment, $temp);
+            }
+            array_multisort($sort, SORT_ASC, $oldDepartment);
+        }
+        $old['department_id'] = $oldDepartment;
+        $old['role_id'] = $oldRule;
+        //启动事务
+        Db::startTrans();
+        try {
+            $params['update_time'] = time();
+            $userModel = new UserModel();
+            $flag = $userModel->allowField(true)->save($params, ['id' => $id]);
+            $roleUserModel->where('user_id', $id)->delete();
+            $roleIdArr = explode(',', $params['role_id']);
+            $roleData = [];
+            foreach ($roleIdArr as $key => $roleId) {
+                $roleData[] = ['role_id' => $roleId, 'user_id' => $id];
+            }
+            $roleUserModel->saveAll($roleData);
+            sort($roleIdArr);
+            $params['role_id'] = $roleIdArr;
+            $menuServer = new Menu();
+            $menuServer->cachePagesDel($id);
+            $departmentData = json_decode($params['department_id'], true);
+
+            //如果更换了部门，则移除上级绑定的服务器权限
+            $isChangeDepartment = $this->isChangeDepartment($oldDepartment, $departmentData);
+            if ($isChangeDepartment) {
+                (new AccountUserMapService())->changeUserDepartment($id, false);
+            }
+            $departmentUserMapService->add($id, $departmentData);
+            if ($isChangeDepartment) {
+                (new AccountUserMapService())->changeUserDepartment($id);
+            }
+            $sortDepartment = [];
+            foreach ($departmentData as $k => $v) {
+                $sortDepartment[$k] = $v['id'];
+            }
+            array_multisort($sortDepartment, SORT_ASC, $departmentData);
+            $params['department_id'] = $departmentData;
+            if ($flag) {
+                $UserLog = new UserLog();
+                $UserLog->mdf($params['realname'], $old, $params)
+                    ->save($id, $userInfo['user_id'], $userInfo['realname']);
+            }
+            Db::commit();
+            Cache::store('user')->updateUserInfo($id);
+        } catch (Exception $e) {
+            Db::rollback();
+            throw $e;
+        }
+    }
+
+    private function isChangeDepartment($old, $new)
+    {
+        $oldIds = array_column($old, 'id');
+        $newIds = array_column($new, 'id');
+        $diff = array_diff($oldIds, $newIds);
+        if ($diff) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 用户详情信息
+     * @param $id
+     * @return array
+     * @throws Exception
+     */
+    public function info($id)
+    {
+        $result = Cache::store('user')->getOneUser($id);
+        $roleUserModel = new RoleUser();
+        $roleList = $roleUserModel->field('role_id as id')->where(['user_id' => $id])->select();
+        $list = [];
+        $list['id'] = $result['id'];
+        $list['username'] = $result['username'];
+        $list['realname'] = $result['realname'];
+        $list['email'] = $result['email'];
+        $list['job_number'] = $result['job_number'];
+        $list['on_job'] = intval($result['on_job']);
+        $departmentUserMapService = new DepartmentUserMapService();
+        $departmentList = $departmentUserMapService->getMap($id);
+        $departmentData = [];
+        foreach ($departmentList as $key => $value) {
+            $temp['id'] = $value['department_id'];
+            $temp['job_id'] = intval($value['job_id']);
+            array_push($departmentData, $temp);
+        }
+        $list['status'] = $result['status'];
+        $list['mobile'] = $result['mobile'];
+        $list['job'] = $result['job'];
+        $list['department_id'] = $departmentData;
+        $list['roleList'] = $roleList;
+        return $list;
+    }
+
+    /**
+     * 通过工号获取用户信息
+     * @param $job_number
+     * @return array|false|\PDOStatement|string|\think\Model
+     */
+    public function getInfoByJobNumber($job_number)
+    {
+        $number = is_string($job_number) ?: str_pad($job_number, 4, "0", STR_PAD_LEFT);
+        $userInfo = (new UserModel())->field(true)->where(['job_number' => $number])->find();
+        return $userInfo ?? [];
+    }
+
+    /**
+     * @title 根据用户来获取职位Id
+     * @author starzhan <397041849@qq.com>
+     */
+    public function getJobIdByUserId($user_id)
+    {
+        $userInfo = Cache::store('user')->getOneUser($user_id);
+        $id = 0;
+        if ($userInfo['job']) {
+            $JobService = new JobService();
+            $id = $JobService->getId($userInfo['job']);
+        }
+        return $id;
+    }
+
+    /**
+     * 判断用户是否为指定职务的人
+     * @param $user_id
+     * @param $job
+     * @return bool  【true  是  false 否】
+     * @throws Exception
+     */
+    public function userIsJob($user_id, $job)
+    {
+        $is_job = false;
+        $userInfo = Cache::store('user')->getOneUser($user_id);
+        switch ($job) {
+            case self::UserSales:
+                if ($userInfo['job'] == self::UserSales) {
+                    $is_job = true;
+                }
+                break;
+            case self::UserCustomer:
+                if ($userInfo['job'] == self::UserCustomer) {
+                    $is_job = true;
+                }
+                break;
+            case self::UserPurchase:
+                if ($userInfo['job'] == self::UserPurchase) {
+                    $is_job = true;
+                }
+                break;
+            default:
+                if ($userInfo['job'] == $job) {
+                    $is_job = true;
+                }
+        }
+        return $is_job;
+    }
+
+    /**
+     * 变更通知
+     * @param $job_number
+     * @throws Exception
+     */
+    public function changeStatus($job_number)
+    {
+        (new UserModel())->where(['job_number' => $job_number])->update(['status' => 0]);
+        //添加到自动移除资料成员队列
+        $userId = (new UserModel())->where(['job_number' => $job_number])->value('id');
+        (new UniqueQueuer(AccountUserMapDelQueue::class))->push($userId);
+        Cache::store('user')->delete();
+    }
+
+    /**
+     * 新增人员--通过OA
+     * @param $userData
+     * @return bool
+     */
+    public function addUserByOa($userData)
+    {
+        $userModel = new UserModel();
+        if (isset($userData['job_number']) && !empty($userData['job_number'])) {
+            $count = $userModel->where(['job_number' => $userData['job_number']])->count();
+            if ($count > 0) {
+                return true;
+            }
+        }
+        Db::startTrans();
+        try {
+            $salt = $userModel->getSalt();
+            $mcryptPassword = $userModel->getHashPassword('Rondaful&@123#', $salt);
+            $userData['password'] = $mcryptPassword;
+            $userData['salt'] = $salt;
+            $userData['create_time'] = time();
+            $userModel->allowField(true)->isUpdate(false)->save($userData);
+            Cache::store('user')->delete();
+            Db::commit();
+            return true;
+        } catch (Exception $e) {
+            Db::rollback();
+            return false;
+        }
+    }
+
+    /**
+     * 导入数据
+     * @param $file_name
+     * @return array
+     * @throws Exception
+     */
+    public function import($file_name)
+    {
+        $error = [];
+        try {
+            $jobService = new JobService();
+            $departmentService = new \app\index\service\Department();
+            $departmentUserMapModel = new DepartmentUserMap();
+            $fp = @fopen($file_name, 'r');
+            $userModel = new UserModel();
+            while ($data = fgetcsv($fp)) {
+                $data = eval('return ' . iconv('gbk', 'utf-8', var_export($data, true)) . ';');
+                if (isset($data[7])) {
+                    $data[7] = str_pad($data[7], 4, "0", STR_PAD_LEFT);
+                    $result = $userModel->where(['job_number' => $data[7]])->find();
+                    $temp = [];
+                    //新增
+                    $temp['username'] = $data[0];
+                    $temp['job'] = $jobService->getCode($data[1]);
+                    $salt = $userModel->getSalt();
+                    $mcryptPassword = $userModel->getHashPassword($data[2], $salt);
+                    $temp['password'] = $mcryptPassword;
+                    $temp['salt'] = $salt;
+                    $temp['realname'] = $data[5];
+                    $temp['mobile'] = $data[6];
+                    $temp['job_number'] = $data[7];
+                    Db::startTrans();
+                    try {
+                        $model = new UserModel();
+                        if (empty($result)) {
+                            $model->allowField(true)->isUpdate(false)->save($temp);
+                            $temp['user_id'] = $model->id;
+                        } else {
+                            $model->where(['id' => $result['id']])->update($temp);
+                            $temp['user_id'] = $result['id'];
+                        }
+                        $temp['department_id'] = $departmentService->parsingDepartment($data[3]);
+                        $temp['job_id'] = $jobService->getId($data[4]);
+                        $mapInfo = $departmentUserMapModel->where(['department_id' => $temp['department_id'], 'user_id' => $temp['user_id']])->find();
+                        if (empty($mapInfo)) {
+                            (new DepartmentUserMap())->allowField(true)->isUpdate(false)->save($temp);
+                        } else {
+                            (new DepartmentUserMap())->where(['department_id' => $temp['department_id'], 'user_id' => $temp['user_id']])->update(['job_id' => $temp['job_id']]);
+                        }
+                        Db::commit();
+                    } catch (Exception $e) {
+                        Db::rollback();
+                        array_push($error, $e->getMessage());
+                    }
+                }
+            }
+            Cache::store('user')->delete();
+            return $error;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+
+    private function getDepartLeader($department_id, $user_id, $tree, $result = [], $jobIds = [])
+    {
+        $departmentUserMapService = new DepartmentUserMapService();
+        $leader = $departmentUserMapService->getLeader($department_id, $jobIds);
+        if ($leader && !in_array($user_id, $leader)) {
+            return array_merge($result, $leader);
+        } else {
+            if (!isset($tree[$department_id])) {
+                return $result;
+            }
+            $departmentInfo = $tree[$department_id];
+            if ($departmentInfo['pid'] == 0) {
+                return $result;
+            } else {
+                return $this->getDepartLeader($departmentInfo['pid'], $user_id, $tree, $result, $jobIds);
+            }
+        }
+    }
+
+
+    private function getDepartmentLeaderByDepartmentType($department_id, $user_id, $tree, $result = [])
+    {
+
+        $departmentUserMapService = new DepartmentUserMapService();
+        $leader = $departmentUserMapService->getLeaderByDepartmentType($department_id);
+        if ($leader && !in_array($user_id, $leader)) {
+            return array_merge($result, $leader);
+        } else {
+            if (!isset($tree[$department_id])) {
+                return $result;
+            }
+            $departmentInfo = $tree[$department_id];
+            if ($departmentInfo['pid'] == 0) {
+                return $result;
+            } else {
+                return $this->getDepartmentLeaderByDepartmentType($departmentInfo['pid'], $user_id, $tree, $result);
+            }
+        }
+    }
+
+    /**
+     * @desc 获取直接上级
+     * @param $userId
+     * @param array $jobIds 职位id
+     * @return mixed
+     * @author Reece
+     * @date 2018-05-25 15:01:23
+     */
+    public function getLeader($user_id, $jobIds = [])
+    {
+        $DepartmentUserMap = new DepartmentUserMap();
+        $department_ids = $DepartmentUserMap->where(['user_id' => $user_id])->column('department_id');
+        if (empty($department_ids)) {
+            return [];
+        }
+        $result = [];
+        $tree = Cache::store('department')->tree();
+
+        foreach ($department_ids as $department_id) {
+            $leader = $this->getDepartLeader($department_id, $user_id, $tree, [], $jobIds);
+            $result = array_merge($result, $leader);
+        }
+        return $result;
+    }
+
+    public function getFirstLeader($user_id)
+    {
+        $DepartmentUserMap = new DepartmentUserMap();
+        $department_ids = $DepartmentUserMap->where(['user_id' => $user_id])->column('department_id');
+        if (empty($department_ids)) {
+            return [];
+        }
+        $result = [];
+        $tree = Cache::store('department')->tree();
+        foreach ($department_ids as $department_id) {
+            $leader = $this->getDepartmentLeaderByDepartmentType($department_id, $user_id, $tree);
+            $result = array_merge($result, $leader);
+        }
+        return $result;
+    }
+
+    /**
+     * @desc 模拟登陆
+     * @param $userId
+     * @return mixed
+     * @author libaimin
+     */
+    public function simulationOn($userId)
+    {
+        $model = new UserModel();
+        $condition = [
+            'id' => $userId,
+        ];
+        $user = $model->where($condition)->find();
+        if (!$user) {
+            return json(['message' => '用户不存在'], 400);
+        }
+        $token = $model->createToken($user);
+        //添加日志
+        UserSimulationOnLog::addLog($user, '登录成功了');
+        $result = ['message' => '登录成功', 'token' => $token];
+        return json($result);
+    }
+
+    /**
+     * @desc 获取通过分组所有已开启的用户信息
+     * @return mixed
+     * @author libaimin
+     */
+    public function getGoupByDepartmentUsers()
+    {
+        $data = [];
+        $key = [];
+        $department = Cache::store('Department')->getDepartmentOptions();
+        $departmentMap = (new DepartmentUserMap())->order('department_id,user_id')->select();
+        $allUser = (new \app\common\model\User())->field('id,realname,dingtalk_userid')->where('status', 1)->select();
+        $allUser = $this->changeArrayKey($allUser, 'id');
+        $allUserRole = $this->getAllUserRole();
+        foreach ($departmentMap as $item) {
+            $user_id = $item['user_id'];
+            $department_id = $item['department_id'];
+            if (!isset($department[$department_id])) {
+                $department_id = -1;
+            }
+            if (isset($allUser[$user_id])) {
+                $one = [
+                    'user_id' => $user_id,
+                    'realname' => $allUser[$user_id]['realname'],
+                    'dingtalk_userid' => $allUser[$user_id]['dingtalk_userid'],
+                    'role' => $allUserRole[$user_id] ?? '',
+                ];
+                if (in_array($department_id, $key)) {
+                    $data[$department_id]['data'][] = $one;
+                } else {
+                    $key[] = $department_id;
+                    $data[$department_id]['data'][] = $one;
+                    $data[$department_id]['name'] = $department[$department_id] ?? '无部门';
+                }
+                unset($allUser[$user_id]);
+            }
+        }
+        foreach ($allUser as $k => $v) {
+            $data[0]['data'][] = [
+                'user_id' => $v['id'],
+                'realname' => $v['realname'],
+                'dingtalk_userid' => $v['dingtalk_userid'],
+                'role' => $allUserRole[$v['id']] ?? '',
+
+            ];
+        }
+        return $data;
+    }
+
+    /**
+     * 获取用户对于的角色
+     * @return array
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getAllUserRole()
+    {
+        $reDate = [];
+        $userData = [];
+        $allRole = Cache::store('Role')->getRole();
+        $allRoleUser = (new RoleUser())->select();
+        foreach ($allRoleUser as $roleUser) {
+            $roleName = $allRole[$roleUser['role_id']]['name'] ?? '';
+            if (in_array($roleUser['user_id'], $userData)) {
+                $reDate[$roleUser['user_id']] .= ',' . $roleName;
+            } else {
+                $userData[] = $roleUser['user_id'];
+                $reDate[$roleUser['user_id']] = $roleName;
+            }
+        }
+        return $reDate;
+    }
+
+    /**
+     *
+     * @param $user_id
+     * @return bool
+     * @throws Exception
+     */
+    public function isFilterAccount($user_id)
+    {
+        $userInfo = Cache::store('user')->getOneUser($user_id);
+        if (!empty($userInfo)) {
+            if (in_array($userInfo['job'], ['sales', 'customer', 'development'])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @title 批量获取多部门用户
+     * @param array|string|int $department_ids
+     * @return array
+     */
+    public function getUserByDepartmentIds($department_ids)
+    {
+        if (is_string($department_ids)) {
+            $department_ids = explode(',', $department_ids);
+        }
+        if (is_int($department_ids)) {
+            $department_ids = [$department_ids];
+        }
+        $res = UserModel::alias('u')
+            ->join('department_user_map du', 'u.id=du.user_id')
+            ->where('du.department_id', 'IN', $department_ids)
+            ->column('u.id,u.realname,du.department_id');
+        foreach ($res as $v) {
+            $ret[$v['department_id']][$v['id']] = $v['realname'];
+        }
+        return $ret;
+    }
+
+    /**
+     * 获取销售部门员工
+     * @return array
+     */
+    public function getUsersFromSalesDepartment()
+    {
+        $department_ids = (new \app\index\service\Department)->getDepartmentIds();
+        return $this->getUserByDepartmentIds($department_ids);
+    }
+
+    private function changeArrayKey($array, $key)
+    {
+        $res = [];
+        foreach ($array as $item) {
+            $res[$item[$key]] = $item;
+        }
+        return $res;
+    }
+
+    /**
+     * 通过真实姓名获取用户信息
+     * @param $realName
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getUserIdByRealName($realName)
+    {
+        $userModel = new UserModel();
+        $userInfo = $userModel->field(true)->where(['realname' => $realName])->find();
+        return $userInfo;
+    }
+
+
+    /**
+     * 获取用户的部门信息
+     * @param $id
+     * @return array
+     */
+    public function getUserDepartment($id)
+    {
+        $departmentInfo = [];
+        $departmentServer = new DepartmentServer();
+        $departmentUserMapService = new DepartmentUserMapService();
+        $department_ids = $departmentUserMapService->getDepartmentByUserId($id);
+        foreach ($department_ids as $d => $department) {
+            if (!empty($department)) {
+                $departmentInfo[] = [
+                    'department_id' => $department,
+                    'name' => '【' . $departmentServer->getDepartmentNames($department) . '】',
+                ];
+            }
+        }
+        return $departmentInfo;
+    }
+
+    /**
+     * 登录token缓存
+     * @param $user_id
+     * @param $token
+     * @param $time
+     */
+    public function tokenCache($user_id, $token, $time)
+    {
+        $key = 'cache:jwt:' . $user_id;
+        Cache::handler()->set($key, $token, $time);
+    }
+
+    /**
+     * 获取最新登录的token
+     * @param $user_id
+     * @return bool|string
+     */
+    public function getJwtToken($user_id)
+    {
+        $key = 'cache:jwt:' . $user_id;
+        $token = Cache::handler()->get($key);
+        return $token;
+    }
+
+    /**
+     * 白名单
+     * @return array
+     */
+    public function whiteList()
+    {
+        $white = [494, 2585, 1165, 2716, 221, 2228, 247, 1143];
+        return $white;
+    }
+
+    /**
+     * 验证用户职务是否一致
+     * @param $user_id
+     * @param $job
+     * @return bool
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function checkUserJob($user_id, $job)
+    {
+        $where['id'] = ['eq', $user_id];
+        $where['job'] = ['eq', $job];
+        $userInfo = (new \app\common\model\User())->field('job')->where($where)->find();
+        return !empty($userInfo) ? true : false;
+    }
+
+    public function getLogList($id)
+    {
+        $result = (new UserLog())->getLog($id);
+        return $result;
+    }
+
+    public function getUserPositionByLoginUser($userId)
+    {
+        $userInfo = Cache::store('user')->getOneUser($userId, 'realname,username,job');
+        $userInfo['user_id'] = (int)$userId;
+        $DepartmentUserMapService = new DepartmentUserMapService();
+        $userInfo['word_id'] = $DepartmentUserMapService->getWorkId($userId);
+        $userDepartments = $DepartmentUserMapService->getMap($userId);
+        $userInfo['department_ids'] = [];
+        foreach ($userDepartments as $department){
+            $userInfo['department_ids'][] = $department['department_id'];
+        }
+        return $userInfo;
+    }
+
+    public function getUserList($params, $isGetData = false)
+    {
+        $where = [];
+        $hasWhere = [];
+        if (isset($params['status']) && $params['status'] != '') {
+            $where['status'] = $params['status'];
+        }
+        if (isset($params['on_job']) && $params['on_job'] != '') {
+            $where['on_job'] = $params['on_job'];
+        }
+        if (isset($params['job']) && $params['job'] != '') {
+            $where['job'] = $params['job'];
+        }
+        //在职状态
+        if (isset($params['on_job']) && $params['on_job'] != '') {
+            $where['on_job'] = $params['on_job'];
+
+        }
+
+        if (($snType = param($params, 'snType')) && ($snText = param($params, 'snText'))) {
+            switch ($snType) {
+                case 'username':
+                    if (is_json($snText)) {
+                        $snText = json_decode($snText, true);
+                        $where['username'] = ['in', $snText];
+                    } else {
+                        $where['username'] = ['like', '%' . $snText . '%'];
+                    }
+                    break;
+                case 'realname':
+                    if (is_json($snText)) {
+                        $snText = json_decode($snText, true);
+                        $where['realname'] = ['in', $snText];
+                    } else {
+                        $where['realname'] = ['like', '%' . $snText . '%'];
+                    }
+                    break;
+                case 'department_id':
+                    $departmentUserMapService = new DepartmentUserMapService();
+                    $snText = json_decode($snText, true);
+                    $where['id'] = ['in', $departmentUserMapService->getUserByDepartmentId($snText)];
+                    break;
+                case 'mobile':
+                    $where['mobile'] = ['like', "%$snText%"];
+                    break;
+                case 'job_number':
+                    $where['job_number'] = ['like', "%$snText%"];
+                    break;
+                case 'role_id':
+                    $where['id'] = ['in', RoleUser::getUserIds($snText)];
+                    break;
+            }
+        }
+        $page = param($params, 'page', 1);
+        $pageSize = param($params, 'pageSize', 20);
+
+        $this->where($where);
+        $this->hasWhere($hasWhere);
+        $this->page($page, $pageSize);
+        $users = $this->lists();
+        if ($isGetData) {
+            return $users;
+        }
+        $count = $this->count();
+
+        $result = [
+            'page' => $page,
+            'data' => $users,
+            'pageSize' => $pageSize,
+            'count' => $count,
+        ];
+        return $result;
+    }
+
+    /**
+     * @title 获取用户的部门全称
+     * @param $user_id
+     * @author starzhan <397041849@qq.com>
+     */
+    public function getUserDepartmentName($user_id)
+    {
+        $departmentUserMapService = new DepartmentUserMapService();
+        $department_ids = $departmentUserMapService->getDepartmentByUserId($user_id);
+        $departmentInfo = '';
+        $departmentServer = new DepartmentServer();
+        foreach ($department_ids as $d => $department) {
+            if (!empty($department)) {
+                $departmentInfo .= $departmentServer->getDepartmentNames($department) . '   ,   ';
+            }
+        }
+        $departmentInfo = rtrim($departmentInfo, '   ,   ');
+        return $departmentInfo;
+    }
+
+    /**
+     * 获取用户分页的指定字段信息
+     * @param array $params  请求参数：
+     *              $params = [
+     *                  field    =>  要查询的字段，默认返回id,username,realname
+     *                  status   =>  用户状态，可选参数
+     *                  on_job   =>  用户是否是工作， 可选参数
+     *                  page     =>  当前页数，默认值：1
+     *                  pageSize =>  总条数，默认值：20
+     *              ];
+     * @return array
+     */
+    public function getUserFields($params)
+    {
+        // 设置默认值
+        $field = $params['field'] ?? 'id,username,realname';
+        $users = (new UserModel())
+            ->field($field)
+            ->where($params['where'])
+            ->page($params['page'], $params['pageSize'])
+            ->select();
+
+        return [
+            'page' => $params['page'],
+            'data' => $users,
+            'count' => $this->count(),
+            'pageSize' => $params['pageSize'],
+        ];
+    }
+}

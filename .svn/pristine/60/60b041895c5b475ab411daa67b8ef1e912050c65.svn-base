@@ -1,0 +1,54 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-9-29
+ * Time: 上午10:44
+ */
+
+namespace swoole;
+
+
+use swoole\messageAction\TimerReload;
+use think\Config;
+use think\exception\ErrorException;
+
+class ReloadProcess
+{
+    private $process;
+    private $server;
+
+    public static function single($server)
+    {
+        return (new static($server))->getProcess();
+    }
+    private function __construct($server)
+    {
+        $this->process = new \swoole_process([$this,'execute']);
+        $this->process->useQueue(1111);
+        $this->server = $server;
+    }
+
+    public function getProcess()
+    {
+        return $this->process;
+    }
+    public function execute(\swoole_process $process)
+    {
+        swoole_set_process_name('php:swoole:reloader');
+        swoole_event_add($process->pipe, function($pipe)use($process) {
+            if($process->read()){
+                try{
+                    if(extension_loaded('opcache')){
+                        opcache_reset();
+                    }
+                    echo "begin reload....\n";
+                    $this->server->reload();
+                    echo "reload success\n";
+                }catch (ErrorException $exception){
+                    echo "reload fail {$exception->getMessage()}";
+                }
+            }
+        });
+    }
+}

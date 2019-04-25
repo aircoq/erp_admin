@@ -1,0 +1,77 @@
+<?php
+namespace callBack;
+use think\Exception;
+
+/**
+ * erp回调内容
+ * Created by PhpStorm.
+ * User: phill
+ * Date: 2018/8/20
+ * Time: 下午3:34
+ */
+class CallBackApi
+{
+    private static $config = [];
+    private static $instance = null;
+    private static $object = [];
+
+    /**
+     * 开放接口
+     * @param array $config
+     * @return CallBackApi|null
+     * @throws Exception
+     */
+    public static function instance(array $config)
+    {
+        if (!isset($config['call_back']) || empty($config['call_back'])) {
+            throw new Exception("the call_back can't empty", 1);
+        }
+        if (is_null(self::$instance)) {
+            self::$instance = new CallBackApi();
+        }
+        self::$config = $config;
+        return self::$instance;
+    }
+
+    /** 执行
+     * @param $type
+     * @return mixed
+     * @throws Exception
+     */
+    public function loader($type)
+    {
+        return self::handler($type);
+    }
+
+    /** 实例
+     * @param $type
+     * @return mixed
+     * @throws Exception
+     */
+    public static function handler($type)
+    {
+        try {
+            $class = false !== strpos($type, '\\') ? $type : '\\callBack\\operation\\' . ucwords($type);
+            if ($class) {
+                if (!isset(self::$object[$type]) || is_null(self::$object[$type])) {
+                    self::$object[$type] = new $class(self::$config);
+                }else{
+                    self::$object[$type]->call_back = self::$config['call_back'];
+                }
+                return self::$object[$type];
+            } else {
+                throw new Exception("The api type file is not found", 1);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error Processing Request", 1);
+        }
+    }
+
+    /** 资源配置
+     * @param array $config
+     */
+    public function config(array $config)
+    {
+        array_merge(self::$config, $config);
+    }
+}

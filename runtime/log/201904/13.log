@@ -1,0 +1,1729 @@
+[ 2019-04-13T10:14:49+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50 [运行时间：0.317000s][吞吐率：3.15req/s] [内存消耗：10,563.02kb] [文件加载：113]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'a0031d18-0c97-4bb7-a07c-30968d96fa19',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'spu',
+  'nContent' => 'HF02532',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '2019-04-01',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '50',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.008000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.066000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.002000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' LIMIT 1 [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' ORDER BY p.number_sold   DESC LIMIT 0,50 [ RunTime:0.003000s ]
+[ error ] [8]未定义变量: goods_ids[C:\Users\Administrator\Desktop\erp_admin\application\publish\service\WishHelper.php:1556]
+
+---------------------------------------------------------------
+[ 2019-04-13T10:25:33+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50 [运行时间：0.162000s][吞吐率：6.17req/s] [内存消耗：10,467.33kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '8bbbfea4-5d28-4b92-aa00-16d57ca79d2f',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'spu',
+  'nContent' => 'HF02532',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '2019-04-01',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '50',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.005000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.029000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' ORDER BY p.number_sold   DESC LIMIT 0,50 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T10:25:49+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50 [运行时间：0.178000s][吞吐率：5.62req/s] [内存消耗：10,471.33kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'db626ede-7233-4eb8-b681-a196b0ab844c',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'spu',
+  'nContent' => 'HF02532',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '2019-04-01',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '50',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.038000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' ORDER BY p.number_sold   DESC LIMIT 0,50 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T10:26:03+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50 [运行时间：0.285000s][吞吐率：3.51req/s] [内存消耗：10,563.04kb] [文件加载：113]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'eb36c451-5d89-42da-a6ae-7795092554e5',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'spu',
+  'nContent' => 'HF02532',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '2019-04-01',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '50',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.006000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.076000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.013000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' ORDER BY p.number_sold   DESC LIMIT 0,50 [ RunTime:0.004000s ]
+[ error ] [8]未定义变量: goods_ids[C:\Users\Administrator\Desktop\erp_admin\application\publish\service\WishHelper.php:1557]
+
+---------------------------------------------------------------
+[ 2019-04-13T10:29:02+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50 [运行时间：0.185000s][吞吐率：5.41req/s] [内存消耗：10,563.04kb] [文件加载：113]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '43d2aac0-eb15-4ce6-a725-4b03570bfc66',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'spu',
+  'nContent' => 'HF02532',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '2019-04-01',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '50',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.037000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' ORDER BY p.number_sold   DESC LIMIT 0,50 [ RunTime:0.003000s ]
+[ error ] [8]未定义变量: goods_ids[C:\Users\Administrator\Desktop\erp_admin\application\publish\service\WishHelper.php:1557]
+
+---------------------------------------------------------------
+[ 2019-04-13T10:29:48+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=2019-04-01&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50 [运行时间：0.158000s][吞吐率：6.33req/s] [内存消耗：10,597.41kb] [文件加载：112]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'ef445e0b-8ab3-42b8-b7fa-0bcc26d2a56e',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'spu',
+  'nContent' => 'HF02532',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '2019-04-01',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '50',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532')  AND `date_uploaded` >= '1554048000' ORDER BY p.number_sold   DESC LIMIT 0,50 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T10:30:45+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=spu&nContent=HF02532&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=50 [运行时间：0.395000s][吞吐率：2.53req/s] [内存消耗：10,963.87kb] [文件加载：120]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '02de7cc4-2e8a-4ffb-bab7-93c2cb14c308',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'spu',
+  'nContent' => 'HF02532',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '50',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.028000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532') LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` LEFT JOIN `wish_wait_upload_product_variant` `v` ON `v`.`pid`=`p`.`id` LEFT JOIN `goods` `g` ON `p`.`goods_id`=`g`.`id` WHERE  `p`.`publish_status` = 1  AND `g`.`spu` IN ('HF02532') ORDER BY p.number_sold   DESC LIMIT 0,50 [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product_variant` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `wish_wait_upload_product_variant` `v` WHERE  `pid` IN (1.1809209404069E+18,1.1892737736152E+18,1.2066271921766E+18,1.2066271922059E+18,1.1812650875674E+18,1.2066271922311E+18,1.2174979057207E+18,1.2174979057794E+18,1.1812650875884E+18,1.2073467390409E+18,1.2073467390661E+18,1.217497905792E+18,1.1812650876009E+18,1.1812650876177E+18,1.1812650876303E+18,1.1892737736278E+18,1.1892737736404E+18,1.181563900505E+18,1.1815639005931E+18,1.189273773653E+18,1.1896403936007E+18,1.1896403936258E+18,1.2073467390829E+18,1.1896403936384E+18,1.2073488198771E+18,1.2088300246906E+18,1.189930423305E+18,1.2088300248794E+18,1.181563900614E+18,1.2088300250765E+18,1.1834115813764E+18,1.2088300252569E+18,1.1834115814393E+18,1.2088300254372E+18,1.1847265598239E+18,1.1903890669368E+18,1.184729645372E+18,1.1870947219492E+18,1.1903890669619E+18,1.1870947245036E+18,1.1903890669745E+18,1.1905853708036E+18,1.1905853708288E+18,1.2088300256134E+18,1.1905853708371E+18,1.2088300258231E+18,1.2102470254977E+18,1.1692260938328E+18,1.1905853708539E+18,1.1692260938706E+18)  AND `v`.`status` = 1 [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_account` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `id`,`code` FROM `wish_account` WHERE  `id` IN (755,89,392,384,757,159,141,698,779,180,190,339,756,714,407,245,250,535,715,279,503,45,56,20,115,149,230,258,264,488,137,509,716,513,687,198,778,712,733,758,284,232,747,534,748,723,691,65,749,337) [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4195 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2832 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2618 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2618 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4457 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2618 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 3723 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 3723 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4457 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 1537 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 1537 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 3723 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4457 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4457 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4457 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2832 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2832 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2910 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2910 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2832 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2939 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2939 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 1537 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2939 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 3909 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2784 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 3594 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2784 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2910 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2784 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4299 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2784 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4299 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2784 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2782 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4186 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2782 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4186 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2782 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4195 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4195 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2784 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4195 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2784 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2680 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2782 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4195 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 2782 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `goods_id` FROM `goods_tort_description` WHERE  `goods_id` IN (261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382,261382) GROUP BY goods_id [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_sku` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `id`,`goods_id`,`sku`,`thumb`,`sku_attributes`,`name`,`spu_name`,`cost_price`,`retail_price`,`market_price`,`weight`,`status`,`create_time`,`update_time`,`out_code`,`alias_sku`,`check`,`img_is_exists`,`length`,`width`,`height`,`sequence`,`auto_update_time`,`old_weight`,`auto_update_size_time` FROM `goods_sku` WHERE  `id` = 614128 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_attribute` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `alias` FROM `goods_attribute` WHERE  `goods_id` = 261382  AND `attribute_id` = 11  AND `value_id` = 171 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:06:24+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform=2
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform=2 [运行时间：1.250000s][吞吐率：0.80req/s] [内存消耗：10,730.09kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '2c308599-7592-4de0-9f06-fdc4a961ebc9',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'product_id',
+  'nContent' => '',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '2',
+  'tort_platform' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.037000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` INNER JOIN `goods_tort_description` `gd` ON `gd`.`goods_id`=`p`.`goods_id` WHERE  `p`.`publish_status` = 1  AND `gd`.`channel_id` = '2' LIMIT 1 [ RunTime:0.351000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` INNER JOIN `goods_tort_description` `gd` ON `gd`.`goods_id`=`p`.`goods_id` WHERE  `p`.`publish_status` = 1  AND `gd`.`channel_id` = '2' ORDER BY p.number_sold   DESC LIMIT 0,2 [ RunTime:0.680000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `wish_wait_upload_product_variant` `v` WHERE  `pid` IN (1.168126404807E+18,1.1008839252552E+18)  AND `v`.`status` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_account` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `id`,`code` FROM `wish_account` WHERE  `id` IN (585,27) [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 4348 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 1537 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `goods_id` FROM `goods_tort_description` WHERE  `goods_id` IN (266781,189253) GROUP BY goods_id [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:06:53+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform=
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform= [运行时间：3.323000s][吞吐率：0.30req/s] [内存消耗：10,729.75kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '872a560f-39a4-42bb-b206-248e35229bcb',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'product_id',
+  'nContent' => '',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '2',
+  'tort_platform' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.025000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` WHERE  `p`.`publish_status` = 1 LIMIT 1 [ RunTime:3.092000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` WHERE  `p`.`publish_status` = 1 ORDER BY p.number_sold   DESC LIMIT 0,2 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product_variant` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `wish_wait_upload_product_variant` `v` WHERE  `pid` IN (1.0518927948741E+18,1.0519074197956E+18)  AND `v`.`status` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_account` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `id`,`code` FROM `wish_account` WHERE  `id` IN (64,65) [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `goods_id` FROM `goods_tort_description` WHERE  `goods_id` IN (299355,121006) GROUP BY goods_id [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:07:23+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform=
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform= [运行时间：0.188000s][吞吐率：5.32req/s] [内存消耗：10,732.90kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '7422cb5f-23af-4cf4-86b3-1955601da610',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'product_id',
+  'nContent' => '',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '2',
+  'tort_platform' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.031000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` WHERE  `p`.`publish_status` = 1 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` WHERE  `p`.`publish_status` = 1 ORDER BY p.number_sold   DESC LIMIT 0,2 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `wish_wait_upload_product_variant` `v` WHERE  `pid` IN (1.0519032281845E+18,1.0519032505653E+18)  AND `v`.`status` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `id`,`code` FROM `wish_account` WHERE  `id` IN (73,73) [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `goods_id` FROM `goods_tort_description` WHERE  `goods_id` IN (100005,100014) GROUP BY goods_id [ RunTime:0.000000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:51:18+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform=
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform= [运行时间：0.186000s][吞吐率：5.38req/s] [内存消耗：10,733.02kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'ce217172-6543-4320-911f-7568f9f073ca',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'product_id',
+  'nContent' => '',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '2',
+  'tort_platform' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.033000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` WHERE  `p`.`publish_status` = 1 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` WHERE  `p`.`publish_status` = 1 ORDER BY p.number_sold   DESC LIMIT 0,2 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product_variant` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `wish_wait_upload_product_variant` `v` WHERE  `pid` IN (1.0519032281845E+18,1.0519032505653E+18)  AND `v`.`status` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `id`,`code` FROM `wish_account` WHERE  `id` IN (73,73) [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `goods_id` FROM `goods_tort_description` WHERE  `goods_id` IN (100005,100014) GROUP BY goods_id [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:51:21+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform=
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform= [运行时间：0.169000s][吞吐率：5.92req/s] [内存消耗：10,733.02kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'c98a8148-41a6-4bf3-adce-d5dfe00ac162',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'product_id',
+  'nContent' => '',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '2',
+  'tort_platform' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.027000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` WHERE  `p`.`publish_status` = 1 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` WHERE  `p`.`publish_status` = 1 ORDER BY p.number_sold   DESC LIMIT 0,2 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `wish_wait_upload_product_variant` `v` WHERE  `pid` IN (1.0519032281845E+18,1.0519032505653E+18)  AND `v`.`status` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `id`,`code` FROM `wish_account` WHERE  `id` IN (73,73) [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `goods_id` FROM `goods_tort_description` WHERE  `goods_id` IN (100005,100014) GROUP BY goods_id [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:52:17+08:00 ] 127.0.0.1 127.0.0.1 POST /update-sku-relation?platform=shopee&data=[%7B%22local%22:[%7B%22goods_id%22:123,%22sku_id%22:789,%22local_sku%22:%22EC456%22,%22quantity%22:999%7D],%22id%22:92158,%22sku%22:%22FR00001%22%7D]
+[ log ] www.erp_admin.com/update-sku-relation?platform=shopee&data=[%7B%22local%22:[%7B%22goods_id%22:123,%22sku_id%22:789,%22local_sku%22:%22EC456%22,%22quantity%22:999%7D],%22id%22:92158,%22sku%22:%22FR00001%22%7D] [运行时间：0.387000s][吞吐率：2.58req/s] [内存消耗：10,042.89kb] [文件加载：110]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'listing',
+    1 => 'Item',
+    2 => 'updateRelation',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'b5447c7a-e87e-41b7-9cdd-6475922b28f4',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/update-sku-relation' => '',
+  'platform' => 'shopee',
+  'data' => '[{"local":[{"goods_id":123,"sku_id":789,"local_sku":"EC456","quantity":999}],"id":92158,"sku":"FR00001"}]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.029000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\listing\controller\Item->updateRelation[ C:\Users\Administrator\Desktop\erp_admin\application\listing\controller\Item.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/update-sku-relation' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `vid` = 92158 LIMIT 1 [ RunTime:0.032000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 54671 LIMIT 1 [ RunTime:0.041000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods` WHERE  `id` = 123 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] UPDATE `shopee_product`  SET `goods_id`=123  WHERE  `id` = 54671 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_sku_map` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_sku_map` WHERE  `sku_id` = 789  AND `sku_code` = 'EC456'  AND `channel_id` = 9  AND `account_id` = 72  AND `channel_sku` = 'FR00001' LIMIT 1 [ RunTime:0.145000s ]
+[ sql ] [ SQL ] UPDATE `goods_sku_map`  SET `sku_id`=789,`sku_code`='EC456',`channel_id`=9,`account_id`=72,`channel_sku`='FR00001',`quantity`=1,`sku_code_quantity`='{\"789\":{\"sku_id\":789,\"quantity\":999,\"sku_code\":\"EC456\"}}'  WHERE  `id` = 1680520 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] UPDATE `shopee_variant`  SET `sku_id`=789  WHERE  `vid` = 92158 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:52:23+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform=2
+[ log ] www.erp_admin.com/publish/wish/lists?ntime=date_uploaded&number_sold=&application=&is_promoted=&nType=product_id&nContent=&accountVal=&review_status=&enabled=&wish_express=&start_time=&end_time=&sell_status=&searchPrice=total&minPrice=&maxPrice=&uid=&adjusted_price=&adjust_range=&is_virtual_send=&min_weight=&max_weight=&status=1&accountType=short&order=&order_by=&page=1&pageSize=2&tort_platform=2 [运行时间：0.254000s][吞吐率：3.94req/s] [内存消耗：10,733.27kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Wish',
+    2 => 'lists',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '5280955d-d358-426e-81bb-953f794713ae',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/wish/lists' => '',
+  'ntime' => 'date_uploaded',
+  'number_sold' => '',
+  'application' => '',
+  'is_promoted' => '',
+  'nType' => 'product_id',
+  'nContent' => '',
+  'accountVal' => '',
+  'review_status' => '',
+  'enabled' => '',
+  'wish_express' => '',
+  'start_time' => '',
+  'end_time' => '',
+  'sell_status' => '',
+  'searchPrice' => 'total',
+  'minPrice' => '',
+  'maxPrice' => '',
+  'uid' => '',
+  'adjusted_price' => '',
+  'adjust_range' => '',
+  'is_virtual_send' => '',
+  'min_weight' => '',
+  'max_weight' => '',
+  'status' => '1',
+  'accountType' => 'short',
+  'order' => '',
+  'order_by' => '',
+  'page' => '1',
+  'pageSize' => '2',
+  'tort_platform' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Wish->lists[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Wish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/wish/lists' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT COUNT(distinct(p.id)) AS tp_count FROM `wish_wait_upload_product` `p` INNER JOIN `goods_tort_description` `gd` ON `gd`.`goods_id`=`p`.`goods_id` WHERE  `p`.`publish_status` = 1  AND `gd`.`channel_id` = '2' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT Distinct p.id,`p`.`local_spu`,`is_promoted`,`lowest_price`,`highest_price`,`lowest_shipping`,`highest_shipping`,`p`.`id`,`p`.`uid`,`p`.`goods_id`,`wish_express_countries`,`p`.`inventory`,`p`.`cron_time`,`p`.`lock_update`,`p`.`product_id`,`p`.`parent_sku`,`p`.`name`,`p`.`tags`,`p`.`review_status`,`p`.`number_sold`,`p`.`number_saves`,`p`.`date_uploaded`,`p`.`last_updated`,`p`.`main_image`,`p`.`accountid`,`p`.`auto_sp` FROM `wish_wait_upload_product` `p` INNER JOIN `goods_tort_description` `gd` ON `gd`.`goods_id`=`p`.`goods_id` WHERE  `p`.`publish_status` = 1  AND `gd`.`channel_id` = '2' ORDER BY p.number_sold   DESC LIMIT 0,2 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_wait_upload_product_variant` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `wish_wait_upload_product_variant` `v` WHERE  `pid` IN (1.0519032333393E+18,1.0519032548729E+18)  AND `v`.`status` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `wish_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `id`,`code` FROM `wish_account` WHERE  `id` IN (73,73) [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `realname` FROM `user` WHERE  `user`.`delete_time` IS NULL  AND `id` = 0 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `goods_id` FROM `goods_tort_description` WHERE  `goods_id` IN (100001,100001) GROUP BY goods_id [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:52:35+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/joom/productList?account_id=1&shop_id=1&snType=spu&snText=&page=1&pageSize=50
+[ log ] www.erp_admin.com/publish/joom/productList?account_id=1&shop_id=1&snType=spu&snText=&page=1&pageSize=50 [运行时间：3.732000s][吞吐率：0.27req/s] [内存消耗：10,403.54kb] [文件加载：114]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Joom',
+    2 => 'productList',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '9ce6d7a3-2113-4b36-8654-9d8e0e7cb49f',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/joom/productList' => '',
+  'account_id' => '1',
+  'shop_id' => '1',
+  'snType' => 'spu',
+  'snText' => '',
+  'page' => '1',
+  'pageSize' => '50',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.029000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Joom->productList[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Joom.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/joom/productList' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `joom_shop_category` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_shop_category` WHERE  `joom_shop_id` = 1  AND `joom_account_id` = 1 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_shop_category` WHERE  `joom_shop_id` = 1  AND `joom_account_id` = 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_publish_map` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(*) AS tp_count FROM `goods_publish_map` `m` LEFT JOIN `goods` `g` ON `m`.`goods_id`=`g`.`id` WHERE  `channel` = 7  AND `m`.`platform_sale` IN (0,1)  AND `g`.`sales_status` IN (1,4)  AND (   JSON_SEARCH(m.publish_status,'one', 1) IS NULL  )  AND `m`.`category_id` IN (127,128,129,130,131,132,133) LIMIT 1 [ RunTime:2.371000s ]
+[ sql ] [ SQL ] SELECT distinct(m.goods_id),`g`.`category_id`,`m`.`spu`,`g`.`thumb`,`g`.`name`,`g`.`publish_time`,`g`.`packing_en_name` FROM `goods_publish_map` `m` LEFT JOIN `goods` `g` ON `m`.`goods_id`=`g`.`id` WHERE  `channel` = 7  AND `m`.`platform_sale` IN (0,1)  AND `g`.`sales_status` IN (1,4)  AND (   JSON_SEARCH(m.publish_status,'one', 1) IS NULL  )  AND `m`.`category_id` IN (127,128,129,130,131,132,133) ORDER BY publish_time desc LIMIT 0,50 [ RunTime:0.567000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_lang` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `goods_id`,`title` FROM `goods_lang` WHERE  `goods_id` IN (177391,252945,129029,127981,127797,127582,126987,124129,126558,123532,126534,122982,126372,121260,126364,121075,125967,120525,125536,120252,149856,119881,149736,119773,149494,119144,131614,119076,130969,118737,127935,118729,127293,118527,127128,117852,126982,117661,126208,117468,125116,117459,124978,117335,124428,117285,124419,117209,124219,117127)  AND `lang_id` = 2 [ RunTime:0.456000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT DISTINCT  `goods_id` FROM `goods_tort_description` WHERE  `goods_id` IN (177391,252945,129029,127981,127797,127582,126987,124129,126558,123532,126534,122982,126372,121260,126364,121075,125967,120525,125536,120252,149856,119881,149736,119773,149494,119144,131614,119076,130969,118737,127935,118729,127293,118527,127128,117852,126982,117661,126208,117468,125116,117459,124978,117335,124428,117285,124419,117209,124219,117127) [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 177391  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 252945  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 129029  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 127981  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 127797  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 127582  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 126987  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 124129  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 126558  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 123532  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 126534  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 122982  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 126372  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 121260  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 126364  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 121075  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 125967  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 120525  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 125536  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 120252  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 149856  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 119881  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 149736  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 119773  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 149494  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 119144  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 131614  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 119076  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 130969  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 118737  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 127935  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 118729  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 127293  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 118527  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 127128  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 117852  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 126982  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 117661  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 126208  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 117468  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 125116  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 117459  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 124978  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 117335  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 124428  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 117285  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 124419  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 117209  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 124219  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `title` FROM `goods_lang` WHERE  `goods_id` = 117127  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:53:28+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/pandao/download
+[ log ] www.erp_admin.com/publish/pandao/download [运行时间：0.144000s][吞吐率：6.94req/s] [内存消耗：9,887.02kb] [文件加载：96]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '044d0385-cc9b-483b-bcc6-0ac1e7be43af',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.029000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:55:47+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=1110182879072092194
+[ log ] www.erp_admin.com/publish/pandao/download?ids=1110182879072092194 [运行时间：0.288000s][吞吐率：3.47req/s] [内存消耗：10,744.44kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '28db2492-f855-4610-a70e-3f3ce3122caf',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '1110182879072092194',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.033000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `joom_product` [ RunTime:0.013000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_product` WHERE  `id` IN (1.1101828790721E+18) [ RunTime:0.061000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `log_export_download_files` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] INSERT INTO `log_export_download_files` (`file_extionsion` , `saved_path` , `download_file_name` , `type` , `created_time` , `updated_time`) VALUES ('xlsx' , 'C:\\Users\\Administrator\\Desktop\\erp_admin\\public\\download\\goods\\超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413115547.csv' , '超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413115547.csv' , 'supplier_export' , 1555127747 , 1555127747) [ RunTime:0.013000s ]
+[ sql ] [ SQL ] UPDATE `log_export_download_files`  SET `file_code`='2019041311554710869'  WHERE  `id` = 10869 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T11:57:05+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=1110182879072092194
+[ log ] www.erp_admin.com/publish/pandao/download?ids=1110182879072092194 [运行时间：0.165000s][吞吐率：6.06req/s] [内存消耗：10,408.13kb] [文件加载：107]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '2260ba48-c149-4da3-9e51-809c1a20f7be',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '1110182879072092194',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.028000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `joom_product` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_product` WHERE  `id` IN (1.1101828790721E+18) [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T12:00:56+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=1110182879072092194,1110182879072092195,1110182879072092196
+[ log ] www.erp_admin.com/publish/pandao/download?ids=1110182879072092194,1110182879072092195,1110182879072092196 [运行时间：0.199000s][吞吐率：5.03req/s] [内存消耗：10,744.56kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '88ce2fef-4140-4279-9bb7-ec9333bf5429',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '1110182879072092194,1110182879072092195,1110182879072092196',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.032000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.004000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `joom_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_product` WHERE  `id` IN (1.1101828790721E+18,1.1101828790721E+18,1.1101828790721E+18) [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `log_export_download_files` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] INSERT INTO `log_export_download_files` (`file_extionsion` , `saved_path` , `download_file_name` , `type` , `created_time` , `updated_time`) VALUES ('xlsx' , 'C:\\Users\\Administrator\\Desktop\\erp_admin\\public\\download\\goods\\超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120056.csv' , '超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120056.csv' , 'supplier_export' , 1555128056 , 1555128056) [ RunTime:0.024000s ]
+[ sql ] [ SQL ] UPDATE `log_export_download_files`  SET `file_code`='2019041312005610870'  WHERE  `id` = 10870 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T12:01:20+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=1110182879072092194,1110182879072092195,1110182879072092196
+[ log ] www.erp_admin.com/publish/pandao/download?ids=1110182879072092194,1110182879072092195,1110182879072092196 [运行时间：0.198000s][吞吐率：5.05req/s] [内存消耗：10,744.61kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '716f5667-6eda-4d74-be57-8855462cf6ec',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '1110182879072092194,1110182879072092195,1110182879072092196',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.028000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `joom_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_product` WHERE  `id` IN (1.1101828790721E+18,1.1101828790721E+18,1.1101828790721E+18) [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `log_export_download_files` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] INSERT INTO `log_export_download_files` (`file_extionsion` , `saved_path` , `download_file_name` , `type` , `created_time` , `updated_time`) VALUES ('xlsx' , 'C:\\Users\\Administrator\\Desktop\\erp_admin\\public\\download\\goods\\超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120120.csv' , '超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120120.csv' , 'supplier_export' , 1555128080 , 1555128080) [ RunTime:0.002000s ]
+[ sql ] [ SQL ] UPDATE `log_export_download_files`  SET `file_code`='2019041312012010871'  WHERE  `id` = 10871 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T12:01:36+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=1110182879072092194
+[ log ] www.erp_admin.com/publish/pandao/download?ids=1110182879072092194 [运行时间：0.185000s][吞吐率：5.41req/s] [内存消耗：10,744.48kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '1caff7a7-6ba8-44a7-a702-4d57cbbeac25',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '1110182879072092194',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `joom_product` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_product` WHERE  `id` IN (1.1101828790721E+18) [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `log_export_download_files` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] INSERT INTO `log_export_download_files` (`file_extionsion` , `saved_path` , `download_file_name` , `type` , `created_time` , `updated_time`) VALUES ('xlsx' , 'C:\\Users\\Administrator\\Desktop\\erp_admin\\public\\download\\goods\\超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120136.csv' , '超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120136.csv' , 'supplier_export' , 1555128096 , 1555128096) [ RunTime:0.007000s ]
+[ sql ] [ SQL ] UPDATE `log_export_download_files`  SET `file_code`='2019041312013610872'  WHERE  `id` = 10872 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T12:01:53+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=[%271110182879072092194%27]
+[ log ] www.erp_admin.com/publish/pandao/download?ids=[%271110182879072092194%27] [运行时间：0.251000s][吞吐率：3.98req/s] [内存消耗：10,744.47kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'e1bab591-5567-49ed-a9a8-29d4acbfb87e',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '[\'1110182879072092194\']',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.043000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `joom_product` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_product` WHERE  `id` IN (0) [ RunTime:0.023000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `log_export_download_files` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] INSERT INTO `log_export_download_files` (`file_extionsion` , `saved_path` , `download_file_name` , `type` , `created_time` , `updated_time`) VALUES ('xlsx' , 'C:\\Users\\Administrator\\Desktop\\erp_admin\\public\\download\\goods\\超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120153.csv' , '超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120153.csv' , 'supplier_export' , 1555128113 , 1555128113) [ RunTime:0.004000s ]
+[ sql ] [ SQL ] UPDATE `log_export_download_files`  SET `file_code`='2019041312015310873'  WHERE  `id` = 10873 [ RunTime:0.003000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T12:06:43+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=[%271110182879072092194%27]
+[ log ] www.erp_admin.com/publish/pandao/download?ids=[%271110182879072092194%27] [运行时间：0.411000s][吞吐率：2.43req/s] [内存消耗：10,744.72kb] [文件加载：115]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'dde1324c-b494-4463-8ea6-9eaf24e1c375',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '[\'1110182879072092194\']',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `joom_product` [ RunTime:0.008000s ]
+[ sql ] [ SQL ] SELECT * FROM `joom_product` WHERE  `id` IN (0) [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `log_export_download_files` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] INSERT INTO `log_export_download_files` (`file_extionsion` , `saved_path` , `download_file_name` , `type` , `created_time` , `updated_time`) VALUES ('xlsx' , 'C:\\Users\\Administrator\\Desktop\\erp_admin\\public\\download\\goods\\超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120643.csv' , '超级管理员,速卖通-销售主管和部长qwe,Amazon部-销售组长×,wa_swoole_20190413120643.csv' , 'supplier_export' , 1555128403 , 1555128403) [ RunTime:0.191000s ]
+[ sql ] [ SQL ] UPDATE `log_export_download_files`  SET `file_code`='2019041312064310874'  WHERE  `id` = 10874 [ RunTime:0.004000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T15:32:04+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=[%271110182879072092194%27]
+[ log ] www.erp_admin.com/publish/pandao/download?ids=[%271110182879072092194%27] [运行时间：0.228000s][吞吐率：4.39req/s] [内存消耗：9,941.63kb] [文件加载：98]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '68c1dcad-3557-413b-b8c8-33dc1ba66a84',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '[\'1110182879072092194\']',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.058000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T15:32:38+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=[%271110182879072092194%27]
+[ log ] www.erp_admin.com/publish/pandao/download?ids=[%271110182879072092194%27] [运行时间：0.134000s][吞吐率：7.46req/s] [内存消耗：9,941.88kb] [文件加载：98]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '0167cb6b-eae8-43d0-924c-c8e78cdb8c98',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '[\'1110182879072092194\']',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.030000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T15:32:51+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=[%271110182879072092194%27]
+[ log ] www.erp_admin.com/publish/pandao/download?ids=[%271110182879072092194%27] [运行时间：0.155000s][吞吐率：6.45req/s] [内存消耗：9,941.45kb] [文件加载：98]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => '50280064-ed3b-46a0-84f1-7783216ca8ab',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '[\'1110182879072092194\']',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.030000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-13T15:33:03+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/pandao/download?ids=[%271110182879072092194%27]
+[ log ] www.erp_admin.com/publish/pandao/download?ids=[%271110182879072092194%27] [运行时间：0.131000s][吞吐率：7.63req/s] [内存消耗：9,941.45kb] [文件加载：98]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'pandao',
+    2 => 'download',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.6.1',
+  'postman-token' => 'a7d7bd9a-1afd-40ed-bc37-f64395bfbb3d',
+  'cache-control' => 'no-cache',
+)
+[ info ] [ PARAM ] array (
+  '/publish/pandao/download' => '',
+  'ids' => '[\'1110182879072092194\']',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.028000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Pandao->download[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Pandao.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------

@@ -1,0 +1,523 @@
+<?php
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use service\shipping\operation\Common;
+use org\Curl;
+use think\Exception;
+use think\Log;
+use app\common\model\OrderDetail;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+/**
+ * 中邮小包
+ * @package app\carrier\controller
+ */
+class ChinaPostAirMail
+{
+
+    //注意测试环境不测，直接测正式
+    // 配置信息
+    private $_config = [
+        'url' => 'http://shipping.11185.cn:8000/',//正式
+        //'url'    => 'http://219.134.187.38:8089/',//测试
+        'client_id' => '',
+        'client_secret' => '',
+        'header' => [
+            'content-type:application/json',
+            'Host:api.oneworldexpress.cn'
+        ]
+    ];
+
+    private $result = [
+        'data' => [],
+        'error' => [],
+        'success' => false
+    ];
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return bool
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_id']) || empty($config['client_secret'])) {
+            $this->result['error'] = [
+                'error_msg' => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['client_id'] = $config['client_id'];
+        $this->_config['client_secret'] = $config['client_secret'];
+        return true;
+    }
+
+    /**
+     * 提交订单mailType固定用中邮分配给我们的值'LANGLIDA'
+     * @param array $data 订单数据
+     * @param string $rootElement 根元素节点
+     * @return array Description
+     */
+    public function createOrder(array $config, array $order, $confirm = true)
+    {
+        try {
+
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if (!$this->formatHeader($config)) {
+                return $this->result;
+            }
+            //提交获取条码
+            $orderId = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+            $res = $this->confirmOrder(array('orderId' => $orderId, 'shippingCode' => $order['shipping_method_code'], 'country_code' => $order['country_code']));
+            if (!$res) {
+                return $this->result;
+            }
+            $trackNumber = $res;
+
+            $url = $this->_config['url'] . 'mqrysrv/OrderImportMultiServlet';
+
+            $xmlObj = new \org\Xml();
+            $header = ["content-type: application/x-www-form-urlencoded; charset=UTF-8"];
+            $postData['logistics_interface'] = $this->buildData($order, $trackNumber);
+            $postData['data_digest'] = $this->getDigest($postData['logistics_interface']);
+            $postData['msg_type'] = 'B2C_TRADE';
+            $postData['ecCompanyId'] = $this->_config['client_id'];
+            $postData['version'] = '2.0';
+            //   halt($postData);
+            $xml = Curl::curlPost($url, http_build_query($postData), $header);
+            //日志记录
+            $arr_log = [
+                'url' => $url,
+                'header' => $header,
+                'request' => $postData,
+                'response' => $xml
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+            $result = $xmlObj->xmlToArray($xml);
+            $result = obj2Array($result['responseItems']->response);
+            if ($result['success'] == 'true') {
+                $this->result['data']['number'] = '';                            // 客户订单号
+                $this->result['data']['package_code'] = '';
+                $this->result['data']['trackingNumber'] = $trackNumber;  // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm'] = true;                              // 是否交运
+                $this->result['data']['label'] = true;                              // 是否有pdf
+                $this->result['data']['label_url'] = '';                              // 是否有pdf
+                $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                $this->result['success'] = true;
+                Cache::store('LogisticsLog')->setLogisticsData($this->result['number'], $order['shipping_id'], $this->result['data']);
+            } else {
+                if($result['reason'] == 'B08'){
+                    $this->result['data']['number'] = '';                            // 客户订单号
+                    $this->result['data']['package_code'] = '';
+                    $this->result['data']['trackingNumber'] = $trackNumber;  // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                    $this->result['data']['confirm'] = true;                              // 是否交运
+                    $this->result['data']['label'] = true;                              // 是否有pdf
+                    $this->result['data']['label_url'] = '';                              // 是否有pdf
+                    $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                    $this->result['data']['send'] = false;
+                    $this->result['success'] = true;
+                    Cache::store('LogisticsLog')->setLogisticsData($this->result['number'], $order['shipping_id'], $this->result['data']);
+                }else{
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+                    $this->result['success'] = false;
+                    $this->result['error'] = [
+                        'error_msg' => $result['msg'],
+                        'error_code' => 1
+                    ];
+                }
+            }
+            //下单重复问题
+            if($this->result['success']==false && strstr(param($this->result['error'], 'error_msg'), '订单号重复!')){
+
+                $repeat_data = Cache::store('LogisticsLog')->getLogisticsData($this->result['number'], $order['shipping_id']);
+                if(param($repeat_data, 'package_code')){
+                    $this->result['data'] = $repeat_data;
+                    $this->result['success'] = true;
+                }
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+
+    public function getExpress($config)
+    {
+        try {
+            $result = $this->getDataServlet('queryBusinessType');
+            if (isset($result['status']) && $result['status']) {
+                $this->result['data'] = $result['response'];
+                $this->result['success'] = true;
+            }
+        } catch (Exception $exception) {
+            $this->result['error'] = [
+                'error_msg' => $exception->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取配置数据 post方式
+     * LogisticsCompany（物流公司代码）字段配置数据获取，传入参数queryType=queryCompany；{"data":[{"businessCode":"","businessName":"","companyCode":"POST","companyName":"中国邮政"}]}
+     * LogisticsBiz（业务类型）字段配置数据获取，传入参数queryType=queryBusinessType; {"data":[{"businessCode":"03","businessName":"e特","companyCode":"","companyName":""},{"businessCode":"04","businessName":"中邮小包-挂号","companyCode":"","companyName":""},{"businessCode":"05","businessName":"中邮小包-平件","companyCode":"","companyName":""},{"businessCode":"06","businessName":"中邮小包-港澳台","companyCode":"","companyName":""},{"businessCode":"253","businessName":"法向跟踪小包","companyCode":"","companyName":""},{"businessCode":"66","businessName":"水陆路","companyCode":"","companyName":""}]}
+     * @param string $type 配置类型：queryCompany 物流公司代码；queryBusinessType 业务类型
+     * @return array 返回相应配置数据
+     */
+    private function getDataServlet($type)
+    {
+        $data = [];
+        $url = $this->_config['url'] . 'mqrysrv/OrderImportGetDataServlet';
+        //$url = 'http://shipping.11185.cn:8000/mqrysrv/OrderImportGetDataServlet';  //正式地址
+        $postData = http_build_query(['queryType' => $type]);
+        $result = Curl::curlPost($url, $postData);
+        $result = json_decode($result, true);
+        foreach ($result['data'] as $k => $item) {
+            $data[$k] = [
+                'name' => $item['businessName'],
+                'code' => $item['businessCode']
+            ];
+        }
+        return ['status' => TRUE, 'msg' => '', 'response' => $data];
+
+    }
+
+    /**
+     * 获取条码
+     * @param $request
+     * @return bool
+     */
+    public function confirmOrder($request)
+    {
+        // $url = $this->_config['url'].'produceWeb/barCodesAssgineServlet';
+        //$url = 'http://219.134.187.38:8089/produceWeb/barCodesAssgineServlet';//测试地址
+        $url = 'http://shipping.11185.cn:9000/produceWeb/barCodesAssgineServlet';//正式地址
+        $data = [
+            'order' => [
+                [
+                    'ecCompanyId' => $this->_config['client_id'],
+                    'eventTime' => date('Y-m-d H:i:s'),
+                    'whCode' => '',
+                    'logisticsOrderId' => $request['orderId'],
+                    'tradeId' => '',
+                    'LogisticsCompany' => 'POST',
+                    'LogisticsBiz' => $request['shippingCode'],
+                    'mailType' => 'LANGLIDA',//mailType固定用中邮分配给我们的值'LANGLIDA'
+                    'faceType' => 1,
+                    'Rcountry' => $this->convertCountry($request['country_code']),
+                ],
+            ]
+        ];
+        $postData['logisticsOrder'] = json_encode($data);
+        $postData['data_digest'] = $this->getDigest($postData['logisticsOrder']);
+        $postData['msg_type'] = 'B2C_TRADE';
+        $postData['ecCompanyId'] = $this->_config['client_id'];
+        $postData['version'] = '1.0';
+        $result = Curl::curlPost($url, http_build_query($postData));
+        //日志记录
+        $arr_log = [
+            'url' => $url,
+            'header' => '',
+            'request' => $postData,
+            'response' => $result
+        ];
+        Cache::store('LogisticsLog')->setLogisticsLog($request['orderId'], $arr_log);
+        $result = json_decode($result, 1);
+        if (isset($result['return_success']) && $result['return_success'] == 'true') {
+            return $result['barCodeList'][0]['bar_code'];
+        } else {
+            $aError = [
+                'B03'=>'没有找到请求的数据，就是有些字段没有填写完整，根据对接文档要求逐一检查订单的各字段，所有字段填写完整即可',
+                'B08'=>'条码号重复，需要去检查改订单是否已提交',
+                'B12'=>'该国不支持普通挂号，改寄跟踪小包',
+                'B13'=>'内件英文名称，必须填写的全部是英文，不是需要改正。',
+                'B10'=>'非订单所属条码，即该条码不是这个订单申请的，一个订单一个条码，订单申请的条码不能挪作其他订单使用。',
+                'B14'=>'钱不够，客户余额要大于阈值',
+            ];
+            $this->result['error'] = [
+                'error_msg' => isset($result['return_reason']) ? $result['return_reason']:( isset($aError[$result['return_msg']])?$aError[$result['return_msg']] : '条码分配失败'),
+                'error_code' => 1
+            ];
+            return false;
+        }
+    }
+    public function getTrackingNumber($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        if (!$this->formatHeader($config)) {
+            return $this->result;
+        }
+        if($order['package_upload_status']<=0){
+            $this->result['error'] = [
+                'error_msg'  => '包裹未下单!',
+                'error_code' => 1
+            ];
+            return $this->result;
+        }
+        $orderId = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+        $result = $this->confirmOrder(array('orderId' => $orderId, 'shippingCode' => $order['shipping_method_code'], 'country_code' => $order['country_code']));
+        if($result){
+            $this->result['data'] = [
+                'trackingNumber'=>$result
+            ];
+            $this->result['success'] = true;
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+
+        if($order['label_source_type']=='1'  && !empty($order['shipping_number']) ){
+
+            if(isset($order['package_id'])){
+                (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+            }
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+            ];
+            $this->result['number'] = $order['number'];
+            return $this->result;
+        }
+//        $config['client_id']= '44030521067000|5181150068';
+//        $config['client_secret']= '04D340313j6p1eRn097c';
+////        $order['shipping_number'] = 'RG732672639CN';
+//        try {
+//            $this->result['number'] = $order['number'];
+//            if ($this->formatHeader($config)) {
+//                $url = $this->_config['url'] . 'mqrysrv/LabelPdfDownloadServlet';
+//                $trackNumbers = $order['shipping_number'];
+//                $dataDigest = $this->getDigest($trackNumbers);
+//                $postData = [
+//                    'ecCompanyId' => $this->_config['client_id'],
+//                    'dataDigest' => $dataDigest,
+//                    'barCode' => $trackNumbers,
+//                    'labelType' => '5',
+//                    //'labelType'=>5,
+//                    'version' => '1.0',
+//                ];
+//                $result = Curl::curlPost($url, http_build_query($postData), ['Content-Type: application/x-www-form-urlencoded;charset=UTF-8']);
+//                $arrResult = json_decode($result, true);
+//                if (isset($arrResult['return_success']) && $arrResult['return_success'] == 'false') {
+//                    $this->result['error'] = [
+//                        'error_msg' => isset($arrResult['msg']) ? $arrResult['msg'] : '未知错误',
+//                        'error_code' => 1
+//                    ];
+//                } else {
+//                    $pdf = $result;
+////                    $path = $order['path'];
+////                    if (!is_dir($path)){
+////                        mkdir($path,0777);  // 创建文件夹test,并给777的权限（所有权限）
+////                    }
+////                    $filename = $path . '/'.$order['number'].$postData['labelType']. '.pdf';    // 写入的文件
+////                    file_put_contents($filename,$pdf,FILE_APPEND);
+//                    $service = new PackageLabelFileService();
+//                    $label_url = $service->uploadLabelFile($order['number'], base64_encode($pdf), 'pdf');
+//                    //$this->result['data']['body'] = base64_encode($pdf);
+//                    $this->result['data']['src'] = $label_url;
+//                    $this->result['data']['type'] = 'pdf';
+//                    $this->result['success'] = true;
+//                }
+//
+//            }
+//
+//        } catch (Exception $ex) {
+//            $this->result['error'] = [
+//                'error_code' => 1,
+//                'error_msg' => $ex->getMessage()
+//            ];
+//        }
+
+    }
+
+    /**
+     * 取消删除包裹
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function cancel($config, $order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['error'] = [
+            'error_msg' => '物流订单不支持取消操作',
+            'error_code' => 1
+        ];
+        return $this->result;
+    }
+
+    private function getLogisticsCompany()
+    {
+        $url = 'http://219.134.187.38:8089/mqrysrv/OrderImportGetDataServlet';
+        $postData['queryType'] = 'queryCompany';
+        $result = Curl::curlPost($url, http_build_query($postData), ['Content-Type: application/x-www-form-urlencoded;charset=UTF-8']);
+        $result = json_decode($result, true);
+        return $result['data'];
+    }
+
+
+    /**
+     * 获取签名
+     * @param string $data
+     * @return string
+     */
+    private function getDigest($data)
+    {
+        return base64_encode(md5($data . $this->_config['client_secret'], true));
+    }
+
+    /**
+     * 特殊字符替换
+     */
+    public function filterStr($str)
+    {
+        $str_1 = str_replace("&", " ", $str);
+        $str_2 = str_replace('+', " ", $str_1);
+        return $str_2;
+    }
+
+    private function buildData($data, $trackNumber)
+    {
+        $country = $this->convertCountry($data['country_code']);
+        if(!$data['city'] && $country=='JP'){
+            $city = strstr($data['street'], '市', TRUE);
+            $data['city'] = $city ? $city : $data['province'];
+        }
+        $referenceID = isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number']: $data['number'];
+        //$CompanyResult = $this->getLogisticsCompany();
+        $xml = '<logisticsEventsRequest>';
+        $xml .= '<logisticsEvent>';
+        $xml .= '<eventHeader>';
+        $xml .= '<eventType>LOGISTICS_BATCH_SEND</eventType>';
+        $xml .= '<eventTime>' . date('Y-m-d H:i:s') . '</eventTime>';
+        $xml .= '<eventSource>LANGLIDA</eventSource>';
+        $xml .= '<eventTarget>CPG</eventTarget>';
+        $xml .= '</eventHeader>';
+        $xml .= '<eventBody>';
+        $xml .= '<order>';
+        $xml .= '<orderInfos>';
+        $phone = (empty($data['phone'])? $data['tel'] : $data['phone']);
+        $phone = str_replace("+", "", $phone);
+        $data['street'] = $data['street2'] ? $data['street'].' '.$data['street2'] : $data['street'];//地址拼接
+        $data['street'] =  str_replace('+'," ",$data['street']) ;//过滤特殊字符
+        $data['city'] =  str_replace('+'," ",$data['city']) ;//过滤特殊字符
+        $data['city'] =  str_replace('-'," ",$data['city']) ;//过滤特殊字符
+        $data['city'] =  str_replace(' '," ",$data['city']) ;//过滤特殊字符
+        $data['city'] =  str_replace('.'," ",$data['city']) ;//过滤特殊字符
+        $data['province'] =  str_replace('+'," ",$data['province']) ;//过滤特殊字符
+        $data['province'] =  str_replace('-'," ",$data['province']) ;//过滤特殊字符
+        $data['province'] =  str_replace(' '," ",$data['province']) ;//过滤特殊字符
+        $data['province'] =  str_replace('.'," ",$data['province']) ;//过滤特殊字符
+        foreach ($data['declared_info'] as $k => $declared) {
+            $xml .= '<product>';
+            $xml .= '<productNameCN>' . str_replace('+',' ',$declared['declared_name_cn']) . '</productNameCN>';
+            $xml .= '<productNameEN>' . str_replace('+',' ',$declared['declared_name_en']) . '</productNameEN>';
+            $xml .= '<productQantity>' . $declared['qty'] . '</productQantity>';
+            $xml .= '<productCateCN>' . $declared['declared_name_cn'] . '</productCateCN>';
+            $xml .= '<productCateEN>' . $declared['declared_name_en'] . '</productCateEN>';
+            $xml .= '<productId>' . $k . '</productId>';
+            $xml .= '<producingArea>CN</producingArea>';
+            $xml .= '<productWeight>' . intval($declared['declared_weight']) . '</productWeight>';
+            $xml .= '<productPrice>' . intval(($declared['declared_value'] * 100)) . '</productPrice>';
+            $xml .= '</product>';
+        }
+        $xml .= '</orderInfos>';
+        $xml .= '<ecCompanyId>' . $this->_config['client_id'] . '</ecCompanyId>';
+        //$xml .= '<whCode>4PX_SZ</whCode>';
+        $xml .= '<logisticsOrderId>' . $referenceID . '</logisticsOrderId>';
+        //$xml .= '<isItemDiscard>true</isItemDiscard>';
+        //$xml .= '<tradeId>564321</tradeId>';
+        $xml .= '<mailNo>' . $trackNumber . '</mailNo>';
+        $xml .= '<LogisticsCompany>POST</LogisticsCompany>';
+        $xml .= '<LogisticsBiz>' . $data['shipping_method_code'] . '</LogisticsBiz>';
+        $xml .= '<ReceiveAgentCode>POST</ReceiveAgentCode>';
+
+        $xml .= '<Rcountry>' .$country. '</Rcountry>';
+        $data['province'] = $data['province'] ? $data['province']:$data['city'];
+        $xml .= '<Rprovince>' . $data['province'] . '</Rprovince>';
+        $xml .= '<Rcity>' . $data['city'] . '</Rcity>';
+        $xml .= '<Raddress>' .$data['street']. '</Raddress>';
+        $xml .= '<Rpostcode>' .str_replace('+'," ", $data['zip']) . '</Rpostcode>';
+        $xml .= '<Rname>' . $this->filterStr($data['name']). '</Rname>';
+        $xml .= '<Rphone>' . $phone . '</Rphone>';
+
+        $xml .= '<Sname>' . $data['sender']['sender_name'] . '</Sname>';
+        $xml .= '<Sprovince>' . $data['sender']['sender_state'] . '</Sprovince>';
+        $xml .= '<Scity>' . $data['sender']['sender_city'] . '</Scity>';
+        $xml .= '<Saddress>' . $data['sender']['sender_street'] . '</Saddress>';
+        $xml .= '<Sphone>' . $data['sender']['sender_phone'] . '</Sphone>';
+        $xml .= '<Spostcode>' . $data['sender']['sender_zipcode'] . '</Spostcode>';
+//        $xml .= '<insureValue>1</insureValue>';
+//        $xml .= '<insuranceValue>1</insuranceValue>';
+//        $xml .= '<remark>abc</remark>';
+        $xml .= '<channel>HK</channel>';
+        $xml .= '<Itotleweight>' . intval($data['estimated_weight']) . '</Itotleweight>';
+        $xml .= '<Itotlevalue>' . intval(($data['declared_amount'] * 100)) . '</Itotlevalue>';
+        $xml .= '<totleweight>' . intval($data['estimated_weight']) . '</totleweight>';
+        $xml .= '<hasBattery>0</hasBattery>';
+        $xml .= '<country>CN</country>';
+        $xml .= '<mailKind>1</mailKind>';
+        $xml .= '<mailClass>L</mailClass>';
+        $xml .= '<batchNo>' . $data['number'] . '</batchNo>';
+        $xml .= '<mailType>LANGLIDA</mailType>';
+        $xml .= '<faceType>2</faceType>';
+        $xml .= '<undeliveryOption>' . ($data['is_need_return'] == 1 ? 2 : 1) . '</undeliveryOption>';
+        $xml .= '</order>';
+        $xml .= '</eventBody>';
+        $xml .= '</logisticsEvent>';
+        $xml .= '</logisticsEventsRequest>';
+        $xml = str_replace("&", " ", $xml);
+        $xml = str_replace("<null>", "", $xml);
+        return $xml;
+
+    }
+
+    private function convertCountry($code)
+    {
+        $arr = [
+            'UK' => 'GB',
+            'NC' => 'DF',
+            'SRB' => 'RS',
+//            'GT' => 'GTM',
+            'SB' => 'SLB',
+        ];
+
+        return isset($arr[$code]) ? $arr[$code] : $code;
+    }
+}
+

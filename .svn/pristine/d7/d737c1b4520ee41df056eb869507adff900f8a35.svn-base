@@ -1,0 +1,288 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User=> RondaFul
+ * Date=> 2017-05-23
+ * Time: 16:30
+ */
+/**
+ * @Author Bill
+ * @CreateTime 2017-05-23 16:30
+ */
+
+namespace app\tms\controller;
+
+use app\common\controller\Base;
+use service\tms\TmsApi;
+
+class Address extends Base
+{
+    /**
+     * 检测地址
+     * @author Bill
+     */
+    public function checkA()
+    {
+        $data = [
+            "Address" => [
+                "FirstName" => "Mercedes Vega Dia",    //收件人名字 {String}
+                "LastName" => "Milicent",               //收件人姓   {String}
+                "Company" => "",                         //公司      {String}
+                "StreetAddress" => "1355 w 53 st",       //地址1     {String}
+                "StreetAddress2" => "",                     //地址1     {String}
+                "City" => "Hialeah",                     //城市       {String}
+                "State" => "FL",                           //州         {String}
+                "Country" => "US",                           //国家简称   {String}
+                "ZIPCode" => "33012",                       //邮编        {String}
+                "PhoneNumber" => "7864685630",           //联系电话    {String}
+                "IsResidential" => false                     //默认        {Bool}
+            ],
+            "ChannelName" => "Endicia"           //承运公司
+        ];
+
+        TmsApi::getInstance()->addressValidation($data);
+    }
+
+    /**
+     * 打印大标签
+     * @author Bill
+     */
+    public function printLabel()
+    {
+        $data = [
+            "OrderID" => "",                //订单ID            {String}
+            "ParcelInformation" => [              //选填对象[O]           {Obj}
+                "Weight" => 0.01,                //单个商品重量       {Decimal}
+                "WeightUnit" => 2,               //单个商品重量 盎司 OZ = 1, 磅LB = 2, 克G = 3 , 千克KG =4
+                "Length" => 11.5,                 //长度               {Decimal}
+                "Width" => 6.12,                  //宽度               {Decimal}
+                "Height" => 0.25,                 //高度               {Decimal}
+                "SizeUnit" => 1,                  //单位               {INT}
+                "ExistDangeroursGoods" => false,   //是否危险物品   {boolean}
+                "ProductInformations" => null      //产品信息       {String}
+            ],
+            "RecipientAddress" => [                        //收货信息[M]
+                "FirstName" => "Alicia Gonzales ",       //收件人名字[M]   {String}
+                "LastName" => ".",                          //收件人姓[M]     {String}
+                "Company" => "",                            //公司信息[O]     {String}
+                "StreetAddress" => "2312 Fuente Cove",   //街道地址[M]     {String}
+                "StreetAddress2" => "",                    //街道地址[O]     {String}
+                "City" => "Austin",                         //城市[M]         {String}
+                "State" => "TX",                             //省州简称[M]     {String}
+                "ZIPCode" => "78745",                        //邮编[M]        {String}
+                "Country" => "US",                            //国家[M]         {String}
+                "PhoneNumber" => "5128259043",             //联系电话[M]     {String}
+                "IsResidential" => false,                     //是否是住宅[m]  默认false 地址验证后,使用默认的打标  {Boolean}
+
+                //TODO:{****这个对象Asendia 渠道必须填写 ****}   其他选填
+                "ProductInformations" => [
+                    "Description" => "",   //商品描述信息[O]  {String}
+                    "Quantity" => "",      //商品数量 [O]      {Int}
+                    "Weight" => "",        //单个商品重量[O]  {Decimal}
+                    "WeightUnit" => "",   //重量单位[O]        {int}
+                    "Value" => "",         //商品描述信息[O]  {Decimal}
+                ]
+            ],
+            "ChannelName" => "Fedex",                           //渠道名称[M]                  {String}
+            "Token" => "99999999999999999999999999999999",   //如果这里是32个9强制签名[M]   {String}
+            "ServiceTypeCode" => "SMART_POST",                 //服务代码[M]                  {String}
+            "WarehouseCode" => "NJ",                             //渠道仓库代号[M]             {String}
+            "LabelMarkText" => "",                               //标签标记[O]:如捡货信息                  {String}
+            "RedundancyField" => null                           //渠道冗余属性信息[M]             字典型号List {array}
+        ];
+        TmsApi::getInstance()->printLabel($data);
+    }
+
+
+    /**
+     * 打印返回标签
+     * @author Bill
+     */
+    public function printReturnLabel()
+    {
+        $data = [
+            "OrderID" => "1070002423",                       //订单ID[M]            {String}
+            "Weight" => 500,                                   //重量                 {decimal}
+            "WeightUnit" => 3,                                //重量单位              {int}
+            "ShipperAddress" => [                             //发货地址对象[M]       [List]
+                "FirstName" => "Jennifer",                   //联系人名字[M]         {String}
+                "LastName" => "Jennifer",                    //姓[M]                 {String}
+                "Company" => "",                              //公司名称[M]            {String}
+                "StreetAddress" => "43503 W OSTER DR",     //地址1[M]               {String}
+                "StreetAddress2" => "",                       //地址1[O]               {String}
+                "City" => "MARICOPA",                         //城市[M]                 {String}
+                "State" => "AZ",                               //省州简称[M]             {String}
+                "ZIPCode" => "85138",                          //邮编[M]                {String}
+                "Country" => "US",                              //国家[M]                {String}
+                "PhoneNumber" => "5035450730",                //联系电话[M]            {String}
+                "Email" => "linzhen@dotfashion.cn"           //收件人邮件[M]           {String}
+            ],
+            "ChannelName" => "USPS",                           //渠道商名称[M]          {String}
+            "ServiceTypeCode" => "SMART_POST",                //渠道商服务代码[M]      {String}
+            "WarehouseCode" => "NJ",                            //渠道仓库代号[M]        {String}
+        ];
+        TmsApi::getInstance()->printReturnLabel($data);
+    }
+
+    /**
+     * 打印返回标签
+     * @author Bill
+     */
+    public function printSmallLabel()
+    {
+        $data = [
+            "OrderID" => "",                //订单ID            {String}
+            "ParcelInformation" => [              //选填对象[O]           {Obj}
+                "Weight" => 0.01,                //单个商品重量       {Decimal}
+                "WeightUnit" => 2,               //单个商品重量 盎司 OZ = 1, 磅LB = 2, 克G = 3 , 千克KG =4
+                "Length" => 11.5,                 //长度               {Decimal}
+                "Width" => 6.12,                  //宽度               {Decimal}
+                "Height" => 0.25,                 //高度               {Decimal}
+                "SizeUnit" => 1,                  //单位               {INT}
+                "ExistDangeroursGoods" => false,   //是否危险物品   {boolean}
+                "ProductInformations" => null      //产品信息       {String}
+            ],
+            "RecipientAddress" => [                        //收货信息[M]
+                "FirstName" => "Alicia Gonzales ",       //收件人名字[M]   {String}
+                "LastName" => ".",                          //收件人姓[M]     {String}
+                "Company" => "",                            //公司信息[O]     {String}
+                "StreetAddress" => "2312 Fuente Cove",   //街道地址[M]     {String}
+                "StreetAddress2" => "",                    //街道地址[O]     {String}
+                "City" => "Austin",                         //城市[M]         {String}
+                "State" => "TX",                             //省州简称[M]     {String}
+                "ZIPCode" => "78745",                        //邮编[M]        {String}
+                "Country" => "US",                            //国家[M]         {String}
+                "PhoneNumber" => "5128259043",             //联系电话[M]     {String}
+                "IsResidential" => false,                     //是否是住宅[m]  默认false 地址验证后,使用默认的打标  {Boolean}
+
+                //TODO:{****这个对象Asendia 渠道必须填写 ****}   其他选填
+                "ProductInformations" => [
+                    "Description" => "",   //商品描述信息[O]  {String}
+                    "Quantity" => "",      //商品数量 [O]      {Int}
+                    "Weight" => "",        //单个商品重量[O]  {Decimal}
+                    "WeightUnit" => "",   //重量单位[O]        {int}
+                    "Value" => "",         //商品描述信息[O]  {Decimal}
+                ]
+            ],
+            "ChannelName" => "Fedex",                           //渠道名称[M]                  {String}
+            "Token" => "99999999999999999999999999999999",   //如果这里是32个9强制签名[M]   {String}
+            "ServiceTypeCode" => "SMART_POST",                 //服务代码[M]                  {String}
+            "WarehouseCode" => "NJ",                             //渠道仓库代号[M]             {String}
+            "LabelMarkText" => "",                               //标签标记[O]:如捡货信息                  {String}
+            "RedundancyField" => null                           //渠道冗余属性信息[M]             字典型号List {array}
+        ];
+        TmsApi::getInstance()->printSmallLabel($data);
+    }
+
+    /**
+     * 取消小标签
+     * @author Bill
+     */
+    public function invalidSmallLabel()
+    {
+        $data = "P1167047937";    //订单ID     {String}
+        TmsApi::getInstance()->invalidSmallLabel($data);
+    }
+
+    /**
+     * 取消小标签
+     * @author Bill
+     */
+    public function cancelLabel()
+    {
+        $data = [
+            "orderID" => "",          //订单ID[M]     {String}
+            "trackingNumber" => ""   //订单ID[M]     {String}
+        ];
+        TmsApi::getInstance()->cancelLabel($data);
+    }
+
+    /**
+     * 申请箱号
+     * @return array
+     * @author Bill
+     */
+    public function getPackageNumber()
+    {
+        $data = "123124";  //箱号唯一,如果不填，系统会自动生成[O]  {String}
+        TmsApi::getInstance()->getPackageNumber($data);
+    }
+
+    /**
+     * 确定与绑定箱号
+     * @author Bill
+     */
+    public function confirmLabel()
+    {
+        $data = [
+            "PackageNumber " => "箱号",                //箱号[M]     {String}
+            "ConfirmLabels" => [                        //确认的标签集合对象[M]  list<LabelObj>
+                [
+                    "TrackingNumber" => "跟踪号 1",    //跟踪号[M]     {String}
+                    "OrderNumber" => "订单号 1"         //订单号[M]     {String}
+                ],
+                [
+                    "TrackingNumber" => "跟踪号 2",
+                    "OrderNumber" => "订单号 2"
+                ]
+            ]
+        ];
+        TmsApi::getInstance()->confirmLabel($data);
+    }
+
+    /**
+     * 一票多标签
+     * @author Bill
+     */
+    public function printMultiLabel()
+    {
+        $data = [
+            "ParcelInformation" => [                         //包过信息[M]  List<FBAParcel>
+                [
+                    "OrderID" => "TEST94719442",            //跟踪号[M]    {String}
+                    "OrderNumber" => "TEST94719442",       //订单号[M]    {String}
+                    "Weight" => "3637.0",                    //重量[M]      {decimal}
+                    "WeightUnit" => 3,                        //重量单位[M]  [int]
+                    "Length" => "20.0",                      //长[M]  [decimal]
+                    "Width" => "15.0",                       //宽[M]  [decimal]
+                    "Height" => "15.0",                      //高[M]  [decimal]
+                    "SizeUnit" => 2,                          //尺寸单位[M]  {int}
+                    "ExistDangeroursGoods" => false        //是否含有危险物品[M]
+                ],
+            ],
+            "RecipientAddress" => [
+                "Alicia Gonzales ",       //收件人名字[M]   {String}
+                "LastName" => ".",                            //收件人姓[M]     {String}
+                "Company" => "",                              //公司信息[O]     {String}
+                "StreetAddress" => "2312 Fuente Cove",    //街道地址[M]     {String}
+                "StreetAddress2" => "",                      //街道地址[O]     {String}
+                "StreetAddress3" => "",                      //街道地址[O]     {String}
+                "City" => "Austin",                           //城市[M]         {String}
+                "State" => "TX",                               //省州简称[M]     {String}
+                "ZIPCode" => "78745",                         //邮编[M]        {String}
+                "Country" => "US",                             //国家[M]         {String}
+                "PhoneNumber" => "5128259043",               //联系电话[M]     {String}
+                "IsResidential" => false,                     //是否是住宅[m]  默认false 地址验证后,使用默认的打标  {Boolean}
+            ],
+            "ChannelName" => "Whistl",                         //渠道商名称[M]                     {String}
+            "Token" => "99999999999999999999999999999999",  //token这里32个9为强制绑定[M]       {String}
+            "ServiceTypeCode" => "TRACKED48",                 //服务商CODE[M]                        {String}
+            "WarehouseCode" => "UK",                            //服务商仓库编码[M]                    {String}
+            "LabelMarkText" => "#38",                           //标签标记[M]
+            "RedundancyField" => null                           //冗余字段[O]                      可以为空
+        ];
+        TmsApi::getInstance()->printMultiLabel($data);
+    }
+
+    /**
+     * 物流查询跟踪服务
+     * @author Bill
+     */
+    public function queryTracking(){
+        $data = [
+            "TrackingNumber"=> "跟踪号",         //跟踪号[M]       {String}
+            "ChannelName"=> "渠道"                //渠道编码[M]     {String}
+        ];
+        TmsApi::getInstance()->queryTrackingStatus($data);
+    }
+}

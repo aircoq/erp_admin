@@ -1,0 +1,183 @@
+<?php
+
+namespace service\amazon;
+
+use think\Loader;
+
+Loader::import('service.amazon.MarketplaceWebServiceSellers.Client') ;
+Loader::import('service.amazon.MarketplaceWebServiceSellers.Model.GetServiceStatusRequest') ;
+
+class AmazonSellerApi 
+{			   
+    
+    private $appname;
+    private $appversion;
+    private $aws_access_key_id;
+    private $aws_secret_access_key;
+    private $aws_auth_token;
+    private $merchant_id;
+    private $marketplace_id;
+    private $service_url;
+    private $account;
+    private $site;
+        
+    private $config;    
+    
+    
+    /**
+     * 
+     * @param unknown $appname
+     * @param unknown $appversion
+     * @param unknown $aws_access_key_id
+     * @param unknown $aws_secret_access_key
+     * @param unknown $merchant_id
+     * @param unknown $marketplace_id
+     * @param unknown $serviceUrl
+     * @param unknown $account
+     * @param unknown $site
+     */
+    public function __construct($appname,$appversion,$aws_access_key_id,$aws_secret_access_key,$merchant_id,$marketplace_id,$serviceUrl,$site,$aws_auth_token='')
+	{
+	    $this->appname                = $appname;
+	    $this->appversion             = $appversion;
+	    $this->aws_access_key_id      = $aws_access_key_id;
+	    $this->aws_secret_access_key  = $aws_secret_access_key;
+	    $this->aws_auth_token  = $aws_auth_token;
+	    $this->merchant_id            = $merchant_id;
+	    $this->marketplace_id         = $marketplace_id;
+	    $this->service_url            = $serviceUrl;
+	   // $this->account                = $account;
+	    $this->site                   = $site;	    
+	    
+	    $this->config = array (
+	        'ServiceURL' 	=> $this->service_url,
+	        'ProxyHost'  	=> null,
+	        'ProxyPort'  	=> -1,
+	        'ProxyUsername' => null,
+	        'ProxyPassword' => null,
+	        'MaxErrorRetry' => 3,
+	    );
+	}
+	
+    /**
+     * 
+     * 验证用户的token是否有效
+     */
+	function getUserStatus(){ 	  
+    	$service = new \MarketplaceWebServiceSellers_Client(
+    	    $this->aws_access_key_id,
+    	    $this->aws_secret_access_key,
+    	    'check',
+    	    '0.1',
+    	    $this->config);
+    	
+       
+    	// $service = new MarketplaceWebServiceSellers_Mock();
+    	
+    	/************************************************************************
+    	 * Setup request parameters and uncomment invoke to try out
+    	 * sample for Get Service Status Action
+    	 ***********************************************************************/
+    	// @TODO: set request. Action can be passed as MarketplaceWebServiceSellers_Model_GetServiceStatus
+    	$request = new \MarketplaceWebServiceSellers_Model_GetServiceStatusRequest();
+    	$request->setSellerId($this->merchant_id );
+    	if($this->aws_auth_token){
+    	    $request->setMWSAuthToken($this->aws_auth_token);
+    	}
+    	// object or array of parameters
+    	$re      = $this->invokeGetServiceStatus($service, $request);
+    	$rs      = $this->xmlToArray($re);
+    	if (isset($rs['GetServiceStatusResult'])) {
+    	    if ($rs['GetServiceStatusResult']['Status'] == 'GREEN') {
+    	        return true;
+    	    } else {
+    	        return false;
+    	    }
+    	    
+    	}else {
+    	    return false;
+    	}
+    	
+    	return false;
+    	
+	}
+	
+	/**
+	 * Get Get Service Status Action Sample
+	 * Gets competitive pricing and related information for a product identified by
+	 * the MarketplaceId and ASIN.
+	 *
+	 * @param MarketplaceWebServiceSellers_Interface $service instance of MarketplaceWebServiceSellers_Interface
+	 * @param mixed $request MarketplaceWebServiceSellers_Model_GetServiceStatus or array of parameters
+	 */	
+	function invokeGetServiceStatus(\MarketplaceWebServiceSellers_Interface $service, $request)
+	{
+	    try {
+	        $response = $service->GetServiceStatus($request);
+	        $dom = new \DOMDocument();
+	        $dom->loadXML($response->toXML());
+	        $dom->preserveWhiteSpace = false;
+	        $dom->formatOutput = true;
+	        return $dom->saveXML();
+	       // echo("ResponseHeaderMetadata: " . $response->getResponseHeaderMetadata() . "\n");
+	        
+	    } catch (MarketplaceWebServiceSellers_Exception $ex) { 
+	       // echo("Caught Exception: " . $ex->getMessage() . "\n");
+	       // echo("Response Status Code: " . $ex->getStatusCode() . "\n");
+	       //// echo("Error Code: " . $ex->getErrorCode() . "\n");
+	       // echo("Error Type: " . $ex->getErrorType() . "\n");
+	       //// echo("Request ID: " . $ex->getRequestId() . "\n");
+	       // echo("XML: " . $ex->getXML() . "\n");
+	        //echo("ResponseHeaderMetadata: " . $ex->getResponseHeaderMetadata() . "\n");
+	    }
+	}
+	
+	/**
+	 * 对象转为数组
+	 * @param object $obj
+	 * @return array
+	 * @author czq
+	 */
+	function object_array($array)
+	{
+		if (is_object($array)) {
+			$array = (array)$array;
+		}
+		if (is_array($array)) {
+			foreach($array as $key=>$value) {
+				$array[$key] = $this->object_array($value);
+			}
+		}
+		return $array;
+	}
+	
+	
+	/**
+	 * xml  转成数组
+	 * @param unknown $xml
+	 * @return unknown[]
+	 */
+	function xmlToArray($xml)
+	{
+	    return $xml ? $this->xmlToArrayElement(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)) : array();
+	}
+	
+	/**
+	 *
+	 * @param unknown $xmlobject
+	 * @return unknown[]|unknown[][]
+	 */
+	function xmlToArrayElement($xmlobject)
+	{
+	    $data = array();
+	    foreach ((array) $xmlobject as $key => $value) {
+	        $data[$key] = !is_string($value) ?$this->xmlToArrayElement($value) : $value;
+	    }
+	    return $data;
+	}
+	
+	
+   
+    
+	
+}

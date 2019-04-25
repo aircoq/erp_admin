@@ -1,0 +1,300 @@
+<?php
+namespace service\funmart\Order;
+
+
+use app\common\cache\Cache;
+use service\funmart\FunmartException;
+use service\funmart\RequestService;
+
+
+/**
+ * Class OrderService  订单接口服务类
+ * Created by linpeng
+ * createTime: time 2019/3/4 14:20
+ * @package service\funmart\Order
+ */
+class OrderService extends RequestService {
+
+
+    /**
+     * 批量获取订单
+     * @param $params
+     * @example
+     * 支持查询区间：小于5天
+     * $params=array(
+     * 			'start'=>'',//开始时间(北京时间,下同)   开始与结束不能超过5天，超过5天会报错
+     * 			'end'=>'',//结束时间
+     * 			'appkey'=>'',//商户id
+     * 			'token'=>'',//token
+     * );
+     * @return array
+     * @throws \Exception
+     */
+    public function GetOrder($params)
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'orders'=>[],
+            'org_data'=>'',
+        ];
+
+        /**
+         * 1、设置请求参数(时间格式统一)
+         */
+        $params = is_array($params) ? $params : array();
+        $dateArr = array('start','end');
+        if(!empty($params)){
+            foreach ($dateArr as $key){
+                if(isset($params[$key]) && $params[$key] != ""){
+                    $dateTime = new \DateTime($params[$key]);
+                    $params[$key] = $dateTime->format(\DateTime::ISO8601);
+                }
+            }
+        }
+
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('order/get-order-list');
+
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $Orders = $re['data'];
+                $return['orders'] = isNumericArray($Orders) ? $Orders : $Orders;
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (FunmartException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+
+
+    /**
+     * 订单拦截状态
+     * @param $params
+     * @example
+     * 支持查询区间：小于5天
+     * $params=array(
+     * 			'start'=>'',//开始时间(北京时间,下同)   开始与结束不能超过5天，超过5天会报错
+     * 			'end'=>'',//结束时间
+     * 			'appkey'=>'',//商户id
+     * 			'token'=>'',//token
+     * );
+     * @return array
+     * @throws \Exception
+     */
+    public function GetOrderStatus($params)
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'lock'=>'',
+            'unlock'=>'',
+            'org_data'=>'',
+        ];
+
+        /**
+         * 1、设置请求参数(时间格式统一)
+         */
+        $params = is_array($params) ? $params : array();
+        $dateArr = array('start','end');
+        if(!empty($params)){
+            foreach ($dateArr as $key){
+                if(isset($params[$key]) && $params[$key] != ""){
+                    $dateTime = new \DateTime($params[$key]);
+                    $params[$key] = $dateTime->format(\DateTime::ISO8601);
+                }
+            }
+        }
+
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('order/get-order-status');
+
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $Orders = $re['data'];
+                $return['lock'] = isNumericArray($Orders) ? $Orders : $Orders['lock'];
+                $return['unlock'] = isNumericArray($Orders) ? $Orders : $Orders['unlock'];
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (FunmartException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+
+    /***
+     * 订单物流状态
+     * @example
+     * 支持查询区间：小于5天
+     * $params=array(
+     * 			'order_id'=>'',//订单号
+     * 			'appkey'=>'',//商户id
+     * 			'token'=>'',//token
+     * );
+     * @param $params
+     * @return array
+     */
+    public function GetOrderDeliver($params)
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>[],
+            'org_data'=>'',
+        ];
+
+        /**
+         * 1、设置请求参数(时间格式统一)
+         */
+        $params = is_array($params) ? $params : array();
+
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('order/get-order-deliver');
+
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $Orders = $re['data'];
+                $return['data'] = isNumericArray($Orders) ? $Orders : $Orders;
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (FunmartException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+
+
+    /***
+     * 电子面单发货接口
+     * @example
+     * 支持查询区间：小于5天
+     * $params = ''
+     * $data = [
+     *      "token" =>
+     *      "appkey" =>
+     *      "order_ids" => [""]
+     *      "date" => 预约上门取货时间
+     * ]
+     * @param $params
+     * @param $data
+     * @return array
+     */
+    public function getExpressNo($params,$data)
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>[],
+            'org_data'=>'',
+        ];
+
+        /**
+         * 1、设置请求参数(时间格式统一)
+         */
+        $params = is_array($params) ? $params : array();
+
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('order/get-express-no');
+
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $option['Type']= 'POST';
+            $re = $this->executeRequest($params, $data, $option);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $Orders = $re['data'];
+                $return['data'] = isNumericArray($Orders) ? $Orders : $Orders;
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (FunmartException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+}

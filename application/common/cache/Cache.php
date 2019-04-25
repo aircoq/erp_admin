@@ -1,0 +1,387 @@
+<?php
+namespace app\common\cache;
+
+use app\common\exception\JsonErrorException;
+use erp\Redis;
+use think\Config;
+use think\Exception;
+
+/**
+ * Created by PhpStorm.
+ * User: PHILL
+ * Date: 2016/10/28
+ * Time: 13:39
+ * @property Redis persistRedis
+ * @property Redis redis
+ */
+class Cache
+{
+    /**
+     * @var int 指定redis库，默认为0库
+     */
+    protected $db = 0;
+    protected $forceNewConnect = false;
+    /**
+     * 是否自动转换返回值（DataToObjArr）
+     * @var bool
+     */
+    protected $auto_convert = false;
+    /**
+     * @var \Redis
+     */
+    private static $object = [];
+    private static $factory = [];
+    protected static $persistRedises = [];
+    protected static $redises = [];
+    private $options = [];
+
+    public function __construct()
+    {
+        $ref = new \ReflectionClass($this);
+        $this->options = $ref->getProperties(\ReflectionProperty::IS_PROTECTED);
+        if(method_exists($this, "initialize")){
+            $this->initialize(func_get_args());
+        }
+    }
+
+    protected final function queue($queue)
+    {
+        return 'queue:'.$queue;
+    }
+
+    protected final function sets($sets)
+    {
+        return 'sets:'.$sets;
+    }
+
+    protected function getKey($key = '')
+    {
+        $class = get_class($this);
+        return $key ? $class.":".$key : $class;
+    }
+
+    public static function getObject($class)
+    {
+        return self::$object[$class];
+    }
+
+
+    public function getOption($key, $def = false)
+    {
+        foreach ($this->options as $option){
+            if($option->getName() == $key){
+                $option->setAccessible(true);
+                return $option->getValue($this);
+            }
+        }
+        return $def;
+    }
+
+
+    /** 设置缓存内容
+     * @param $key
+     * @param $value
+     * @param bool|false $persist
+     */
+    public static function set($key, $value, $persist = false)
+    {
+        $self = new self();
+        if ($persist) {
+            $self->persistRedis->set('cache:' . $key, $value);
+        } else {
+            $self->redis->set('cache:' . $key, $value);
+        }
+    }
+    /**
+     * @desc 设置 key 的过期时间
+     * @param string $key 键
+     * @param int $seconds 秒
+     * @param bool|false $persist
+     * @return boolean true|false
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-04-13 16:42:11
+     */
+    public static function expire($key, $seconds, $persist = false)
+    {
+        $self = new self();
+        if ($persist) {
+            $self->persistRedis->expire($key, $seconds);
+        } else {
+            $self->redis->expire($key, $seconds);
+        }
+    }
+    /**
+     * @desc 删除key
+     * @param string $key 键
+     * @param int $seconds 秒
+     * @param bool|false $persist
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-04-13 16:42:11
+     */
+    public static function del($key, $persist = false)
+    {
+        $self = new self();
+        if ($persist) {
+            $self->persistRedis->del('cache:' . $key);
+        } else {
+            $self->redis->del('cache:' . $key);
+        }
+    }
+
+    /** 获取缓存内容
+     * @param $key
+     * @param bool|false $persist
+     * @return bool
+     */
+    public static function get($key, $persist = false)
+    {
+        $self = new self();
+        if ($persist) {
+            if ($self->persistRedis->exists($key)) {
+                return $self->persistRedis->get($key);
+            }
+        } else {
+            if ($self->redis->exists($key)) {
+                return $self->redis->get($key);
+            }
+        }
+        return false;
+    }
+
+    /** 获取不同驱动的对象
+     * @param $name
+     * @param bool|false $bool
+     * @throws Exception
+     */
+    public static function store($name, $bool = false)
+    {
+        try {
+            $name = ucwords($name);
+            $class = false !== strpos($name, '\\') ? $name : '\\app\\common\\cache\\driver\\' . $name;
+            return static::instranceCacheObject($class, $class, $bool);
+        } catch (Exception $e) {
+            throw new Exception("Error Processing Request {$e->getFile()} {$e->getLine()} {$e->getMessage()}", 1);
+        }
+    }
+
+    /**
+     * @doc 获取一个缓存类对象
+     * @param $name string 名称
+     * @param $class string 缓存类
+     * @param $bool boolean 是否从新实例化
+     * @return object
+     * @throws Exception
+     */
+    private static function instranceCacheObject($name, $class, $bool)
+    {
+        if (!$class) {
+            throw new Exception("The cache $class file is not found", 1);
+        }
+        if(!class_exists($class)){
+            throw new Exception("The cache $class file is not found", 1);
+        }
+
+
+        if (!isset(self::$object[$name]) || is_null(self::$object[$name])) {
+            self::$object[$name] = new $class($name);
+        }
+        if ($bool) {
+            return  new CacheFactory($class);
+        }
+        if(!isset(self::$factory[$name]) || is_null(self::$factory[$name])){
+            self::$factory[$name] = new CacheFactory($class);
+        }
+        return self::$factory[$name];
+    }
+
+    /** 获取当前模块下不同驱动的对象
+     * @param $name
+     * @param bool|false $bool
+     * @return object
+     * @throws Exception
+     */
+    public static function moduleStore($name, $bool = false)
+    {
+        $name = ucwords($name);
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS,2);
+        if($classObj = param($trace, 1)){
+            $class = param($classObj, 'class');
+            if(preg_match("/app\\\\([\d\w]+)\\\\/i", $class, $match)){
+                $class = "app\\{$match[1]}\\cache\\{$name}";
+                $ret = static::instranceCacheObject($class, $class, $bool);
+                return $ret;
+            }else{
+                throw new JsonErrorException("File:{$trace[0]['file']};Line:{$trace[0]['line']} not find cache class {$name}");
+            }
+        }else{
+            return null;//wcg这是不太可能发生
+        }
+    }
+
+    /** 筛选数据
+     * @param array $list 二维数组
+     * @param array $where 如： $where[] = ['字d段','运算符','值']
+     * @param string $field 如：$field = 'id,name,age';
+     * @return array
+     */
+    public static function filter(array $list, array $where, $field = '')
+    {
+        $field = $field ? explode(',', $field) : [];
+        $result = [];
+        foreach ($list as $id => $row) {
+            if ($field) {
+                $_row = [];
+                foreach ($field as $key) {
+                    if (isset($row[$key])) {
+                        $_row[$key] = $row[$key];
+                    }
+                }
+            } else {
+                $_row = $row;
+            }
+            if ($where) {
+                $flag = true;
+                foreach ($where as $key => $val) {
+                    if (!isset($row[$val[0]])) {
+                        $flag = false;
+                        break;
+                    }
+                    if (isset($val[2])) {
+                        switch ($val[1]) {
+                            case 'in':
+                                $flag = in_array($_row[$val[0]], $val[2]);
+                                break;
+                            case '=':
+                                break;
+                            case '==':
+                                $flag = $row[$val[0]] == $val[2];
+                                break;
+                            case '!=':
+                                $flag = $row[$val[0]] != $val[2];
+                                break;
+                            case '>':
+                                $flag = $row[$val[0]] > $val[2];
+                                break;
+                            case '>=':
+                                $flag = $row[$val[0]] >= $val[2];
+                                break;
+                            case '<':
+                                $flag = $row[$val[0]] < $val[2];
+                                break;
+                            case '<=':
+                                $flag = $row[$val[0]] <= $val[2];
+                                break;
+                            case 'like':
+                                $bool = stristr($row[$val[0]], $val[2]);
+                                if (empty($bool)) {
+                                    $flag = false;
+                                    break;
+                                }
+                                $flag = true;
+                                break;
+                            default:
+                                $flag = false;
+                                break;
+                        }
+                    } else {
+                        if (isset($val[1])) {
+                            $flag = $row[$val[0]] == $val[1];
+                        }
+                    }
+                    if (!$flag) {
+                        break;
+                    }
+                }
+                if ($flag) {
+                    $result[$id] = $_row;
+                }
+            } else {
+                $result[$id] = $_row;
+            }
+        }
+        return $result;
+    }
+
+    /** 缓存分页
+     * @param array $list
+     * @param $page
+     * @param $pageSize
+     * @return array
+     */
+    public static function page(array $list, $page, $pageSize)
+    {
+        $j = 0;
+        $new_array = [];
+        $start = !empty($page) ? intval($page) - 1 : 0;
+        $start = intval($start) * intval($pageSize);
+        $end = intval($start) + intval($pageSize);
+        foreach ($list as $k => $v) {
+            $j++;
+            if ($start == 0) {
+                if ($j >= $start && $j < ($end + 1)) {
+                    array_push($new_array, $v);
+                }
+            } else {
+                if ($j > $start && $j < ($end + 1)) {
+                    array_push($new_array, $v);
+                }
+            }
+        }
+        return $new_array;
+    }
+
+    /** 返回redis对象
+     * @param bool|false $persist
+     * @return \Redis
+     */
+    public static function handler($persist = false, $db = null)
+    {
+        $self = new self();
+        if(isset($db)) $self->db = $db;
+        if ($persist) {
+            return $self->persistRedis;
+        } else {
+            return $self->redis;
+        }
+    }
+
+    public function __isset($property)
+    {
+        switch ($property){
+            case 'persistRedis':
+                return true;
+            case 'redis':
+                return true;
+            default:
+                throw new JsonErrorException("not defined property $property");
+        }
+    }
+
+    protected function createRedis($config)
+    {
+        $config = Config::get($config);
+        return createRedis($config);
+    }
+
+    public function __get($property)
+    {
+        switch ($property){
+            case 'persistRedis':
+                $pid = getmypid();
+                self::$persistRedises[$pid] = self::$persistRedises[$pid] ?? $this->createRedis('cache.redisPersist');
+                self::$persistRedises[$pid]->select($this->db);
+                return self::$persistRedises[$pid];
+            case 'redis':
+                $pid = getmypid();
+                //self::$redises[$pid] = self::$redises[$pid] ?? $this->createRedis('cache.default');
+                //self::$redises[$pid]->select($this->db);
+                //return self::$redises[$pid];
+                return \think\cache\driver\Redisrw::getInstance('cache.default', $this->db);
+                break;
+            default:
+                throw new JsonErrorException("not defined property $property");
+        }
+    }
+
+}
+

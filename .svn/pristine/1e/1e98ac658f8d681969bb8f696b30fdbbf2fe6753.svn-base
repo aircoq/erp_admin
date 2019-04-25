@@ -1,0 +1,30 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-4-24
+ * Time: 下午3:30
+ */
+
+namespace erp;
+
+
+class FilterConfig implements \JsonSerializable
+{
+    private $params = [];
+    public function addConfig(FilterParam $param)
+    {
+        $this->params[$param->getName()] = $param;
+        return $this;
+    }
+
+    function jsonSerialize()
+    {
+        return array_values($this->params);
+    }
+
+    public function __toString()
+    {
+        return json_encode($this);
+    }
+}

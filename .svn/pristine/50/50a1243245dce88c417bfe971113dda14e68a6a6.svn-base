@@ -1,0 +1,558 @@
+<?php
+
+namespace service\amazon;
+
+use think\Loader;
+
+Loader::import('service.amazon.MarketplaceWebService.Client');
+Loader::import('service.amazon.MarketplaceWebService.model.RequestReportRequest');
+Loader::import('service.amazon.MarketplaceWebService.model.GetReportListRequest');
+Loader::import('service.amazon.MarketplaceWebService.model.GetReportRequest');
+Loader::import('service.amazon.MarketplaceWebService.model.GetReportListByNextTokenRequest');
+Loader::import('service.amazon.MarketplaceWebService.model.GetReportRequestListRequest');
+
+use app\common\model\amazon\LogAmazonRequestReport as LogAmazonRequestReportModel;
+use app\common\model\amazon\LogAmazonRequestReportList as LogAmazonRequestReportListModel;
+
+use app\common\model\amazon\AmazonOrder as AmazonOrderModel;
+use app\common\model\amazon\AmazonOrderDetail as AmazonOrderDetailModel;
+
+
+class AmazonFeedBack
+{
+    private $client;
+    private $accessKey;
+    private $accessKeyId;
+    private $merchantId;
+    private $applicationName;
+    private $applicationVersion;
+    private $severUrl;
+    private $nextToken;
+    private $hasNext = false;
+    private $reportIds = [];
+    public $result = [
+        'status' => false,
+        'data' => []
+    ];
+    public $errors = [];
+    private $return_data = "";
+
+    /**
+     * 构造函数 杨伟权 f5escenter@163.com 2017-05-18
+     * @param type $reportType
+     * @param type $startDate
+     * @param type $endDate
+     * @return type
+     */
+    public function __construct($accessKey, $accessKeyId, $merchant_id, $severUrl, $applicationName, $applicationVersion)
+    {
+        $this->accessKey = $accessKey;
+        $this->accessKeyId = $accessKeyId;
+        $this->applicationName = $applicationName;
+        $this->applicationVersion = $applicationVersion;
+        $this->merchantId = $merchant_id;
+        $this->severUrl = $severUrl;
+        $config = array(
+            'ServiceURL' => $this->severUrl,
+            'ProxyHost' => null,
+            'ProxyPort' => -1,
+            'MaxErrorRetry' => 3,
+        );
+        $this->client = new \MarketplaceWebService_Client(
+            $this->accessKeyId, $this->accessKey, $config, $this->applicationName, $this->applicationVersion
+        );
+    }
+
+
+    /**
+     * 发送90天报告请求同时将已经发送的报告请求中，状态为Done的报告下载并且入库 杨伟权 f5escenter@163.com 2017-05-18
+     * @param type $reportType
+     * @param type $startDate
+     * @param type $endDate
+     * @return type
+     */
+
+    public function getReports()
+    {
+        try {
+            //$this->requestReport('_GET_SELLER_FEEDBACK_DATA_');
+            do {
+                if ($this->hasNext) {
+                    $this->getReportListByNextToken();
+                } else {
+                    $this->getReportList();
+                }
+            } while ($this->hasNext);
+            exit;
+
+            /*
+           print_r($this->reportIds);
+           if (!empty($this->reportIds)) {
+               foreach ($this->reportIds as $key => $item) {
+                   $reports = $this->getReport($item);
+                   if (!empty($reports)) {
+                       foreach ($reports as $k => $report) {
+                           $model = new \app\common\model\amazon\AmazonFeedback();
+                           $model->add($report);
+                       }
+                   }
+               }
+           }
+           */
+        } catch (\Exception $ex) {
+            throw new \think\Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * 创建报告请求，并将请求提交至亚马逊 MWS
+     * @param type $reportType
+     * @param type $startDate
+     * @param type $endDate
+     * @return type
+     */
+    public function requestReport($reportType = '_GET_SELLER_FEEDBACK_DATA_', $startDate = '', $endDate = '')
+    {
+        $parameters = array(
+            'Merchant' => $this->merchantId,
+            'ReportType' => $reportType, //'_GET_SELLER_FEEDBACK_DATA_',
+            'StartDate' => $startDate ? $startDate : $this->getFormattedTimestamp(time() - 86400 * 90),
+            'EndDate' => $endDate ? $endDate : $this->getFormattedTimestamp(time()),
+            'ReportOptions' => 'ShowSalesChannel=true',
+        );
+
+        $logAmazonRequestReportModel = new LogAmazonRequestReportModel();
+
+        $add_data = [
+            'report_start_time' => $parameters['EndDate'],
+            'report_end_time' => $parameters['StartDate'],
+            'report_type' => $reportType,
+            'created_date' => date('Y-m-d H:i:s'),
+            'updated_date' => date('Y-m-d H:i:s'),
+        ];
+
+        $logAmazonRequestReportModel->data($add_data);
+        $logAmazonRequestReportModel->save();
+        $log_id = $logAmazonRequestReportModel->id;
+        if (!$log_id) {
+            return;
+        }
+        $request = new \MarketplaceWebService_Model_RequestReportRequest($parameters);
+
+
+        try {
+            $response = $this->client->requestReport($request);
+            if ($response->isSetRequestReportResult()) {
+                $requestReportResult = $response->getRequestReportResult();
+                if ($requestReportResult->isSetReportRequestInfo()) {
+                    $reportRequestInfo = $requestReportResult->getReportRequestInfo();
+                    if ($reportRequestInfo->isSetReportProcessingStatus()) {
+                        $this->result['data'] = [
+                            'ProcessingStatus' => $reportRequestInfo->getReportProcessingStatus()
+                        ];
+                    }
+                }
+            }
+            if ($response->isSetResponseMetadata()) {
+                $responseMetadata = $response->getResponseMetadata();
+                if ($responseMetadata->isSetRequestId()) {
+                    $this->result['data'] = [
+                        'ProcessingStatus' => $responseMetadata->getRequestId()
+                    ];
+                }
+            }
+
+            $logAmazonRequestReportModel->save([
+                'report_request_id' => $reportRequestInfo->getReportRequestId(),
+            ], ['id' => $log_id]);
+
+            $this->result['status'] = true;
+        } catch (\MarketplaceWebService_Exception $ex) {
+            $this->errors[] = $ex->getMessage();
+        }
+        return $this->result;
+    }
+
+    /**
+     * 返回在过去 90 天内所创建的报告列表。
+     * @param type $startDate
+     * @param type $endDate
+     */
+    public function getReportList($startDate = '', $endDate = '')
+    {
+
+        try {
+            $parameters = array(
+                'Merchant' => $this->merchantId,
+                'AvailableToDate' => $endDate ? $endDate : $this->getFormattedTimestamp(time()),
+                'AvailableFromDate' => $startDate ? $startDate : $this->getFormattedTimestamp(time() - 86400 * 90),
+                'Acknowledged' => false,
+                //'MWSAuthToken' => '<MWS Auth Token>', // Optional
+                'ReportTypeList' => array('Type' => '_GET_SELLER_FEEDBACK_DATA_'),
+            );
+            $request = new \MarketplaceWebService_Model_GetReportListRequest($parameters);
+            $response = $this->client->getReportList($request);
+            //print_r($response);exit;
+            if ($response->isSetGetReportListResult()) {
+                $getReportListResult = $response->getGetReportListResult();
+                if ($getReportListResult->isSetNextToken()) {
+                    $this->nextToken = $getReportListResult->getNextToken();
+                }
+                if ($getReportListResult->isSetHasNext()) {
+                    $this->hasNext = $getReportListResult->getHasNext();
+                }
+                $reportInfoList = $getReportListResult->getReportInfoList();
+                foreach ($reportInfoList as $reportInfo) {
+
+                    if ($reportInfo->isSetReportId()) {
+                        // $this->reportIds[] = $reportInfo->getReportId();
+                        $logAmazonRequestReportListModel = new LogAmazonRequestReportListModel();
+                        $add_data = [
+                            'report_id' => $reportInfo->getReportId(),
+                            'report_type' => $reportInfo->getReportType(),
+                            //'available_date'=>$reportInfo->getAvailableDate(),
+                        ];
+                        $logAmazonRequestReportListModel->data($add_data);
+                        $logAmazonRequestReportListModel->save();
+                    }
+                }
+            }
+        } catch (\MarketplaceWebService_Exception $ex) {
+            throw new \think\Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * 返回报告内容及所返回报告正文的 Content-MD5 标头。
+     * @param string $reportId
+     */
+    public function getReport($reportId)
+    {
+        //$reportId = '6060085996017294';
+        $parameters = array(
+            'Merchant' => $this->merchantId,
+            'Report' => @fopen('php://memory', 'rw+'),
+            'ReportId' => $reportId,
+        );
+        $request = new \MarketplaceWebService_Model_GetReportRequest($parameters);
+        try {
+            $this->client->getReport($request);
+            $text = stream_get_contents($request->getReport());
+            $this->return_data = $text;
+            $result = $this->analysisReportContent($text);
+            return $result;
+        } catch (\MarketplaceWebService_Exception $ex) {
+            throw new \think\Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * 可通过之前请求提供给 GetReportListByNextToken 或 GetReportList 的 NextToken 值，返回报告列表，其中前一调用中的 HasNext 值为 true。
+     * @throws \think\Exception
+     */
+    public function getReportListByNextToken()
+    {
+        try {
+            $parameters = array(
+                'Merchant' => $this->merchantId,
+                'NextToken' => $this->nextToken,
+                //'MWSAuthToken' => '<MWS Auth Token>', // Optional
+            );
+            $request = new \MarketplaceWebService_Model_GetReportListByNextTokenRequest($parameters);
+            $response = $this->client->getReportListByNextToken($request);
+            if ($response->isSetGetReportListByNextTokenResult()) {
+                $getReportListByNextTokenResult = $response->getGetReportListByNextTokenResult();
+                if ($getReportListByNextTokenResult->isSetNextToken()) {
+                    $this->nextToken = $getReportListByNextTokenResult->getNextToken();
+                }
+                if ($getReportListByNextTokenResult->isSetHasNext()) {
+                    $this->hasNext = $getReportListByNextTokenResult->getHasNext();
+                }
+                $reportInfoList = $getReportListByNextTokenResult->getReportInfoList();
+                foreach ($reportInfoList as $reportInfo) {
+                    if ($reportInfo->isSetReportId()) {
+                        //$this->reportIds[] = $reportInfo->getReportId();
+                        $logAmazonRequestReportListModel = new LogAmazonRequestReportListModel();
+                        $add_data = [
+                            'report_id' => $reportInfo->getReportId(),
+                            'report_type' => $reportInfo->getReportType(),
+                            //'available_date'=>$reportInfo->getAvailableDate(),
+                        ];
+
+                        $logAmazonRequestReportListModel->data($add_data);
+                        $logAmazonRequestReportListModel->save();
+
+                    }
+                }
+            }
+        } catch (\MarketplaceWebService_Exception $ex) {
+            throw new \think\Exception($ex->getMessage());
+        }
+    }
+
+    private function getFormattedTimestamp($timestamp = '')
+    {
+        $timestamp = (trim($timestamp) != '') ? $timestamp : time();
+        return gmdate("Y-m-d\TH:i:s\Z", $timestamp);
+    }
+
+    private function analysisReportContent($text)
+    {
+        $current_time_zone = date_default_timezone_get();
+        date_default_timezone_set('Etc/GMT');
+        //$j = 0;
+        $titleKeys = [];
+        $return = [];
+        if (!empty($text)) {
+            $aryReportContents = explode("\n", $text);
+            if (!empty($aryReportContents)) {
+                foreach ($aryReportContents as $key => $item) {
+                    if (empty($item)) {
+                        continue;
+                    }
+                    if ($key == 0) {//第一行
+                        $titleKeys = preg_split("/\t+/", $item);
+                    } else {//第2 3 ....行
+                        $aryItem = preg_split("/\t+/", $item);//列数组
+                        //国家判断，转换编码,德语例外
+                        if (stripos($aryItem[8], '.de') !== false) {
+                            $aryItem [2] = iconv("ISO-8859-1", "UTF-8", $aryItem [2]);
+                        }
+                        $source_comment_time = $aryItem [0];
+
+                        //日期格式统一转化,美国,德国一致采用 月日年
+                        $aryTime = explode("/", $aryItem[0]);
+
+                        /*
+                        if (stripos($aryItem [8], ".de") !== false || stripos($aryItem [8], ".com") !== false) {
+                            //纠正个别错误
+                            if (strnatcmp($aryTime[0], "12") > 0) {
+                                $strTime = $aryTime[1] . '/' . $aryTime[0] . '/' . $aryTime[2];
+                                $aryItem[0] = strtotime($strTime);
+                            } else {
+                                $aryItem[0] = strtotime($aryItem[0]);
+                            }
+                        } else {
+                            */
+                        $strTime = '20' . $aryTime[2] . '-' . $aryTime[1] . '-' . $aryTime[0] . ' 00:00:00';
+                        //echo $strTime ;
+                        //echo ++$j;
+                        $aryItem[0] = strtotime($strTime);
+
+                        //}
+                        //date('Y-m-d H:i:s',$aryItem[0])."|".$a.'|'.$strTime,
+                        $tmp = [
+                            'comment_time' => $source_comment_time,
+                            //'source_comment_time' => $source_comment_time,
+                            //'comment_time' => $aryItem[0],
+                            'complete_comment_time' => date('Y-m-d H:i:s', $aryItem[0]),
+                            'rating' => $aryItem[1],
+                            'comments' => $aryItem[2],
+                            'response' => $aryItem[3],
+                            'arrived_on_time' => $aryItem[4],
+                            'item_as_described' => $aryItem[5],
+                            'customer_service' => $aryItem[6],
+                            'order_id' => $aryItem[7],
+                            'rater_email' => $aryItem[8],
+                            'rater_role' => $aryItem[9],
+                        ];
+                        $return[] = $tmp;
+
+                    }
+                }
+
+            }
+            //echo date_default_timezone_get();exit;
+            //echo $current_time_zone;
+            date_default_timezone_set($current_time_zone);
+        }
+        //print_r($return);exit;
+        return $return;
+    }
+
+
+    /**
+     * 查看报告的生成情况 yangweiquan f5escenter@163.com 2017-05-18
+     * @param type $reportType
+     * @param type $startDate
+     * @param type $endDate
+     * @return type
+     */
+
+    public function getReportRequestList($report_request_id)
+    {
+        $logAmazonRequestReportModel = new LogAmazonRequestReportModel();
+
+        $parameters = array(
+            'Merchant' => $this->merchantId,
+            'ReportRequestIdList' => array('Id' => $report_request_id),
+        );
+
+        $request = new \MarketplaceWebService_Model_GetReportRequestListRequest($parameters);
+
+        try {
+            $response = $this->client->getReportRequestList($request);
+            if ($response->isSetGetReportRequestListResult()) { //查询到信息
+                $getReportRequestListResult = $response->getGetReportRequestListResult();
+                $reportRequestInfoList = $getReportRequestListResult->getReportRequestInfoList();
+                foreach ($reportRequestInfoList as $reportRequestInfo) {
+                    if ($reportRequestInfo->isSetReportProcessingStatus()) {
+                        $processingStatus = $reportRequestInfo->getReportProcessingStatus();
+                    }
+
+                    $generatedReportId = 0;
+                    if ($reportRequestInfo->isSetGeneratedReportId()) {
+                        $generatedReportId = $reportRequestInfo->getGeneratedReportId();
+                    }
+
+                    if ($processingStatus) {
+                        $logAmazonRequestReportModel->save(['report_processing_status' => $processingStatus, 'generated_report_id' => $generatedReportId], ['report_request_id' => $report_request_id]);
+                    }
+
+                    break;//只有一条信息，传入$report_request_id的情况下
+                }
+
+            }
+
+        } catch (\MarketplaceWebService_Exception $ex) {
+            throw new \think\Exception($ex->getMessage());
+        }
+
+    }
+
+
+    /**
+     * 查看报告并将报告入库 yangweiquan f5escenter@163.com 2017-05-19
+     * @param type $reportType
+     * @param type $startDate
+     * @param type $endDate
+     * @return type
+     */
+
+    public function getReportDataToDb($limit = 100)
+    {
+        set_time_limit(0);
+        $logAmazonRequestReportModel = new LogAmazonRequestReportModel();
+
+        $amazonOrderModel = new AmazonOrderModel();
+        $amazonOrderDetailModel = new AmazonOrderDetailModel();
+
+        $request_info_lists = $logAmazonRequestReportModel->where(true)->limit($limit)->order('id', 'desc')->select();
+
+        if ($request_info_lists) {
+            foreach ($request_info_lists as $request_info_list) {
+                if ($request_info_list->report_processing_status == '_DONE_' || $request_info_list->report_processing_status == '_DONE_NO_DATA_') {
+                    continue;
+                }
+var_dump($request_info_list);
+                //$this->getReportRequestList($request_info_list->report_request_id); //获得请求的最新状态，更新到数据库
+            }
+        }
+
+        //重新读取数据库记录
+        $request_info_lists = $logAmazonRequestReportModel->where(['report_processing_status' => '_DONE_', 'is_downl oaded' => 0])->limit($limit)->order('id', 'desc')->select();
+        if ($request_info_lists) {
+            foreach ($request_info_lists as $request_info) {
+                //if($request_info->is_downloaded == 0){
+                //echo "<hr/>";
+                //echo $request_info->generated_report_id;
+                $reports = $this->getReport($request_info->generated_report_id);
+                //print_r($reports);exit;
+                //continue;
+                //$return_data->t
+                if (!empty($reports)) {
+                    //print_r($reports);echo $request_info->id; exit;
+                    foreach ($reports as $k => $report) {
+
+                        $model = new \app\common\model\amazon\AmazonFeedback();
+                        $report['is_arrived_on_time'] = in_array($report['arrived_on_time'], array('Yes', 'No', '-')) ? $report['arrived_on_time'] : 'No';
+                        $report['is_product_description_accurate'] = in_array($report['item_as_described'], array('Yes', 'No', '-')) ? $report['item_as_described'] : 'No';
+                        $report['email'] = $report['rater_email'];
+                        $report['role'] = $report['rater_role'];
+                        $report['is_customer_service_good'] = in_array($report['customer_service'], array('Yes', 'No', '-')) ? $report['customer_service'] : 'No';
+                        $report['is_neutral_or_negative'] = '-';
+                        $report['rating'] == 3 ? $report['is_neutral_or_negative'] = 'Yes' : $report['is_neutral_or_negative'] == 'No';
+                        $report['seller_response'] = $report['response'];
+                        $report['create_time'] = time();
+                        $report['merchant_id'] = $this->merchantId;
+                        unset($report['response']);
+                        unset($report['customer_service']);
+                        unset($report['item_as_described']);
+                        unset($report['arrived_on_time']);
+                        unset($report['rater_email']);
+                        unset($report['rater_role']);
+
+                        //这里附加订单的参数
+                        $order = $amazonOrderModel->where(array('order_number' => $report['order_id']))->find();
+                        $order_sku_rows = [];
+                        if($order_sku_rows){
+                            $order_sku_rows = $amazonOrderDetailModel->where(array('amazon_order_id' => $order['id']))->select();
+                        }
+                        if ($order) {
+                            $report['order_payment_time'] = ($order && $order['payment_time']) ? date('m/d H:i', $order['payment_time']) : '';//订单支付时间
+                            $report['order_lastest_ship_time'] = ($order && $order['latest_ship_time']) ? date('m/d H:i', $order['latest_ship_time']) : '';// 发货时间
+                            $report['order_site'] = ($order && $order['site']) ? $order['site'] : '';// 发货时间
+                        }
+
+                        $report['order_skus'] = [];
+                        if ($order_sku_rows) {
+                            foreach ($order_sku_rows as $order_sku_row) {
+                                $skus = [
+                                    'item_title' => $order_sku_row['item_title'],
+                                    'item_qty' => $order_sku_row['qty'],
+                                    'item_url' => $order_sku_row['item_url'],
+                                ];
+                                $report['order_skus'][] = $skus;
+                            }
+
+                        }
+
+
+                        //print_r($report);
+                        //continue;
+
+                        $report_where = [
+                            'order_id' => $report['order_id'],
+                            'email' => $report['email'],
+                            'role' => 'Buyer',
+
+                        ];
+                        $check = $model->where($report_where)->find();
+
+                        if (!$check) {//不存在
+                            $model->add($report);
+                        } else {
+                            $report['id'] = $check['id'];
+                            $model->add($report);
+                        }
+                        //print_r($report);exit;
+
+
+                    }
+                }
+
+                $logAmazonRequestReportModel = new LogAmazonRequestReportModel();
+                $update_data = [
+                    //'is_downloaded'=>1,
+                    'return_data' => $this->return_data,
+                ];
+                echo $request_info->id;
+                echo "<hr/>";
+                $where = ['id' => $request_info->id];
+                $logAmazonRequestReportModel->save($update_data, $where);
+
+                //}
+
+
+            }
+        } else {
+            $this->requestReport();
+        }
+
+        echo "Finish!";
+
+
+    }
+
+
+}

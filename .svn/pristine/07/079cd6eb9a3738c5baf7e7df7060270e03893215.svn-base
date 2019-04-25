@@ -1,0 +1,30 @@
+<?php
+// +----------------------------------------------------------------------
+// | 
+// +----------------------------------------------------------------------
+// | File  : IFilterRule.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-20
+// +----------------------------------------------------------------------
+
+namespace imap\interfaces;
+
+use PhpImap\IncomingMail;
+
+interface IFilterRule
+{
+
+    /**
+     * @param string|string[] $exps 单条或一组正则字符串
+     * @return void
+     */
+    public function addRegular($exps);
+
+    /**
+     * @param IncomingMail $cls
+     * @return mixed
+     */
+    public function check(IncomingMail &$cls);
+}

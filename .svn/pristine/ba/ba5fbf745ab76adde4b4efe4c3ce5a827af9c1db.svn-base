@@ -1,0 +1,19 @@
+server
+{
+    listen 80;
+    server_name api.org;
+    index index.php index.html index.htm default.php default.htm default.html;
+    root /www/wwwroot/SwaggerClient-php;
+    
+    if ($request_uri ~ '^(.*\.php)?(.+)$') {
+                set $pathinfo $2;
+    }
+    location ~ \.php$ {
+      fastcgi_pass   unix:/tmp/php-cgi-56.sock;
+      fastcgi_index  index.php;
+      fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+      fastcgi_param  PATH_INFO $pathinfo;
+      include        fastcgi_params;
+    }
+    try_files $uri $uri/ /index.php?$query_string;
+}

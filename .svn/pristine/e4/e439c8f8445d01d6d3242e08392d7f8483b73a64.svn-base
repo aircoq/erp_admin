@@ -1,0 +1,237 @@
+<?php
+namespace Api\Doc;
+
+use app\common\model\User;
+use app\order\controller\Order;
+use think\Config;
+use think\Paginator;
+use think\View;
+use think\Request;
+
+
+class DocController
+{
+    protected $assets_path = "";
+    protected $view_path = "";
+    /**
+     * @var \think\Request Request实例
+     */
+    protected $request;
+    /**
+     * @var \think\View 视图类实例
+     */
+    protected $view;
+    /**
+     * @var Doc
+     */
+    protected $doc;
+    /**
+     * @var array 资源类型
+     */
+    protected $mimeType = [
+        'xml' => 'application/xml,text/xml,application/x-xml',
+        'json' => 'application/json,text/x-json,application/jsonrequest,text/json',
+        'js' => 'text/javascript,application/javascript,application/x-javascript',
+        'css' => 'text/css',
+        'rss' => 'application/rss+xml',
+        'yaml' => 'application/x-yaml,text/yaml',
+        'atom' => 'application/atom+xml',
+        'pdf' => 'application/pdf',
+        'text' => 'text/plain',
+        'png' => 'image/png',
+        'jpg' => 'image/jpg,image/jpeg,image/pjpeg',
+        'gif' => 'image/gif',
+        'csv' => 'text/csv',
+        'html' => 'text/html,application/xhtml+xml,*/*',
+    ];
+
+    public function __construct(Request $request = null)
+    {
+        if (is_null($request)) {
+            $request = Request::instance();
+        }
+        $this->request = $request;
+        $this->assets_path = __DIR__ . DS . 'assets' . DS;
+        $this->view_path = __DIR__ . DS . 'view' . DS;
+        $config = [
+            'view_path' => $this->view_path
+        ];
+        $this->view = new View($config);
+        $this->doc = new Doc((array)Config::get('doc'));
+
+        $this->view->assign('title', $this->doc->__get("title"));
+        $this->view->assign('version', $this->doc->__get("version"));
+        $this->view->assign('copyright', $this->doc->__get("copyright"));
+    }
+
+    /**
+     * 显示模板
+     * @param $name
+     * @return mixed
+     */
+    protected function show($name, $vars = [], $replace = [], $config = [])
+    {
+        $re = [
+            "__ASSETS__" => "/doc/assets"
+        ];
+        $replace = array_merge($replace, $re);
+        return $this->view->fetch($name, $vars, $replace, $config);
+    }
+
+
+    /**
+     * 解析资源
+     * @return $this
+     */
+    public function assets()
+    {
+        $path = str_replace("doc/assets", "", $this->request->pathinfo());
+        $ext = $this->request->ext();
+        if ($ext) {
+            $type = "text/html";
+            $content = file_get_contents($this->assets_path . $path);
+            if (array_key_exists($ext, $this->mimeType)) {
+                $type = $this->mimeType[$ext];
+            }
+            return response($content, 200, ['Content-Length' => strlen($content)])->contentType($type);
+        }
+    }
+
+    /**
+     * 文档首页
+     * @return mixed
+     */
+    public function index()
+    {
+//        if(strtoupper(substr(PHP_OS,0,3)) === 'WIN'){
+//            return $this->show('index');
+//        }
+        if (!isset($_SERVER['PHP_AUTH_USER'])) {
+            header('WWW-Authenticate: Basic realm="My Realm"');
+            header('HTTP/1.0 401 Unauthorized');
+            echo 'Sorry, there is no permission to access, please contact the administrator';
+            exit;
+        } else {
+            $username = $_SERVER['PHP_AUTH_USER'];
+            $password = $_SERVER['PHP_AUTH_PW'];
+            $userModel = new User();
+            if(trim($username) == 'admin'){
+                $user = $userModel->where(['username' => $username])->find();
+                if(empty($user)){
+                    echo 'The user is error';
+                    exit;
+                }
+                if($user['password'] != User::getHashPassword($password, $user['salt'])){
+                    echo 'The user password is error';
+                    exit;
+                }
+                $this->view->assign('is_admin', true);
+                return $this->show('index');
+            }else{
+                $this->view->assign('is_admin', false);
+                return $this->show('index');
+               // echo 'Authentication failure';
+               // exit;
+            }
+        }
+    }
+
+    /**
+     * 接口列表
+     * @return \think\Response
+     */
+    public function getList()
+    {
+        $lists = $this->doc->getList2();
+        $list = $lists['list'];
+        foreach ($list as $key => $moudel) {
+            $title = param($moudel, 'title');
+            $module = param($moudel, 'module');
+            $list[$key]['iconClose'] = "/doc/assets/js/zTree_v3/img/zt-folder.png";
+            $list[$key]['iconOpen'] = "/doc/assets/js/zTree_v3/img/zt-folder-o.png";
+            $list[$key]['open'] = true;
+            $list[$key]['nickTitle'] = $title;
+            $list[$key]['title'] = $title . " -" . $module;
+            $list[$key]['isParent'] = true;
+            foreach ($moudel['actions'] as $k => $v) {
+                $moudel['actions'][$k]['icon'] = "/doc/assets/js/zTree_v3/img/zt-file.png";
+                $moudel['actions'][$k]['isParent'] = false;
+                $moudel['actions'][$k]['isText'] = true;
+            }
+            $list[$key]['actions'] = $moudel['actions'];
+        }
+        return response(['firstId' => '', 'list' => $list, 'error' => $lists['error']], 200, [], 'json');
+    }
+
+
+    /**
+     * 接口详情
+     * @param string $name
+     * @return mixed
+     */
+    public function getInfo($name = "")
+    {
+        list($class, $action) = explode("::", $name);
+        $docClass = new ClassDoc($class);
+        $action_doc = $docClass->getActionDoc($action);
+        $errors = $docClass->getErrors();
+        if ($action_doc) {
+            $return = $this->doc->formatReturn($action_doc);
+            $action_doc['param'] = isset($action_doc['apiParam']) ? $action_doc['apiParam'] : [];
+            return $this->show('info', ['doc' => $action_doc, 'return' => $return]);
+        }
+    }
+
+
+    /**
+     * 接口访问测试
+     * @return \think\Response
+     */
+    public function debug2()
+    {
+        $data = $this->request->param();
+        $api_url = $this->request->param('url');
+        $res['status'] = '404';
+        $res['meaasge'] = '接口地址无法访问！';
+        $res['result'] = '';
+        $type = $this->request->param('method_type', 'get');
+        $cookie = $this->request->param('cookie', 'GET');
+        unset($data['method_type']);
+        unset($data['url']);
+        unset($data['cookie']);
+        if ($type == 'get') {
+            $data = array_filter($data);
+            $api_url .= "?" . http_build_query($data);
+            //还原数组格式
+            $api_url = str_replace(array('%5B0%5D'), array('[]'), $api_url);
+            $res['result'] = http_request($api_url, $cookie);
+        } else {
+            $res['result'] = http_request($api_url, $cookie, $data);
+        }
+        if ($res['result']) {
+            $res['status'] = '200';
+            $res['meaasge'] = 'success';
+        }
+        url();
+        return response($res, 200, [], 'json');
+    }
+
+    public function debug(Request $request)
+    {
+        $params = $this->request->param();
+        $method = param($params, 'method', 'GET');
+        $method = strtolower($method);
+        $url = param($params, 'url');
+        switch ($method) {
+            case 'get':
+                $ret = \Requests::get($url . "?test");
+                break;
+            case 'post':
+                $ret = \Requests::post($url . "?test", [], $params);
+                break;
+            default:
+                $ret = "not support $method";
+        }
+        return response($ret, 200, [], 'json');
+    }
+}

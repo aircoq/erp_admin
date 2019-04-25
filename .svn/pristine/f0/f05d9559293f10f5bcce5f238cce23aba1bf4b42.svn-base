@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.07271873998956213 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;font-size:10pt;line-height:12pt;page-break-after:always">
+        <div style="border:1pt solid #000;width:268pt;">
+            <div style="width:60pt;padding:2pt;"><img width="100%" src="data:image/png;base64,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"></div>
+            <div style="width:100%;border-top:1pt solid #000;padding:5pt 0;font-size:8pt;line-height:10pt;text-align:center;">
+                <span style="display:inline-block;font-weight:bold;margin-bottom:5pt;">Lazada Firstmile Tracking Number</span><br>
+                <span style="display:inline-block;height:45pt;line-height:42pt;overflow-y:hidden"> <img
+                            style="width:220pt;height:60pt;"
+                            src="<?php echo $this->imgSrc($shipping_number);?>"> </span><br>
+                <strong><?php echo $shipping_number;?></strong></div>
+            <div style="width:262pt;border-top:1pt solid #000;border-top:1pt solid #000;padding:5pt 3pt;font-size: 8pt; line-height: 10pt">
+                <div style="min-height:40pt;"> To: <?php echo $name;?> - <?php echo $country_en_name?> <br> Service: Lazada Firstmile
+                    Fulfilment
+                </div>
+                Seller Name: Rondaful<br> Seller Address: Floor 3 Building 1st E-commerce Park Jingang Road No.2011<br>
+                Seller Contact: 18300042233
+            </div>
+            <div style="width:264pt;border-top:1pt solid #000;padding:5pt 2pt;font-size: 7pt;line-height: 10pt;"> 产品说明：
+                <div style="width:100%;min-height:40pt;margin: 2pt 0;">
+                    <table cellpadding="0" cellspacing="0"
+                           style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:10pt;">
+                        <tbody>
+                        <tr>
+                            <td style="width:170pt;border:solid 1pt #000;text-align:center;word-wrap:break-word;font-weight:bold;">
+                                Item name
+                            </td>
+                            <td style="border:solid 1pt #000;word-wrap:break-word;font-weight:bold;text-align:center">
+                                Item sku seller
+                            </td>
+                        </tr>
+                        <?php foreach ($list as $v):?>
+                        <tr>
+                            <td style="border:solid 1pt #000;font-size:8pt;line-height:9pt;word-wrap:break-word;">
+                                <?php echo $product_name?$product_name:$v['declared_name_en'];?>
+                            </td>
+                            <td style="border:solid 1pt #000;font-size:8pt;line-height:9pt"> <?php echo $v['sku'];?></td>
+                        </tr>
+                        <?php endforeach;?>
+                        </tbody>
+                    </table>
+                </div>
+                首公里仓库：<br><br> 浙江省义乌市龙海路881号申通电商大厦二楼 时丰运通物流
+            </div>
+            <div style="width:265pt;padding-left:3pt;border-top:1pt solid #000;">
+                <div style="float:left;width:155pt;line-height:30pt;padding:5pt;font-size:10pt;text-align:right;">渠道编码
+                </div>
+                <div style="float:left;width:97pt;line-height:40pt;font-size:14pt;text-align:center;border-left:1pt solid #000;font-weight:bold;">
+                    LZDTH
+                </div>
+                <div style="clear:both"></div>
+            </div>
+            <div style="width:268pt;text-align:center;border-top:1pt solid #000;font-size:8pt;line-height:10pt;"><span
+                        style="display:inline-block;">Lazada Package Number</span><br><br> <span
+                        style="display:inline-block;margin:2pt 0"><?php echo $show_package_id;?></span></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

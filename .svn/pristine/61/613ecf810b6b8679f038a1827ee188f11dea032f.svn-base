@@ -1,0 +1,62 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: rondaful_user
+ * Date: 2019/2/26
+ * Time: 14:26
+ */
+
+namespace ebay;
+use think\Exception;
+
+class EbaySDK
+{
+    public static function sendRequest($apiType,$config,$verb,$params=[])
+    {
+        try {
+            $serviceStr = '\\DTS\\eBaySDK\\' . $apiType . '\\Services\\' . $apiType . 'Service';
+            $config = [
+                'credentials' => [
+                    'appId' => $config['app_id'],
+                    'certId' => $config['cert_id'],
+                    'devId' => $config['dev_id'],
+                ],
+                'siteId' => $config['site_id'] ?? 0,
+                'authToken' => $config['token'],
+            ];
+            $service = new $serviceStr($config);
+            $requestStr = '\\DTS\\eBaySDK\\' . $apiType . '\\Types\\' . ucfirst($verb) . 'RequestType';
+            $request = new $requestStr($params);
+            $response = $service->$verb($request);
+            if (!$response) {
+                return ['result' => false, 'message' => '网络错误，请重试'];
+            }
+            $res = $response->toArray();
+
+            if ($res['Ack'] == 'Failure') {
+                $message = self::dealApiError($res);
+                return ['result' => false, 'message' => $message];
+            }
+            return ['result' => true, 'data' => $res];
+        } catch (\Throwable $e) {
+            return ['result'=>false,'message'=>$e->getMessage()];
+        }
+    }
+
+    public static function dealApiError($response)
+    {
+        $errorInfo = $response['Errors'];
+        $errors = isset($errorInfo[0]) ? $errorInfo : [$errorInfo];
+        $errorMsg = [];
+        foreach ($errors as $error) {
+            if ($error['SeverityCode'] == 'Error') {
+                $errorMsg[$error['ErrorCode']] = $error['SeverityCode'].':' . $error['LongMessage'];
+            }
+        }
+        if (isset($response['Message'])) {
+            $errorMsg['message'] = $response['Message'];
+        }
+        return json_encode($errorMsg,JSON_UNESCAPED_UNICODE);
+    }
+
+}

@@ -1,0 +1,13 @@
+<?php
+
+namespace service\shipping\operation;
+
+use service\shipping\operation\Aliexpress;
+
+/**
+ *  AliexpressNj 南京速卖通线上
+ */
+class AliexpressNj extends Aliexpress
+{
+    
+}

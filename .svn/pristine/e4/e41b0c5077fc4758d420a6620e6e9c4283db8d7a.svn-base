@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <div style="width:268pt;font-size:8pt;height: 60pt;margin-top: 10pt">
+            <div style="float: left;width: 110pt;margin: 10pt">
+                <img  style="width: 100pt" src="<?php echo $this->imgSrc($number);?>"><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <?php echo 'P'.$number?>
+            </div>
+            <div style="float: left;">
+                商户id: 11    <br>
+                数量： <?php echo $item_num?>   <br>
+                spu：  <?php echo $shop_spu?><br>
+            </div>
+        </div>
+        <div style="clear: both"></div>
+        <div style="width:268pt;font-size: 8pt;height: 100pt;line-height:10pt;text-align:left">
+            sku：<?php echo $shop_sku?><br><br>
+            订单号：  <img  style="width: 120pt" src="<?php echo $this->imgSrc($order_id);?>"><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <?php echo $order_id?>
+        </div>
+    </div>
+</div>
+</body>
+</html>

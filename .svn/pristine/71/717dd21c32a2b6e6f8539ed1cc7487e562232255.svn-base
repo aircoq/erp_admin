@@ -1,0 +1,47 @@
+<?php
+// +----------------------------------------------------------------------
+// | 
+// +----------------------------------------------------------------------
+// | File  : ReceiveFilter.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-19
+// +----------------------------------------------------------------------
+
+namespace imap\filter;
+
+
+use imap\filter\rules\AllowedDomain;
+use imap\interfaces\IFilterRule;
+use PhpImap\IncomingMail;
+
+class Receive
+{
+    protected $allowdDomain = '';
+
+    protected $rules = [];
+
+    /**
+     * @param IFilterRule $rule
+     */
+    public function addRule(IFilterRule $rule){
+        $this->rules[] = $rule;
+    }
+
+    /**
+     * @param IncomingMail $mail
+     * @return bool
+     */
+    public function filtering(IncomingMail &$mail)
+    {
+        foreach ($this->rules as $rule) {
+            if(!$rule->check($mail)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+}

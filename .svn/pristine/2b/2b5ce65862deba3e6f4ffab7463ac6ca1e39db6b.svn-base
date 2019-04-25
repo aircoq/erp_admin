@@ -1,0 +1,496 @@
+<?php
+namespace app\index\controller;
+
+use app\common\controller\Base;
+use app\index\service\ManagerServer;
+use app\common\service\Common as CommonService;
+use think\Request;
+use think\Exception;
+use app\common\model\User;
+
+/**
+ * @module 基础设置
+ * @title 服务器管理
+ * @author phill
+ * @url servers
+ * Created by PhpStorm.
+ * User: phill
+ * Date: 2017/8/3
+ * Time: 20:12
+ */
+class Server extends Base
+{
+    protected $managerService;
+    protected function init()
+    {
+        if(is_null($this->managerService)){
+            $this->managerService = new ManagerServer();
+        }
+    }
+
+    /**
+     * @title 服务器列表
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function index(Request $request)
+    {
+        $page = $request->get('page', 1);
+        $pageSize = $request->get('pageSize', 10);
+        $channelId = $request->get('channel_id', 0);
+        $where = $this->managerService->getWhere($request);
+        $result = $this->managerService->serverList($where,$page,$pageSize,$channelId);
+        return json($result, 200);
+    }
+
+    /**
+     * @title 获取服务器信息
+     * @param $id
+     * @return \think\response\Json
+     */
+    public function edit($id)
+    {
+        $result = $this->managerService->info($id);
+        return json($result, 200);
+    }
+
+    /**
+     * @title 保存服务器信息
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function save(Request $request)
+    {
+        $user = CommonService::getUserInfo();
+        if (!empty($user)) {
+            $data['creator_id'] = $user['user_id'];
+        }
+        $data['name'] = trim($request->post('name',''));
+        $data['ip'] = trim($request->post('ip',''));
+        $data['mac'] = trim($request->post('mac',''));
+        $data['admin'] = trim($request->post('admin',''));
+        $data['password'] = trim($request->post('password',''));
+        $data['domain'] = trim($request->post('domain',''));
+        $data['type'] = trim($request->post('type',0));
+        $data['ip_type'] = trim($request->post('ip_type',0));
+        $data['network_ip'] = trim($request->post('network_ip',''));
+        $data['reporting_cycle'] = trim($request->post('reporting_cycle',0));
+        $data['gateway']=trim($request->post('gateway',0));
+        $data['thread_quantity'] = trim($request->post('thread_quantity',0));
+        if( $data['type']==$this->managerService::Virtual){
+            $data['proxy'] = trim($request->post('proxy',''));
+            $data['proxy_ip'] = trim($request->post('proxy_ip',''));
+            $data['proxy_agent'] = trim($request->post('proxy_agent',''));
+            $data['proxy_user_name'] = trim($request->post('proxy_user_name',''));
+            $data['proxy_user_password'] = trim($request->post('proxy_user_password'));
+            $data['proxy_port'] = trim($request->post('proxy_port',0));
+        }
+        $validateAccountServer =  validate('Server');
+        //动态获取规则
+            $rule = $this->managerService->validaterule($data);
+        if(!$validateAccountServer->check($data,$rule)){
+            return json(['message' => $validateAccountServer->getError()],400);
+        }
+        if($data['reporting_cycle'] && $data['reporting_cycle'] > 32767){
+            return json(['message' => '上报周期的值不能大于32767'],400);
+        }
+        //格式化提交字段
+        $data = $this->managerService->formdata($data);
+
+        $id = $this->managerService->add($data);
+        return json(['message' => '新增成功','id' => $id], 200);
+    }
+
+    /**
+     * @title 更新服务器信息
+     * @param Request $request
+     * @param $id
+     * @return \think\response\Json
+     */
+    public function update(Request $request,$id)
+    {
+        $user = CommonService::getUserInfo();
+        if (!empty($user)) {
+            $data['updater_id'] = $user['user_id'];
+        }
+        $data['name'] = trim($request->put('name',''));
+        $data['ip'] = trim($request->put('ip',''));
+        $data['mac'] = trim($request->put('mac',''));
+        $data['admin'] = trim($request->put('admin',''));
+        $data['password'] = trim($request->put('password',''));
+        $data['thread_quantity']=trim($request->put('thread_quantity',''));
+        $data['gateway']=trim($request->put('gateway',''));
+        if(empty($data['password'])){
+            unset($data['password']);
+        }
+        $data['domain'] = trim($request->put('domain',''));
+        $data['type'] = trim($request->put('type',0));
+        $data['ip_type'] = trim($request->put('ip_type',0));
+        $data['network_ip'] = trim($request->put('network_ip',''));
+        $data['reporting_cycle'] = trim($request->put('reporting_cycle',0));
+        $data['id'] = $id;
+
+        if( $data['type']==$this->managerService::Virtual){
+            $data['proxy'] = trim($request->put('proxy',0));
+            $data['proxy_ip'] = trim($request->put('proxy_ip',0));
+            $data['proxy_agent'] = trim($request->put('proxy_agent',0));
+            $data['proxy_user_name'] = trim($request->put('proxy_user_name',0));
+            $data['proxy_user_password'] = trim($request->put('proxy_user_password',0));
+            $data['proxy_port'] = trim($request->put('proxy_port',0));
+        }
+
+
+        $validateAccountServer =  validate('Server');
+        //动态获取规则
+        $rule = $this->managerService->validaterule($data);
+        if(!$validateAccountServer->check($data,$rule)){
+            return json(['message' => $validateAccountServer->getError()],400);
+        }
+        unset($data['id']);
+        //格式化提交字段
+        $data = $this->managerService->formdata($data);
+        $this->managerService->update($data,$id);
+        return json(['message' => '修改成功'], 200);
+    }
+
+    /**
+     * @title 删除服务器信息
+     * @param $id
+     * @return \think\response\Json
+     */
+    public function delete($id)
+    {
+        $this->managerService->delete($id);
+        return json(['message' => '删除成功'], 200);
+    }
+
+    /**
+     * @title 获取服务器ip地址
+     * @url ip
+     * @return \think\response\Json
+     */
+    public function ip()
+    {
+        $request = Request::instance();
+        $channel_id = $request->get('channel_id','');
+        $account_id = $request->get('account_id','');
+        if(empty($channel_id) || empty($account_id)){
+            return json(['message' => '参数值不能为空'],400);
+        }
+        $result = $this->managerService->serverIp($channel_id,$account_id);
+        return json($result);
+    }
+
+    /**
+     * @title 用户授权
+     * @url authorization
+     * @method post
+     * @return \think\response\Json
+     * @apiRelate app\index\controller\User::index
+     */
+    public function authorization()
+    {
+        return json(['message' => '禁止操作，请联系张文宇'],400);
+        $request = Request::instance();
+        $server_id = trim($request->post('server_id',''));
+        $userData = $request->post('user_data','');
+        if(empty($server_id) || empty($userData)){
+            return json(['message' => '参数值不能为空'],400);
+        }
+        $userData = json_decode($userData,true);
+        $this->managerService->authorization($server_id,$userData);
+        return json(['message' => '操作成功']);
+    }
+
+    /**
+     * @title 获取用户授权信息
+     * @url authorization-info
+     * @method get
+     * @return \think\response\Json
+     * @apiRelate app\index\controller\User::index
+     */
+    public function authorizationInfo()
+    {
+        $request = Request::instance();
+        $server_id = trim($request->get('server_id',''));
+        $status = trim($request->get('status',''));
+        if(empty($server_id)){
+            return json(['message' => '参数值不能为空'],400);
+        }
+        $result = $this->managerService->authorizationInfo($server_id, $status);
+        return json($result);
+    }
+
+    /**
+     * @title 导出服务器execl
+     * @url export
+     * @method post
+     * @return \think\response\Json
+     * @apiRelate app\index\controller\User::index
+     */
+    public function export()
+    {
+        $request = Request::instance();
+        $result = $this->managerService->export($request);
+        return json($result);
+    }
+
+    /**
+     * @title 导出服务器成员execl
+     * @url export-user
+     * @method post
+     * @return \think\response\Json
+     * @apiRelate app\index\controller\User::index
+     */
+    public function exportUser()
+    {
+        $request = Request::instance();
+        $params = $request->param();
+        $this->managerService->exportApply($params);
+        return json(['join_queue' => 1, 'message' => '已加入导出队列']);
+    }
+
+    /**
+     * @title 批量设置上报周期
+     * @url reporting/batch
+     * @method post
+     * @return \think\response\Json
+     * @apiRelate app\index\controller\User::index
+     */
+    public function reporting()
+    {
+        $request = Request::instance();
+        $params = $request->param();
+        $this->managerService->reporting($params);
+        return json(['status' => 1, 'message' => '设置成功']);
+    }
+
+    /**
+     * @title 获取服务器类型
+     * @url type
+     * @method get
+     * @return \think\response\Json
+     */
+    public function type()
+    {
+        $result[] =['remark'=>'虚拟机','code'=>ManagerServer::Virtual];
+        $result[] =['remark'=>'云服务','code'=>ManagerServer::Cloud];
+        $result[] =['remark'=>'超级浏览器','code'=>ManagerServer::Superbrowser];
+        return json($result, 200);
+    }
+
+    /**
+     * @title 获取服务器 ip类型
+     * @url iptype
+     * @method get
+     * @return \think\response\Json
+     */
+    public function iptype()
+    {
+        $result[] =['remark'=>'静态','code'=>ManagerServer::Ip_static];
+        $result[] =['remark'=>'动态','code'=>ManagerServer::Ip_dynamic];
+        return json($result, 200);
+    }
+
+    /**
+     * @title 停用，启用服务器
+     * @method post
+     * @url status
+     */
+    public function changeStatus(Request $request)
+    {
+        $params = $request->param();
+        if(!$params['id']) {
+            return json(['message' => '缺少必要参数ID'], 400);
+        }
+        $response = $this->managerService->changeStatus($params);
+        if($response === false) {
+            return json(['message' => '操作失败'], 400);
+        }
+        return json(['message' => '操作成功','data' => $response]);
+    }
+
+    /**
+     * @title 被引用详情
+     * @method get
+     * @url :id/use-info
+     */
+    public function useInfo($id)
+    {
+        $response = $this->managerService->useInfo($id);
+        return json(['message' => '拉取成功','data' => $response]);
+    }
+
+    /**
+     * @title 日志
+     * @url :id/log
+     * @method get
+     */
+    public function log($id)
+    {
+        if (empty($id)) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+
+        $dataInfo = $this->managerService->getLog($id);
+        return json(['message' => '拉取成功', 'data' => $dataInfo], 200);
+    }
+
+    /**
+     * @title 删除服务器成员
+     * @url :id/user
+     * @method delete
+     */
+    public function deleteUser(Request $request,$id)
+    {
+        if (empty($id)) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+        $params = $request->param();
+
+        if(!$params['user_ids']) {
+            return json(['message' => '缺少必要参数UserID'], 400);
+        }
+        $userIds = json_decode($params['user_ids'] , true);
+        $dataInfo = $this->managerService->deleteUser($id,$userIds);
+        return json(['message' => '删除成功', 'data' => $dataInfo], 200);
+    }
+
+    /**
+     * @title 批量添加服务器成员
+     * @url :id/users
+     * @method post
+     */
+    public function addUser(Request $request,$id)
+    {
+        if (empty($id)) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+        $params = $request->param();
+        if(!$params['user_ids']) {
+            return json(['message' => '缺少必要参数UserID'], 400);
+        }
+        $userIds = json_decode($params['user_ids'] , true);
+        $dataInfo = $this->managerService->addUsers($id,$userIds);
+        return json(['message' => '添加成功', 'data' => $dataInfo], 200);
+    }
+
+    /**
+     * @title 外网类型
+     * @url extranet-type
+     * @method get
+     */
+    public function extranetType()
+    {
+
+        $dataInfo = $this->managerService->getExtranetType();
+        return json(['message' => '拉取成功', 'data' => $dataInfo], 200);
+    }
+
+    /**
+     * @title 获取可用公司
+     * @noauth
+     * @method get
+     * @url can-use
+     * @author starzhan <397041849@qq.com>
+     */
+    public function getCanUse(){
+        $param = $this->request->param();
+        try {
+            $managerService = new ManagerServer();
+            $page_size = $param['pageSize'] ?? 50;
+            $page = $param['page'] ?? 1;
+            $result = $managerService->getCanUse($page,$page_size,$param);
+            return json($result, 200);
+        } catch (Exception $ex) {
+            $err = [
+                'file' => $ex->getFile(),
+                'line' => $ex->getLine(),
+                'message' => $ex->getMessage()
+            ];
+            return json($err, 200);
+        }
+    }
+
+    /**
+     * @title 批量再次推送
+     * @url :id/again
+     * @method post
+     */
+    public function againUser(Request $request,$id)
+    {
+        if (empty($id)) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+        $params = $request->param();
+        if(!$params['user_ids']) {
+            return json(['message' => '缺少必要参数UserID'], 400);
+        }
+        $userIds = json_decode($params['user_ids'] , true);
+        $dataInfo = $this->managerService->againUsers($id,$userIds);
+        return json(['message' => '处理成功', 'data' => $dataInfo], 200);
+    }
+
+    /**
+     * @title 批量停用，启用服务器
+     * @method post
+     * @url batch/status
+     */
+    public function changeBatchStatus(Request $request)
+    {
+        $params = $request->param();
+
+        if(!$params['ids']) {
+            return json(['message' => '缺少必要参数ID'], 400);
+        }
+        $ids = json_decode($params['ids']);
+        $status = $params['status'];
+        $response = $this->managerService->changeBatchStatus($ids,$status);
+        if($response === false) {
+            return json(['message' => '操作失败'], 400);
+        }
+        return json(['message' => '操作成功','data' => $response]);
+    }
+
+    /**
+     * @title 获取服务器的的密码|代理密码
+     * @method get
+     * @url :id/pwd
+     */
+    public function getServerPwd(Request $request, $id)
+    {
+        if ($id < 1) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+
+        // 认证
+        $user = CommonService::getUserInfo();
+        if (empty($user)) {
+            return json(['message' => '非法操作'], 400);
+        }
+        if ($request->get('password') == ''){
+            return json(['message' => '密码不能为空'], 400);
+        }
+
+        $userInfo = (new User())->where(['id' => $user['user_id']])->find();
+        if ($userInfo['password'] != User::getHashPassword($request->get('password'), $userInfo['salt'])) {
+            return json(['message' => '登录密码错误'], 400);
+        }
+
+        $field = 'password';
+        if ($request->get('type') == 'proxy'){
+            $field = 'proxy_user_password';
+        }
+        if ($request->get('type') == 'all'){
+            $field = 'password,proxy_user_password';
+        }
+
+        $pwdInfo = $this->managerService->getPwd($id, $field);
+        if (empty($pwdInfo)) {
+            return json(['message' => '服务器信息不存在'], 400);
+        }
+
+        return json(['data' => $pwdInfo], 200);
+    }
+    
+}

@@ -1,0 +1,244 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-23
+ * Time: 下午1:58
+ */
+
+namespace erp;
+
+
+use app\common\cache\Cache;
+use app\common\cache\RBAC;
+use app\common\filter\WarehouseFilter;
+use app\common\model\McaNode;
+use app\common\model\RoleUser;
+use app\index\service\Node;
+use app\index\service\Role;
+use app\index\service\User;
+use think\Request;
+
+final class ErpRbac
+{
+    private static $withoutMca = [
+    ];
+
+    private static $withoutModule = [
+        //module name,
+        'api'
+    ];
+    private static $withoutController = [// controller::class
+
+    ];
+    private static $rbacs = [];
+
+    private $userId = 0;
+
+    private $filters = [];
+
+    private $node_id = 0;
+
+    private $roles = [];
+    private $role_ids = [];
+    private $route = "";
+
+    private $isAdmin = false;
+
+    private $RoleServer = null;
+
+    private $request_method = '';
+    private $request_router = '';
+
+    private function __construct($userId)
+    {
+        $this->userId = $userId;
+        $this->isAdmin = $userId > 1 ? false :true;
+        $this->RoleServer = new Role();
+        $this->roles = RoleUser::getRoles($userId);
+        $roleIds = array_map(function($role){
+            return $role->role_id;
+        },$this->roles);
+
+        $this->role_ids = $roleIds;
+        if(in_array(1, $this->role_ids)){
+            $this->isAdmin = true;
+        }
+        $request = Request::instance();
+        $this->request_method = $request->method();
+        $route = $request->routeInfo();
+        if(!empty($route)){
+            $this->request_router = "/".join('/',$route['rule']);
+            $this->route = strtolower($this->request_method)."|".join('/',$route['rule']);
+        }
+        $nodeid = McaNode::node_id($this->request_method, $this->request_router);
+        $this->node_id = $nodeid;
+    }
+
+    public function getNodeId()
+    {
+        return $this->node_id;
+    }
+
+    public function getFilters($nodeid = null)
+    {
+        $nodeid = $nodeid ?: $this->node_id;
+        if(is_null($this->filters[$nodeid]??null)){
+            /**
+             * @var $cache \app\common\cache\driver\RoleFilter
+             */
+            $cache = Cache::store('roleFilter');
+            $rolesFilters = [];
+            foreach ($this->role_ids as $role_id) {
+                $nodeFilters = $cache->getFilters($role_id, $nodeid);
+                foreach ($nodeFilters as $filter => $param){
+                    if($param === ''){//不设置这个过滤器
+                        continue;
+                    }
+                    if(!is_array($param)){
+                        $param = [$param];
+                    }
+                    if(in_array('',$param) && !in_array('0',$param)){  //关闭过滤器
+                        continue;
+                    }
+                    $rolesFilters[$filter] = array_merge($rolesFilters[$filter] ?? [], $param);
+                }
+            }
+            $this->filters[$nodeid] = array_map(function($params){return array_unique($params);},$rolesFilters);
+        }
+        return $this->filters[$nodeid];
+    }
+
+    /**
+     * @doc 判断defUserId是否有$api这个权限(route_api.php文件有定义宏)
+     * @param $api
+     * @param null $defUserId 默认为当前用户
+     * @return bool
+     */
+    public static function hasPermission($api, $defUserId = null) :bool
+    {
+        $rbac = static::getRbac($defUserId);
+        if($rbac->isAdmin()){
+            return true;
+        }
+        if(in_array($api, Node::getIgnoreVistsApi())){
+            return true;
+        }
+        list($method,$route) = explode('|',$api);
+        if($node = McaNode::node_id($method, "/".$route)){
+            return $rbac->visit($node, $api);
+        }
+        return false;
+    }
+
+    /**
+     * @param $userId
+     * @return $this
+     */
+    public static function getRbac($userId = null)
+    {
+        $userId = $userId ?: User::getCurrent();
+        if(!isset(static::$rbacs[$userId])){
+            static::$rbacs[$userId] = new static($userId);
+        }
+        return static::$rbacs[$userId];
+    }
+
+    public function visit($nodeid = null, $route = null)
+    {
+        if($this->isAdmin()){
+            return true;
+        }
+        $roleServer = new Role();
+        foreach ($this->role_ids as $role_id){
+            if($rbac = $roleServer->getRbac($role_id)){
+                if(in_array($nodeid ?: $this->node_id, $rbac->visits)){
+                    return true;
+                }
+                if(in_array($route ?: $this->route, $rbac->relates)){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static function withoutVisits(Request $request, $withoutMca = [])
+    {
+        $module = $request->module();
+        $controller = $request->controller();
+        $action = $request->action();
+        if(in_array($module, static::$withoutModule)){
+            return true;
+        }
+        $withoutMca = $withoutMca ?: static::$withoutMca;
+        foreach ($withoutMca as $vist){
+            $class = $vist[0];
+            $a = $vist[1];
+            if(preg_match("/app\\\\([\w\d_]+)\\\\controller\\\\([\w\d_]+)/i", $class, $match)){
+                $m = $match[1];
+                $c = $match[2];
+                if($module === $m && $controller === $c && $action === $a){
+                    return true;
+                }
+            }
+        }
+        $ignore_auths = Node::getIgnoreVists();
+        foreach ($ignore_auths as $vist){
+            $class = $vist[0];
+            $a = $vist[1];
+            if(preg_match("/app\\\\([\w\d_]+)\\\\controller\\\\([\w\d_]+)/i", $class, $match)){
+                $m = $match[1];
+                $c = $match[2];
+                if($module === $m && $controller === $c && $action === $a){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param null $runTag
+     * @return array
+     */
+    public function filters()
+    {
+        if($this->isAdmin()){
+            return [];
+        }
+        return $this->RoleServer->getAccessFilters($this->role_ids, $this->node_id);
+    }
+
+    public function selectFilters($runTag)
+    {
+        $filters = $this->filters();
+        $result = [];
+        foreach ($filters as $filter){
+            if(isset($filter->$runTag)){
+                $result[] = $filter->$runTag;
+            }
+        }
+        return $result;
+    }
+
+    public function getRoles()
+    {
+        return $this->roles;
+    }
+
+    public function isAdmin()
+    {
+        return $this->isAdmin;
+    }
+
+    public function selectRule($tag)
+    {
+
+    }
+
+    public function __destruct()
+    {
+        unset(static::$rbacs[$this->userId]);
+    }
+}

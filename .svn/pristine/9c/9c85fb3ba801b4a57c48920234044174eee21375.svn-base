@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr>
+                <td colspan="12" style="border:solid 1pt #000;padding:2pt 0;font-size:8pt;line-height:10pt;">
+                    <div style="float:left;width:60%;text-align:center;padding:2pt 0;margin-left: 9pt;"><span
+                            style="display:inline-block;height:28pt;line-height:30pt;overflow-y:hidden;"> <img
+                                style="width:180pt;height:40pt;"
+                                src="<?php echo $this->imgSrc($shipping_number);?>"> </span><br>
+                        <?php echo $shipping_number; ?>
+                    </div>
+                    <div style="float:left;margin-left: 20pt;margin-top: 10pt">LINTACK</div>
+                    <div style="float:right;margin-top:6pt;margin-right:5pt;width: 25pt;height: 20pt;border:solid 1pt #000;">
+                        <div style="margin-left:6pt;margin-top:1pt;">
+                            <span>PP</span><br>
+                            <span>TR</span>
+                        </div>
+                    </div>
+                    <div style="clear:both;"></div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0" style="width:180pt;height:220pt;table-layout:fixed;border-collapse:collapse;float: left;margin-top:1pt;line-height: 9pt;">
+            <tbody>
+            <tr style="line-height: 8pt;">
+                <td style="border:solid 1pt #000;font-size:8pt;word-break:break-all;word-wrap:break-word;"
+                    colspan="5">
+                    CUSTOMS <br>
+                    DECLARATION
+                </td>
+                <td colspan="4"
+                    style="border:solid 1pt #000;font-size:8pt;word-wrap:break-word;">
+                    May be<br>opened<br>officially<br>
+                </td>
+                <td colspan="3"
+                    style="border:solid 1pt #000;font-size:8pt;word-wrap:break-word;">
+                </td>
+            </tr>
+            <tr style="line-height: 9pt;">
+                <td style="border:solid 1pt #000;padding:0 2pt;font-size:8pt;" colspan="12">
+                    OPERATOR TR
+                </td>
+            </tr>
+            <tr>
+                <td style="border:solid 1pt #000;padding:0 2pt;font-size:8pt;text-align: center" colspan="12">
+                    <div style="float:left;text-align: left;">
+                        <div><span><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAANCAYAAAB2HjRBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAD1JREFUOE9j/A8EDOQCkGZyAQNMI9BykAuIwnA9yJqJcQHIglHNkLgmJrxQ1KFEFTG6aRPaZCcSYpyMrgYAT/JfvlDp4GQAAAAASUVORK5CYII="></span>&nbsp;GIFT</div>
+                        <div><span><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAANCAYAAAB2HjRBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAD1JREFUOE9j/A8EDOQCkGZyAQNMI9BykAuIwnA9yJqJcQHIglHNkLgmJrxQ1KFEFTG6aRPaZCcSYpyMrgYAT/JfvlDp4GQAAAAASUVORK5CYII="></span>&nbsp;PRINTED</div>
+                    </div>
+                    <div style="float:right;text-align: left;">
+                        <div><span><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAANCAYAAAB2HjRBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAD1JREFUOE9j/A8EDOQCkGZyAQNMI9BykAuIwnA9yJqJcQHIglHNkLgmJrxQ1KFEFTG6aRPaZCcSYpyMrgYAT/JfvlDp4GQAAAAASUVORK5CYII="></span>&nbsp;CONMERIAL SAMPLE</div>
+                        <div><span><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAANCAYAAAB2HjRBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAALlJREFUOE9j/A8EDOQCkGZyAQNMI9BykAuIwnA9yJqxu+Dr/2PFrv/rL3wHS4MsIF7z1+P/S11r/5+D6CVN89cT5f9dqs78h+olRfPX/ycrXP5XnPqKcCo+Z/95uet/qVPA/6k3fvz///3M/yqX8v8nEHrx2fzn/4sTe/6f3Jz6X0Gt4P/egzX/XUqP/0fSS4yzP/8/Xqz0n4Fd7n/uMWStxAbY94v/u6Pr/p/4ghqBOKOK7ERCThIFAKkzQ5XEANjtAAAAAElFTkSuQmCC"></span>&nbsp;OTHERS(tich as appriate)</div>
+                    </div>
+                </td>
+            </tr>
+            <tr style="line-height: 8pt;">
+                <td style="border:solid 1pt #000;font-size:8pt;" colspan="6">
+                    QEANTITY AND DETAILED<br>
+                    EDSCRIPTION OF
+                </td>
+                <td style="border:solid 1pt #000;font-size:8pt;text-align: center;" colspan="3">
+                    WEIGHT<br>
+                    (KG)
+                </td>
+                <td style="border:solid 1pt #000;font-size:8pt;text-align: center;"
+                    colspan="3">
+                    VALUE<br>
+                    (USD)
+                </td>
+            </tr>
+            <?php foreach ($list as $k=>$v): if($k >0){
+                break;
+            }?>
+                <tr>
+                    <td style="border:solid 1pt #000;font-size:8pt;" colspan="6">
+                        <?php echo $v['declared_name_cn']." ".$v['declared_name_en']."*".$v['qty'];?>
+                    </td>
+                    <td style="border:solid 1pt #000;font-size:8pt;text-align: center;" colspan="3">
+                        <?php echo number_format($v['declared_weight']/1000,3,'.','');?>
+                    </td>
+                    <td style="border:solid 1pt #000;font-size:8pt;text-align: center;"
+                        colspan="3">
+                        <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?>
+                    </td>
+                </tr>
+            <?php endforeach;?>
+            <tr>
+                <td style="border:solid 1pt #000;font-size:8pt;" colspan="6">
+                </td>
+                &nbsp;
+                <td style="border:solid 1pt #000;font-size:8pt;text-align: center;" colspan="3">
+                    &nbsp;
+                </td>
+                <td style="border:solid 1pt #000;font-size:8pt;text-align: center;"
+                    colspan="3">
+                    &nbsp;
+                </td>
+            </tr>
+            <tr style="line-height: 9pt">
+                <td style="border:solid 1pt #000;font-size:8pt;" colspan="6">
+                    if know,HS Tariff numger and country of origin of goods.
+                </td>
+                <td style="border:solid 1pt #000;font-size:8pt;text-align: center;" colspan="3">
+                    TOTAL VEIGHT<br>(KG)
+                </td>
+                <td style="border:solid 1pt #000;font-size:8pt;text-align: center;"
+                    colspan="3">
+                    TOTAL VALUE<br>(USD)
+                </td>
+            </tr>
+            <tr>
+                <td style="border:solid 1pt #000;font-size:8pt;" colspan="6">
+                    ORIGIN:China
+                </td>
+                <td style="border:solid 1pt #000;font-size:8pt;text-align: center;" colspan="3">
+                    <?php echo number_format($total_weight/1000,3,'.','');?>
+                </td>
+                <td style="border:solid 1pt #000;font-size:8pt;text-align: center;"
+                    colspan="3">
+                    <?php echo number_format($total_value,2,'.','');?>
+                </td>
+            </tr>
+            <tr style="line-height: 8pt;">
+                <td style="border:solid 1pt #000;padding:0 2pt;font-size:8pt;" colspan="12">
+                    The undersigned whose name and address are given on the item certify that the particulars given in the declartion are correct and tath this item dose not contain any dangerous artiele or articles pohibited by legislation or by postal or customs regulaitions
+                </td>
+            </tr>
+            <tr>
+                <td style="border:solid 1pt #000;padding:0 2pt;font-size:8pt;" colspan="12">
+                    <div style="float: left;">Signature:</div>
+                    <div style="float: right;">DATE&nbsp;&nbsp;&nbsp;<?php echo date('Y-m-d');?></div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0"
+               style="width:88pt;height:222pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:10pt;float: right;margin-top: -12pt;">
+            <tbody>
+            <tr>
+                <td colspan="12"
+                    style="border:solid 1pt #000;border-top-width: 0;word-wrap:break-word;padding:0 2pt;font-size:8pt;line-height:10pt;vertical-align: top">
+                    <div style="float: left;font-size: 13pt;width:100%;text-align: right;margin-bottom: 10pt;margin-top:5pt;">
+                        <?php echo $country_code;?>&nbsp;&nbsp;&nbsp;
+                    </div>
+                    <div style="float: left;">
+                        TO:<?php echo $name;?>
+                        <br/> <?php echo $street.$street2;?><?php echo $city?> <?php echo $province?>
+                        <br/><?php echo $province?>,<?php echo $city?>
+                        <br/><?php echo $zip?>
+                    </div>
+                    <div style="float: left;margin-top: 15pt;">
+                        <div style="margin-bottom: 8pt;">Tel:<?php echo $phone?> <?php echo $tel?></div>
+                        <div>TRPY</div>
+                        <div style="margin-bottom: 8pt;">土耳其小包平邮 </div>
+                        <div>Tel:<?php echo $phone?> <?php echo $tel?> </div>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div style="border-top: 1pt solid #000;float: left;"></div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<?php
+/* Generated on 9/1/16 3:23 AM by globalsync
+ * $Id: $
+ * $Log: $
+ */
+
+require_once 'EbatNs_FacetType.php';
+
+class CurrencyCodeType extends EbatNs_FacetType
+{
+	const CodeType_AFA = 'AFA';
+	const CodeType_ALL = 'ALL';
+	const CodeType_DZD = 'DZD';
+	const CodeType_ADP = 'ADP';
+	const CodeType_AOA = 'AOA';
+	const CodeType_ARS = 'ARS';
+	const CodeType_AMD = 'AMD';
+	const CodeType_AWG = 'AWG';
+	const CodeType_AZM = 'AZM';
+	const CodeType_BSD = 'BSD';
+	const CodeType_BHD = 'BHD';
+	const CodeType_BDT = 'BDT';
+	const CodeType_BBD = 'BBD';
+	const CodeType_BYR = 'BYR';
+	const CodeType_BZD = 'BZD';
+	const CodeType_BMD = 'BMD';
+	const CodeType_BTN = 'BTN';
+	const CodeType_INR = 'INR';
+	const CodeType_BOV = 'BOV';
+	const CodeType_BOB = 'BOB';
+	const CodeType_BAM = 'BAM';
+	const CodeType_BWP = 'BWP';
+	const CodeType_BRL = 'BRL';
+	const CodeType_BND = 'BND';
+	const CodeType_BGL = 'BGL';
+	const CodeType_BGN = 'BGN';
+	const CodeType_BIF = 'BIF';
+	const CodeType_KHR = 'KHR';
+	const CodeType_CAD = 'CAD';
+	const CodeType_CVE = 'CVE';
+	const CodeType_KYD = 'KYD';
+	const CodeType_XAF = 'XAF';
+	const CodeType_CLF = 'CLF';
+	const CodeType_CLP = 'CLP';
+	const CodeType_CNY = 'CNY';
+	const CodeType_COP = 'COP';
+	const CodeType_KMF = 'KMF';
+	const CodeType_CDF = 'CDF';
+	const CodeType_CRC = 'CRC';
+	const CodeType_HRK = 'HRK';
+	const CodeType_CUP = 'CUP';
+	const CodeType_CYP = 'CYP';
+	const CodeType_CZK = 'CZK';
+	const CodeType_DKK = 'DKK';
+	const CodeType_DJF = 'DJF';
+	const CodeType_DOP = 'DOP';
+	const CodeType_TPE = 'TPE';
+	const CodeType_ECV = 'ECV';
+	const CodeType_ECS = 'ECS';
+	const CodeType_EGP = 'EGP';
+	const CodeType_SVC = 'SVC';
+	const CodeType_ERN = 'ERN';
+	const CodeType_EEK = 'EEK';
+	const CodeType_ETB = 'ETB';
+	const CodeType_FKP = 'FKP';
+	const CodeType_FJD = 'FJD';
+	const CodeType_GMD = 'GMD';
+	const CodeType_GEL = 'GEL';
+	const CodeType_GHC = 'GHC';
+	const CodeType_GIP = 'GIP';
+	const CodeType_GTQ = 'GTQ';
+	const CodeType_GNF = 'GNF';
+	const CodeType_GWP = 'GWP';
+	const CodeType_GYD = 'GYD';
+	const CodeType_HTG = 'HTG';
+	const CodeType_HNL = 'HNL';
+	const CodeType_HKD = 'HKD';
+	const CodeType_HUF = 'HUF';
+	const CodeType_ISK = 'ISK';
+	const CodeType_IDR = 'IDR';
+	const CodeType_IRR = 'IRR';
+	const CodeType_IQD = 'IQD';
+	const CodeType_ILS = 'ILS';
+	const CodeType_JMD = 'JMD';
+	const CodeType_JPY = 'JPY';
+	const CodeType_JOD = 'JOD';
+	const CodeType_KZT = 'KZT';
+	const CodeType_KES = 'KES';
+	const CodeType_AUD = 'AUD';
+	const CodeType_KPW = 'KPW';
+	const CodeType_KRW = 'KRW';
+	const CodeType_KWD = 'KWD';
+	const CodeType_KGS = 'KGS';
+	const CodeType_LAK = 'LAK';
+	const CodeType_LVL = 'LVL';
+	const CodeType_LBP = 'LBP';
+	const CodeType_LSL = 'LSL';
+	const CodeType_LRD = 'LRD';
+	const CodeType_LYD = 'LYD';
+	const CodeType_CHF = 'CHF';
+	const CodeType_LTL = 'LTL';
+	const CodeType_MOP = 'MOP';
+	const CodeType_MKD = 'MKD';
+	const CodeType_MGF = 'MGF';
+	const CodeType_MWK = 'MWK';
+	const CodeType_MYR = 'MYR';
+	const CodeType_MVR = 'MVR';
+	const CodeType_MTL = 'MTL';
+	const CodeType_EUR = 'EUR';
+	const CodeType_MRO = 'MRO';
+	const CodeType_MUR = 'MUR';
+	const CodeType_MXN = 'MXN';
+	const CodeType_MXV = 'MXV';
+	const CodeType_MDL = 'MDL';
+	const CodeType_MNT = 'MNT';
+	const CodeType_XCD = 'XCD';
+	const CodeType_MZM = 'MZM';
+	const CodeType_MMK = 'MMK';
+	const CodeType_ZAR = 'ZAR';
+	const CodeType_NAD = 'NAD';
+	const CodeType_NPR = 'NPR';
+	const CodeType_ANG = 'ANG';
+	const CodeType_XPF = 'XPF';
+	const CodeType_NZD = 'NZD';
+	const CodeType_NIO = 'NIO';
+	const CodeType_NGN = 'NGN';
+	const CodeType_NOK = 'NOK';
+	const CodeType_OMR = 'OMR';
+	const CodeType_PKR = 'PKR';
+	const CodeType_PAB = 'PAB';
+	const CodeType_PGK = 'PGK';
+	const CodeType_PYG = 'PYG';
+	const CodeType_PEN = 'PEN';
+	const CodeType_PHP = 'PHP';
+	const CodeType_PLN = 'PLN';
+	const CodeType_USD = 'USD';
+	const CodeType_QAR = 'QAR';
+	const CodeType_ROL = 'ROL';
+	const CodeType_RUB = 'RUB';
+	const CodeType_RUR = 'RUR';
+	const CodeType_RWF = 'RWF';
+	const CodeType_SHP = 'SHP';
+	const CodeType_WST = 'WST';
+	const CodeType_STD = 'STD';
+	const CodeType_SAR = 'SAR';
+	const CodeType_SCR = 'SCR';
+	const CodeType_SLL = 'SLL';
+	const CodeType_SGD = 'SGD';
+	const CodeType_SKK = 'SKK';
+	const CodeType_SIT = 'SIT';
+	const CodeType_SBD = 'SBD';
+	const CodeType_SOS = 'SOS';
+	const CodeType_LKR = 'LKR';
+	const CodeType_SDD = 'SDD';
+	const CodeType_SRG = 'SRG';
+	const CodeType_SZL = 'SZL';
+	const CodeType_SEK = 'SEK';
+	const CodeType_SYP = 'SYP';
+	const CodeType_TWD = 'TWD';
+	const CodeType_TJS = 'TJS';
+	const CodeType_TZS = 'TZS';
+	const CodeType_THB = 'THB';
+	const CodeType_XOF = 'XOF';
+	const CodeType_TOP = 'TOP';
+	const CodeType_TTD = 'TTD';
+	const CodeType_TND = 'TND';
+	const CodeType_TRL = 'TRL';
+	const CodeType_TMM = 'TMM';
+	const CodeType_UGX = 'UGX';
+	const CodeType_UAH = 'UAH';
+	const CodeType_AED = 'AED';
+	const CodeType_GBP = 'GBP';
+	const CodeType_USS = 'USS';
+	const CodeType_USN = 'USN';
+	const CodeType_UYU = 'UYU';
+	const CodeType_UZS = 'UZS';
+	const CodeType_VUV = 'VUV';
+	const CodeType_VEB = 'VEB';
+	const CodeType_VND = 'VND';
+	const CodeType_MAD = 'MAD';
+	const CodeType_YER = 'YER';
+	const CodeType_YUM = 'YUM';
+	const CodeType_ZMK = 'ZMK';
+	const CodeType_ZWD = 'ZWD';
+	const CodeType_ATS = 'ATS';
+	const CodeType_CustomCode = 'CustomCode';
+
+	/**
+	 * @return 
+	 **/
+	function __construct()
+	{
+		parent::__construct('CurrencyCodeType', 'urn:ebay:apis:eBLBaseComponents');
+	}
+}
+$Facet_CurrencyCodeType = new CurrencyCodeType();
+?>

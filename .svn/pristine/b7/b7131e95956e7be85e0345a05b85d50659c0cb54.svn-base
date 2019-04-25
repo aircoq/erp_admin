@@ -1,0 +1,24 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-22
+ * Time: 下午3:51
+ */
+
+namespace erp;
+
+abstract class AbsErpCriteria{
+    private $model = null;
+    protected function where($where)
+    {
+        $this->model->where($where);
+    }
+
+    protected function whereOr($whereOr)
+    {
+        $this->model->whereOr($whereOr);
+    }
+
+    abstract public function criteria();
+}

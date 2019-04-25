@@ -1,0 +1,215 @@
+<?php
+namespace service\oberlo\Order;
+
+use service\oberlo\RequestService;
+use service\oberlo\OberloException;
+
+/**
+ * Order接口服务类
+ * @author wangwei 2019-3-1 11:53:52
+ */
+class OrderService extends RequestService{
+    
+    /**
+     * 批量获取订单
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 			'page'=>'1',//页码
+     * 			'date_from'=>'',//订单更新开始时间(即付款时间)
+     * 			'date_to'=>'',//订单创建结束时间(即付款时间)
+     * 			'fulfillment_status'=>'',//订单发货状态,not_fulfilled(未发货),in_processing(开始处理),partially_fulfilled(部分发货),fulfilled(全部发货),cancelled(取消)
+     * 			'payment_status'=>'',//订单付款状态,paid(已付款),refunded(已退款)
+     * 			'other'=>'',//订单其他条件?  not_shipped
+     * );
+     * @return array
+     */
+    public function getOrders($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'reason'=>'',
+            'http_statu'=>'',
+            'request_url'=>'',
+            'orders'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求
+         */
+        $this->setRequest('GET', '/orders', $params);
+
+        /**
+         * 2、调用公共请求方法
+         */
+        try {
+            //执行请求
+            $re = $this->executeRequest();
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['http_statu'] = $re['http_statu'];
+            $return['request_url'] = $re['request_url'];
+            $return['orders'] = $re['data']['items'];
+            $return['pagination'] = $re['data']['pagination'];
+            $return['org_data'] = $re['org_data'];
+        } catch (OberloException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['reason'] = $e->getErrorReason();
+            $return['request_url'] = $e->getRequestUrl();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 获取单个订单
+     * @param int $order_id  订单id
+     * @return array
+     */
+    public function getOrder($order_id){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'reason'=>'',
+            'http_statu'=>'',
+            'request_url'=>'',
+            'order'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、简单校验
+         */
+        if(empty($order_id)){
+            $return['message'] = 'order_id not empty';
+            return $return;
+        }
+        
+        /**
+         * 2、设置请求
+         */
+        $this->setRequest('GET', "/orders/{$order_id}");
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //执行请求
+            $re = $this->executeRequest();
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['http_statu'] = $re['http_statu'];
+            $return['request_url'] = $re['request_url'];
+            $return['order'] = $re['data'];
+            $return['org_data'] = $re['org_data'];
+        } catch (OberloException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['reason'] = $e->getErrorReason();
+            $return['request_url'] = $e->getRequestUrl();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+
+    /**
+     * 标记发货
+     * @param $order_id
+     * @param array $params
+     * @return array
+     */
+    public function addFulfillment($order_id,$params=[])
+    {
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'reason'=>'',
+            'http_statu'=>'',
+            'request_url'=>'',
+            'order'=>array(),
+            'org_data'=>'',
+        );
+
+        /**
+         * 1、简单校验
+         */
+        if(empty($order_id)){
+            $return['message'] = 'order_id not empty';
+            return $return;
+        }
+
+        /**
+         * 2、设置请求
+         */
+        $this->setRequest('POST', "/orders/{$order_id}/fulfillments",$params);
+
+        try {
+            //执行请求
+            $re = $this->executeRequest();
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['http_statu'] = $re['http_statu'];
+            $return['request_url'] = $re['request_url'];
+            $return['order'] = $re['data'];
+            $return['org_data'] = $re['org_data'];
+        } catch (OberloException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['reason'] = $e->getErrorReason();
+            $return['request_url'] = $e->getRequestUrl();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['org_data'] = $e->getORG();
+            $org_data = json_decode($return['org_data'],true);
+            if($org_data['error']['reason'] == 'status' && $org_data['error']['details']['fulfillment_status'] == 'fulfilled')  //订单已被标记
+            {
+                $return['ask'] = 1;
+            }
+        }
+        return $return;
+
+    }
+
+    public function getCarriers()
+    {
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'reason'=>'',
+            'http_statu'=>'',
+            'request_url'=>'',
+            'order'=>array(),
+            'org_data'=>'',
+        );
+        /**
+         * 2、设置请求
+         */
+        $this->setRequest('GET', "/carriers");
+        try {
+            //执行请求
+            $re = $this->executeRequest();
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['http_statu'] = $re['http_statu'];
+            $return['request_url'] = $re['request_url'];
+            $return['carries'] = $re['data'];
+            $return['org_data'] = $re['org_data'];
+        } catch (OberloException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['reason'] = $e->getErrorReason();
+            $return['request_url'] = $e->getRequestUrl();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+	
+}

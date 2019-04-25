@@ -1,0 +1,32 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 18-3-19
+ * Time: 下午8:38
+ */
+
+namespace swoole\messageAction;
+
+
+use swoole\PipeMessageAction;
+
+class KillTask extends PipeMessageAction
+{
+    public  function execute($server, $fromWorkerId = null)
+    {
+        list('key'=>$key, 'task'=>$task) = $this->getData();
+        if(0 === $task){
+            $taskInfo = $server->tableTask->get($task);
+            if($taskInfo && $taskInfo['task'] === $key){
+                system("kill -9 {$taskInfo['pid']}");
+            }
+            return;
+        }
+        foreach ($server->tableTask as $task => $info) {
+            if($info['task'] === $key){
+                system("kill -9 {$info['pid']}");
+            }
+        }
+    }
+}

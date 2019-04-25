@@ -1,0 +1,206 @@
+<?php
+
+namespace service\alinew\operation;
+
+use Exception;
+use org\Curl;
+use service\alinew\operation\Common;
+
+/**
+ * @desc 速卖通订单拉取
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-03-13 16:29:11
+ */
+class Order extends Common
+{
+
+    /**
+     * @desc 抓取订单
+     * @param int $page 抓取的起始页
+     * @param type $pageSize 每页抓多少数据
+     * @param type $startTime 订单修改时间起始值
+     * @param type $status 订单状态
+     * @return array $data 抓取后的数据信息
+     * @throws Exception
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-13 16:29:11
+     */
+    public function getOrder($page = 1, $pageSize = 20, $startTime = '',$endTime='', $status = '')
+    {
+        $data = [];
+        //方法参数
+        $data['page'] = $page;
+        $data['pageSize'] = $pageSize;
+        $data['startTime'] = $startTime;
+        $data['endTime'] = $endTime;
+        $data['status'] = $status;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('getOrder');
+        $request->setClassName('Order');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        return $client->execute($request);
+    }
+
+    /**
+     * @desc 抓取订单新接口
+     * @author wangwei
+     * @date 2018-11-12 18:48:03
+     * @param array $params createStartTime 和 modifiedStartTime 必须有一个非空
+     * @example $params = [
+     *            'page'=>1,
+     *            'pageSize'=>50,
+     *            'status'=>'',
+     *            'createStartTime'=>'1542003671',
+     *            'createEndTime'=>'1539878400',
+     *            'modifiedStartTime'=>'',
+     *            'modifiedEndTime'=>'',
+     * ];
+     * @return unknown|ResultSet|mixed
+     */
+    public function getOrderNew($params){
+        $data = [
+            'page'=>param($params, 'page', 1),
+            'pageSize'=>param($params, 'pageSize', 50),
+            'status'=>param($params, 'status', ''),
+            'startTime'=>param($params, 'createStartTime'),
+            'endTime'=>param($params, 'createEndTime', ''),
+            'modifiedStartTime'=>param($params, 'modifiedStartTime', ''),
+            'modifiedEndTime'=>param($params, 'modifiedEndTime', ''),
+        ];
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('getOrderNew');
+        $request->setClassName('Order');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        return $client->execute($request);
+    }
+
+    /**
+     * @desc 获取订单详情
+     * @param int $orderId 平台订单id
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-19 16:31:11
+     */
+    public function getOrderDetails($orderId)
+    {
+        //方法参数
+        $data = [];
+        $data['order_id'] = $orderId;
+        $data['action'] = 'getOrderDetails';
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('getOrderDetails');
+        $request->setClassName('Order');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        return $client->execute($request);
+    }
+
+    /**
+     * @author Johnny<1589556545@qq.com>
+     * 延长买家收货时间
+     * @param type $orderId  需要延长的订单ID
+     * @param type $day     请求延长的具体天数
+     * @return type
+     */
+    public function extendsBuyerAcceptGoodsTime($orderId,$day)
+    {
+
+        //方法参数
+        $data = [];
+        $data['param0'] = $orderId;
+        $data['param1'] = $day;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('extendsBuyerAcceptgoodsTime');
+        $request->setClassName('Order');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+
+    }
+
+    /**
+     * @desc 查询订单放款信息
+     * @param int $page
+     * @param int $pageSize
+     * @param string $startTime
+     * @param string $endTime
+     * @param string $status
+     * @param string $orderId
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws Exception
+     * @author Reece
+     * @date 2018-08-07 15:55:19
+     */
+    public function getLoanInfo($page = 1, $pageSize = 50, $startTime = null, $endTime = null, $status = null, $orderId = null)
+    {
+        $data = [];
+        //方法参数
+        $data['page'] = $page;
+        $data['page_size'] = $pageSize;
+        $data['loan_status'] = $status;
+        $data['create_date_start'] = $startTime ? date('m/d/Y H:i:s', $startTime) : null;
+        $data['create_date_end'] = $endTime ? date('m/d/Y H:i:s', $endTime) : null;
+        $data['order_id'] = $orderId;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('getLoanInfo');
+        $request->setClassName('Order');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        return $client->execute($request);
+    }
+    
+    /**
+     * @desc 卖家同意取消订单并退款
+     * @author wangwei
+     * @date 2018-9-26 15:44:19
+     * @param string $orderId Y  order.channel_order_number
+     * @param string $buyerLoginId Y order.buyer_id
+     * @return unknown|ResultSet|mixed
+     */
+    public function acceptCancel($orderId, $buyerLoginId)
+    {
+        $data = [];
+        //方法参数
+        $data['order_id'] = $orderId;
+        $data['buyer_login_id'] = $buyerLoginId;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('acceptCancel');
+        $request->setClassName('Order');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        return $client->execute($request);
+    }
+
+}

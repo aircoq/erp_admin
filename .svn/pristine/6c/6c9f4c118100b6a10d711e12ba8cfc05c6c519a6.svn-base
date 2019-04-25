@@ -1,0 +1,37 @@
+<?php
+namespace PaypalClient\Authorization;
+
+use PaypalClient\RequestService;
+/**
+ * 授权接口服务类
+ * @author Jacky 2017-9-24 23:07:21
+ */
+class AuthorizationService extends RequestService{
+    
+    //授权付款
+    public function DoAuthorization(){
+        
+    }
+    
+    //获得授权付款
+    public function DoCapture(){
+        
+    }
+    
+    //重新授权现有的授权交易。所产生的重新授权是与新的AUTHORIZATIONID的新事务
+    public function DoReauthorization(){
+    
+    }
+    
+    //禁止订单或授权
+    public function DoVoid(){
+        
+    }
+    
+    //更改现有授权交易的送货地址。要使用此API操作，原始授权应该仍然是开放的，未完成的，不被转换的，不被解除的，并且由于任何原因而不被暂停
+    //注意：使用此API操作需要PayPal的高级权限
+    public function UpdateAuthorization(){
+    
+    }
+    
+}

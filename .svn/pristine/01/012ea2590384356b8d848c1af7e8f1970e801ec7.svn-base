@@ -1,0 +1,48 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-19
+ * Time: 下午2:26
+ */
+
+namespace swoole\cmd;
+
+
+use swoole\SwooleCmd;
+use swoole\SwooleCmdResult;
+use swoole\cmd\KillTask;
+
+class SwooleStatus extends SwooleCmd
+{
+    public  function execute(\swoole_websocket_server $server): SwooleCmdResult
+    {
+    	$other = ['tableTask' => $server->tableTask->count(), 'stats' => $server->stats()];
+        $taskMax = $server->setting['task_worker_num'];
+        $result = new SwooleCmdResult($this);
+        $items = [];
+        foreach ($server->tableTask as $id => $item){
+        	if($item['status']){
+	            $id = intval($id);
+	            if(!empty($this->data['queuer'])){
+	                if($this->data['queuer'] == $item['task']) $items[$id] = $item;
+	            }else{
+	                $items[$id] = $item;
+	            }
+        	}elseif(($item['time'] + 3600) < time()){
+        		$tmp = new KillTask(['key'=>$item['task'], 'task'=>$id]);
+        		$tmp->execute($server);
+        	}
+        }
+        if(count($items)){
+            ksort($items);
+            $items = array_values($items);
+        }
+        $used = [];
+        foreach ($server->tableQueue as $queue => $item){
+            $used[$queue] = $item;
+        }
+        $result->setResult(['taskUsed'=>count($items),'taskMax'=>$taskMax, 'items'=>$items, 'usesd'=>$used, 'other'=>$other]);
+        return $result;
+    }
+}

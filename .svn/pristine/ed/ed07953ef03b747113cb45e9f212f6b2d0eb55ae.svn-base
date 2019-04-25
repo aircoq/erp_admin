@@ -1,0 +1,435 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use app\common\model\aliexpress\AliexpressShippingAddress;
+use app\common\model\Order;
+use service\aliNew\AliexpressApi;
+use think\Exception;
+use think\Validate;
+
+/**
+ *  Aliexpress 速卖通线上发货新接口
+ */
+
+class AliexpressNew
+{
+
+    protected $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    protected $_config = [
+        'id'=>'',
+        'client_id'=>'',
+        'client_secret'=>'',
+        'token'=>'',
+        'refreshtoken'=>''
+    ];
+
+    protected function setConfig($accountId)
+    {
+        $account = Cache::store('AliexpressAccount')->getTableRecord($accountId);
+        if(empty($account)){
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => '未找到Aliexpress账号信息',
+                'error_code' => 1
+            ];
+            return false;
+        }
+
+        $this->_config['id']     = $account['id'];
+        $this->_config['client_id']     = $account['client_id'];
+        $this->_config['client_secret'] = $account['client_secret'];
+        $this->_config['token']   = $account['access_token'];
+        $this->_config['refreshtoken']   = $account['refresh_token'];
+        return true;
+    }
+
+    /**
+     * 创建线上发货物流订单
+     * @param $config
+     * @param $order
+     * @param bool $confirm
+     * @return array
+     */
+    public function createOrder($config, $order, $confirm = true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->checkData('create',$order)){
+                return $this->result;
+            }
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            //组装数据
+            $data = $this->buildData($order);
+            //提交到Aliexpress
+            $result = AliexpressApi::instance($this->_config)->loader('ShippingMethod')->createWarehouseOrder($data);
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=>$data,
+                'response'=>$result
+            ];
+            $info = isset($result->result) ? json_decode($result->result, true) : [];
+            if(isset($result->result_success)&&$result->result_success){                
+                $this->result['data']['number']             = $info['trade_order_id'];      // 客户订单号
+                $this->result['data']['package_code']       = $info['warehouse_order_id'];      // 包裹处理号
+                $this->result['data']['trackingNumber']     = '';   // 跟踪号$info['intl_tracking_no']
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm']            = true;                              // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = true;                              // 是否能查询实际费用
+                $this->result['data']['send']               = true;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+            }else{
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                $this->result['error'] = [
+                    'error_msg'  => isset($info['error_desc']) ? $info['error_desc'] : (isset($result->sub_message) ? $result->sub_message : '未知错误'),
+                    'error_code' => isset($info['error_code']) ? $info['error_code'] : 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        
+        return $this->result;
+    }
+
+    /**
+     * 获取追踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getTrackingNumber($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $result = $this->getPackageDetails($config,$order);
+        if($result['success']){
+            $this->result['data'] = [
+                'trackingNumber'=>$result['data']['internationallogistics_id']
+            ];
+            $this->result['success'] = true;
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取包裹详细
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageDetails($config, $order)
+    {
+        //日志记录
+        $arr_log = [
+            'url'=>'',
+            'header'=>'',
+            'request'=>'',
+            'response'=>[]
+        ];
+        try{
+            if(!$this->checkData('get_track_number',$order)){
+                return $this->result;
+            }
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            //获取平台订单信息
+            $orderModel = new Order();
+            $orderInfo = $orderModel->field('channel_order_number')->where(['id' => $order['order_id']])->find();
+            $data = ['orderId'=>$orderInfo['channel_order_number']];
+            $result = AliexpressApi::instance($this->_config)->loader('ShippingMethod')->getOnlineLogisticsInfo($data);
+            //日志信息
+            $arr_log['url']= '';
+            $arr_log['request']=$data;
+            $arr_log['request']['access_token']= $this->_config['token'];
+            $arr_log['response']=$result;
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+            //处理结果
+            if(isset($result->result)){
+                //请求成功，并且获取到了物流单号
+                $arr = json_decode($result->result, true);
+                if (isset($arr['result_list']) && !empty($arr['result_list']['result'])) {
+                    //注意：如果有拆单的情况，就会有多条数据
+                    $rows = $arr['result_list']['result'];
+                    foreach ($rows as $val) {
+                        if ($order['process_code'] == $val['online_logistics_id']) {
+                            $this->result['data'] = $val;
+                            $this->result['success'] = true;
+                            break;
+                        }
+                    }
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg' => isset($arr['error_desc']) ?? '获取失败'
+                    ];
+                }
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => isset($result->sub_message) ?? '未知错误'
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取包裹实际重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $result = $this->getPackageDetails($config,$order);
+        if($result['success']){
+            $this->result['data'] = [
+                'real_weight'=>'',//物流商称重
+                'real_fee'=>$result['data']['logistics_fee']['cent']/100,       //物流费用
+                'currency'=>$result['data']['logistics_fee']['currency_code'],  //币种
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageStatus($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $result = $this->getPackageDetails($config,$order);
+        if($result['success']){
+            $this->result['data'] = [
+                'is_send'=>$result['data']['logistics_status'] == 'send_goods_success' ? true : false
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取线上发货标签
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            if(!$this->checkData('label',$order)){
+                return $this->result;
+            }
+            
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            
+            $result = AliexpressApi::instance($this->_config)->loader('ShippingMethod')->getPrintInfo($order['shipping_number']);
+            //日志记录
+            $arr_log = [
+                'url'=> '',
+                'header'=> '',
+                'request'=> $order['shipping_number'],
+                'response'=> $result
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            if(isset($result->result)){
+                $row = json_decode($result->result, true);
+                $row = json_decode($row, true);
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'], $row['body'], 'pdf');
+                // $pdf = base64_decode($row['body']);
+                // $filename = $order['number']. '.pdf';    // 写入的文件
+                // file_put_contents($filename,$pdf,FILE_APPEND);
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => $result->sub_message ?? '未知错误'
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        
+        return $this->result;
+    }
+    
+    /**
+     * 根据订单获取线上发货物流服务列表
+     * @param type $config
+     * @param type $data
+     */
+    public function getExpress($config)
+    {
+        if(!$this->setConfig($config['channel_account_id'])){
+                return $this->result;
+        }
+        $data = [];
+        $response = AliexpressApi::instance($this->_config)->loader('ShippingMethod')->getOnlineLogisticsServiceListByOrderId($config['order_id']);
+        $result = isset($response->result) ? json_decode($response->result, true) : [];
+        if($result && isset($result['result_list']) && isset($result['result_list']['result'])){
+            foreach($result['result_list']['result'] as $k => $item){
+                $data[$k]['code'] = $item['logistics_service_id'];
+                $data[$k]['name'] = $item['logistics_service_name'].'('.$item['warehouse_name'].')';
+                $data[$k]['access_tracking_number_method'] = 3;
+                $data[$k]['has_tracking_number'] = 1;
+            }
+            $this->result['success'] = true;
+            $this->result['data'] = $data;
+        }
+        return $this->result;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function cancel($config, $order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['data'] = [
+            'number' => $order['number']
+        ];
+        $this->result['success'] = true;
+        
+        return $this->result;
+    }
+
+    /**
+     * 组装成aliexpress所需数据
+     */
+    protected function buildData($packageData)
+    {
+        //获取平台订单信息
+        $orderModel = new Order();
+        $orderInfo = $orderModel->field('channel_order_number')->where(['id' => $packageData['order_id']])->find();
+        //获取卖家地址信息
+        $shippingAddress = AliexpressShippingAddress::get(['account_id'=>$packageData['channel_account_id'],'shipping_method_id'=>$packageData['shipping_id']]);
+        if(empty($shippingAddress)){
+            throw new Exception('未找到地址信息');
+        }
+        $data['trade_order_id']  = $orderInfo['channel_order_number'];
+        $data['trade_order_from'] = 'ESCROW';
+        $data['warehouse_carrier_service'] = $packageData['shipping_method_code'];
+        $data['domestic_logistics_companyId'] = '-1';
+        $data['domestic_logistics_company']   = '';
+        $data['domestic_tracking_no'] = 'None';
+        $data['declare_product_d_t_os']  = [];
+        foreach($packageData['product'] as $skuId => $item){
+            $declared = isset($packageData['declared_info'][$skuId]) ? $packageData['declared_info'][$skuId] : [];
+            $data['declare_product_d_t_os'][] = [
+                'productId'       => '0',
+                'category_cn_desc'  => empty($declared['declared_name_cn']) ? $item['title_cn'] : $declared['declared_name_cn'],
+                'category_en_desc'  => empty($declared['declared_name_en']) ? $item['title_en'] : $declared['declared_name_en'],
+                'product_num'      => $item['qty'],
+                'product_declare_amount' => empty($declared) ? 1 : $declared['declared_value'],
+                'product_weight'   => $item['weight']/1000,
+                'contains_battery'    => $item['battery'] ? $item['battery'] : 0,
+                'hs_code'          => $item['hs_code'],
+                'aneroid_markup' => 0,
+                'only_battery'   => 0,
+                'breakable'     => 0,
+            ];
+        }
+        $streetAddress = empty($packageData['street'])?$packageData['street2']:(!empty($packageData['street2']) ? $packageData['street'].' '.$packageData['street2'] :$packageData['street']);
+        //发送人信息
+        $data['address_d_t_os'] = [
+            'receiver' => [
+                'city' => $packageData['city'],
+                'country' => (strtoupper($packageData['country_code']) == 'GB') ? 'UK' : $packageData['country_code'], //英国有两个简写，速卖通使用UK
+                'mobile' => $packageData['phone'],
+                'name' => $packageData['name'],
+                'phone' => $packageData['tel'],
+                'postcode' => $packageData['zip'],
+                'province' => $packageData['province'],
+                'street_address' => $streetAddress,
+            ],
+            'sender' => [
+                'address_id' => $shippingAddress['sender_id']
+            ],
+            'pickup' => [
+                'address_id' => $shippingAddress['pickup_id']
+            ],
+            'refund' => [
+                'address_id' => $shippingAddress['refund_id']
+            ]
+        ];
+        $data['declare_product_d_t_os'] = json_encode($data['declare_product_d_t_os']);
+        $data['address_d_t_os'] = json_encode($data['address_d_t_os']);
+        $data['undeliverable_decision'] = $packageData['is_need_return'] == 1 ? 0 : 1;
+
+        return $data;
+    }
+
+
+    /**
+     * 数据验证
+     * @param $scene
+     * @param $data
+     * @return bool
+     */
+    protected function checkData($scene,$data)
+    {
+        $rule = [
+            ['channel_account_id','require|integer','缺少Aliexpress账号ID|Aliexpress账号ID类型为integer'],
+            ['channel_id','egt:4','改物流方式只支持Aliexpress平台'],
+            ['shipping_id','require|integer','缺少shipping_id|shipping_id类型为integer'],
+            ['shipping_method_code','require','缺少shipping_method_code'],
+            ['process_code','require','缺少process_code'],
+            ['shipping_number','require','缺少shipping_number'],
+        ];
+        $validate = new Validate($rule);
+        $validate->scene('create', ['channel_account_id', 'channel_id']);
+        $validate->scene('get_track_number', ['channel_account_id', 'process_code']);
+        $validate->scene('label', ['channel_account_id', 'shipping_number']);
+        if (!$validate->scene($scene)->check($data)) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => $validate->getError(),
+                'error_code' => 1
+            ];
+            return false;
+        }
+        return true;
+    }
+    
+}

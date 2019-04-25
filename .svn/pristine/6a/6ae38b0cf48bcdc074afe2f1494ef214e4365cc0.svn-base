@@ -1,0 +1,59 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-22
+ * Time: 下午4:19
+ */
+
+namespace erp;
+
+
+class Repository
+{
+    private $model = null;
+    private $criterias = [];
+    private $expose = null;
+    public function __construct($model)
+    {
+        $this->model = $model;
+    }
+
+    public function pushCriteria(AbsErpCriteria $criteria)
+    {
+        $this->criterias[] = $criteria;
+    }
+
+    public function setExpose(AbsErpExpose $expose)
+    {
+        $this->expose = $expose;
+    }
+
+    public function select()
+    {
+        foreach ($this->criterias as $criteria){
+            $criteria->model($this->model);
+            $criteria->criteria();
+        }
+        if($this->expose){
+            $this->expose->model($this->model);
+            $this->expose->expose();
+        }
+        return $this->model->select();
+    }
+
+    public function create($data)
+    {
+        $this->model->save($data);
+    }
+
+    public function delete()
+    {
+        foreach ($this->criterias as $criteria){
+            $criteria->model($this->model);
+            $criteria->criteria();
+        }
+        $this->model->delete();
+    }
+
+}

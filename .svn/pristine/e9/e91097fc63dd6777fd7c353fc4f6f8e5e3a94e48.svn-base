@@ -1,0 +1,181 @@
+<?php
+
+namespace service\voma;
+
+use think\Loader;
+use app\common\cache\Cache;
+use think\Exception;
+use app\common\model\voma\VomaOrder as VomaOrderModel;
+use org\Curl;
+
+
+
+class VomaOrderApi {
+
+
+    private $app_secret;
+    private $account;
+
+
+    /**
+     *
+     * @param unknown $account
+     * @param unknown $app_secret
+
+     */
+    public function __construct($account, $app_secret) {
+        $this->account = $account;
+        $this->app_secret = $app_secret;
+
+
+        $this->config = array(
+            'ServiceURL' => '',
+            'ProxyHost' => null,
+            'ProxyPort' => -1,
+            'MaxErrorRetry' => 1,
+        );
+    }
+
+
+
+    /**
+     * 抓取一段时间内的订单的列表(每次查询最多可以查100条  用递归处理)
+     * @param datetime $starttime
+     * @param datetime $endtime
+     * @return array
+     *
+     */
+    public function getOrderLists($account, $startTime, $endtime) {
+
+        $response=$this->getResponseData();
+        return $response;
+    }
+    private function getResponseData( $page=1, $pageSize = 50)
+    {
+        $share_params = array(
+            'token'=>$this->app_secret,
+            'limit' => $pageSize,
+            'start' => $page,
+        );
+        $response = Curl::curlGet('https://merchant-api.vova.com.hk/v1/order/Unhandled?'.http_build_query($share_params));
+        $rs=json_decode($response,true);
+        if($rs['code']==20000  && is_array($rs['data'])){
+            $response_data = $rs['data']['order_list'];
+            if(!empty($response_data)){
+                $page++;
+                $next = $this->getResponseData( $page);
+                $response_data = array_merge($response_data, $next);
+            }
+            return $response_data;
+            //var_dump($response_data);die;
+        } else {
+            $error = $rs['msg'] ?? '未知错误';
+            throw new Exception($error);
+        }
+
+    }
+
+
+    public function spiderOrderLists($accountId, $starttime, $endtime) {
+        $simplelists = $this->getOrderLists($accountId,$starttime, $endtime);
+        $orders = $this->spiderOrderListsCommon( $accountId,$simplelists);
+        return $orders;
+    }
+
+    /**
+     * 根据订单号抓取订单列表（获取多条详情再遍历）
+     * @param int $accountId
+     * @param array $simplelists
+     * @return array
+     * @author
+     */
+    public function spiderOrderListsCommon( $accountId, $simplelists) {
+        $inserOrder = [];
+        $orders = isset($simplelists) && !empty($simplelists)? $simplelists:$inserOrder;
+        foreach ($orders as $order) {
+            $vomaOrderId = isset($order['order_sn'])?$order['order_sn']:array();
+            if (empty($vomaOrderId)) {
+                continue;
+            }
+            $orderInfo = false;
+            if (!$orderInfo) {
+               $orderInfo = VomaOrderModel::where(['order_sn' => $vomaOrderId,'account_id'=>$accountId])->find();
+            }
+            if ($orderInfo) {
+                continue;
+            }
+
+            //订单表数据
+            $order_data = array(
+                'id'                  => $orderInfo ? $orderInfo['id'] : 0,
+                'account_id'   =>  $accountId,
+                'order_sn'            => $vomaOrderId,  //订单号
+                'order_goods_sn'        => $order['order_goods_sn'],  //订单号
+                 'sku'               =>$order['sku'],//sku
+                'website_goods_id'=>$order['website_goods_id'],//商品号
+                'goods_name'        =>$order['goods_name'],//商品名称
+                'goods_size'        =>$order['goods_size'],//尺寸
+                'goods_color'       =>$order['goods_color'],//颜色
+                'styles'           =>$order['styles'],//类型
+                'goods_number'     =>$order['goods_number'],//数量
+                'shop_price'        => $order['shop_price'], //商品价钱
+                'shop_price_amount'=>$order['shop_price_amount'],//商品总价钱
+                'shipping_fee'      =>$order['shipping_fee'],//运费
+                'total_amount'        => $order['total_amount'], //订单总价钱
+                'currency'             => $order['currency'], //货币类型
+                'address'  => json_encode($order['address']), //收货人地址json格式
+                'delivery_deadline'=>strtotime($order['delivery_deadline']),//发货时间
+                'order_cancel_deadline'        => strtotime($order['order_cancel_deadline']), //取消时间
+                'order_state'  => $order['order_state'], //订单状态0,未确认1,已确认2,已取消
+                'shipping_state'           => $order['shipping_state'], //订单状态     0.未发货 1.已发货 2.已收货
+                'image_url'             => $order['image_url'], //图片url
+
+                'create_time'        => time(), //入库的时间
+                'confirm_time'   =>strtotime($order['confirm_time']),//确认时间
+
+            );
+            //组装数据
+            $inserOrder[] = array(
+                'order' => $order_data,
+            );
+           
+        }
+        return $inserOrder;
+
+    }
+
+
+
+    /**
+     * 对象转为数组
+     * @param object $array
+     * @return array
+     * @author czq
+     */
+    function object_array($array) {
+
+        if (is_object($array)) {
+            $array = (array) $array;
+        }
+        if (is_array($array)) {
+            foreach ($array as $key => $value) {
+                $array[$key] = $this->object_array($value);
+            }
+        }
+        return $array;
+
+       // var_dump($array);die;
+    }
+
+    /**
+     * 取订单列表
+     * @param unknown $accountId
+     * @param unknown $startTime
+     * @param unknown $endtime
+     */
+    public function getVomaOrderList($accountId, $create_Time, $confirm_Time) {
+        $spiderlists = $this->spiderOrderLists($accountId, $create_Time, $confirm_Time);
+        return $spiderlists;
+    }
+
+}

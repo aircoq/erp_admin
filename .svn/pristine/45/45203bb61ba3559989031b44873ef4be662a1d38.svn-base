@@ -1,0 +1,23 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-4-12
+ * Time: 下午4:26
+ */
+
+namespace SeasLog;
+
+
+class SeasLog extends \SeasLog
+{
+    public static function log($level, $message = NULL, $content = [], $logger = NULL)
+    {
+        try{
+            parent::log($level, $message, $content, $logger);
+        }catch (\Error $error){
+            echo $error->getMessage();
+        }
+
+    }
+}

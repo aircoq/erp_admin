@@ -1,0 +1,29 @@
+<?php
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+namespace Box\Spout\Autoloader;
+
+use Box\Spout\Autoloader\Psr4Autoloader;
+
+$srcBaseDirectory = dirname(dirname(__FILE__));
+
+/**
+ * Description of Joy
+ *
+ * @author RondaFul
+ */
+class Joy {
+   public static function instance()
+   {
+        $loader = new Psr4Autoloader();
+        $loader->register();
+        $loader->addNamespace('Box\Spout', $srcBaseDirectory);
+        
+        return $loader;
+   }
+}

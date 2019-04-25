@@ -1,0 +1,78 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class SfExpress extends Base
+{
+    const ZONE_MAP_PY =
+        ['RU' => '5-EE-RU-P',
+        'LT' => '7-EE-LT-P',
+        'EE' => '9-EE-EE-P',
+        'LV' => '11-EE-LV-P',
+        'FI' => '13-EE-FI-P',
+        'SE' => '15-EE-SE-P',
+        'NO' => '17-EE-NO-P',
+        'BY' => '19-EE-BY-P',
+        'UA' => '21-EE-UA-P',
+        'PL' => '23-EE-PL-P'];
+
+
+
+    private function  getZoneCode($countryCode){
+        $zoneMap=[];
+        $zoneMap['RU']='6-EE-RU-G';
+        $zoneMap['LT']='8-EE-LT-G';
+        $zoneMap['EE']='10-EE-EE-G';
+        $zoneMap['LV']='12-EE-LV-G';
+        $zoneMap['FI']='14-EE-FI-G';
+        $zoneMap['SE']='16-EE-SE-G';
+        $zoneMap['NO']='18-EE-NO-G';
+        $zoneMap['BY']='20-EE-BY-G';
+        $zoneMap['UA']='22-EE-UA-G';
+        $zoneMap['PL']='24-EE-PL-G';
+        if(!$countryCode)
+            return '';
+        $zone = $zoneMap[$countryCode]??'';
+        return $zone;
+    }
+
+
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+
+
+        return $this->$strFun($order);
+    }
+
+    private function label_9($order)
+    {
+        $order['zone_code'] = self::ZONE_MAP_PY[$order['country_code']];
+        return $this->display('9', $order);
+    }
+    private function label_10($order)
+    {
+        $order['zone_code'] =$this->getZoneCode($order['country_code']);
+        return $this->display('10', $order);
+    }
+    private function label_21($order)
+    {
+        return $this->display('21', $order);
+    }
+}

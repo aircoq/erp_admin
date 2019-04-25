@@ -1,0 +1,114 @@
+<?php
+$crc_table = array();
+$crc_table_computed = false;
+
+function make_crc_table() {
+    global $crc_table_computed, $crc_table;
+
+    for ($n = 0; $n < 256; $n++) {
+        $c = $n;
+        for ($k = 0; $k < 8; $k++) {
+            if (($c & 1) == 1) {
+                $c = 0xedb88320 ^ (SHR($c, 1));
+            } else {
+                $c = SHR($c, 1);
+            }
+        }
+        $crc_table[$n] = $c;
+    }
+
+    $crc_table_computed = true;
+}
+
+function SHR($x, $n) {
+    $mask = 0x40000000;
+
+    if ($x < 0) {
+        $x &= 0x7FFFFFFF;
+        $mask = $mask >> ($n - 1);
+        return ($x >> $n) | $mask;
+    }
+
+    return (int)$x >> (int)$n;
+}
+
+function update_crc($crc, $buf, $len) {
+    global $crc_table_computed, $crc_table;
+
+    $c = $crc;
+
+    if (!$crc_table_computed) {
+        make_crc_table();
+    }
+
+    for ($n = 0; $n < $len; $n++) {
+        $c = $crc_table[($c ^ ord($buf[$n])) & 0xff] ^ (SHR($c, 8));
+    }
+
+    return $c;
+}
+
+function crc($data, $len) {
+    return update_crc(-1, $data, $len) ^ -1;
+}
+
+/**
+ * Debug method only to display on the screen the hexadecimal of a file.
+ */
+function hex($bin) {
+    echo '<span style=\'font-family: "Courier New"; font-size: 10pt;\'>';
+    $c = strlen($bin);
+    $remember = '';
+    for($i = 0; $i < $c;) {
+        for($j = 0; $j < 16; $j++, $i++) {
+            if($i < $c) {
+                $o = ord($bin[$i]);
+                $remember .= ($o >= 32 && $o <= 126) ? $bin[$i] : '.';
+                printf('%02X ', ord($bin[$i]));
+            } else {
+                break 2;
+            }
+        }
+        echo '&nbsp;&nbsp;&nbsp;&nbsp;';
+        echo htmlentities($remember);
+        $remember = '';
+        echo '<br />';
+    }
+
+    echo str_repeat('&nbsp;&nbsp;&nbsp;', 16 - ($i % 16));
+    echo '&nbsp;&nbsp;&nbsp;&nbsp;';
+    echo htmlentities($remember);
+    echo '</span>';
+}
+
+
+function createCode($code, $content) {
+    $contentLength = strlen($content);
+    return "\0\0\0" . chr($contentLength) . $code . $content . pack('N', crc($code . $content, $contentLength + 4));
+}
+
+// PNG:
+$text = "Copyright\0Generated with Barcode Bakery for PHP http://www.barcodebakery.com";
+$encoded = createCode('tEXt', $text);
+$unpacked = unpack('H*', $encoded);
+$unpacked = $unpacked[1];
+echo '<br />';
+hex($encoded);
+echo '<br />';
+echo strtoupper($unpacked);
+echo '<br />';
+echo pack('H*', $unpacked);
+
+echo '<br /><br /><br />';
+// JPG:
+$text = "Generated with Barcode Bakery for PHP http://www.barcodebakery.com";
+$length = strlen($text) + 2;
+$encoded = chr(0xff) . chr(0xfe) . chr($length & 0xff00) . chr($length & 0x00ff) . $text;
+$unpacked = unpack('H*', $encoded);
+$unpacked = $unpacked[1];
+echo '<br />';
+hex($encoded);
+echo '<br />';
+echo strtoupper($unpacked);
+echo '<br />';
+echo pack('H*', $unpacked);

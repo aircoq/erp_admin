@@ -1,0 +1,62 @@
+<?php
+
+namespace service\dingding;
+
+use think\Exception;
+
+/**
+ * dingding 平台api
+ */
+class DingApi
+{
+    private static $config = [];
+    private static $instance = null;
+    private static $object = [];
+
+    /**
+     * 开放接口
+     * @param  array $config [description]
+     * @return [type]         [description]
+     */
+    public static function instance($config = [])
+    {
+        if (is_null(self::$instance)) {
+            self::$instance = new DingApi;
+        }
+        self::$config = $config;
+        return self::$instance;
+    }
+
+    /** 实例化
+     * @param $type
+     * @return mixed
+     * @throws Exception
+     */
+    public function loader($type)
+    {
+        try {
+            $class = false !== strpos($type, '\\') ? $type : '\\service\\dingding\\operation\\' . ucwords($type);
+            if ($class) {
+                if (!isset(self::$object[$type]) || is_null(self::$object[$type])) {
+                    self::$object[$type] = new $class(self::$config);
+                }
+                return self::$object[$type];
+            } else {
+                throw new Exception("The api type file is not found", 1);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error Processing Request", 1);
+        }
+    }
+    
+    /**
+     * 资源配置
+     * @param  array $config [description]
+     * @return [type]         [description]
+     */
+    public function config(array $config)
+    {
+        array_merge(self::$config, $config);
+    }
+
+}

@@ -1,0 +1,336 @@
+<?php
+
+namespace zoodmall;
+
+use app\common\cache\Cache;
+use app\index\service\ZoodmallAccountService;
+use think\Exception;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/9/12
+ * Time: 14:25
+ */
+class ZoodmallBaseApi
+{
+    protected $url = 'https://open.zoodmall.com/rpc.php'; //正式环境
+//    protected $url = 'https://sandboxopen.zoodmall.com/rpc.php'; //测试环境
+//    protected $url = 'https://staging-in-open.zoodmall.com/rpc.php'; //测试环境
+
+    protected $client_id = '';
+
+    protected $client_secret = '';
+
+    protected $code = '';
+
+    protected $redirect_uri = '';
+
+    protected $access_token = '';
+
+    protected $refresh_token = '';
+
+    protected $error = '';
+
+    protected $shop_id = 0;
+
+    public function __construct($params = [])
+    {
+        $this->client_id = $params['client_id'] ?? '';
+        $this->client_secret = $params['client_secret'] ?? '';
+        $this->code = $params['code'] ?? '';
+        $this->redirect_uri = $params['redirect_uri'] ?? '';
+        $this->refresh_token = $params['refresh_token'] ?? '';
+        $this->access_token = $params['access_token'] ?? '';
+        $this->shop_id = $params['shop_id'] ?? $params['id'] ?? 0;
+    }
+
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    public function refresh_access_token()
+    {
+        $url = $this->url;
+        $postData = [
+            'jsonrpc' => '2.0',
+            'method' => 'ProductRpc.finds',
+            'params' => [
+                    'status' => '1',
+                    'page' => '1',
+                    'rowsPerPage' => '10',
+            ],
+            'id' => $this->shop_id,
+        ];
+
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+                'X-RPC-Auth-Username' => $this->client_id,
+                'X-Rpc-Auth-Password' => $this->client_secret,
+            ]
+        ];
+
+        $postData = json_encode($postData);
+        $headers = [];
+        $this->httpReader($url, 'POST', $postData, $extra,$headers);
+        if(isset($headers['x-RPC-Auth-Session'])){
+            $this->access_token = $headers['x-RPC-Auth-Session'];
+            (new ZoodmallAccountService())->updateAccessToken($this->shop_id,$this->access_token);
+            return $headers['x-RPC-Auth-Session'];
+        }
+
+        return false;
+    }
+
+    /**
+     * @title 已经组装好了授权的；
+     * @param $url 访问地焉
+     * @param $mehod 访问方法'GET'， 'POST'
+     * @param $data 数据；
+     * @return mixed josn
+     */
+    protected function authcall($mehod,$funs, $params)
+    {
+        //授权信息；
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+//                'x-RPC-Auth-Session' => $this->access_token,
+                'X-RPC-Auth-Username' => $this->client_id,
+                'X-Rpc-Auth-Password' => $this->client_secret,
+            ]
+        ];
+
+        $postData = [
+            'jsonrpc' => '2.0',
+            'method' => $funs,
+            'params' => $params,
+            'id' => $this->shop_id.time(),
+        ];
+        $postData = json_encode($postData);
+        $header=[];
+        $result = $this->httpReader($this->url, $mehod, $postData, $extra,$header);
+//        var_dump($extra,$postData,$result,$header);
+        $result = json_decode($result, true);
+
+        //此种情况为未授权, 未授权则先授权，再进行；
+        if (isset($result['error']['code']) && $result['error']['code'] == -32604 && $result['error']['message'] == 'Authentication error') {
+            //如果授权成功，则再取，如果刷新授权也不成功，直接返回接果；
+            if ($this->refresh_access_token()) {
+                return $this->authcall( $mehod,$funs, $params);
+            }
+        }
+
+        return $result;
+    }
+
+
+    /**
+     * HTTP读取
+     * @param string $url 目标URL
+     * @param string $method 请求方式
+     * @param array|string $bodyData 请求BODY正文
+     * @param array $responseHeader 传变量获取请求回应头
+     * @param int $code 传变量获取请求回应状态码
+     * @param string $protocol 传变量获取请求回应协议文本
+     * @param string $statusText 传变量获取请求回应状态文本
+     * @param array $extra 扩展参数,可传以下值,不传则使用默认值
+     * header array 头
+     * host string 主机名
+     * port int 端口号
+     * timeout int 超时(秒)
+     * proxyType int 代理类型; 0 HTTP, 4 SOCKS4, 5 SOCKS5, 6 SOCK4A, 7 SOCKS5_HOSTNAME
+     * proxyAdd string 代理地址
+     * proxyPort int 代理端口
+     * proxyUser string 代理用户
+     * proxyPass string 代理密码
+     * caFile string 服务器端验证证书文件名
+     * sslCertType string 安全连接证书类型
+     * sslCert string 安全连接证书文件名
+     * sslKeyType string 安全连接证书密匙类型
+     * sslKey string 安全连接证书密匙文件名
+     * @return string|array 请求结果;成功返回请求内容;失败返回错误信息数组
+     * error string 失败原因简单描述
+     * debugInfo array 调试信息
+     */
+    public function httpReader($url, $method = 'GET', $bodyData = [], $extra = [], &$responseHeader = null, &$code = 0, &$protocol = '', &$statusText = '')
+    {
+        $ci = curl_init();
+
+        if (isset($extra['timeout'])) {
+            curl_setopt($ci, CURLOPT_TIMEOUT, $extra['timeout']);
+        }
+        curl_setopt($ci, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ci, CURLOPT_HEADER, true);
+        curl_setopt($ci, CURLOPT_AUTOREFERER, true);
+        curl_setopt($ci, CURLOPT_FOLLOWLOCATION, true);
+
+        if (isset($extra['proxyType'])) {
+            curl_setopt($ci, CURLOPT_PROXYTYPE, $extra['proxyType']);
+
+            if (isset($extra['proxyAdd'])) {
+                curl_setopt($ci, CURLOPT_PROXY, $extra['proxyAdd']);
+            }
+
+            if (isset($extra['proxyPort'])) {
+                curl_setopt($ci, CURLOPT_PROXYPORT, $extra['proxyPort']);
+            }
+
+            if (isset($extra['proxyUser'])) {
+                curl_setopt($ci, CURLOPT_PROXYUSERNAME, $extra['proxyUser']);
+            }
+
+            if (isset($extra['proxyPass'])) {
+                curl_setopt($ci, CURLOPT_PROXYPASSWORD, $extra['proxyPass']);
+            }
+        }
+
+        if (isset($extra['caFile'])) {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, 2); //SSL证书认证
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, true); //严格认证
+            curl_setopt($ci, CURLOPT_CAINFO, $extra['caFile']); //证书
+        } else {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, false);
+        }
+
+        if (isset($extra['sslCertType']) && isset($extra['sslCert'])) {
+            curl_setopt($ci, CURLOPT_SSLCERTTYPE, $extra['sslCertType']);
+            curl_setopt($ci, CURLOPT_SSLCERT, $extra['sslCert']);
+        }
+
+        if (isset($extra['sslKeyType']) && isset($extra['sslKey'])) {
+            curl_setopt($ci, CURLOPT_SSLKEYTYPE, $extra['sslKeyType']);
+            curl_setopt($ci, CURLOPT_SSLKEY, $extra['sslKey']);
+        }
+
+        $method = strtoupper($method);
+        switch ($method) {
+            case 'GET':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'GET');
+                if (!empty($bodyData)) {
+                    if (is_array($bodyData)) {
+                        $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($bodyData);
+                    } else {
+                        curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                    }
+                }
+                break;
+            case 'POST':
+                curl_setopt($ci, CURLOPT_POST, true);
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+
+                $options = array(
+                    CURLOPT_URL => $url,
+                    CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 6.1; rv:12.0) Gecko/20100101 Firefox/12.0",
+                    CURLOPT_RETURNTRANSFER => 1,
+                );
+                curl_setopt_array($ci, $options);
+
+
+                break;
+            case 'PUT':
+                //                 curl_setopt ( $ci, CURLOPT_PUT, true );
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'PUT');
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'DELETE':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
+            case 'HEAD':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'HEAD');
+                break;
+            default:
+                throw new \Exception(json_encode(['error' => '未定义的HTTP方式']));
+                return ['error' => '未定义的HTTP方式'];
+        }
+
+        if (!isset($extra['header']) || !isset($extra['header']['Host'])) {
+            $urldata = parse_url($url);
+            $extra['header']['Host'] = $urldata['host'];
+            unset($urldata);
+        }
+
+        $header_array = array();
+        foreach ($extra['header'] as $k => $v) {
+            $header_array[] = $k . ': ' . $v;
+        }
+
+        curl_setopt($ci, CURLOPT_HTTPHEADER, $header_array);
+        curl_setopt($ci, CURLINFO_HEADER_OUT, true);
+
+        curl_setopt($ci, CURLOPT_URL, $url);
+
+        $response = curl_exec($ci);
+
+        if (false === $response) {
+            $http_info = curl_getinfo($ci);
+            throw new \Exception(json_encode(['error' => curl_error($ci), 'debugInfo' => $http_info]));
+            return ['error' => curl_error($ci), 'debugInfo' => $http_info];
+        }
+        $responseHeader = [];
+        $headerSize = curl_getinfo($ci, CURLINFO_HEADER_SIZE);
+        $headerData = substr($response, 0, $headerSize);
+        $body = substr($response, $headerSize);
+
+        $responseHeaderList = explode("\r\n", $headerData);
+
+        if (!empty($responseHeaderList)) {
+            foreach ($responseHeaderList as $v) {
+                if (false !== strpos($v, ':')) {
+                    list($key, $value) = explode(':', $v, 2);
+                    $responseHeader[$key] = ltrim($value);
+                } else if (preg_match('/(.+?)\s(\d+)\s(.*)/', $v, $matches) > 0) {
+                    $protocol = $matches[1];
+                    $code = $matches[2];
+                    $statusText = $matches[3];
+                }
+            }
+        }
+
+        curl_close($ci);
+        return $body;
+    }
+
+    /**
+     * 给一个key加锁，失败则等待时间后重新尝试，最多尝试次数后，返回false防止造成偱环;同一个KEY加锁后必需要解锁；
+     * @param $key 加要锁的KEY
+     * @param int $maxTest 最大等待次数；
+     * @return bool
+     */
+    protected function lock($key, $maxTest = 200)
+    {
+        $bol = true;
+        while (true) {
+            $result = Cache::handler()->setnx($key, 1);
+            Cache::handler()->expire($key, 10);
+            if ($result) {
+                break;
+            }
+            $maxTest--;
+            if ($maxTest <= 0) {
+                $bol = false;
+                break;
+            }
+            usleep(50000);
+        }
+        return $bol;
+    }
+
+    /**
+     * 加锁后必需解锁，否则下次同样key会换败
+     * @param $key
+     * @return bool
+     */
+    protected function unlock($key)
+    {
+        Cache::handler()->delete($key);
+        return true;
+    }
+}

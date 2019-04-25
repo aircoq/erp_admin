@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.02451277344572933 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;font-size:10pt;line-height:12pt;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0"
+               style="border:solid 1pt #000;width:265pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:9pt;margin: 0 auto">
+            <tr >
+                <td>
+                    <div style="width:260pt;height:45pt;">
+                        <div style="width:80pt;float:left;font-size:9pt;line-height:10pt;word-wrap:break-word;">
+                            If not delivered,<br>
+                            please return to<br>
+                            PO box 198/1<?php echo $po_code ?><br>
+                            Tbilisi,Georgia<br>
+                        </div>
+                        <div style="width:110pt;float:left;margin-top: 5pt;text-align: center">
+
+                        </div>
+                        <div style="width:40pt;height:30pt;margin-top:2pt;float:right;font-size: 5pt;border: solid 1pt #000;padding-top: 10pt;font-weight: bold;text-align: center">
+                            PORT PAYE<BR>GEORGIA
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="width: 160pt;float: left;margin-left: 4pt;">
+                        <table cellpadding="0" cellspacing="0">
+                            <tr >
+                                <td style="border:solid 1pt #000;width:60pt;border-right:none;border-bottom:none ;text-align: left;font-weight: bold">CUSTOMS DECLARATION</td>
+                                <td style="border:solid 1pt #000;width:60pt;border-right:none;border-bottom:none ">May be opened officially </td>
+                                <td  style="border:solid 1pt #000;width:10pt;border-right:none;border-bottom:none"></td>
+                                <td style="border-top:solid 1pt #000;width:20pt;border-right:solid 1pt #000 ">CN22</td>
+                            </tr>
+                            <tr >
+                                <td colspan="4" style="border-left:solid 1pt #000;border-top:solid 1pt #000;width:70pt;border-right:solid 1pt #000 ">
+                                    <div>Designated operator &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Georgian Post</div>
+                                    <div style="font-size: 6pt;text-align: right">Tel:(+99532)2240909E-mail:info@gpost.ge</div>
+                                </td>
+
+                            </tr>
+                            <tr style="height: 30pt">
+                                <td colspan="4" style="border-left:solid 1pt #000;border-top:solid 1pt #000;width:70pt;border-right:solid 1pt #000 ">
+                                    <div style="margin-left: 5pt;font-size: 6pt">
+                                        <img style="width: 7pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAUCAIAAAAP9fodAAAA80lEQVQ4EcVTOxJFQBB8q1ZIJFIkIjfgBkIXcxOB2BnEjiBQ5Qy8premXi32fZK3ATOz3TM9xqht2x7HgaGUov32qdd17ft+GAbP8xxoJtVa13Wd57mG33VdkiRZlrlpyNu2bZqmhub7flVVRVFYNOoX5XDHcYSLowklwqKJe+bvtDsOsgrTMlyfwYLSPTQqj69LhCNoenMgcHVW+7VIFvgX7W4M0jYAgvlFJMiG9skYXjEf/VzQKfI4D1PNvTXSngxwrxZFUdM0YRjKNQ1WECiMaZrKssStwprO87wsiwWyUtDFmsZxHATBTmNIsl4SGJQOn3OnYzbaHuIUAAAAAElFTkSuQmCC">Gift
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        <img style="width: 7pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAUCAIAAAAP9fodAAAA80lEQVQ4EcVTOxJFQBB8q1ZIJFIkIjfgBkIXcxOB2BnEjiBQ5Qy8premXi32fZK3ATOz3TM9xqht2x7HgaGUov32qdd17ft+GAbP8xxoJtVa13Wd57mG33VdkiRZlrlpyNu2bZqmhub7flVVRVFYNOoX5XDHcYSLowklwqKJe+bvtDsOsgrTMlyfwYLSPTQqj69LhCNoenMgcHVW+7VIFvgX7W4M0jYAgvlFJMiG9skYXjEf/VzQKfI4D1PNvTXSngxwrxZFUdM0YRjKNQ1WECiMaZrKssStwprO87wsiwWyUtDFmsZxHATBTmNIsl4SGJQOn3OnYzbaHuIUAAAAAElFTkSuQmCC">Commercial sample<br>
+                                        <img style="width: 7pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAUCAIAAAAP9fodAAAA80lEQVQ4EcVTOxJFQBB8q1ZIJFIkIjfgBkIXcxOB2BnEjiBQ5Qy8premXi32fZK3ATOz3TM9xqht2x7HgaGUov32qdd17ft+GAbP8xxoJtVa13Wd57mG33VdkiRZlrlpyNu2bZqmhub7flVVRVFYNOoX5XDHcYSLowklwqKJe+bvtDsOsgrTMlyfwYLSPTQqj69LhCNoenMgcHVW+7VIFvgX7W4M0jYAgvlFJMiG9skYXjEf/VzQKfI4D1PNvTXSngxwrxZFUdM0YRjKNQ1WECiMaZrKssStwprO87wsiwWyUtDFmsZxHATBTmNIsl4SGJQOn3OnYzbaHuIUAAAAAElFTkSuQmCC">Documents
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        <img style="width: 7pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAUCAIAAAAP9fodAAAA80lEQVQ4EcVTOxJFQBB8q1ZIJFIkIjfgBkIXcxOB2BnEjiBQ5Qy8premXi32fZK3ATOz3TM9xqht2x7HgaGUov32qdd17ft+GAbP8xxoJtVa13Wd57mG33VdkiRZlrlpyNu2bZqmhub7flVVRVFYNOoX5XDHcYSLowklwqKJe+bvtDsOsgrTMlyfwYLSPTQqj69LhCNoenMgcHVW+7VIFvgX7W4M0jYAgvlFJMiG9skYXjEf/VzQKfI4D1PNvTXSngxwrxZFUdM0YRjKNQ1WECiMaZrKssStwprO87wsiwWyUtDFmsZxHATBTmNIsl4SGJQOn3OnYzbaHuIUAAAAAElFTkSuQmCC">Returned goods<br>
+                                        <img style="width: 7pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAASCAIAAAA7cAJ5AAACkklEQVQ4EVWUvUvyURTHH03pxRLt1ZaIKFfblJb+AQe3qKkhcHBoUCioIQclRKNVHIOGgqSllnBJQVxcWoNeNaLU3rXU5/no8bn8OsP9nXPP+Z77vd9zVfe3bS8vL9Vq9U/bdDode7g4siOh+N3d3RaLRaUM5L6/v6PRaCaTEaTKCUC1oIyU0+nc3t42Go3sgzXwaTQad3d3W1tbg4OD5+fndrt9fHxcC8bP5/OBQGB0dPT6+lpLp4XH9Hr9zMzM7e3t7u6uy+Xa2dkZGhoSIlQXi8Wjo6Onp6fX19fJyck2orVQYFBsm81mOp2+bFtXV1ckEhkZGaEIadbW1pLJpMlkWllZKZVKCo+j1wbLy8sLCwvc7fDwECLv7+8fHx/xePz4+NhgMHi9XgpwtJBfAZw5tqenZ29vjyvg9Pb2hsNhRrO0tLS5uVmpVLSXbzUi5hAa39zc4HOLh4cHj8fDOf39/XDmgvPz81dXV8jM5ais1WpUiv06n3ZUI3IsFoP82dkZOwgWDAYnJiYky6o1PW2IRUVpSYjOkJK6z8/P+/v7er2uhSm/ox9IWkiXcrmM4NlsdmBgAEUeHx/X19cZjZykkOLoBSMBFTwBv9+fSqXMZnMoFNrf35+dneX81dXVXC6HOqqy046P6Afy6+vL5/OJ7Ly2t7e3n5+f09PT6elpYHNzcwcHB6IfjbBWCy2eUTN83uLi4mKhUCCFcXOew/DwMExRkdGgv8J39CfHwKxWa19fn8PhgLnNZhOqvEW32/38/LyxscE46c6+unXr90cMTzAMfGpqCmQikZB9KcVn+GNjY4yWdtJXVh1MyJ2cnFxcXAgLxa1T8f/vAIKk0EJeVydLb2WKlfYE8alR7aRM1n+4TJ1ImsAtlgAAAABJRU5ErkJggg==">Sale of goods
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        <img style="width: 7pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAUCAIAAAAP9fodAAAA80lEQVQ4EcVTOxJFQBB8q1ZIJFIkIjfgBkIXcxOB2BnEjiBQ5Qy8premXi32fZK3ATOz3TM9xqht2x7HgaGUov32qdd17ft+GAbP8xxoJtVa13Wd57mG33VdkiRZlrlpyNu2bZqmhub7flVVRVFYNOoX5XDHcYSLowklwqKJe+bvtDsOsgrTMlyfwYLSPTQqj69LhCNoenMgcHVW+7VIFvgX7W4M0jYAgvlFJMiG9skYXjEf/VzQKfI4D1PNvTXSngxwrxZFUdM0YRjKNQ1WECiMaZrKssStwprO87wsiwWyUtDFmsZxHATBTmNIsl4SGJQOn3OnYzbaHuIUAAAAAElFTkSuQmCC">Other(please specify):_
+                                    </div>
+
+
+                                </td>
+
+                            </tr>
+                            <tr >
+                                <td colspan="2" style="border-left:solid 1pt #000;border-top:solid 1pt #000;width:200pt;border-right:solid 1pt #000;font-weight: bold ">Quantity and detailed description </td>
+                                <td  style="border-top:solid 1pt #000;border-right:solid 1pt #000 ;text-align: center">Weight (kg) </td>
+                                <td style="border-top:solid 1pt #000;border-right:solid 1pt #000;text-align: center ">Value (USD)</td>
+                            </tr>
+                            <?php foreach ($list as $k=>$v):?>
+                                <tr >
+
+                                    <td colspan="2" style="border-left:solid 1pt #000;border-top:solid 1pt #000;width:200pt;border-right:solid 1pt #000 ;font-weight: bold">
+                                        <?php echo $v['declared_name_en'];?>* <?php echo $v['qty'];?>
+                                    </td>
+                                    <td  style="border-top:solid 1pt #000;border-right:solid 1pt #000 ;text-align: center"> <?php echo number_format($v['declared_weight']*$v['qty']/1000,3);?> </td>
+                                    <td style="border-top:solid 1pt #000;border-right:solid 1pt #000;text-align: center "><?php echo number_format($v['declared_value']*$v['qty'],3,'.','');?></td>
+                                </tr>
+                            <?php endforeach;?>
+                            <tr >
+                                <td colspan="2" style="border-left:solid 1pt #000;border-top:solid 1pt #000;width:200pt;border-right:solid 1pt #000 ;font-size: 7pt">
+                                    For commercial items only if
+                                    knwon HS tairf number<br>
+                                    <?php foreach ($list as $k=>$v):?>
+                                        <?php echo $v['hs_code']?> &nbsp;
+                                    <?php endforeach;?>
+                                </td>
+                                <td  style="border-top:solid 1pt #000;border-right:solid 1pt #000 ;text-align: center">Toatl Weight(kg)  <?php echo number_format($total_weight/1000,3);?>
+                                </td>
+                                <td style="border-top:solid 1pt #000;border-right:solid 1pt #000;text-align: center ">Total Value (USD) <?php echo number_format($total_value,3,'.','');?></td>
+                            </tr>
+                            <tr >
+                                <td colspan="4" style="border:solid 1pt #000;border-bottom:none;font-size: 6pt ">
+                                    I,the undersigned,whose name and address are given on the itme, certify that
+                                    particulars given in this declaration are correct and that this item dose not
+                                    contain any dangerous article or artices prohibited by legislation or by postal
+                                    or customs regulations <br>
+                                    <font style="font-size: 5pt">Date and sender`s signature <?php echo date('Y-m-d',time())?></font>
+
+                                </td>
+
+                            </tr>
+                        </table>
+                    </div>
+                    <div style="width:90pt;float: right;margin-left: 4pt;">
+                        <div> TO:<br>
+                            <?php  echo $name ?><br>
+                            <?php  echo $street.$street2 ?><br>
+                            <?php  echo $city ?><br>
+                            <?php  echo $province ?><br>
+                            <?php  echo $country_en_name ?><br>
+                            <?php  echo $zip ?><br>
+                            <?php  echo $phone.' '.$tel ?><br>
+                        </div>
+                        <div style="margin-top: 10pt;;text-align:right;font-size: 15pt;font-weight: bold">
+                            <?php  echo $country_code ?><br>
+
+                        </div>
+                        <div style="margin-top: 10pt;font-size: 15pt;font-weight: bold;">
+                            ND
+                        </div>
+                        <div style="text-align:center;font-size:8pt;margin-top:5pt;font-weight: bold;">
+                            <img style="width:90%" src="<?php echo $this->imgSrc($shipping_number);?>">
+                            <br>
+                            <?php echo $shipping_number;?>
+                        </div>
+
+                    </div>
+                </td>
+
+            </tr>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
+
+</body>
+</html>

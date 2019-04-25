@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.5526475073239963 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:300pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr>
+                <td style="width:270pt;border:solid 1pt #000;">
+                    <div style="width:270pt;text-align:center;padding:2pt 0;"><span
+                                style="display:inline-block;height:28pt;line-height:30pt;text-align:center;padding-left:40pt;"> <img
+                                    style="width:180pt;height:30pt;font-size:15pt;"
+                                    src="<?php echo $this->imgSrc($shipping_number,'self');?>"> </span><br>
+                        <br>
+                        <span style="width=70pt;height=20pt;font-size:15pt; padding-left:40pt;text-align:center;"> <?php echo $shipping_number;?></span>
+                </td>
+            </tr>
+            <tr>
+                <td style="vertical-align:top;width:270pt;border:solid 1pt;border-top:0; #000;padding-top:5pt;padding-left:5pt;font-size:8pt;line-height:10pt;word-break:break-all;word-wrap:break-word;">
+                    <span style="padding:0 3pt;font-size:10pt;line-height:10pt;">
+                       <span style=""><strong>收件人姓名</strong>  <?php echo $name;?></span> <br>
+                        <br>
+                        <?php echo $street.$street2;?>
+                        <?php echo $city?>
+                        <?php echo $province?>
+                        <?php echo $country_en_name;?><br>
+                        <br>
+                        <br>
+                 <strong>zip：</strong>   <?php echo $zip?>    <span style="padding-left:60pt;font-size:10pt;"><?php echo $country_name;?></span> <br>
+                        <strong>Tel：</strong>  <?php echo $phone?>
+                </td>
+            </tr>
+            <?php foreach($list as $k=>$v);?>
+            <tr>
+             <td style="width:270pt;border:solid 1pt;padding-left:5pt;border-top:0;#000;font-size:8pt;line-height:10pt;word-break:break-all;word-wrap:break-word;">
+                <span style=";font-size:10pt;line-height:10pt;vertical-align:middle""><br>
+                    <strong>客户代码</strong>   LILANGDA <br>
+                 <br>
+                    <strong>自编号</strong>     <?php echo $number?><br>
+                 <br>
+                    <strong>英文品名*数量</strong>     <?php echo $v['declared_name_en'];?>*<?php echo $v['qty'];?><br>
+                 <br>
+                     <strong>中文品名*数量</strong>     <?php echo $v['declared_name_cn'];?>*<?php echo $v['qty'];?><br>
+            <br>
+
+                 <strong>渠道:</strong>  CDEK特快专线    <span style="padding-left:50pt";><strong>配货信息*数量</strong><br>
+                     <br>
+                     <br>
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,67 @@
+<?php
+// +----------------------------------------------------------------------
+// | 
+// +----------------------------------------------------------------------
+// | File  : AbsPlatform.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-21
+// +----------------------------------------------------------------------
+
+namespace imap\platform;
+
+use imap\Mail;
+
+abstract class AbsPlatform
+{
+    protected $platformName = '';
+
+    protected $boxRegular = '';     //邮件分类箱正则式
+
+    protected $siteRegular = '';    //站点正则式（比如像亚马逊有美亚，日亚，德亚等，即域名结尾.com,.jp等）
+
+    protected $orderNoRegular = ''; //平带订单号提取正则
+
+
+    /**
+     * 判断是否来自当前平台的邮件
+     * @param Mail $mail
+     * @return mixed
+     */
+    abstract public function isFromThisPlatform(Mail $mail);
+
+
+    /**
+     * @return string
+     */
+    public function getPlatformName()
+    {
+        return $this->platformName;
+    }
+
+    public function getBox(Mail $mail)
+    {
+        if(preg_match($this->boxRegular, $mail->fromAddress,$match)){
+            return $match;
+        }
+        return false;
+    }
+
+    public function getOrderNo(Mail $mail)
+    {
+        if(preg_match($this->orderNoRegular, $mail->fromAddress,$match)){
+            return $match;
+        }
+        return false;
+    }
+
+    public function getSite(Mail $mail)
+    {
+        if(preg_match($this->siteRegular, $mail->fromAddress,$match)){
+            return $match;
+        }
+        return false;
+    }
+
+}

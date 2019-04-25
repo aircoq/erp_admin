@@ -1,0 +1,537 @@
+<?php
+
+namespace app\customerservice\controller;
+
+use think\Exception;
+use think\Request;
+use app\common\controller\Base;
+use app\customerservice\service\EbayDisputeHelp as EbayDisputeHelpService;
+use app\common\model\ebay\EbayRequest;
+use app\common\model\ebay\EbayCase;
+use think\Validate;
+use app\common\model\MsgTemplate as MsgTemplateModel;
+
+
+/**
+ * @module 客服管理
+ * @title Ebay纠纷
+ */
+class EbayDispute extends Base
+
+{
+
+    /**
+     * @title 纠纷列表
+     * @author tanbin
+     * @method GET
+     * @apiParam name:account_id type:int desc:ebay账号id
+     * @url /ebay-dispute
+     * @apiFilter app\customerservice\filter\EbayAccountFilter
+     * @apiFilter app\customerservice\filter\EbayDepartmentFilter
+     * @apiRelate app\customerservice\controller\EbayDispute::getDisputeType&getDisputeStatus&getSearchField&typeIds&batchUpdate
+     * @apiRelate app\order\controller\Order::account
+     */
+    public function index()
+    {
+        $request = Request::instance();
+        $pagination = [
+            'page' => $request->get('page', 1),
+            'pageSize' => $request->get('pageSize', 10)
+        ];
+
+        $pagination['page'] = $request->get('page', 1);
+        $params = $request->param();
+        $dispute_type = $request->get('dispute_type', 'CANCEL');
+        if (empty($dispute_type)) {
+            return json(['message' => '参数错误-请选择纠纷类型'], 400);
+        }
+        $where = [];
+
+        //ebay账号 - 店铺id
+        if (!empty($params['account_id'])) {
+            $account_ids = explode(',', $params['account_id']);
+            $where['account_id'] = ['in', $account_ids];
+        }
+
+        //search
+        if (!empty($params['search_key']) && !empty($params['search_val'])) {
+            $where[$params['search_key']] = ['EQ', trim($params['search_val'])];
+        }
+
+        //买家留评价时间
+        $b_time = !empty($params['date_b']) ? strtotime($params['date_b'] . ' 00:00:00') : '';
+        $e_time = !empty($params['date_e']) ? strtotime($params['date_e'] . ' 23:59:59') : '';
+
+        if ($b_time && $e_time) {
+            $where['initiates_time'] = ['BETWEEN', [$b_time, $e_time]];
+        } elseif ($b_time) {
+            $where['initiates_time'] = ['EGT', $b_time];
+        } elseif ($e_time) {
+            $where['initiates_time'] = ['ELT', $e_time];
+        }
+
+        $sort['type'] = $request->get('sort_type');
+        if (empty($sort['type']) || $sort['type'] == 'dispute_time') {
+            $sort['type'] = 'initiates_time';
+        }
+        $sort['val'] = $request->get('sort_val');
+        if (empty($sort['val'])) {
+            $sort['val'] = 'desc';
+        }
+
+        //服务类
+        $service = new EbayDisputeHelpService();
+
+        //获取状态条件
+        $status = $request->get('status', '');
+        if (!empty($status)) {
+            $where_status = $service->getStatusCondition($dispute_type, $status);
+            if (count($where_status) > 0) {
+                $where = array_merge($where, $where_status);
+            }
+            unset($where_status);
+            unset($status);
+        }
+
+        switch ($dispute_type) {
+            case EbayRequest::EBAY_DISPUTE_CANCEL :
+                $where['request_type'] = EbayRequest::EBAY_REQUEST_CANCEL;
+                $list = $service->getRequest($where, $pagination, $sort);
+                break;
+            case EbayRequest::EBAY_DISPUTE_NOTPAID :
+                $where['status'] = 'CANCEL_CLOSED_FOR_COMMITMENT';
+                $list = $service->getRequest($where, $pagination, $sort);
+                break;
+            case EbayRequest::EBAY_DISPUTE_RETURN :
+                $where['request_type'] = EbayRequest::EBAY_REQUEST_RETURN;
+                $list = $service->getRequest($where, $pagination, $sort);
+                break;
+            case EbayRequest::EBAY_DISPUTE_NOTRECIVE :
+                $where['case_type'] = EbayCase::EBAY_CASE_NOTRECIVE;
+                $list = $service->getCase($where, $pagination, $sort);
+                break;
+            case EbayRequest::EBAY_DISPUTE_ESCALATE :
+                $where['case_type'] = EbayCase::EBAY_CASE_NOTASDES;
+                $list = $service->getCase($where, $pagination, $sort);
+                break;
+
+            default:
+                break;
+        }
+
+        $result = [
+            'data' => $list['datas'],
+            'page' => $pagination['page'],
+            'pageSize' => $pagination['pageSize'],
+            'count' => $list['count'],
+        ];
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 查看纠纷
+     * @author tanbin
+     * @method GET
+     * @apiParam name:id type:int require:1 desc:ID
+     * @url /ebay-dispute/:id
+     * @apiRelate app\order\controller\Order::read
+     * @return \think\Response
+     */
+    public function read($id)
+    {
+        if (empty($id)) {
+            return json(['message' => '参数错误'], 400);
+        }
+
+        $request = Request::instance();
+        $dispute_type = $request->get('dispute_type', 'CANCEL');
+
+        //服务类
+        $service = new EbayDisputeHelpService();
+        $where['id'] = $id;
+        switch ($dispute_type) {
+            case EbayRequest::EBAY_DISPUTE_CANCEL :
+                $where['request_type'] = EbayRequest::EBAY_REQUEST_CANCEL;
+                $result = $service->getRequestDetail($where, $dispute_type);
+                break;
+            case EbayRequest::EBAY_DISPUTE_NOTPAID :
+                $where['status'] = 'CANCEL_CLOSED_FOR_COMMITMENT';
+                $result = $service->getRequestDetail($where, $dispute_type);
+                break;
+            case EbayRequest::EBAY_DISPUTE_RETURN :
+                $where['request_type'] = EbayRequest::EBAY_REQUEST_RETURN;
+                $result = $service->getRequestDetail($where, $dispute_type);
+                break;
+
+            case EbayRequest::EBAY_DISPUTE_NOTRECIVE :
+                $where['case_type'] = EbayCase::EBAY_CASE_NOTRECIVE;
+                $result = $service->getCaseDetail($where, $dispute_type);
+                break;
+            case EbayRequest::EBAY_DISPUTE_ESCALATE :
+                $where['case_type'] = ['IN', [EbayCase::EBAY_CASE_NOTASDES, EbayCase::EBAY_CASE_NOTRECIVE_EBP]];
+                $result = $service->getCaseDetail($where, $dispute_type);
+                break;
+
+            default:
+                break;
+        }
+        $result['dispute_id_type'] = $service->typeIds($dispute_type);
+
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 更新纠纷信息
+     * @author tanbin
+     * @method PUT
+     * @apiParam name:id type:int require:1 desc:ID
+     * @apiParam name:dispute_type type:string require:1 desc:类型
+     * @url /ebay-dispute/:id
+     * @return \think\Response
+     */
+    public function update(Request $request, $id)
+    {
+        //验证类型
+        $dispute_type = $request->put('dispute_type', '');
+        if (empty(EbayRequest::$EBAY_TYPE[$dispute_type])) {
+            return json(['message' => '参数错误'], 400);
+        }
+
+        try {
+            $service = new EbayDisputeHelpService();
+            $result = $service->updateDispute($id, EbayRequest::$EBAY_TYPE[$dispute_type]);
+            if ($result) {
+                return json(['message' => '更新成功'], 200);
+            } else {
+                return json(['message' => '更新失败'], 400);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+
+    }
+
+
+    /**
+     * @title 批量更新纠纷信息
+     * @author 冬
+     * @method PUT
+     * @apiParam name:ids type:string require:1 desc:自增ID
+     * @apiParam name:dispute_type type:string require:1 desc:类型
+     * @url /ebay-dispute/batch-update
+     * @return \think\Response
+     */
+    public function batchUpdate(Request $request)
+    {
+        //验证类型
+        $dispute_type = $request->put('dispute_type', '');
+        $ids = $request->put('ids', '');
+        if (empty(EbayRequest::$EBAY_TYPE[$dispute_type])) {
+            return json(['message' => '参数错误'], 400);
+        }
+
+        try {
+            $service = new EbayDisputeHelpService();
+            $result = $service->batchUpdateDispute($ids, EbayRequest::$EBAY_TYPE[$dispute_type]);
+            if ($result) {
+                return json(['message' => '成功加入更新队列'], 200);
+            } else {
+                return json(['message' => '加入更新队列失败'], 400);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 获取纠纷类型列表
+     * @author tanbin
+     * @method GET
+     * @url /ebay-dispute/types
+     */
+    function getDisputeType()
+    {
+        $service = new EbayDisputeHelpService();
+        $result = $service->getDisputeType();
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 纠纷状态列表
+     * @author tanbin
+     * @method GET
+     * @apiParam name:dispute_type type:string require:1 desc:类型
+     * @url /ebay-dispute/status
+     */
+    function getDisputeStatus()
+    {
+        $request = Request::instance();
+        $service = new EbayDisputeHelpService();
+        $result = $service->getDisputeStatus($request->get('dispute_type', EbayRequest::EBAY_DISPUTE_CANCEL));
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 获取搜索字段键值数组
+     * @author tanbin
+     * @method GET
+     * @apiParam name:dispute_type type:string require:1 desc:类型
+     * @url /ebay-dispute/search/fields
+     */
+    function getSearchField()
+    {
+        $request = Request::instance();
+        $service = new EbayDisputeHelpService();
+        $result = $service->getSearchField($request->get('dispute_type', EbayRequest::EBAY_DISPUTE_CANCEL));
+        return json($result, 200);
+    }
+
+    /**
+     * @title 纠纷类型对应的ID描述值
+     * @author tanbin
+     * @method GET
+     * @apiParam name:dispute_type type:string require:0 desc:类型
+     * @url /ebay-dispute/typeIds
+     */
+    function typeIds()
+    {
+        $request = Request::instance();
+        $service = new EbayDisputeHelpService();
+        $result = $service->typeIds($request->get('dispute_type', ''));
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 卖家处理‘取消订单’纠纷
+     * @author tanbin
+     * @method POST
+     * @apiParam name:id type:int require:1 desc:ID
+     * @apiParam name:operate type:string require:1 desc:操作
+     * @url /ebay-dispute/operate/cancel
+     * @apiRelate app\order\controller\Order::read
+     * @apiRelate app\customerservice\controller\EbayDispute::typeIds&getReasons
+     */
+    function operateCancel()
+    {
+        $request = Request::instance();
+        $id = $request->post('id', 0);
+        $operate = $request->post('operate', '');
+
+        if (empty($id) || empty($operate) || !in_array($operate, ['approve', 'reject'])) {
+            return json(['message' => '参数错误'], 400);
+        }
+        $params = Request::instance()->param();
+
+        try {
+            $service = new EbayDisputeHelpService();
+            $res = $service->operateCancel($id, $operate, $params);
+            if ($res) {
+                return json(['message' => '操作成功'], 200);
+            } else {
+                return json(['message' => '操作失败'], 400);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 卖家处理‘升级’纠纷
+     * @author tanbin
+     * @method POST
+     * @apiParam name:id type:int require:1 desc:ID
+     * @apiParam name:operate type:string require:1 desc:操作
+     * @url /ebay-dispute/operate/case
+     * @apiRelate app\order\controller\Order::read
+     * @apiRelate app\customerservice\controller\EbayDispute::typeIds&getReasons
+     */
+    function operateCase()
+    {
+        $request = Request::instance();
+        $id = $request->post('id', 0);
+        $operate = $request->post('operate', '');
+
+        if (empty($id) || empty($operate) || !in_array($operate, ['close', 'refund', 'address'])) {
+            return json(['message' => '参数错误'], 400);
+        }
+
+        $params = Request::instance()->param();
+        $msgTemplateModel = new MsgTemplateModel();
+        $validateTemplate = '';
+        switch ($operate) {
+            case 'refund':
+                $validateTemplate = validate('EbaySendMessage');
+                break;
+            case 'address':
+                $validateTemplate = validate('EbayAddress');
+                break;
+            default:
+                break;
+        }
+
+        if ($validateTemplate && !$validateTemplate->check($params)) {
+            return json(['message' => $validateTemplate->getError()], 400);
+        }
+
+        try {
+            $service = new EbayDisputeHelpService();
+            $res = $service->operateCase($id, $operate, $params);
+            if ($res) {
+                return json(['message' => '操作成功'], 200);
+            } else {
+                return json(['message' => '操作失败'], 400);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 卖家处理‘未收到货’纠纷
+     * @author tanbin
+     * @method POST
+     * @apiParam name:id type:int require:1 desc:ID
+     * @apiParam name:operate type:string require:1 desc:操作
+     * @url /ebay-dispute/operate/inquiry
+     * @apiRelate app\order\controller\Order::read
+     * @apiRelate app\customerservice\controller\EbayDispute::typeIds&getReasons
+     */
+    function operateInquiry()
+    {
+        $request = Request::instance();
+        $id = $request->post('id', 0);
+        $operate = $request->post('operate', '');
+
+        if (empty($id) || empty($operate) || !in_array($operate, ['message', 'refund', 'shipment', 'escalate', 'close'])) {
+            return json(['message' => '参数错误-操作类型'], 400);
+        }
+
+        $params = Request::instance()->param();
+        $msgTemplateModel = new MsgTemplateModel();
+        $validateTemplate = '';
+        switch ($operate) {
+            case 'message':
+            case 'refund':
+                $validateTemplate = validate('EbaySendMessage');
+                break;
+            case 'shipment':
+                $validateTemplate = validate('EbayShipmentInquiry');
+                break;
+            case 'escalate':
+                $validateTemplate = validate('EbayDisputeOperate');
+                break;
+            default:
+                break;
+        }
+
+        if ($validateTemplate && !$validateTemplate->check($params)) {
+            return json(['message' => $validateTemplate->getError()], 400);
+        }
+
+        try {
+            $service = new EbayDisputeHelpService();
+            $res = $service->operateInquiry($id, $operate, $params);
+            if ($res) {
+                return json(['message' => '操作成功'], 200);
+            } else {
+                return json(['message' => '操作失败'], 400);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 卖家处理‘退货退款’纠纷
+     * @author tanbin
+     * @method POST
+     * @apiParam name:id type:int require:1 desc:ID
+     * @apiParam name:operate type:string require:1 desc:操作
+     * @url /ebay-dispute/operate/return
+     * @apiRelate app\order\controller\Order::read
+     * @apiRelate app\customerservice\controller\EbayDispute::typeIds&getReasons
+     */
+    function operateReturn()
+    {
+        $request = Request::instance();
+        $id = $request->post('id', 0);
+        $operate = $request->post('operate', '');
+        $validate_operate = ['cancel', 'escalate', 'refund', 'part_refund', 'return', 'replenishment', 'message', 'approve'];
+        if (empty($id) || empty($operate) || !in_array($operate, $validate_operate)) {
+            return json(['message' => '参数错误-操作类型'], 400);
+        }
+
+        $params = Request::instance()->param();
+        $msgTemplateModel = new MsgTemplateModel();
+        $validateTemplate = '';
+        switch ($operate) {
+            case 'message':
+            case 'approve':
+            case 'decline':
+            case 'return':
+                $validateTemplate = validate('EbaySendMessage');
+                break;
+            case 'refund':
+            case 'part_refund':
+                $validateTemplate = validate('EbayRefund');
+                break;
+            case 'escalate':
+                $validateTemplate = validate('EbayDisputeOperate');
+                break;
+            case 'replenishment'  :
+                $validateTemplate = validate('EbayShipmentInquiry');
+                break;
+            default:
+                break;
+        }
+
+        if ($validateTemplate && !$validateTemplate->check($params)) {
+            return json(['message' => $validateTemplate->getError()], 400);
+        }
+
+        try {
+            $service = new EbayDisputeHelpService();
+            $res = $service->operateReturn($id, $operate, $params);
+            if ($res) {
+                return json(['message' => '操作成功'], 200);
+            } else {
+                return json(['message' => '操作失败'], 400);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 获取原因列表 - 下拉框
+     * @author tanbin
+     * @method GET
+     * @apiParam name:code type:string require:1 desc:操作code[escalate、close]
+     * @apiParam name:dispute_type type:string require:1 desc:类型
+     * @url /ebay-dispute/reasons
+     */
+    function getReasons()
+    {
+        $request = Request::instance();
+        $dispute_type = $request->get('dispute_type', '');
+        $code = $request->get('code', '');
+        if (empty($code) || empty($dispute_type) || !in_array($code, ['escalate', 'close'])) {
+            return json(['message' => '参数错误'], 400);
+        }
+
+        $service = new EbayDisputeHelpService();
+        $result = $service->getReasons($code, $dispute_type);
+        return json($result, 200);
+    }
+
+}

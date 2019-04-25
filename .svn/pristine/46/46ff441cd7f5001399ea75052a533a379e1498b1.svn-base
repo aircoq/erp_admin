@@ -1,0 +1,342 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-7
+ * Time: 下午4:01
+ */
+
+namespace app\index\service;
+
+
+use app\common\cache\Cache;
+use app\common\model\aliexpress\AliexpressAccount;
+use app\common\model\amazon\AmazonAccount;
+use app\common\model\ebay\EbayAccount;
+use app\common\model\wish\WishAccount;
+use app\common\service\Channel;
+use app\common\service\ChannelAccountConst;
+use function GuzzleHttp\Psr7\uri_for;
+use think\Db;
+use think\db\Query;
+use think\Exception;
+
+class ChannelAccount
+{
+    public static function getAccount($channelId, $accountId)
+    {
+        switch ($channelId) {
+            case 1:
+                $account = EbayAccount::get($accountId, 60);
+                break;
+            case 2:
+                $account = AmazonAccount::get($accountId, 60);
+                break;
+            case 3:
+                $account = WishAccount::get($accountId, 60);
+                break;
+            case 4:
+                $account = AliexpressAccount::get($accountId, 60);
+                break;
+            default:
+                $account = null;
+        }
+        return $account;
+    }
+
+    public function getAccounts($channelId)
+    {
+        switch ($channelId){
+            case 1:
+                $accounts = EbayAccount::all(true);
+                break;
+            case 2:
+                $accounts = AmazonAccount::all(true);
+                break;
+            case 3:
+                $accounts = WishAccount::all(true);
+                break;
+            case 4:
+                $accounts = AliexpressAccount::all(true);
+                break;
+                break;
+            default:
+                $accounts = [];
+        }
+        return $accounts;
+    }
+
+    public function getOptionsAccounts($params)
+    {
+        $field = 'account_name as label, id as value';
+        switch ($params['channel_id']){
+            case 1:
+                $accounts = EbayAccount::where('account_name','like',"%{$params['name']}%")->field($field)->select();
+                break;
+            case 2:
+                $accounts = AmazonAccount::where('account_name','like',"%{$params['name']}%")->field($field)->select();
+                break;
+            case 3:
+                $accounts = WishAccount::where('account_name','like',"%{$params['name']}%")->field($field)->select();
+                break;
+            case 4:
+                $accounts = AliexpressAccount::where('account_name','like',"%{$params['name']}%")->field($field)->select();
+                break;
+            default:
+                $accounts = [];
+        }
+        return $accounts;
+    }
+
+    public function searchByChannels($keyword, $channel = 0)
+    {
+        $model = null;
+        switch ($channel){
+            case ChannelAccountConst::channel_amazon:
+                $model = AmazonAccount::class;
+                break;
+            case ChannelAccountConst::channel_wish:
+                $model = WishAccount::class;
+                break;
+            case ChannelAccountConst::channel_aliExpress:
+                $model = AliexpressAccount::class;
+                break;
+            case ChannelAccountConst::channel_ebay:
+                $model = EbayAccount::class;
+                break;
+            case ChannelAccountConst::channel_all:
+                $server = new Channel();
+                $channels = $server->getChannels();
+                $accounts = [];
+                foreach ($channels as $channel){
+                    $search = $this->searchByChannels($keyword, $channel->id);
+                    $accounts[] = [
+                        'channel_id'=>$channel->id,
+                        'channel_name'=>$channel->name,
+                        'search_result'=>$search
+                    ];
+                }
+                return $accounts;
+            default:
+                return [];
+
+        }
+        $account = $model::all(function(Query $query) use($keyword){
+            $query->field('id as value, code as label')->whereOr('account_name', 'like', "%$keyword%")->whereOr('code', 'like',"%$keyword%")->page(1,30);
+        });
+        return $account;
+    }
+
+    /**
+     * 勾选账号点击已交接后,生成账号平台账号
+     * @param array $account
+     * @param array $site
+     * @param int $channel
+     * @return array|bool|mixed
+     * @throws \think\Exception
+     */
+    public function createChannelAccount($account = [], $site = [], $channel = 0)
+    {
+        if (!$channel) {
+            throw new Exception('平台不能为空', 400);
+        }
+        if (!count($account)) {
+            throw new Exception('账号内容不能为空', 400);
+        }
+        if (!count($site)) {
+            throw new Exception('站点不能为空', 400);
+        }
+
+        if (!param($account, 'email')) {
+            unset($account['email']);
+        }
+        $add = $account;
+        $code = strtolower($add['code']);
+        unset($add['email']);
+        $add['base_account_id'] = $add['account_id'];
+        unset($add['account_id']);
+        $add['where_code'] = $code;
+        $res = [];
+        switch ($channel) {
+            case ChannelAccountConst::channel_ebay:
+                $service = new EbayAccountService();
+                $add['email'] = param($account, 'email', '');
+                if (!param($add, 'email')) {
+                    throw new Exception('ebay平台账号email不能为空', 400);
+                }
+                $service->save($add);
+                break;
+            case ChannelAccountConst::channel_amazon:
+                $service = new AmazonAccountService();
+                foreach ($site as $item) {
+                    $ukSites = ['UK', 'DE', 'FR', 'IT', 'ES'];
+                    $usSites = ['US', 'CA', 'MX'];
+                    $jpSites = ['JP'];
+                    if (in_array($item, $ukSites)) {
+                        if (substr($code, -2, 2) == 'uk') {
+                            $add['code'] = substr($code, 0, strlen($code) - 2) . strtolower($item);
+                        } else {
+                            $add['code'] = $code . strtolower($item);
+                        }
+                    } elseif (in_array($item, $usSites)) {
+                        if (substr($code, -2, 2) == 'us') {
+                            $add['code'] = substr($code, 0, strlen($code) - 2) . strtolower($item);
+                        } else {
+                            $add['code'] = $code . strtolower($item);
+                        }
+                    } elseif (in_array($item, $jpSites)) {
+                        if (substr($code, -2, 2) == 'jp') {
+                            $add['code'] = substr($code, 0, strlen($code) - 2) . strtolower($item);
+                        } else {
+                            $add['code'] = $code . strtolower($item);
+                        }
+                    } else {
+                        $add['code'] = $code . strtolower($item);
+                    }
+                    $add['site'] = $item;
+                    $service->sava($add, param($add, 'created_user_id', 0));
+                }
+                break;
+            case ChannelAccountConst::channel_wish:
+                $this->changeKey($add, 'creator_id', 'created_user_id');
+                $service = new WishAccountService();
+                $service->save($add);
+                break;
+            case ChannelAccountConst::channel_aliExpress:
+                $service = new AliexpressAccountService();
+                $service->save($add);
+                break;
+            case ChannelAccountConst::channel_CD:
+                $service = new CdAccountService();
+                $service->add($add, param($add, 'created_user_id', 0));
+                break;
+            case ChannelAccountConst::channel_Lazada:
+                $this->changeKey($add, 'create_id', 'created_user_id');
+                $add['name'] = $add['account_name'];
+                $add['lazada_name'] = param($account, 'email', '');
+                $service = new LazadaAccountService();
+                foreach ($site as $item) {
+                    $add['site'] = $item;
+                    $where['code'] = $add['code'] = $code . strtolower($item);
+                    $service->save($add);
+                }
+                break;
+            case ChannelAccountConst::channel_Joom:
+                $this->changeKey($add, 'creator_id', 'created_user_id');
+                $this->changeKey($add, 'name', 'account_name');
+                $service = new JoomAccountService();
+                $service->save($add);
+                break;
+            case ChannelAccountConst::channel_Pandao:
+                $add['email'] = param($account, 'email', '');
+                $add['basic_sync'] = true;
+                $this->changeKey($add, 'creator_id', 'created_user_id');
+                $service = new PandaoAccountService();
+                $service->add($add, param($add, 'creator_id'));
+                break;
+            case ChannelAccountConst::channel_Shopee:
+                $service = new ShopeeAccountService();
+                $add['create_id'] = $add['created_user_id'];
+                $add['name'] = $add['account_name'];
+                unset($add['created_user_id']);
+                unset($add['account_name']);
+                foreach ($site as $item) {
+                    $add['site'] = $item;
+                    $add['code'] = $code . strtolower($item);
+                    $service->save($add, param($add, 'create_id', 0));
+                }
+                break;
+            case ChannelAccountConst::channel_Paytm:
+                $service = new PaytmAccountService();
+                $add['creator_id'] = $add['created_user_id'];
+                unset($add['created_user_id']);
+                $add['email'] = param($account, 'email', '');
+                $service->add($add, param($add, 'creator_id', 0));
+                break;
+            case ChannelAccountConst::channel_Walmart:
+                $add['creator_id'] = $add['created_user_id'];
+                unset($add['created_user_id']);
+                $service = new WalmartAccountService();
+                $service->add($add, param($add, 'creator_id', 0));
+                break;
+            case ChannelAccountConst::channel_Vova:
+                $service = new VovaAccountService();
+                $service->add($add, param($add, 'created_user_id', 0));
+                break;
+            case ChannelAccountConst::Channel_Jumia:
+                $add['creator_id'] = $add['created_user_id'];
+                unset($add['created_user_id']);
+                $service = new JumiaAccountService();
+                $service->add($add, param($add, 'creator_id', 0));
+                break;
+            case ChannelAccountConst::Channel_umka:
+                $add['creator_id'] = $add['created_user_id'];
+                $add['name'] = $add['account_name'];
+                unset($add['created_user_id']);
+                $service = new UmkaAccountService();
+                $service->add($add, param($add, 'creator_id', 0));
+                break;
+            case ChannelAccountConst::channel_Newegg:
+                break;
+            case ChannelAccountConst::channel_Oberlo:
+                $this->changeKey($add, 'create_id', 'created_user_id');
+                $this->changeKey($add, 'name', 'account_name');
+                $service = new OberloAccountService();
+                $service->save($add);
+                break;
+            case ChannelAccountConst::channel_Shoppo:
+                break;
+            case ChannelAccountConst::channel_Zoodmall:
+                $add['creator_id'] = $add['created_user_id'];
+                unset($add['created_user_id']);
+                $service = new ZoodmallAccountService();
+                $service->add($add, param($add, 'creator_id', 0));
+                break;
+            case ChannelAccountConst::channel_Yandex:
+                $add['creator_id'] = $add['created_user_id'];
+                unset($add['created_user_id']);
+                $service = new YandexAccountService();
+                $service->add($add, param($add, 'creator_id', 0));
+                break;
+            case ChannelAccountConst::channel_Daraz:
+                $this->changeKey($add, 'create_id', 'created_user_id');
+                $service = new DarazAccountService();
+                foreach ($site as $item) {
+                    $add['site'] = $item;
+                    $where['code'] = $add['code'] = $code . strtolower($item);
+                    $service->save($add);
+                }
+                break;
+            case ChannelAccountConst::channel_Fummart:
+                $add['creator_id'] = $add['created_user_id'];
+                unset($add['created_user_id']);
+                $service = new FunmartAccountService();
+                $add['email'] = param($account, 'email', '');
+                $service->save($add);
+                break;
+
+            case ChannelAccountConst::channel_Noon:
+                $add['create_id'] = $add['created_user_id'];
+                unset($add['created_user_id']);
+                $service = new NoonAccountService();
+                foreach ($site as $item) {
+                    $add['site'] = $item;
+                    $add['code'] = $code . strtolower($item);
+                    $re = $service->save($add);
+                }
+                break;
+        }
+    }
+
+    /**
+     * 替换添加元素的某个属性
+     * @param $add
+     * @param string $newKey
+     * @param string $oldKey
+     */
+    public function changeKey(&$add, $newKey = 'updated_time', $oldKey = 'update_time')
+    {
+        $add[$newKey] = $add[$oldKey];
+        unset($add[$oldKey]);
+    }
+}

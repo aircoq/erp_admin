@@ -1,0 +1,429 @@
+<?php
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use service\shipping\operation\Common;
+use org\Xml;
+use org\Curl;
+use think\Loader;
+use think\Exception;
+use app\common\model\OrderDetail;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+/**
+ * 长沙E邮宝
+ * @package app\carrier\controller
+ */
+class EmsCs {
+
+    // 配置信息
+    private $_config = [
+        'url' => 'http://shipping.ems.com.cn/partner/api/public/p/',
+        'header' => [
+            "Content-type:text/xml",
+            "version:international_eub_us_1.1",
+            //"authenticate:sandaha2099_0346bf7deb9c3c0b907aa20909f222c9"
+        ]
+    ];
+    private $result = [
+        'data' => [],
+        'error' => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return array | void
+     */
+    private function formatHeader(array $config) {
+        if (empty($config['client_secret'])) {
+            $this->result['error'] = [
+                'error_msg' => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['header'][] = "authenticate:" . $config['client_secret'];
+        return true;
+    }
+
+    /**
+     * 物流下单
+     * @param unknown $config
+     * @param unknown $order
+     * @return string[]|unknown[]
+     */
+    function createOrder($config, $order, $confirm = true) {
+        if (!isset($order['number'])) {
+            $order = $order[0];
+        }
+
+        $this->result['number'] = $order['number'];
+        if($this->formatHeader($config)){
+            if(empty($order['sender'])||empty($order['pickup'])){
+                $this->result['error'] = [
+                    'error_msg' => '缺少寄件地址信息或揽收地址信息',
+                    'error_code' => 1
+                ];
+            }else{
+                if($order['country_code']=='PR' && $order['shipping_method_code']=='0' ){
+                    /*国家是波多黎各的是属于美国的一个州 要传美国的简码 要不然下单会报国家不能到达的错*/
+                    $order['country_code']='US';
+                    $order['province']=empty($order['province'])?$order['country_name']:$order['province'];
+                }
+                //法国省份特殊处理
+                $country = $this->convertCountry($order['country_code']);
+                $order['zip'] = (new Cloudway())->getZipFormat($country,$order['zip']);
+                $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+                $volweight = round((($order['length'] / 10) * ($order['width'] / 10) * ($order['height'] / 10)) / 6000);
+
+                $order['street'] = $order['street2'] ? $order['street'].' '.$order['street2'] : $order['street'];
+                $order['province'] = (isset($order['province']) && $order['province']) ? $order['province']:$order['city'];
+                $xml_data = '<?xml version="1.0" encoding="UTF-8"?>'
+                    . '<orders xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+                    . '<order>'
+                    . '<orderid>' . $referenceID . '</orderid>'
+                    . '<operationtype>' . $order['shipping_method_code'] . '</operationtype>'
+                    . '<producttype>' . ($order['shipping_method_code'] == 1 ? 2 : 0) . '</producttype>'
+                    . '<customercode>' . $order['order_id'] . '</customercode>'
+                    . '<clcttype>1</clcttype>'
+                    . '<pod>false</pod>'
+                    . '<untread>' . ($order['is_need_return'] == 1 ? 'Returned' : 'Abandoned') . '</untread>'
+                    . '<volweight>' . $volweight . '</volweight>'
+                    . '<startdate>' . date('Y-m-d\TH:i:s') . '</startdate>'
+                    . '<enddate>' . date('Y-m-d\TH:i:s', strtotime('+2 week')) . '</enddate>'
+                    . '<remark></remark>'
+                    . '<printcode>01</printcode>'
+                    . '<sender>'
+                    . '<name>' . $order['sender']['sender_name'] . '</name>'
+                    . '<postcode>' . $order['sender']['sender_zipcode'] . '</postcode>'
+                    . '<phone>' . $order['sender']['sender_phone'] . '</phone>'
+                    . '<mobile>' . $order['sender']['sender_mobile'] . '</mobile>'
+                    . '<country>' . $order['sender']['sender_country'] . '</country>'
+                    . '<province>' .$order['sender']['sender_state'] . '</province>'
+                    . '<city>' . $order['sender']['sender_city']. '</city>'
+                    . '<county>' . $order['sender']['sender_district'] . '</county>'
+                    . '<company>' . $order['sender']['sender_company'] . '</company>'
+                    . '<street>' . $order['sender']['sender_street'] . '</street>'
+                    . '<email></email>'
+                    . '</sender>'
+                    . '<receiver>'
+                    . '<name><![CDATA[' . $order['name'] . ']]></name>'
+                    . '<postcode>' .$order['zip']. '</postcode>'
+                    . '<phone>' . $order['phone'] . '</phone>'
+                    . '<mobile>' . $order['tel'] . '</mobile>'
+                    . '<country>' . $country . '</country>'
+                    . '<province>' . $order['province'] . '</province>'
+                    . '<city>' . $order['city'] . '</city>'
+                    . '<county></county>'
+                    . '<street><![CDATA[' . $order['street'] . ']]></street>'
+                    . '<email>' . $order['email'] . '</email>'
+                    . '</receiver>'
+                    . '<collect>'
+                    . '<name>' . $order['pickup']['pickup_name'] . '</name>'
+                    . '<postcode>' . $order['pickup']['pickup_zipcode'] . '</postcode>'
+                    . '<phone>' . $order['pickup']['pickup_mobile'] . '</phone>'
+                    . '<mobile>' . $order['pickup']['pickup_mobile'] . '</mobile>'
+                    . '<country>' . $order['pickup']['pickup_country'] . '</country>'
+                    . '<province>' . $order['pickup']['pickup_state'] . '</province>'
+                    . '<city>' . $order['pickup']['pickup_city'] . '</city>'
+                    . '<county>' . $order['pickup']['pickup_district'] . '</county>'
+                    . '<company>' . $order['pickup']['pickup_company'] . '</company>'
+                    . '<street>' . $order['pickup']['pickup_street'] . '</street>'
+                    . '</collect>'
+                    . '<items>';
+
+                foreach ($order['declared_info'] as $declared) {
+                    $xml_data .= '<item>'
+                        . '<cnname>' . $declared['declared_name_cn'] . '</cnname>'
+                        . '<enname>' . $declared['declared_name_en'] . '</enname>'
+                        . '<count>' . $declared['qty'] . '</count>'
+                        . '<unit>个</unit>'
+                        . '<weight>' . sprintf("%.3f", $declared['declared_weight'] / 1000) . '</weight>'
+                        . '<delcarevalue>' . sprintf("%.2f",($declared['declared_value'] * $declared['qty'])) . '</delcarevalue>' . '<origin>CN</origin>'
+                        . '<description></description>'
+                        . '</item>';
+                }
+                $xml_data .= '</items></order></orders>';
+                $xml_data = str_replace("&", "&amp;", $xml_data);
+                $responseXml = Curl::curlPost($this->_config['url'] . 'order/', $xml_data, $this->_config['header']);
+                //日志记录
+                $arr_log = [
+                    'url'=>$this->_config['url'] . 'order/',
+                    'header'=>$this->_config['header'],
+                    'request'=>$xml_data,
+                    'response'=>$responseXml
+                ];
+                $response = Xml::xmlToArray($responseXml);
+                if (is_array($response)) {
+                    if (isset($response['mailnum']) && $response['mailnum']) {
+
+                        $this->result['data']['number'] = '';                                               // 客户订单号
+                        $this->result['data']['package_code'] = $response['mailnum'];                       // One World包裹处理号
+                        $this->result['data']['trackingNumber'] = $response['mailnum'];                     // 跟踪号
+                        $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];        // 是否有跟踪号
+                        $this->result['data']['confirm'] = true;                                            // 是否交运
+                        $this->result['data']['label']              = true;                                 // 是否有pdf
+                        $this->result['data']['label_url']          = '';                                   // 是否有pdf
+                        $this->result['data']['is_weight']          = false;                                // 是否能查询实际重量
+                        $this->result['data']['is_fee']             = false;                                // 是否能查询实际费用
+                        $this->result['data']['send']               = false;                                // 是否能查询物流订单状态
+                        $this->result['success'] = true;
+                    } else {
+                        Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                        $this->result['error'] = [
+                            'error_msg' => isset($response['description'])?$response['description']:'未知错误',
+                            'error_code' => 1  // 1为错误， 2为包裹已经提交
+                        ];
+                    }
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => '网络错误,连接不上服务器',
+                        'error_code' => 1
+                    ];
+                }
+            }
+
+        }
+        return $this->result;
+    }
+
+    /**
+     * 运单信息取消服务（只支持物流商未扫描入库的包裹）
+     * @param unknown $trackNumber
+     * @return mixed
+     */
+    function cancel($config, $order) {
+        if($this->formatHeader($config)){
+            $trackNumber = $order['process_code'];
+            $responseXml = Curl::curlDelete($this->_config['url'] . "order/" . $trackNumber, $this->_config['header']); //正式环境
+            //日志记录
+            $arr_log = [
+                'url'=>$this->_config['url'] . "order/" . $trackNumber,
+                'header'=>$this->_config['header'],
+                'request'=>'',
+                'response'=>$responseXml
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            $response = Xml::xmlToArray($responseXml);
+            // 处理响应内容
+            if (is_array($response)) {
+                if (isset($response['status']) && $response['status'] == 'success') {
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg' => isset($response['description'])?$response['description']:'未知错误'
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * 取包裹pdf面单
+     */
+    function getLabel($config, $order) {
+        /*try {
+            if ($this->formatHeader($config)) {
+                $trackNumber = $order['shipping_number'];
+                $shipping_method_code = $order['shipping_method_code'];
+                if($shipping_method_code==4){
+                    $xml = '<?xml version="1.0" encoding="UTF-8"?><orders xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+                        . '<printcode>00</printcode><filetype>0</filetype><order><mailnum>' . $trackNumber . '</mailnum></order></orders>';
+                }else{
+                    $xml = '<?xml version="1.0" encoding="UTF-8"?><orders xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+                        . '<printcode>01</printcode><filetype>0</filetype><order><mailnum>' . $trackNumber . '</mailnum></order></orders>';
+                }
+                $responseXml = Curl::curlPost($this->_config['url'] . 'print/downloadLabels', $xml, $this->_config['header']);
+                $response = Xml::xmlToArray($responseXml);
+                if (param($response, 'status') != 'success') {
+                    if($shipping_method_code==4){
+                        $xml = '<?xml version="1.0" encoding="UTF-8"?><orders xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+                            . '<printcode>00</printcode><filetype>0</filetype><order><mailnum>' . $order['process_code'] . '</mailnum></order></orders>';
+                    }else{
+                        $xml = '<?xml version="1.0" encoding="UTF-8"?><orders xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+                            . '<printcode>01</printcode><filetype>0</filetype><order><mailnum>' . $order['process_code'] . '</mailnum></order></orders>';
+                    }
+                    $responseXml = Curl::curlPost($this->_config['url'] . 'print/downloadLabels', $xml, $this->_config['header']);
+                    $response = Xml::xmlToArray($responseXml);
+                }
+                if (is_array($response)) {
+                    if (isset($response['status']) && $response['status'] == 'success') {
+                        $pdf_url = $response['url'];
+                        $responseString = file_get_contents($pdf_url);
+                        if(strpos($responseString,'%PDF')===false){
+                            throw new Exception('面单下载失败');
+                        }
+                        //                    if (!is_dir($order['path'])){
+                        //                        mkdir($order['path'],0777);  // 创建文件夹test,并给777的权限（所有权限）
+                        //                    }
+                        //                    $filename = $order['path'] . '/'.$order['number']. '.pdf';
+                        //                    file_put_contents($filename, $responseString);
+
+                        $service = new PackageLabelFileService();
+                        $label_url = $service->uploadLabelFile($order['number'], base64_encode($responseString), 'pdf');
+                        //$this->result['data']['body'] = base64_encode($responseString);
+                        $this->result['data']['src'] = $label_url;
+                        $this->result['data']['type'] = 'pdf';
+                        $this->result['success'] = true;
+                    } else {
+                        $this->result['error'] = [
+                            'error_msg' => isset($response['description']) ? $response['description'] : '未知错误',
+                            'error_code' => 1
+                        ];
+                    }
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => '网络错误,连接不上服务器',
+                        'error_code' => 1
+                    ];
+                }
+            }
+        } catch (Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }*/
+        if($order['label_source_type']=='1'  && !empty($order['shipping_number']) ){
+
+            if(isset($order['package_id'])){
+                (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+            }
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+            ];
+            $this->result['number'] = $order['number'];
+            return $this->result;
+        }
+    }
+
+    /**
+     * 获取物流订单真实重量和费用
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config,$order)
+    {
+
+        $this->result['number'] = $order['number'];
+        $result = $this->getPackageDetails($config, $order);
+        if ($result['success']) {
+            $this->result['data'] = [
+                'real_weight' => $result['data']['billingweight'],//物流商称重
+                'real_fee' => $result['data']['shouldpaytotalfee'],       //物流费用
+                'currency' => '',  //币种
+            ];
+        }
+        return $this->result;
+
+    }
+
+    public function getPackageDetails($config,$order)
+    {
+        try{
+            if($this->formatHeader($config)){
+                $trackNumber = $order['shipping_number'];
+                $responseXml = Curl::curlPost($this->_config['url'] . "rate/actual/" . $trackNumber,'', $this->_config['header']);
+                $response = Xml::xmlToArray($responseXml);
+                if(isset($response['rate'])){
+                    $order = obj2Array($response['rate']);
+                    $this->result['data'] = $order;
+                    $this->result['success']     = true;
+                }else{
+                    $this->result['error'] = [
+                        'error_msg'  => $response['description']??'未知错误',
+                        'error_code' => 1
+                    ];
+                }
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 暂时没用
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getFee($config,$order)
+    {
+        try{
+            $this->formatHeader($config);
+            $trackNumber = $order['process_code'];
+            $responseXml = Curl::curlPost($this->_config['url'] . "rate/actual/" . $trackNumber,['mailnum'=>$trackNumber], $this->_config['header']);
+            $response = Xml::xmlToArray($responseXml);
+            if(isset($response['order'])){
+                $order = obj2Array($response['order']);
+                $this->result['data']['real_weight'] = $order['actualweight'];
+                $this->result['data']['real_fee'] = $order['actualfee'];
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'  => '未知错误',
+                    'error_code' => 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取运输方式详细信息
+     */
+    public function getExpress($config) {
+        $data = [
+            ['code' => '0', 'name' => 'e邮宝'],
+            ['code' => '1', 'name' => 'e包裹'],
+            ['code' => '2', 'name' => 'e特快'],
+            ['code' => '4', 'name' => '国际EMS'],
+        ];
+        $this->result['data'] = $data;
+        $this->result['success'] = true;
+        return $this->result;
+    }
+
+    private function convertCountry($code)
+    {
+        $arr = [
+            'UK' => 'GB',
+        ];
+
+        return isset($arr[$code]) ? $arr[$code] : $code;
+    }
+}

@@ -1,0 +1,310 @@
+<?php
+namespace service\funmart;
+
+use org\XmlHandle;
+
+/**
+ * funmart 请求服务类
+ * @author linpeng  time 2019/3/1 15:55
+ */
+class RequestService
+{
+    public $_requestAction = null;//请求接口名
+    public $_accountConfig = array();//授权信息
+
+    public function __construct($app_key, $token)
+    {
+        $this->_accountConfig['appkey'] = $app_key;
+        $this->_accountConfig['token'] = $token;
+    }
+
+
+    /**
+     *执行请求
+     * @param $url_arr
+     * @param array $data_arr
+     * @param array $option
+     * @return array
+     * @throws FunmartException
+     */
+    public function executeRequest($url_arr, $data_arr = array(), $option = array())
+    {
+        $return = array('ask' => 0, 'message' => '', 'data' => [], 'org_data' => '');
+        //检查授权信息
+        $this->check();
+        //获取请求地址
+        $this->getUrl();
+        //获取公共参数
+        $url_arr = $this->getCommonParams($url_arr);
+        //请求URL
+        $params_url = $this->httpBuildToStr($url_arr);
+        //请求XML数据
+        $params_data = '';
+        if (!empty($data_arr)) {
+            $params_data = json_encode($data_arr);
+        }
+        //调用curl请求
+        $curlRe = $this->curl($params_url, $params_data, $option);
+        if ($curlRe['ask']) {//请求成功
+            //根据不同格式解析数据
+            $data = array();
+            if (!isset($url_arr['Format']) || empty($url_arr['Format']) || $url_arr['Format'] != 'JSON') {
+                $data = XmlHandle::unserialize($curlRe['data']);//XML解析
+            } else {
+                if ($url_arr['Format'] == 'JSON') {
+                    $data = json_decode($curlRe['data'], true);//JSON解析
+                }
+            }
+            //数据结构非预期异常抛出
+            if (empty($data) || (!isset($data['msg']) && !isset($data['code']))) {
+                $errorInfo = array(
+                    'Message' => 'Unexpected Response Data',
+                    'RequestAction' => $this->_requestAction,
+                    'ErrorType' => 'Internalc Error',
+                    'ORG' => $curlRe['data'],
+                );
+                throw new FunmartException($errorInfo);
+            }
+            //有错误异常抛出
+            if (isset($data['error']) && $data['error']) {
+                $errorInfo = array(
+                    'Message' => $data['msg'],
+                    'ErrorCode' => $data['code'],
+                    'ORG' => $curlRe['data'],
+                );
+                throw new FunmartException($errorInfo);
+            }
+            $return['ask'] = 1;
+            $return['message'] = 'success';
+            $return['data'] = $data['data'];
+            $return['org_data'] = $curlRe['data'];
+        } else {
+            $return['message'] = $curlRe['message'];
+        }
+        return $return;
+    }
+
+    /**
+     * 检查授权信息
+     * @throws FunmartException
+     */
+    public function check()
+    {
+        $errorInfo = array(
+            'Message' => '',
+            'RequestAction' => $this->_requestAction,
+            'ErrorType' => '',//错误类型
+        );
+        //检查请求接口名
+        if (empty($this->_requestAction)) {
+            $errorInfo['Message'] = 'Request Action Undefined';
+            $errorInfo['ErrorType'] = 'Internalc Error';
+            throw new FunmartException($errorInfo);
+        }
+        //检查UserID
+        if (empty($this->_accountConfig['appkey'])) {
+            $errorInfo['Message'] = 'app_key Not Empty';
+            $errorInfo['ErrorType'] = 'Authorization Error';
+            throw new FunmartException($errorInfo);
+        }
+        //检查ApiKey
+        if (empty($this->_accountConfig['token'])) {
+            $errorInfo['Message'] = 'token Not Empty';
+            $errorInfo['ErrorType'] = 'Authorization Error';
+            throw new FunmartException($errorInfo);
+        }
+
+    }
+
+
+    /**
+     * 获取请求地址
+     * @throws FunmartException
+     */
+    public function getUrl(){
+        $configArr = FunmartLib::getFunmartConfig();
+        if(empty($configArr) || empty($configArr['service_url'])){
+            throw new FunmartException(array(
+                'Message'=>'Get Service Url Error',
+                'RequestAction'=>$this->_requestAction,
+                'ErrorType'=>'InvalidServiceUrl',
+            ));
+        }
+        $this->_accountConfig['Url'] = $configArr['service_url'];
+    }
+
+    /**
+     * Undocumented function
+     * @param $params
+     * @return mixed
+     * @throws \Exception
+     */
+    protected function getCommonParams($params) {
+        $now = new \DateTime();
+        $params['Action'] = $this->_requestAction;
+        $params['Version'] = FunmartLib::API_VERSION;
+        $params['Timestamp'] = $now->format(\DateTime::ISO8601);
+        return $params;
+    }
+
+
+    /**
+     * 兼容低版本PHP的http_build_query方法，生成URL-encode 之后的请求字符串
+     * @param array $arr
+     * @return string
+     */
+    public function httpBuildToStr($arr){
+        //兼容低版本php的http_build_query不支持PHP_QUERY_RFC3986，单独替换“+”
+        return str_replace('+', '%20', http_build_query($arr));
+    }
+
+
+    /**
+     * curl请求
+     * @param $params_url
+     * @param string $params_data
+     * @param array $option
+     * @return array
+     */
+    protected function curl($params_url,$params_data='',$option=array()){
+        $return = array('ask'=>0,'message'=>'','data'=>array());
+        $url = $this->_accountConfig['Url'] .'/'. $this->_requestAction. "?" . $params_url;
+        $Type = isset($option['Type']) ? $option['Type'] : 'GET' ;
+        $TimeOut = isset($option['TimeOut']) ? $option['TimeOut'] : 120 ;
+
+        $ch = curl_init() ;//初始化资源句柄
+        curl_setopt($ch, CURLOPT_URL, $url);//设置请求地址
+
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $Type);//设置http操作类型
+
+        curl_setopt ( $ch, CURLOPT_VERBOSE, 1 );//启用时会汇报所有的信息，存放在STDERR或指定的CURLOPT_STDERR中
+
+        $curlopt_header = false;
+        curl_setopt($ch, CURLOPT_HEADER, $curlopt_header);//请求头是否包含在响应中
+
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);//将curl_exec()获取的信息以文件流的形式返回，而不是直接输出。
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);//https请求不验证证书
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);//https请求不验证hosts
+
+// 		curl_setopt($ch,CURLOPT_HEADER,true);//显示请求头
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $params_data);//设置请求数据
+
+// 		curl_setopt($ch, CURLOPT_HTTPHEADER, $request_headers);//设置http头
+
+        curl_setopt($ch, CURLOPT_TIMEOUT,$TimeOut);//设置超时时间
+
+        //最多循环三次
+        $request_count  = 1;
+        while ( $request_count <= 3 ) {
+            //执行请求
+            $data = curl_exec($ch);
+            //设定了返回头
+            if($curlopt_header){
+                list($message_headers,$data) = preg_split("/\r\n\r\n|\n\n|\r\r/", $data, 2);
+                $last_response_headers = $this->curlParseHeaders($message_headers);
+            }
+
+// 		    $curlInfo=curl_getinfo($ch);//获取curl请求信息
+// 		    var_dump($data);
+// 		    var_dump($curlInfo);
+
+            //curl是否发生错误
+            if($errNo = curl_errno($ch)){
+                $return['message']='FunmartApiCurlRequestError,ErrNo:'.$errNo.',Error:'.curl_error($ch);
+            }else{
+                $return['message'] = '';
+                break;
+            }
+            //请求次数累加
+            $request_count ++;
+        }
+
+        curl_close($ch);
+
+        $return["ask"] = 1;
+        $return["message"] = 'success';
+        $return["data"] = $data;
+
+        return $return;
+    }
+
+
+    /**
+     * 获取响应头
+     * @param $message_headers
+     * @return array
+     */
+    private function curlParseHeaders($message_headers)
+    {
+        $header_lines = preg_split("/\r\n|\n|\r/", $message_headers);
+        $headers = array();
+        list(,$headers['http_status_code'],$headers['http_status_message']) = explode(' ', trim(array_shift($header_lines)), 3);
+        foreach($header_lines as $header_line){
+            list($name,$value) = explode(':', $header_line, 2);
+            $name = strtolower($name);
+            $headers[$name] = trim($value);
+        }
+
+        return $headers;
+    }
+
+    /**
+     * 设置请求接口名
+     * @param string $action 请求接口名
+     */
+    protected function setRequestAction($action){
+        $this->_requestAction = $action;
+    }
+
+
+    /**
+     * 获取XML文本
+     * @param array $arr
+     * @return string
+     */
+    protected function getXmlContent($arr){
+        //创建XML对象
+        $xml = new \SimpleXMLElement("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Request></Request>");
+        //数组转XML
+        $this->array2xml($arr, $xml);
+        //输出XML文本
+        $xml = $xml->asXML();
+        $xml = trim($xml);
+        return $xml;
+    }
+
+    /**
+     * 数组转XML
+     * @param array $info  要装换的数组数组
+     * @param object $xml  XML对象
+     */
+    protected function array2xml($info, &$xml){
+        foreach($info as $key => $value){
+            if(is_array($value)){
+                if(is_numeric($key)){
+                    $key = array_pop(array_keys($value));
+                    $value = array_pop($value);
+                }
+                $subnode = $xml->addChild("{$key}");
+                $this->array2xml($value, $subnode);
+            }else{
+                //针对带属性的节点做特殊处理，如：'SalePrice currency=USD' => 19.99
+                if(preg_match('/\s+/', $key)){
+                    $split = preg_split('/\s+/', $key);
+                    $key = array_shift($split);
+
+                    $subnode = $xml->addChild("{$key}", htmlspecialchars("$value"));
+                    foreach($split as $v){
+                        $arr = explode('=', $v);
+                        $subnode->addAttribute($arr[0], $arr[1]);
+                    }
+                }else{
+                    $subnode = $xml->addChild("{$key}", htmlspecialchars("$value"));
+                }
+            }
+        }
+    }
+
+}

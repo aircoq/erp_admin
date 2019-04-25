@@ -1,0 +1,283 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: TOM
+ * Date: 2017/8/28
+ * Time: 10:15
+ */
+
+namespace org;
+
+
+use think\Exception;
+
+class Ftp
+{
+    private $host;
+    private $port = 21;
+    private $user;
+    private $pwd;
+    private $conn;
+    private $timeout;
+    private $ssl = false;
+    //传送模式{文本模式:FTP_ASCII, 二进制模式:FTP_BINARY}
+    public $mode = FTP_BINARY;
+
+    public function __construct($host, $port = 21, $user, $pwd, $timeout = 60, $mode = "FTP_BINARY", $ssl = false)
+    {
+        $this->host = $host;
+        $this->port = $port;
+        $this->user = $user;
+        $this->pwd = $pwd;
+        $this->mode = $mode;
+        $this->timeout = $timeout;
+        $this->ssl = $ssl;
+        if ($ssl) {
+            $this->conn = ftp_ssl_connect($this->host, $this->port, $this->timeout);
+            if (!$this->conn) {
+                throw new Exception('无法打开FTP连接');
+            }
+        } else {
+            $this->conn = ftp_connect($this->host, $this->port, $this->timeout);
+            if (!$this->conn) {
+                throw new Exception('无法打开FTP连接');
+            }
+        }
+
+        if (!ftp_login($this->conn, $user, $pwd)) {
+            throw new Exception('无法打开FTP连接');
+        }
+        ftp_pasv($this->conn, true);
+    }
+
+    /**
+     * 返回给定目录的文件列表
+     * @param string $dirname 目录地址
+     * @return array 文件列表数据
+     */
+    public function nlist($dirname)
+    {
+        if ($list = @ftp_nlist($this->conn, $dirname)) {
+            return $list;
+        }
+    }
+
+    /**
+     * 返回上级目录
+     * @return boolean
+     */
+    function back_dir()
+    {
+        return ftp_cdup($this->conn);
+    }
+
+    /**
+     * 取得指定目录下文件的详细列表信息
+     * get_file_info
+     * @param $dirname
+     * @return array|bool
+     */
+    function get_file_info($dirname)
+    {
+        $list = @ftp_rawlist($this->conn, $dirname);
+        if (!$list) return false;
+        $array = array();
+        foreach ($list as $l) {
+            $l = preg_replace("/^.*[ ]([^ ]+)$/", "\\1", $l);
+            if ($l == '.' || $l == '..') continue;
+            $array[] = $l;
+        }
+        return $array;
+    }
+
+    /**
+     * 创建文件夹
+     * @param string $dirname 目录名，
+     */
+    public function mkdir($dirname)
+    {
+        $dirname = $this->checkDir($dirname);
+        $nowdir = '/';
+        foreach ($dirname as $v) {
+            if ($v && !$this->cd($nowdir . $v)) {
+                if ($nowdir)
+                    $this->cd($nowdir);
+                @ftp_mkdir($this->conn, $v);
+            }
+            if ($v)
+                $nowdir .= $v . '/';
+        }
+        return true;
+    }
+
+    /**
+     * 文件和目录重命名
+     * @param $old_name 原名称
+     * @param $new_name 新名称
+     * @return boolean
+     */
+    function rename($old_name, $new_name)
+    {
+        return ftp_rename($this->conn, $old_name, $new_name);
+    }
+
+    /**
+     * 上传文件
+     * @param string $remote 远程存放地址
+     * @param string $local 本地存放地址
+     */
+    public function put($remote, $local)
+    {
+        $dirname = pathinfo($remote, PATHINFO_DIRNAME);
+        if (!$this->cd($dirname)) {
+            $this->mkdir($dirname);
+        }
+        if (@ftp_put($this->conn, $remote, $local, $this->mode)) {
+            return true;
+        }
+    }
+
+    /**
+     * 获取文件的最后修改时间
+     * @return string $time 返回时间
+     */
+    public function lastUpdatetime($file)
+    {
+        return ftp_mdtm($this->conn, $file);
+    }
+
+    /**
+     * 删除指定文件
+     * @param string $filename 文件名
+     */
+    public function delete($filename)
+    {
+        if (@ftp_delete($this->conn, $filename)) {
+            return true;
+        }
+    }
+
+    /**
+     * 在 FTP 服务器上改变当前目录
+     * @param string $dirname 修改服务器上当前目录
+     */
+    public function cd($dirname)
+    {
+        if (@ftp_chdir($this->conn, $dirname)) {
+            return true;
+        }
+    }
+
+    /**
+     * 在 FTP 服务器上返回当前目录
+     * @return string $dirname 返回当前目录名称
+     */
+    public function getPwd()
+    {
+        return ftp_pwd($this->conn);
+
+    }
+
+    /**
+     * 检测目录名
+     * @param string $url 目录
+     * @return 由 / 分开的返回数组
+     */
+    private function checkDir($url)
+    {
+        $url = str_replace('', '/', $url);
+        $urls = explode('/', $url);
+        return $urls;
+    }
+
+    /**
+     * 检测是否为目录
+     * @param string $dir 路径
+     * @return boolean true为目录false为文件
+     */
+    public function isDir($dir)
+    {
+        if ($this->cd($dir)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 获取文件base64加密流数据
+     * @param $file
+     * @return string
+     * @throws Exception
+     */
+    public function getFileStream($file)
+    {
+        try {
+            $url = "ftp://{$this->user}:{$this->pwd}@{$this->host}{$file}";
+            //$url = "ftp://{$this->conn}{$file}";
+            $content = file_get_contents($url);
+            return $content;
+        } catch (Exception $exception) {
+            throw new Exception($exception->getMessage());
+        }
+    }
+
+    public function getCatelog($dirname)
+    {
+        $lists = [];
+        if ($list = @ftp_nlist($this->conn, $dirname)) {
+            foreach ($list as $k => $item) {
+                if ($this->isDir($item)) {
+                    $lists[] = $item;
+                }
+            }
+        }
+        return $lists;
+    }
+
+    /**
+     * 获取目录下所有文件
+     * @param $dirname
+     * @return array
+     */
+    public function getFiles($dirname, $ext = [])
+    {
+        $lists = [];
+        if ($list = @ftp_nlist($this->conn, $dirname)) {
+            if (!empty($list)) {
+                foreach ($list as $k => $item) {
+                    //排除目录
+                    if ($this->isDir($item)) {
+                        unset($list[$k]);
+                    } else {
+                        $file_info = pathinfo($item);
+                        $file_info['extension'] = strtolower($file_info['extension']);
+                        if (!empty($ext) && !in_array($file_info['extension'], $ext)) {
+                            continue;
+                        }
+                        $lists[] = [
+                            'file' => $item,
+                            'file_name' => $file_info['filename'],
+                            'file_ext' => $file_info['extension']
+                        ];
+                    }
+                }
+            }
+        }
+        return $lists;
+    }
+
+    /**
+     * 关闭FTP连接
+     */
+
+    public function close()
+    {
+        return @ftp_close($this->conn);
+    }
+
+    public function fileSize($fileName)
+    {
+        return ftp_size($this->conn, $fileName);
+    }
+}

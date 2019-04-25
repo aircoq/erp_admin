@@ -1,0 +1,285 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class Haer extends Base
+{
+
+    protected $is_open_water = 1;
+
+    public function createLabel($code, $order)
+    {
+        // var_dump($order);die;
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 2);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+    private function getChargeCodeMap($country_code = '')
+    {
+        $chargeCodeMap = [];
+        $chargeCodeMap['JP'] = '1';
+        $chargeCodeMap['ID'] = '2';
+        $chargeCodeMap['IN'] = '2';
+        $chargeCodeMap['KR'] = '2';
+        $chargeCodeMap['MY'] = '2';
+        $chargeCodeMap['SG'] = '2';
+        $chargeCodeMap['TH'] = '2';
+        $chargeCodeMap['AT'] = '2';
+        $chargeCodeMap['BG'] = '2';
+        $chargeCodeMap['SK'] = '2';
+        $chargeCodeMap['BE'] = '3';
+        $chargeCodeMap['CH'] = '3';
+        $chargeCodeMap['DK'] = '3';
+        $chargeCodeMap['FI'] = '3';
+        $chargeCodeMap['GR'] = '3';
+        $chargeCodeMap['IE'] = '3';
+        $chargeCodeMap['IT'] = '3';
+        $chargeCodeMap['PL'] = '3';
+        $chargeCodeMap['PT'] = '3';
+        $chargeCodeMap['CZ'] = '3';
+        $chargeCodeMap['ES'] = '4';
+        $chargeCodeMap['FR'] = '4';
+        $chargeCodeMap['UA'] = '4';
+        $chargeCodeMap['LU'] = '4';
+        $chargeCodeMap['EE'] = '4';
+        $chargeCodeMap['LT'] = '4';
+        $chargeCodeMap['RO'] = '4';
+        $chargeCodeMap['BY'] = '4';
+        $chargeCodeMap['SI'] = '4';
+        $chargeCodeMap['MT'] = '4';
+        $chargeCodeMap['LV'] = '4';
+        $chargeCodeMap['BA'] = '4';
+        $chargeCodeMap['VN'] = '4';
+        $chargeCodeMap['PH'] = '4';
+        $chargeCodeMap['PK'] = '4';
+        $chargeCodeMap['KZ'] = '4';
+        $chargeCodeMap['CY'] = '4';
+        $chargeCodeMap['KP'] = '4';
+        $chargeCodeMap['MN'] = '4';
+        $chargeCodeMap['TJ'] = '4';
+        $chargeCodeMap['TM'] = '4';
+        $chargeCodeMap['UZ'] = '4';
+        $chargeCodeMap['KG'] = '4';
+        $chargeCodeMap['LK'] = '4';
+        $chargeCodeMap['PS'] = '4';
+        $chargeCodeMap['SY'] = '4';
+        $chargeCodeMap['AZ'] = '4';
+        $chargeCodeMap['AM'] = '4';
+        $chargeCodeMap['OM'] = '4';
+        $chargeCodeMap['QA'] = '4';
+        $chargeCodeMap['TR'] = '4';
+        $chargeCodeMap['NZ'] = '4';
+        $chargeCodeMap['US'] = '4';
+        $chargeCodeMap['CA'] = '4';
+        $chargeCodeMap['LA'] = '5';
+        $chargeCodeMap['BD'] = '5';
+        $chargeCodeMap['KH'] = '5';
+        $chargeCodeMap['MM'] = '5';
+        $chargeCodeMap['NP'] = '5';
+        $chargeCodeMap['BT'] = '5';
+        $chargeCodeMap['MV'] = '5';
+        $chargeCodeMap['TL'] = '5';
+        $chargeCodeMap['AE'] = '5';
+        $chargeCodeMap['JO'] = '5';
+        $chargeCodeMap['BH'] = '5';
+        $chargeCodeMap['AF'] = '5';
+        $chargeCodeMap['CF'] = '5';
+        $chargeCodeMap['GA'] = '5';
+        $chargeCodeMap['IR'] = '5';
+        $chargeCodeMap['KW'] = '5';
+        $chargeCodeMap['YE'] = '5';
+        $chargeCodeMap['IQ'] = '5';
+        $chargeCodeMap['LB'] = '5';
+        $chargeCodeMap['RS'] = '5';
+        $chargeCodeMap['AL'] = '5';
+        $chargeCodeMap['IS'] = '5';
+        $chargeCodeMap['AD'] = '5';
+        $chargeCodeMap['FO'] = '5';
+        $chargeCodeMap['GI'] = '5';
+        $chargeCodeMap['LI'] = '5';
+        $chargeCodeMap['MC'] = '5';
+        $chargeCodeMap['ME'] = '5';
+        $chargeCodeMap['NU'] = '5';
+        $chargeCodeMap['MK'] = '5';
+        $chargeCodeMap['SM'] = '5';
+        $chargeCodeMap['VA'] = '5';
+        $chargeCodeMap['MD'] = '5';
+        $chargeCodeMap['GE'] = '5';
+        $chargeCodeMap['FJ'] = '5';
+        $chargeCodeMap['AS'] = '5';
+        $chargeCodeMap['CK'] = '5';
+        $chargeCodeMap['NC'] = '5';
+        $chargeCodeMap['FM'] = '5';
+        $chargeCodeMap['KI'] = '5';
+        $chargeCodeMap['MH'] = '5';
+        $chargeCodeMap['NF'] = '5';
+        $chargeCodeMap['NR'] = '5';
+        $chargeCodeMap['PG'] = '5';
+        $chargeCodeMap['SB'] = '5';
+        $chargeCodeMap['TK'] = '5';
+        $chargeCodeMap['TO'] = '5';
+        $chargeCodeMap['TV'] = '5';
+        $chargeCodeMap['VU'] = '5';
+        $chargeCodeMap['WS'] = '5';
+        $chargeCodeMap['GU'] = '5';
+        $chargeCodeMap['EG'] = '5';
+        $chargeCodeMap['SD'] = '5';
+        $chargeCodeMap['MA'] = '5';
+        $chargeCodeMap['DJ'] = '5';
+        $chargeCodeMap['ET'] = '5';
+        $chargeCodeMap['KE'] = '5';
+        $chargeCodeMap['TN'] = '5';
+        $chargeCodeMap['BI'] = '5';
+        $chargeCodeMap['UG'] = '5';
+        $chargeCodeMap['RW'] = '5';
+        $chargeCodeMap['TD'] = '5';
+        $chargeCodeMap['NG'] = '5';
+        $chargeCodeMap['BF'] = '5';
+        $chargeCodeMap['BJ'] = '5';
+        $chargeCodeMap['CM'] = '5';
+        $chargeCodeMap['DZ'] = '5';
+        $chargeCodeMap['GN'] = '5';
+        $chargeCodeMap['MR'] = '5';
+        $chargeCodeMap['ZW'] = '5';
+        $chargeCodeMap['AO'] = '5';
+        $chargeCodeMap['EH'] = '5';
+        $chargeCodeMap['GM'] = '5';
+        $chargeCodeMap['GQ'] = '5';
+        $chargeCodeMap['KM'] = '5';
+        $chargeCodeMap['LR'] = '5';
+        $chargeCodeMap['LS'] = '5';
+        $chargeCodeMap['MW'] = '5';
+        $chargeCodeMap['MZ'] = '5';
+        $chargeCodeMap['NA'] = '5';
+        $chargeCodeMap['SC'] = '5';
+        $chargeCodeMap['SH'] = '5';
+        $chargeCodeMap['ST'] = '5';
+        $chargeCodeMap['SZ'] = '5';
+        $chargeCodeMap['ZM'] = '5';
+        $chargeCodeMap['LY'] = '5';
+        $chargeCodeMap['MU'] = '5';
+        $chargeCodeMap['ML'] = '5';
+        $chargeCodeMap['SO'] = '5';
+        $chargeCodeMap['GH'] = '5';
+        $chargeCodeMap['BW'] = '5';
+        $chargeCodeMap['TG'] = '5';
+        $chargeCodeMap['CI'] = '5';
+        $chargeCodeMap['SL'] = '5';
+        $chargeCodeMap['SN'] = '5';
+        $chargeCodeMap['ZA'] = '5';
+        $chargeCodeMap['VE'] = '5';
+        $chargeCodeMap['CU'] = '5';
+        $chargeCodeMap['EC'] = '5';
+        $chargeCodeMap['PA'] = '5';
+        $chargeCodeMap['SR'] = '5';
+        $chargeCodeMap['CO'] = '5';
+        $chargeCodeMap['AR'] = '5';
+        $chargeCodeMap['BR'] = '5';
+        $chargeCodeMap['MX'] = '5';
+        $chargeCodeMap['PE'] = '5';
+        $chargeCodeMap['CL'] = '6';
+        $chargeCodeMap['AG'] = '6';
+        $chargeCodeMap['BB'] = '6';
+        $chargeCodeMap['AO'] = '6';
+        $chargeCodeMap['AW'] = '6';
+        $chargeCodeMap['BM'] = '6';
+        $chargeCodeMap['BS'] = '6';
+        $chargeCodeMap['BZ'] = '6';
+        $chargeCodeMap['DO'] = '6';
+        $chargeCodeMap['GP'] = '6';
+        $chargeCodeMap['BO'] = '6';
+        $chargeCodeMap['CR'] = '6';
+        $chargeCodeMap['GF'] = '6';
+        $chargeCodeMap['GT'] = '6';
+        $chargeCodeMap['GY'] = '6';
+        $chargeCodeMap['HN'] = '6';
+        $chargeCodeMap['HT'] = '6';
+        $chargeCodeMap['JM'] = '6';
+        $chargeCodeMap['KY'] = '6';
+        $chargeCodeMap['NI'] = '6';
+        $chargeCodeMap['PR'] = '6';
+        $chargeCodeMap['PY'] = '6';
+        $chargeCodeMap['SV'] = '6';
+        $chargeCodeMap['TT'] = '6';
+        $chargeCodeMap['UY'] = '6';
+        $chargeCodeMap['VG'] = '6';
+        $chargeCodeMap['VI'] = '6';
+        $chargeCodeMap['RU'] = '7';
+        $chargeCodeMap['AU'] = '8';
+        $chargeCodeMap['GB'] = '8';
+        $chargeCodeMap['SE'] = '8';
+        $chargeCodeMap['IL'] = '8';
+        $chargeCodeMap['DE'] = '8';
+        $chargeCodeMap['NO'] = '8';
+        $chargeCodeMap['NL'] = '8';
+        $chargeCodeMap['HU'] = '8';
+        $chargeCodeMap['HR'] = '8';
+        if (!$country_code) {
+            return '';
+        }
+        return isset($chargeCodeMap[$country_code]) ? $chargeCodeMap[$country_code] : '';
+    }
+
+    private function getSortCodeMap($country_code = '')
+    {
+        $sortCodeMap = [];
+        $sortCodeMap['RU'] = '21';
+        $sortCodeMap['US'] = '22';
+        $sortCodeMap['GB'] = '23';
+        $sortCodeMap['BR'] = '24';
+        $sortCodeMap['AU'] = '25';
+        $sortCodeMap['FR'] = '26';
+        $sortCodeMap['ES'] = '27';
+        $sortCodeMap['CA'] = '28';
+        $sortCodeMap['IL'] = '29';
+        $sortCodeMap['IT'] = '30';
+        $sortCodeMap['DE'] = '31';
+        $sortCodeMap['CL'] = '32';
+        $sortCodeMap['SE'] = '33';
+        $sortCodeMap['BY'] = '34';
+        $sortCodeMap['NO'] = '35';
+        $sortCodeMap['NL'] = '36';
+        $sortCodeMap['UA'] = '37';
+        $sortCodeMap['CH'] = '38';
+        $sortCodeMap['MX'] = '39';
+        $sortCodeMap['PL'] = '40';
+        if (!$country_code) {
+            return '';
+        }
+        return isset($sortCodeMap[$country_code]) ? $sortCodeMap[$country_code] : '';
+    }
+
+
+    //author by lan CDEK特快专线
+    private function label_PK0002($order)
+    {
+        return $this->display('PK0002', $order);
+    }
+
+    //author by lan 哈俄陆邮
+    private function label_PK0001($order)
+    {
+        $country_code = $order['country_code'];
+        $order['chargeCode'] = $this->getChargeCodeMap($country_code);
+        $order['sortCode'] = $this->getSortCodeMap($country_code);
+        return $this->display('PK0001', $order);
+    }
+
+
+}

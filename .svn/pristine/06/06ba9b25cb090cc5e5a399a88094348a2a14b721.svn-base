@@ -1,0 +1,181 @@
+<?php
+
+namespace service\aliexpress\operation;
+
+use service\aliexpress\operation\Common;
+
+/**
+ * Doc: Aliexpress消息处理
+ * User: Tom
+ * Date: 17-3-20
+ * Time: 下午6:11
+ */
+class Message extends Common{
+    
+    private $baseUrl = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/';
+
+    /**
+     * 获取当前用户下与当前用户建立消息关系的列表
+     * @param string $msgSources
+     * @param int $page
+     * @param int $pageSize
+     * @param type $filter
+     * @return array
+     */
+    public function queryMsgRelationList($msgSources='message_center',$page=1,$pageSize=20,$filter='',$encode='UTF-8')
+    {
+        $url = $this->baseUrl."api.queryMsgRelationList/".$this->client_id;
+        $data = [      
+            'currentPage'=>$page,
+            'pageSize'=>$pageSize,
+            'msgSources'=>$msgSources,   
+            'filter'=>$filter,           
+            'access_token'=>$this->accessToken,
+            '_aop_responseEncoding'=>$encode,
+        ];
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['result'])){
+            return ['msg'=>'','response'=>$newResult['result'],'status'=>1];
+        }
+        return ['msg'=>$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    /**
+     * 站内信/订单留言查询详情列表
+     * @param string $channelId
+     * @param string $msgSources
+     * @param int $page
+     * @param int $pageSize
+     * @return array
+     */
+    public function queryMsgDetailList($channelId, $msgSources = 'message_center', $page = 1, $pageSize = 20,$encode='UTF-8')
+    {
+        $url = $this->baseUrl."api.queryMsgDetailList/".$this->client_id;
+        $data = [            
+            'currentPage'=>$page,
+            'pageSize'=>$pageSize,
+            'msgSources'=>$msgSources,   
+            'channelId'=>$channelId,           
+            'access_token'=>$this->accessToken,
+            '_aop_responseEncoding'=>$encode,
+        ];
+        $newResult = $this->requestAliexpress($url, $data);//if($msgSources=='order_msg'){print_r($newResult);echo "<br><br>";}
+        if(isset($newResult['result'])){
+            return ['msg'=>'','response'=>$newResult['result'],'status'=>1];
+        }
+        return ['msg'=>$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    /**
+     * 站内信/订单留言更新处理状态
+     * @param string $channelId 通道ID(即关系ID)
+     * @param int $dealStat 处理状态(0未处理,1已处理)
+     * @return array
+     */
+    public function updateMsgProcessed($channelId,$dealStat=1)
+    {
+        $url = $this->baseUrl."api.updateMsgProcessed/".$this->client_id;
+        $data = [            
+            'dealStat'=>$dealStat,   
+            'channelId'=>$channelId,           
+            'access_token'=>$this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['result']['isSuccess'])&&$newResult['result']['isSuccess']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>  isset($newResult['result']['errorMsg'])?$newResult['result']['errorMsg']:'','response'=>'','status'=>0];
+    }
+    
+    /**
+     * 站内信/订单留言打标签
+     * @param string $channelId 通道ID(即关系ID)
+     * @param string $rank 标签(rank0,rank1,rank2,rank3,rank4,rank5)
+     * @return array
+     */
+    public function updateMsgRank($channelId,$rank)
+    {
+        $url = $this->baseUrl."api.updateMsgRank/".$this->client_id;
+        $data = [            
+            'rank'=>$rank,   
+            'channelId'=>$channelId,           
+            'access_token'=>$this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['result']['isSuccess'])&&$newResult['result']['isSuccess']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>  isset($newResult['result']['errorMsg'])?$newResult['result']['errorMsg']:'','response'=>'','status'=>0];
+    }
+    
+    /**
+     * 站内信/订单留言更新已读
+     * @param string $channelId 通道ID，即关系ID
+     * @param string $msgSources 查询类型(message_center/order_msg)
+     * @return array
+     */
+    public function updateMsgRead($channelId,$msgSources)
+    {
+        $url = $this->baseUrl."api.updateMsgRead/".$this->client_id;
+        $data = [            
+            'msgSources'=>$msgSources,   
+            'channelId'=>$channelId,           
+            'access_token'=>$this->accessToken,    
+        ];
+
+       $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['result']['isSuccess'])&&$newResult['result']['isSuccess']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>  isset($newResult['result']['errorMsg'])?$newResult['result']['errorMsg']:'','response'=>'','status'=>0];
+    }
+
+    /**
+     * 回复站内信
+     * @param $channelId
+     * @param $msgSources
+     * @param $buyerId
+     * @param $content
+     * @param $imgPath
+     * @return array
+     */
+    public function addMsg($channelId,$msgSources='message_center',$buyerId,$content,$imgPath)
+    {
+        $url = $this->baseUrl."api.addMsg/".$this->client_id;
+        $data = [        
+            'channelId'     =>  $channelId,
+            'buyerId'       =>  $buyerId,
+            'content'       =>  $content,
+            'msgSources'    =>  $msgSources,
+            'imgPath'       =>  $imgPath,         
+            'access_token'  =>  $this->accessToken,    
+        ];
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['result']['isSuccess'])&&$newResult['result']['isSuccess']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>  isset($newResult['result']['errorMsg'])?$newResult['result']['errorMsg']:$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    public function getAllDetails($channelId, $msgSources = 'message_center')
+    {
+        $page = 1;
+        $pageSize = 20;
+        $result = [];
+        $data = [];
+        do {
+            $res = $this->queryMsgDetailList($channelId,$msgSources,$page,$pageSize);
+            $data = $res['response'];
+            if(!empty($data)){
+                $result = array_merge($result,$data);
+                $page++;
+            }
+            
+        } while (count($data)==$pageSize);
+        return $result;
+    }
+
+}
+

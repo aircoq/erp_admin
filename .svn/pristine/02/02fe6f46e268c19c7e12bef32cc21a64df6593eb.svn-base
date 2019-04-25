@@ -1,0 +1,153 @@
+<?php
+
+namespace service\alinew\operation;
+
+use service\alinew\operation\Common;
+
+/**
+ * @desc 评价
+ * @author johnny <1589556545@qq.com>
+ * @date 2018-04-17 15:18:11
+ */
+class Evaluate extends Common
+{
+    /**
+     * @title  查询订单已生效的评价信息
+     * @param $parent_order_ids 父订单ID集合，最多50
+     * @param null $buyer_product_ratings  买家评价星级（1-5星）
+     * @param null $end_order_complete_date 订单完成结束时间
+     * @param null $end_valid_date 评价生效结束时间
+     * @param null $product_id 商品id
+     * @param null $start_order_complete_date 订单完成开始时间
+     * @param null $start_valid_date 评价生效开始时间
+     * @throws \Exception
+     */
+    public function getListOrderEvaluation($parent_order_ids, $buyer_product_ratings =null, $end_order_complete_date = null, $end_valid_date = null, $product_id = null, $start_order_complete_date = null, $start_valid_date = null)
+    {
+        $data = [];
+        //方法参数
+        $data['parent_order_ids'] = $parent_order_ids;
+        $data['buyer_product_ratings'] = $buyer_product_ratings;
+        $data['end_order_complete_date'] = $end_order_complete_date;
+        $data['end_valid_date'] = $end_valid_date;
+        $data['product_id'] = $product_id;
+        $data['start_order_complete_date'] = $start_order_complete_date;
+        $data['start_valid_date'] = $start_valid_date;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('getListOrderEvaluation');
+        $request->setClassName('Evaluation');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+    /**
+     * @title 回复评价
+     * @param $child_order_id  要回复的子订单id
+     * @param $parent_order_id  父订单id
+     * @param $text  回复内容
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function evaluationReply($child_order_id, $parent_order_id, $text)
+    {
+        $data = [];
+        //方法参数
+        $data['child_order_id'] = $child_order_id;
+        $data['parent_order_id'] = $parent_order_id;
+        $data['text'] = $text;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('evaluationReply');
+        $request->setClassName('Evaluation');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+    /**
+     * @title 卖家对未评价的订单进行评价
+     * @param $score 评价星级，1-5
+     * @param $order_id 主订单ID
+     * @param $anonymous 无效参数，匿名留评(默认为false)
+     * @param null $feedback_content 评价内容
+     * @param null $image_urls 无效参数，图片地址
+     * @param null $seller_ali_id 卖家登录会员ID
+     * @param null $buyer_ali_id 买家登录会员ID，可不填，系统会根据订单获取买家id
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function saveSellerFeedback($order_id, $feedback_content =null, $score,  $anonymous = false,  $image_urls = null, $seller_ali_id = null, $buyer_ali_id = null)
+    {
+        $data = [];
+        //方法参数
+        $data['score'] = $score;
+        $data['order_id'] = $order_id;
+        $data['anonymous'] = $anonymous;
+        $data['feedback_content'] = $feedback_content;
+        $data['image_urls'] = $image_urls;
+        $data['seller_ali_id'] = $seller_ali_id;
+        $data['buyer_ali_id'] = $buyer_ali_id;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('saveSellerFeedback');
+        $request->setClassName('Evaluation');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+    /**
+     * @title 查询待卖家评价的订单信息
+     * @param null $page_size 每页获取记录数
+     * @param null $order_finish_time_end 无效参数，订单结束时间，查询起始值，格式:MM/dd/yyyy
+     * @param null $order_finish_time_start 无效参数，订单结束时间，查询截止值，格式:MM/dd/yyyy
+     * @param null $seller_feedback_status 无效参数，卖家留评状态：yes：已留评；no：未留评；all：所有状态；默认未留评
+     * @param null $current_page 当前页
+     * @param null $order_ids 父订单号，多个用英文逗号分隔
+     * @param null $child_order_ids 无效参数，子订单号，多个用英文逗号分隔
+     * @return mixed|\ResultSet|\SimpleXMLElement
+     * @throws \Exception
+     */
+    public function querySellerEvaluationOrderList($page_size=null, $current_page = null, $order_finish_time_end=null,$order_finish_time_start=null, $seller_feedback_status =null, $order_ids = null, $child_order_ids = null)
+    {
+        $data = [];
+        //方法参数
+        $data['page_size'] = $page_size;
+        $data['order_finish_time_end'] = $order_finish_time_end;
+        $data['order_finish_time_start'] = $order_finish_time_start;
+        $data['seller_feedback_status'] = $seller_feedback_status;
+        $data['current_page'] = $current_page;
+        $data['order_ids'] = $order_ids;
+        $data['child_order_ids'] = $child_order_ids;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('querySellerEvaluationOrderList');
+        $request->setClassName('Evaluation');
+        $request->setModule('order');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res = $client->execute($request);
+        return $res;
+    }
+
+}

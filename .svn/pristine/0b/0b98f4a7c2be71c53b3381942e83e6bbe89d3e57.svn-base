@@ -1,0 +1,213 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-12
+ * Time: 上午10:20
+ */
+
+namespace swoole;
+
+use app\common\cache\Cache;
+use swoole\wsClient\WebSocket;
+use think\Config;
+use think\exception\ErrorException;
+
+class SwooleCmder
+{
+    private $host ;
+    private $port ;
+    public $catpondkey = 'catpond1.0:devices';
+    public $catpondsms = 'catpond1.0:phone:';
+    public $catcount = 0;
+    public $catsetclose = false;
+
+    public function __construct($host=null, $port=null)
+    {
+        $this->host = $host;
+        $this->port = $port;
+    }
+
+    public static function create($config = null)
+    {
+    	if(! $config) $config = Config::get('swoole');
+        return new static($config['host'], $config['port']);
+    }
+
+    public static function sendToWorkers(SwooleCmd $cmd):array
+    {
+        $workers = Config::get('swoole.workers') ?? [];
+        $result = [];
+        foreach ($workers as $worker){
+            $workerClient = new static($worker['host'], $worker['port']);
+            $result[] = $workerClient->send($cmd);
+        }
+        return $result;
+    }
+
+    /**
+     * @param SwooleCmd $cmd
+     * @return SwooleCmdResult
+     */
+    public function send(SwooleCmd $cmd) :SwooleCmdResult
+    {
+        $client = new WebSocket($this->host, $this->port);
+        $result = new SwooleCmdResult($cmd);
+        try{
+            if ($client->connect(-1)) {
+                $client->send($cmd);
+                if ($recv = $client->recv()) {
+                    try{
+                        $result = unserialize($recv);
+                    }catch (\Error $exception){
+                        $result->setResult($exception);
+                    }
+                }else{
+                    $result->setCode('fail');
+                    $result->setResult("cmd not recv");
+                }
+                $client->disconnect();
+                return $result;
+            }else{
+                $result->setCode('fail');
+                $result->setResult("connect fail");
+                return $result;
+            }
+        }catch (ErrorException $errorException){
+            $result->setCode('fail');
+            $result->setResult($errorException->getMessage());
+            return $result;
+        }
+    }
+    
+    protected function socketOperate($instruct, $multiple=false, $initial=false, $phone=null)
+    {
+        if (extension_loaded('swoole')){
+            $client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP);
+        }else{
+            throw new ErrorException(1, "swoole not install");
+        }
+        $result = [];
+        $eof = ["\r\nOK\r\n", "\r\nok\r\n", "\r\n\r\n"];
+        empty($instruct) && ($instruct='AP$DEVICES=online;');
+        if(empty($this->host)){
+            $config = Config::get('cardpond');
+            if(empty($config['host']) || empty($config['port'])){
+                throw new ErrorException(1, "No cat pond host:port");
+            }
+            $this->host = $config['host'];
+            $this->port = $config['port'];
+        }
+        $connectRes = $client->connect($this->host, $this->port, 5);
+        if(! $connectRes){
+            $client->close(true);
+            $connectRes = $client->connect($this->host, $this->port, 8);
+        }
+        if ($connectRes) {
+            try{
+                if(! $this->catsetclose){
+                    $client->send('AP$SETUPDATE=1;');
+                    $client->recv();
+                    $this->catsetclose = true;
+                }
+            }catch (\Throwable $e){
+                
+            }
+            $client->send($instruct);
+            do{
+                $recv = $client->recv();
+                $fileType = mb_detect_encoding($recv , array('UTF-8','GBK','LATIN1','BIG5')) ;
+                $fileType != 'UTF-8' && ($recv = mb_convert_encoding($recv ,'utf-8' , $fileType));
+                if($initial){
+                    $result[] = $recv;
+                }else{
+                    $tmpStr = '';
+                    $tmpArr = explode('{', $recv);
+                    isset($tmpArr[1]) && ($tmpStr = '{'. $tmpArr[1]);
+                    $data = json_decode($tmpStr, true);
+                    ///
+                    if(!empty($data) && $phone && empty($data['phonum'])){
+                        $data['phonum'] =  $phone;
+                        $tmpStr = json_encode($data);
+                    }
+                    if(! empty($data['phonum'])){
+                        $result[$data['phonum']] = $tmpStr;
+                    }
+                }
+            }while($multiple && $recv && ! in_array($recv, $eof));
+            $client->close();
+        }else{
+            throw new ErrorException(1, "connect fail: ". socket_strerror($client->errCode));
+        }
+        return $result;
+    }
+    
+    protected function getCatpondSms($phone, $oldcode = null)
+    {
+        $content = '';
+        $redis = Cache::handler();
+        $data = $redis->hGetAll($this->catpondkey);
+        if(empty($data)){
+            $data = $this->socketOperate('', true);
+            $redis->hMset($this->catpondkey, $data);
+            $redis->expire($this->catpondkey, 3600 * 2);
+        }
+        if(isset($data[$phone])){
+            $tmpArr = json_decode($data[$phone], true);
+            if(isset($tmpArr['port'])){
+                ///读取短信,有$oldcode，说明该验证码没用，得重新获取
+                $smsStr = $oldcode ? '' : $redis->get($this->catpondsms . $phone);
+                if(! $smsStr){
+                    while(($response = $this->socketOperate('AP$SMS='. $tmpArr['port'], false, false, $phone)) && isset($response[$phone])){
+                        $smsArr[$phone][] = $response[$phone];
+                    }
+                    if(isset($smsArr[$phone])){
+                        $smsArr = json_decode(array_pop($smsArr[$phone]), true);
+                        if(isset($smsArr['content']) && mb_strpos($smsArr['content'], '全球速卖通') !== false && mb_strpos($smsArr['content'], '资金') !== false){
+                            throw new \Exception("You have no right to access the sms code");
+                        }elseif (isset($smsArr['content']) && preg_match('/(\d){4,}/', $smsArr['content'], $match)){
+                            $smsStr = $match[0];
+                            $redis->set($this->catpondsms . $phone, $smsStr, 90);
+                        }
+                        //
+                    }
+                }
+                $content = $smsStr ?: '';
+            }else{
+                throw new \Exception("the catpond devices is incorrect");
+            }
+        }else{
+            ///由手机号换卡
+            set_time_limit(0);
+            $this->catcount < 1 && $this->socketOperate('AP$SIMPHONUM='. $phone);
+            $redis->del($this->catpondkey);
+            $this->catcount++;
+            if($this->catcount <= 3){
+                sleep(17);///该方式是业务需要
+                $content = $this->getCatpondSms($phone, $oldcode);
+            }else{
+                throw new \Exception("Failed to change card,the card may not be in the cat pond");
+            }
+        }
+        return $content;
+    }
+    
+    public function sendToCatpond($phone, $oldcode=null, $logintime=null, $instruct=null)
+    {
+        $res = ['code' => 'success', 'result' => ''];
+        try{
+            if($instruct){
+                $data = $this->socketOperate($instruct, false, true);
+            }elseif(preg_match("/^1[345789]\d{9}$/", $phone)){
+                $data = $this->getCatpondSms($phone, $oldcode);
+            }else{
+                throw new \Exception("Please pass in the correct phone number");
+            }
+            $res['result'] = $data;
+        }catch (\Throwable $e){
+            $res['code'] = "fail";
+            $res['result'] = $e->getMessage() .', l:'. $e->getLine();
+        }
+        return $res;
+    }
+}

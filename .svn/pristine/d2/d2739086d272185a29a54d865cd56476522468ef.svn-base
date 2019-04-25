@@ -1,0 +1,479 @@
+<?php
+
+namespace app\report\service;
+
+use app\common\cache\Cache;
+use app\common\model\Order;
+use app\common\model\report\ReportStatisticByOrder;
+use app\common\service\OrderStatusConst;
+use app\common\service\Report;
+use app\report\task\OrderStatisticReport;
+use think\Db;
+use think\Exception;
+
+/** 统计订单
+ * Created by PhpStorm.
+ * User: phill
+ * Date: 2017/8/1
+ * Time: 19:17
+ */
+class StatisticOrder
+{
+    protected $reportStatisticByOrderModel = null;
+
+    public function __construct()
+    {
+        if (is_null($this->reportStatisticByOrderModel)) {
+            $this->reportStatisticByOrderModel = new ReportStatisticByOrder();
+        }
+    }
+
+    /** 列表数据
+     * @param $data
+     * @return false|\PDOStatement|string|\think\Collection
+     */
+    public function lists($data)
+    {
+        $where = [];
+        $this->where($data, $where);
+        $lists = $this->reportStatisticByOrderModel->field(true)->where($where)->select();
+        return $lists;
+    }
+
+    /** 搜索条件
+     * @param $data
+     * @param $where
+     * @return \think\response\Json
+     */
+    private function where($data, &$where)
+    {
+        if (isset($data['channel_id']) && !empty($data['channel_id'])) {
+            $where['channel_id'] = ['eq', $data['channel_id']];
+        }
+        $data['date_b'] = isset($data['date_b']) ? $data['date_b'] : 0;
+        $data['date_e'] = isset($data['date_e']) ? $data['date_e'] : 0;
+        $condition = timeCondition($data['date_b'], $data['date_e']);
+        if (!is_array($condition)) {
+            return json(['message' => '日期格式错误'], 400);
+        }
+        if (!empty($condition)) {
+            $where['dateline'] = $condition;
+        }
+    }
+
+
+    /**
+     * 数据重置
+     * @param int $channel_id
+     * @param int $begin_time
+     * @param int $end_time
+     * @param bool|false $type
+     * @param int $channel_account_id
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function resetReport($channel_id = 0, $begin_time = 0, $end_time = 0, $type = false, $channel_account_id = 0)
+    {
+        if($this->isHas($begin_time)){
+            return true;
+        }
+        $where['status'] = ['<>', OrderStatusConst::SaidInvalid];
+        $where['pay_time'] = ['>', 0];
+        $where['type'] = ['eq', 0];
+        if (!empty($channel_id)) {
+            $where['channel_id'] = ['eq', $channel_id];
+        }
+        if (!empty($channel_account_id)) {
+            $where['channel_account_id'] = ['eq', $channel_account_id];
+        }
+        $deleteTime = strtotime($begin_time) ? strtotime($begin_time) : false;
+        if($deleteTime){
+            if(!empty($channel_id)){
+                $deleteWhere['channel_id'] = ['eq',$channel_id];
+            }
+            $deleteWhere['dateline'] = ['eq',$deleteTime];
+            (new ReportStatisticByOrder())->where($deleteWhere)->delete();
+        }
+        $condition = timeCondition($begin_time, $end_time);
+        if (!empty($condition)) {
+            $timeField = 'create_time';
+            $where[$timeField] = $condition;
+        }else{
+            throw new Exception('时间为必要参数');
+        }
+        $orderList = (new Order())->field('channel_id,channel_account_id,pay_time,create_time,pay_fee,rate')->where($where)->select();
+        unset($where);
+        $orderData = [];
+        $currencyData = Cache::store('currency')->getCurrency('USD');
+        $system_rate = $currencyData['system_rate'];   //转换为人民币了
+        foreach ($orderList as $k => $value) {
+            $type = 'order_quantity';
+            if ($value['pay_time'] > 0) {
+                $time = strtotime(date('Y-m-d', $value['pay_time']));
+                $key = $value['channel_id'] . '-' . $value['channel_account_id'] . '-' . $time;
+
+                if (isset($orderData[$key][$type])) {
+                    $orderData[$key][$type]++;
+                } else {
+                    $orderData[$key] = [];
+                    $orderData[$key][$type] = 1;
+                }
+
+                if (isset($orderData[$key]['pay_amount'])) {
+                    $orderData[$key]['pay_amount'] += $value['pay_fee'] * $value['rate'];
+                } else {
+                    $orderData[$key]['pay_amount'] = $value['pay_fee'] * $value['rate'];
+                }
+            }
+        }
+        $insertData = [];
+        Db::startTrans();
+        try {
+            foreach ($orderData as $key => $value) {
+                $insert = [];
+                $where = [];
+                $reportModel = new ReportStatisticByOrder();
+                list($channel_id, $channel_account_id, $time) = explode('-', $key);
+                $where['channel_id'] = ['eq', $channel_id];
+                $where['account_id'] = ['eq', $channel_account_id];
+                $where['dateline'] = ['eq', $time];
+                if (isset($value['order_quantity'])) {
+                    $insert['order_quantity'] = $value['order_quantity'];
+                }
+                if (isset($value['pay_amount'])) {
+                    $insert['pay_amount'] = $value['pay_amount'];
+                }
+                if (isset($value['order_unpaid_quantity'])) {
+                    $insert['order_unpaid_quantity'] = $value['order_unpaid_quantity'];
+                }
+                $reportOrderInfo = $reportModel->field(true)->where([
+                    'dateline' => $time,
+                    'channel_id' => $channel_id,
+                    'account_id' => $channel_account_id
+                ])->find();
+                if (empty($reportOrderInfo)) {
+                    $insert['channel_id'] = $channel_id;
+                    $insert['account_id'] = $channel_account_id;
+                    $insert['dateline'] = $time;
+                    $insert['rate'] = $system_rate;
+                    $insertData[] = $insert;
+                } else {
+                    if (isset($insert['order_quantity'])) {
+                        $insert['order_quantity'] = $value['order_quantity'] + $reportOrderInfo['order_quantity'];
+                    }
+                    if (isset($insert['pay_amount'])) {
+                        $insert['pay_amount'] = $value['pay_amount'] + $reportOrderInfo['pay_amount'];
+                    }
+                    if (isset($insert['order_unpaid_quantity'])) {
+                        $insert['order_unpaid_quantity'] = $value['order_unpaid_quantity'] + $reportOrderInfo['order_unpaid_quantity'];
+                    }
+                    $insert['channel_id'] = $channel_id;
+                    $insert['account_id'] = $channel_account_id;
+                    $insert['dateline'] = $time;
+                    $insert['rate'] = $system_rate;
+                    $reportModel->where($where)->update($insert);
+                }
+            }
+            if (!Cache::store('partition')->getPartition('ReportStatisticByOrder', time())) {
+                Cache::store('partition')->setPartition('ReportStatisticByOrder', time(), null, []);
+            }
+            (new ReportStatisticByOrder())->allowField(true)->isUpdate(false)->saveAll($insertData);
+            Db::commit();
+        } catch (Exception $e) {
+            Db::rollback();
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * 数据重置
+     * @param int $channel_id
+     * @param int $begin_time
+     * @param int $end_time
+     * @param bool|false $type
+     * @param int $channel_account_id
+     * @throws Exception
+     */
+    public function resetReport1($channel_id = 0, $begin_time = 0, $end_time = 0, $type = false, $channel_account_id = 0)
+    {
+        ini_set('memory_limit', '2048M');
+        //先写入缓存信息
+       // (new OrderStatisticReport())->writeInOrder();
+        //然后再删除当前统计的日志
+        $deleteTime = strtotime($begin_time) ? strtotime($begin_time) : false;
+        if($deleteTime){
+            if(!empty($channel_id)){
+                $deleteWhere['channel_id'] = ['eq',$channel_id];
+            }
+            $deleteWhere['dateline'] = ['eq',$deleteTime];
+            (new ReportStatisticByOrder())->where($deleteWhere)->delete();
+        }
+        $where['status'] = ['<>', OrderStatusConst::SaidInvalid];
+        $where['pay_time'] = ['>', 0];
+        $where['type'] = ['eq', 0];
+        if (!empty($channel_id)) {
+            $where['channel_id'] = ['eq', $channel_id];
+        }
+
+        if (!empty($channel_account_id)) {
+            $where['channel_account_id'] = ['eq', $channel_account_id];
+        }
+        $condition = timeCondition($begin_time, $end_time);
+        if (!empty($condition)) {
+            $timeField = 'pay_time';
+            $where[$timeField] = $condition;
+        }
+        $orderList = (new Order())->field('channel_id,channel_account_id,pay_time,create_time,pay_fee,rate')->where($where)->select();
+        unset($where);
+        $orderData = [];
+        $currencyData = Cache::store('currency')->getCurrency('USD');
+        $system_rate = $currencyData['system_rate'];   //转换为人民币了
+        foreach ($orderList as $k => $value) {
+            $type = 'order_quantity';
+            if ($value['pay_time'] > 0) {
+                $time = strtotime(date('Y-m-d', $value['pay_time']));
+                $key = $value['channel_id'] . '-' . $value['channel_account_id'] . '-' . $time;
+
+                if (isset($orderData[$key][$type])) {
+                    $orderData[$key][$type]++;
+                } else {
+                    $orderData[$key] = [];
+                    $orderData[$key][$type] = 1;
+                }
+
+                if (isset($orderData[$key]['pay_amount'])) {
+                    $orderData[$key]['pay_amount'] += $value['pay_fee'] * $value['rate'];
+                } else {
+                    $orderData[$key]['pay_amount'] = $value['pay_fee'] * $value['rate'];
+                }
+            }
+        }
+        $insertData = [];
+        //Db::startTrans();
+        try {
+            foreach ($orderData as $key => $value) {
+                $reportModel = new ReportStatisticByOrder();
+                list($channel_id, $channel_account_id, $time) = explode('-', $key);
+                $where['channel_id'] = ['eq', $channel_id];
+                $where['account_id'] = ['eq', $channel_account_id];
+                $where['dateline'] = ['eq', $time];
+                if (isset($value['order_quantity'])) {
+                    $insert['order_quantity'] = $value['order_quantity'];
+                }
+                if (isset($value['pay_amount'])) {
+                    $insert['pay_amount'] = $value['pay_amount'];
+                }
+                if (isset($value['order_unpaid_quantity'])) {
+                    $insert['order_unpaid_quantity'] = $value['order_unpaid_quantity'];
+                }
+                $reportOrderInfo = $reportModel->field(true)->where([
+                    'dateline' => $time,
+                    'channel_id' => $channel_id,
+                    'account_id' => $channel_account_id
+                ])->find();
+                if (empty($reportOrderInfo)) {
+                    $insert['channel_id'] = $channel_id;
+                    $insert['account_id'] = $channel_account_id;
+                    $insert['dateline'] = $time;
+                    $insert['rate'] = $system_rate;
+                   // array_push($insertData,$insert);
+                    (new ReportStatisticByOrder())->allowField(true)->isUpdate(false)->save($insert);
+                } else {
+                    if (isset($insert['order_quantity'])) {
+                        $insert['order_quantity'] = $value['order_quantity'] + $reportOrderInfo['order_quantity'];
+                    }
+                    if (isset($insert['pay_amount'])) {
+                        $insert['pay_amount'] = $value['pay_amount'] + $reportOrderInfo['pay_amount'];
+                    }
+                    if (isset($insert['order_unpaid_quantity'])) {
+                        $insert['order_unpaid_quantity'] = $value['order_unpaid_quantity'] + $reportOrderInfo['order_unpaid_quantity'];
+                    }
+                    $insert['channel_id'] = $channel_id;
+                    $insert['account_id'] = $channel_account_id;
+                    $insert['dateline'] = $time;
+                    $insert['rate'] = $system_rate;
+                    $reportModel->where($where)->update($insert);
+                }
+            }
+            if (!Cache::store('partition')->getPartition('ReportStatisticByOrder', time())) {
+                Cache::store('partition')->setPartition('ReportStatisticByOrder', time(), null, []);
+            }
+            //(new ReportStatisticByOrder())->allowField(true)->isUpdate(false)->saveAll($insertData);
+           // Db::commit();
+        } catch (Exception $e) {
+           // Db::rollback();
+            throw new Exception($e->getMessage());
+        }
+    }
+
+
+    /**
+     * 数据重置
+     * @param int $channel_id
+     * @param int $begin_time
+     * @param int $end_time
+     * @param bool|false $type
+     * @param int $channel_account_id
+     * @throws Exception
+     */
+    public function resetReportWriteToCache($channel_id = 0, $begin_time = 0, $end_time = 0, $type = false, $channel_account_id = 0)
+    {
+        $where['status'] = ['<>', OrderStatusConst::SaidInvalid];
+        $where['pay_time'] = ['>', $begin_time];
+        $where['type'] = ['eq', 0];
+        if (!empty($channel_id)) {
+            $where['channel_id'] = ['eq', $channel_id];
+        }
+        if (!empty($channel_account_id)) {
+            $where['channel_account_id'] = ['eq', $channel_account_id];
+        }
+        if(!empty($begin_time)){
+            if(!empty($channel_id)){
+                $deleteWhere['channel_id'] = ['eq',$channel_id];
+            }
+            $deleteWhere['dateline'] = ['eq',$begin_time];
+            (new ReportStatisticByOrder())->where($deleteWhere)->delete();
+        }
+        $timeField = 'create_time';
+        $where[$timeField] = ['between',[$begin_time,$end_time]];
+        $orderList = (new Order())->field('channel_id,channel_account_id,pay_time,create_time,pay_fee,rate')->where($where)->select();
+        unset($where);
+        $orderData = [];
+        foreach ($orderList as $k => $value) {
+            $type = 'order_quantity';
+            if ($value['pay_time'] > 0) {
+                $time = strtotime(date('Y-m-d', $value['pay_time']));
+                $key = $value['channel_id'] . '-' . $value['channel_account_id'] . '-' . $time;
+
+                if (isset($orderData[$key][$type])) {
+                    $orderData[$key][$type]++;
+                } else {
+                    $orderData[$key] = [];
+                    $orderData[$key][$type] = 1;
+                }
+
+                if (isset($orderData[$key]['pay_amount'])) {
+                    $orderData[$key]['pay_amount'] += $value['pay_fee'] * $value['rate'];
+                } else {
+                    $orderData[$key]['pay_amount'] = $value['pay_fee'] * $value['rate'];
+                }
+            }
+        }
+        try {
+            //删除缓存
+            Cache::store('report')->delSaleByOrder();
+            foreach ($orderData as $key => $value) {
+                list($channel_id, $channel_account_id, $time) = explode('-', $key);
+                $insert = [];
+                if (isset($value['order_quantity'])) {
+                    $insert['order'] = $value['order_quantity'];
+                }
+                if (isset($value['pay_amount'])) {
+                    $insert['pay'] = $value['pay_amount'];
+                }
+                if (isset($value['order_unpaid_quantity'])) {
+                    $insert['unpaid'] = $value['order_unpaid_quantity'];
+                }
+                Report::statisticOrder($channel_id, $channel_account_id, $time, $insert);
+            }
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+
+    /**
+     * 获取缓存
+     * @param $channels
+     * @param $accounts
+     * @return array
+     */
+    public function getCacheOrderByChannels($channels, $accounts = [])
+    {
+        $reData = [];
+        foreach ($channels as $channel_id){
+            $reData[$channel_id] = $this->getCacheOrder($channel_id, $accounts);
+        }
+        return $reData;
+    }
+
+    /**
+     * 获取缓存
+     * @param $channel_id
+     * @param $accounts
+     * @return array
+     */
+    public function getCacheOrder($channel_id, $accounts = [])
+    {
+        $key = $channel_id . ':*';
+        $cache = Cache::handler(true);
+        $reportKeys = $cache->keys(Report::statisticOrderPrefix . $key);
+        $reportData = [];
+        foreach ($reportKeys as $k => $value) {
+            $data = $cache->hGetAll($value);
+            if($accounts && !in_array($data['account_id'], $accounts)){
+                continue;
+            }
+            if (isset($reportData[$data['dateline']]['order_quantity'])) {
+                $reportData[$data['dateline']]['order_quantity'] += intval($data['order_quantity']);
+            } else {
+                $reportData[$data['dateline']]['order_quantity'] = [];
+                $reportData[$data['dateline']]['order_quantity'] = intval($data['order_quantity']);
+            }
+            //金额
+            if (isset($reportData[$data['dateline']]['pay_amount'])) {
+                if (isset($data['pay_amount'])) {
+                    $reportData[$data['dateline']]['pay_amount'] += floatval($data['pay_amount']);
+                }
+            } else {
+                $reportData[$data['dateline']]['pay_amount'] = [];
+                $reportData[$data['dateline']]['pay_amount'] = isset($data['pay_amount']) ? floatval($data['pay_amount']) : 0;
+            }
+        }
+        return $reportData;
+    }
+
+    /**
+     * 判断当天的数据是否已经跑过了
+     * @param $time
+     * @return bool
+     */
+    public function isHas($time)
+    {
+        $key = 'hash:report:order:record';
+        $cache = Cache::handler();
+        if($cache->hExists($key,$time)){
+            return true;
+        }
+        $cache->hSet($key,$time,1);
+        return false;
+    }
+
+    /**
+     * 获取缓存
+     * @param $channel_id
+     * @param $accounts
+     * @return array
+     */
+    public function getCacheOrderByAccount($channel_id, $accounts = [],$dateline = 0)
+    {
+        $key = $channel_id . ':*';
+        $cache = Cache::handler(true);
+        $reportKeys = $cache->keys(Report::statisticOrderPrefix . $key);
+        $reportData = [];
+        foreach ($reportKeys as $k => $value) {
+            $data = $cache->hGetAll($value);
+            if($accounts && !in_array($data['account_id'], $accounts)){
+                continue;
+            }
+            if($dateline && $dateline != $data['dateline']){
+                continue;
+            }
+            $reportData[$data['account_id']]['order_quantity'] = intval($data['order_quantity']);
+            $reportData[$data['account_id']]['pay_amount'] = isset($data['pay_amount']) ? floatval($data['pay_amount']) : 0;
+        }
+        return $reportData;
+    }
+}

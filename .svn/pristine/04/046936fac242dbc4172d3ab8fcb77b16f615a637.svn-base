@@ -1,0 +1,99 @@
+<?php
+
+namespace service\wish\operation;
+
+use think\Cache;
+use app\common\service\WishService;
+use think\Exception;
+
+/**
+ *  wish Infractions
+ */
+class Infractions extends Common
+{
+    /**
+     * @var null
+     */
+    public $access_token;
+
+    /** 构造函数
+     * Infractions constructor.
+     * @param $config
+     */
+    public function __construct($config)
+    {
+        $this->access_token = $config['access_token'];
+        parent::__construct($this->access_token);
+    }
+    
+    /**
+     * 获取不同阶段的违规计数
+     * @param int $stage
+     * 	可选 1,2或3中的一个，默认为1：
+                1：ACTION_REQUIRED（需要参加商家）
+                2：AWAITING_WISH（希望正在处理）
+                3：历史（所有其他违规行为）
+                默认值为1
+     * @return array
+     */
+    public function infractionsCount($stage=1){
+        $access_token = urlencode($this->access_token);
+        $stage = urlencode($stage);
+        $url = sprintf(
+            "https://merchant.wish.com/api/v2/count/infractions?access_token=%s&stage=%s",
+            $access_token, $stage);
+        $context = stream_context_create(array(
+            'http' => array(
+                'method' => 'GET',
+                'ignore_errors' => true,
+            ),
+        ));
+        $response = file_get_contents($url, TRUE, $context);
+        $response = json_decode($response, true);
+        if ($response['code'] == 0) {
+            return $response;
+        }
+        return [];
+    }
+    
+    /**
+     * @desc 
+     * @author wangwei
+     * @date 2018-11-24 16:34:32
+     * @param array $data
+     * @example $data = [
+     *          'start'=>'',//	可选 返回违规列表中的偏移量。使用0从头开始。API将返回从此偏移量开始的请求数量的项目。如果未提供，则默认为0
+     *          'limit'=>'',//可选 对可以返回的违规数量的限制。限制范围为1到500个项目，默认值为50
+     *          'stage'=>'',//可选 1,2或3中的一个，默认为1：
+                                                1：ACTION_REQUIRED（需要参加商家）
+                                                2：AWAITING_WISH（希望正在处理）
+                                                3：历史（所有其他违规行为）
+                                                默认值为1
+     *          'since'=>'',//可选 日期/时间字符串，格式为YYYY-MM-DD或YYYY-MM-DDTHH：MM：SS。如果提供日期或时间，则仅提取自给定日期或时间以来更新的产品。默认是获取全部。
+     *          'upto'=>'',//可选 日期/时间字符串，格式为YYYY-MM-DD或YYYY-MM-DDTHH：MM：SS。如果提供日期或时间，则仅提取在给定日期或时间之前更新的产品。默认是直到现在才获取所有更新的产品。
+     * ];
+     * @return boolean[]|mixed[]|boolean[]|mixed|array
+     */
+    public function getInfractions(array $data=[]){
+        $url = 'https://merchant.wish.com/api/v2/get/infractions?access_token=' . urlencode($this->access_token);
+        //拼接
+        if($data){
+            foreach ($data as $key => $value) {
+                $url .= '&' . $key . '=' . $value;
+            }
+        }
+        $context = stream_context_create(array(
+            'http' => array(
+                'method' => 'GET',
+                'ignore_errors' => true,
+            ),
+        ));
+        $response = file_get_contents($url, true, $context);
+        $response = json_decode($response, true);
+        if ($response['code'] == 0) {
+            return ['state' => true, 'data' => $response['data']];
+        }
+        return ['state' => false];
+    }
+    
+}

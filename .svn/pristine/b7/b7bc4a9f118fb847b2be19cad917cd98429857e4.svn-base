@@ -1,0 +1,62 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-4-19
+ * Time: 下午2:15
+ */
+namespace service\pandao\operation;
+class Variant extends Common
+{
+    /**
+     * RETRIEVE A variant
+     * @param $params
+     * @return mixed
+     */
+    public function variant($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/variant";
+        $response = $this->curlGet($url,$params);
+        return $response;
+    }
+
+    /**
+     * CREATE A variant
+     * @param $params
+     * @return mixed
+     */
+    public function add($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/variant/add";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    /**
+     * UPDATE A variant
+     * @param $params
+     * @return mixed
+     */
+    public function update($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/variant/update";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    /**
+     * enable A variant
+     * @param $params
+     * @return mixed
+     */
+    public function enable($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/variant/enable";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    /**
+     * disable A variant
+     * @param $params
+     * @return mixed
+     */
+    public function disable($params){
+        $url="https://mall.my.com/merchant/wish/api/v2/variant/disable";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+}

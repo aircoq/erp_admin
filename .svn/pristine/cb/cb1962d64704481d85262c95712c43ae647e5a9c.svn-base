@@ -1,0 +1,78 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: zhangdongdong
+ * Date: 2019/3/21
+ * Time: 21:24
+ */
+
+namespace Waimao\AmazonMws;
+
+
+class AmazonMultiFeed extends AmazonMultiRequest
+{
+    /** @var int 最大并发连接数  */
+    public $maxConnections = 100;
+
+    /** @var int 最大请求时间 */
+    public $timeOut = 30;
+
+    public function __construct($maxConnections = 100, $timeout = 30)
+    {
+        parent::__construct($maxConnections, $timeout);
+    }
+
+
+    public function getResponses($index = 0) : array
+    {
+        if (empty($index)) {
+            $requestLists = $this->getRequestLists();
+            if (empty($requestLists)) {
+                return [];
+            }
+        } else {
+            $request = $this->getRequest($index);
+            if (empty($request)) {
+                return [];
+            } else {
+                $requestLists[$index] = $request;
+            }
+        }
+        $response = [];
+        /** @var  $request AmazonRequest */
+        $request = null;
+        foreach ($requestLists as $accountId=>$request) {
+            $tmp = ['status' => 0, 'error_message' => '', 'submissionId' => ''];
+            if ($request->isError()) {
+                $tmp['error_message'] = $request->getErorr();
+            }
+            $res = $request->getResponse();
+            if (!empty($res['result']['SubmitFeedResult']['FeedSubmissionInfo']['FeedSubmissionId'])) {
+                $tmp['status'] = 1;
+                $tmp['submissionId'] = $res['result']['SubmitFeedResult']['FeedSubmissionInfo']['FeedSubmissionId'];
+            }
+            $response[$accountId] = $tmp;
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param $xml
+     * @return array|bool
+     */
+    protected function parseXML($xml)
+    {
+        if (!$xml) {
+            return false;
+        }
+        $xml = simplexml_load_string(trim($xml));
+
+        $response = [];
+        $response['FeedSubmissionId'] = (string)$xml->FeedSubmissionId;
+        $response['FeedType'] = (string)$xml->FeedType;
+        $response['SubmittedDate'] = (string)$xml->SubmittedDate;
+        $response['FeedProcessingStatus'] = (string)$xml->FeedProcessingStatus;
+        return $response;
+    }
+}

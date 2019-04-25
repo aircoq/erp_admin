@@ -1,0 +1,83 @@
+<?php
+namespace service\aliexpress\operation;
+
+use service\aliexpress\operation\Common;
+
+/**
+ * Aliexpress 发货通知处理
+ * User: Tom
+ * Date: 17-3-21
+ * Time: 下午4:43
+ */
+class SellerShipment extends Common
+{
+    private $baseUrl = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/';
+    
+    const SendType = [1=>'all',2=>'part'];
+
+    /**
+     * 填写发货通知
+     * @param string $serviceName       物流服务key
+     * @param string $logisticsNo       物流追踪号
+     * @param string $outRef            用户需要发货的订单id 
+     * @param string $sendType          状态包括：全部发货(all)、部分发货(part)
+     * @param string $trackingWebsite   当serviceName=Other的情况时，需要填写对应的追踪网址
+     * @param string $description       备注
+     * @return array
+     */
+    public function sellerShipment($params)
+    {
+        $type = self::SendType;
+        $url = $this->baseUrl."api.sellerShipment/".$this->client_id;
+        $data = [      
+            'serviceName'       =>$params['serviceName'],
+            'logisticsNo'       =>$params['logisticsNo'],
+            'description'       =>isset($params['description'])?$params['description']:'',
+            'sendType'          =>  $type[$params['sendType']],
+            'outRef'            =>$params['outRef'],
+            'trackingWebsite'   =>$params['trackingWebsite'],
+            'access_token'      =>$this->accessToken,    
+        ];
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['success'])&&$newResult['success']){
+            return ['status'=>true,'error_msg'=>''];
+        }
+        return ['status'=>false,'error_msg'=>isset($newResult['error_message'])?$newResult['error_message']:'填写发货通知失败'];
+    }
+    
+    /**
+     * 修改发货通知(一个订单只能修改2次，只能修改发货通知后5日内的订单，请注意！)
+     * @param type $oServiceName        老的发货物流服务
+     * @param type $nServiceName        新的发货物流服务
+     * @param type $oLogisticsNo        老的物流追踪号
+     * @param type $nLogisticsNo        新的物流追踪号
+     * @param type $outRef              用户需要发货的订单id
+     * @param type $sendType            状态包括：全部发货(all)、部分发货(part)
+     * @param type $trackingWebsite     当serviceName=Other的情况时，需要填写对应的追踪网址
+     * @param type $description         备注
+     * @return array Description
+     */
+    public function sellerModifiedShipment($oServiceName, $nServiceName, $oLogisticsNo, $nLogisticsNo, $outRef, $sendType = 1, $trackingWebsite = '', $description = '')
+    {
+        $type = self::SendType;
+        $url = $this->baseUrl."api.sellerShipment/".$this->client_id;
+        $data = [      
+            'oldServiceName'    =>$oServiceName,
+            'oldLogisticsNo'    =>$oLogisticsNo,
+            'newServiceName'    =>$nServiceName,
+            'newLogisticsNo'    =>$nLogisticsNo,
+            'description'       =>$description,   
+            'sendType'          =>  $type[$sendType],
+            'outRef'            =>$outRef,
+            'trackingWebsite'   =>$trackingWebsite,
+            'access_token'      =>$this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['success'])){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>$newResult['error_message'],'response'=>'','status'=>0];
+    }
+}
+

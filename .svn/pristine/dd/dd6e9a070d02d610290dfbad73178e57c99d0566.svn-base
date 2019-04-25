@@ -1,0 +1,50 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-17
+ * Time: 上午11:17
+ */
+
+namespace swoole\cmd;
+
+
+use swoole\SwooleCmd;
+use swoole\SwooleCmder;
+use swoole\SwooleCmdResult;
+
+class WSPublish extends SwooleCmd
+{
+
+    public static function fastPublish(string $name, $data)
+    {
+        $publish = new static(['name'=>$name, 'data'=>$data]);
+        $cmder = SwooleCmder::create();
+        return $cmder->send($publish);
+    }
+
+    public  function execute(\swoole_websocket_server $server): SwooleCmdResult
+    {
+        $name = $this->data['name'];
+        $data = $this->data['data'];
+        $publish = json_encode([
+            'next' =>$name,
+            'data' =>$data,
+            'type' =>'publish'
+        ]);
+        if($fds = $server->tableSuscribes->get($name, 'fds')){
+            $fds = unserialize($fds);
+            foreach ($fds as $fd){
+                if($server->tableWsConnects->get($fd)){
+                    $server->push($fd, $publish);
+                }
+            }
+            $count = count($fds);
+        }else{
+            $count = 0;
+        }
+        $result = new SwooleCmdResult($this);
+        $result->setResult($count);
+        return $result;
+    }
+}

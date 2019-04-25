@@ -1,0 +1,93 @@
+<?php
+
+namespace modeldata;
+
+
+use Naucon\File\File;
+use Nette\PhpGenerator\PhpFile;
+use Nette\Utils\Strings;
+
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-21
+ * Time: 上午9:45
+ */
+class ModelData
+{
+    private $config = null;
+    private $dataPath = "";
+    public function __construct($config = null)
+    {
+        $this->config = $config;
+        $this->dataPath = APP_PATH."common/types/";
+    }
+    public function generate()
+    {
+        $classes = $this->getClasses();
+        foreach ($classes as $model){
+            $model = file2namespace($model);
+            $model = "app\\common\\model\\{$model}";
+            $this->genModel($model);
+        }
+    }
+
+    private function genModel($model)
+    {
+        if(isset($model::$subClasses)){
+            foreach ($model::$subClasses as $name => $class){
+                $this->genClass($model, $name, $class);
+            }
+        }
+    }
+
+    private function genClass($model, $name, $class)
+    {
+        $file = new PhpFile();
+        $file->addComment("Time:".now());
+        $file->addComment("Doc: 系统自动生成的表结构 @请不要手动编辑本文件");
+        $classFile = $file->addClass("app\\common\\types\\".Strings::firstUpper($name));
+        if(!isset($class['propertys'])){
+            throw new \Exception("$model 模型类 未定义 propertys");
+        }
+        foreach ($class['propertys'] as $property){
+            $property = $classFile->addProperty($property);
+            $property->setVisibility('private');
+        }
+        if(!isset($class['methods'])){
+            throw new \Exception("$model 模型类 未定义 methods");
+        }
+        foreach ($class['methods'] as $methodName => $method){
+            $methodSet = $classFile->addMethod("set".Strings::firstUpper($methodName));
+            $methodSet->addComment($methodName." set method");
+            foreach ($method as $item){
+                $methodSet->addParameter($item);
+                $methodSet->addBody('$this->? = $?;', [$item,$item]);
+            }
+            $methodGet = $classFile->addMethod('get'.Strings::firstUpper($methodName));
+            $methodGet->addComment($methodName." get method");
+            $bodys = [];
+            foreach ($method as $item){
+                $bodys[] = '"'.$item.'" =>'.'$this->'.$item;
+            }
+            $bodys = join(', ', $bodys);
+            $methodGet->setBody("return [$bodys];");
+        }
+        $filePath = $this->dataPath.Strings::firstUpper($name).".php";
+        file_put_contents($filePath, $file);
+    }
+
+    private function getClasses()
+    {
+        $files = [];
+        $DS = DIRECTORY_SEPARATOR;
+        $preg = "/^\\{$DS}common\\{$DS}model\\{$DS}([\w\\{$DS}]+)\.php$/i";
+        list_dir(APP_PATH, function($file, $files)use($preg){
+            if(preg_match($preg, $file, $match)){
+                $files[] = $match[1];
+            }
+        }, $files);
+        return$files;
+    }
+
+}

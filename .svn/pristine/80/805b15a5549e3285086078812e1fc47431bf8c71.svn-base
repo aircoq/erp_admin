@@ -1,0 +1,299 @@
+<?php
+
+namespace paytm;
+
+use app\common\cache\Cache;
+use app\common\model\paytm\PaytmAccount as PaytmAccountModel;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/5/21
+ * Time: 14:15
+ */
+class PaytmOrderApi extends PaytmAccountApi
+{
+    public function __construct($params = [])
+    {
+        parent::__construct($params);
+    }
+
+    /**
+     * 登录账号;
+     * @return mixed
+     */
+    public function loginAtFulfillment()
+    {
+        //授权信息；
+        if (!$this->access_token) {
+            $this->refresh_access_token();
+        }
+        $url = 'https://fulfillment.paytm.com/authorize?authtoken=' . $this->access_token;
+        $result = $this->httpReader($url, 'GET');
+
+        $result = json_decode($result, true);
+        if (isset($result['merchant_ids'])) {
+            $save['merchant_id'] = $this->merchant_id = $result['merchant_ids'][0];
+            $save['lmd_enabled'] = $this->lmd_enabled = $result['merchants'][0]['lmd_enabled'];
+            PaytmAccountModel::update($save, ['id' => $this->account_id]);
+            Cache::store('PaytmAccount')->updateTableRecord($this->account_id, 'merchant_id', $this->merchant_id);
+        }
+        if (isset($result['error']) && $result['error'] == 'OAuth authentication failure') {
+            if ($this->refresh_access_token()) {
+                $this->loginAtFulfillment();
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * 检索最近更改的订单
+     * @param $since 开始时间；
+     * @param $end 结束时间；
+     * @param $limit 每次拉取的个数；
+     * @param $status 状态；
+     * @return array or false
+     */
+    public function getOrders($since = '1526832000', $end = '1526918400', $limit = 200, $status = '')
+    {
+        if (!$this->merchant_id) {
+            $this->loginAtFulfillment();
+        }
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/orders.json';
+        $getData = [
+            'authtoken' => $this->access_token,
+            'limit' => $limit,
+            'placed_before' => $end . '000',
+            'placed_after' => $since . '000',
+        ];
+
+        if ($status) {
+            $getData['status'] = $status;
+        }
+
+        $result = $this->myselfHttp($url, 'GET', $getData);
+        if (empty($result) || isset($result['error'])) {
+            return false;
+        }
+        return $result;
+    }
+
+
+    /**
+     * 通过订单ID，拿取订单信息用于更新；
+     * @param $order_id 订单ID
+     */
+    public function getOrderById($order_id)
+    {
+        if (!$this->merchant_id) {
+            $this->loginAtFulfillment();
+        }
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/orders.json';
+        $data = [
+            'authtoken' => $this->access_token,
+            'order_id' => $order_id,
+        ];
+
+        $result = $this->myselfHttp($url, 'GET', $data);
+        return $result;
+    }
+
+
+    /** 发货订单
+     * @param $order_id 订单ID
+     * @param $fulfillment_id 订单商品fulfillment_id
+     * @param $item_ids 订单商品ID
+     * @param $tracking_data 跟踪提供商信息【id,name,url】
+     * @param $tracking_number 跟踪号
+     * @param $ship_note 单号备注
+     * @return bool
+     */
+    public function fulfillOne($order_id, $fulfillment_id, $item_ids, $tracking_data = [], $tracking_number = '')
+    {
+
+        $this->setOrderAcknowledge($order_id, $item_ids); //确认订单
+
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+            ]
+        ];
+
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/fulfillment/create/' . $order_id . '?authtoken=' . $this->access_token;
+        $data = [
+            'order_item_ids' => $item_ids,
+            'shipping_description' => $tracking_data['shipping_name'],
+            'tracking_url' => $tracking_data['shipping_url'],
+            'shipper_id' => $tracking_data['shipping_id'],
+        ];
+        if ($tracking_number) {
+            $data['tracking_number'] = $tracking_number;
+        }
+        $data = json_encode($data);
+        $this->httpReader($url, 'POST', $data, $extra); //5 创建发货状态
+        foreach ($fulfillment_id as $id) { //包装的生成
+            $this->fetchImei($id); // 6
+        }
+        $ids = implode(',', $fulfillment_id);
+        $this->downloadPackingLabel($ids); // 8 打印
+        $results = $this->markShipped($ids); //12 同步发货状态
+        return $results;
+    }
+
+    /** 接收/拒绝 订单 -2
+     * @param $order_id 订单ID
+     * @param $item_ids 订单商品ID
+     * @param $status 1接收/ 0拒绝
+     * @param $comment  备注 32733 Wrong product description    32732 Wrong selling price     23608 Out Of Stock
+     * @return array
+     */
+    public function setOrderAcknowledge($order_id, $item_ids = [], $status = 1, $comment = '')
+    {
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+            ]
+        ];
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/fulfillment/ack/' . $order_id . '?authtoken=' . $this->access_token;
+        $data = [
+            'item_ids' => $item_ids,
+            'status' => $status,
+        ];
+        if ($comment) {
+            $data['comment'] = $comment;
+        }
+        $data = json_encode($data);
+        $result = $this->httpReader($url, 'POST', $data, $extra);
+        $result = json_decode($result, true);
+        return $result;
+    }
+
+    /** 发货订单 - 10
+     * @param $fulfillment_ids 订单ID
+     * @return bool
+     */
+    public function createManifest($fulfillment_ids)
+    {
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+            ]
+        ];
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/fulfillment/manifest?authtoken=' . $this->access_token;
+        $data = [
+            'fulfillment_ids' => $fulfillment_ids,
+        ];
+        $data = json_encode($data);
+        $result = $this->httpReader($url, 'POST', $data, $extra);
+        return json_decode($result, true);
+    }
+
+    /** 发货订单 - 8
+     * @param $fulfillment_ids
+     * @return bool
+     */
+    public function downloadPackingLabel($fulfillment_ids)
+    {
+        $url = 'https://fulfillment.paytm.com/v2/invoice/merchant/' . $this->merchant_id . '/fulfillment/bulkfetch';
+        $data = [
+            'authtoken' => $this->access_token,
+            'fulfillment_ids' => $fulfillment_ids,
+            'template' => 'shared',
+            'ffUpdate' => 'true',
+        ];
+        $re = $this->myselfHttp($url, 'GET', $data);
+        return $re;
+    }
+
+    /** 发货订单 - 11
+     * @param $manifest_id
+     * @return bool
+     */
+    public function downloadManifest($manifest_id)
+    {
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+            ]
+        ];
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/fulfillment/download/manifest?authtoken=' . $this->access_token . '&manifest_id=' . $manifest_id;
+
+        return $this->httpReader($url, 'GET', '', $extra);
+    }
+
+    /** 发货订单 - 12
+     * @param $fulfillment_ids 订单ID
+     * @return bool
+     */
+    public function markShipped($fulfillment_ids)
+    {
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+            ]
+        ];
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/fulfillment/bulkmarkshipped?authtoken=' . $this->access_token . '&fulfillment_ids=' . $fulfillment_ids;
+
+        $result = $this->httpReader($url, 'POST', '', $extra);
+        return json_decode($result, true);
+    }
+
+
+    /** 包装的生成 订单 -7
+     * @param $fulfillment_id 订单ID
+     * @return array
+     */
+    public function fetchImei($fulfillment_id)
+    {
+
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/fetchImei.json';
+        $data = [
+            'authtoken' => $this->access_token,
+            'id' => intval($fulfillment_id),
+        ];
+
+        $result = $this->myselfHttp($url, 'GET', $data);
+        return $result;
+    }
+
+
+    /** 查询物流信息
+     * @param $order_id 订单ID
+     * @return array
+     */
+    public function getOrderShipper($order_id)
+    {
+        $url = 'https://fulfillment.paytm.com/v1/merchant/' . $this->merchant_id . '/shippers';
+        $data = [
+            'order_id' => $order_id,
+            'authtoken' => $this->access_token,
+        ];
+        $url .= '?' . http_build_query($data);
+        $result = $this->httpReader($url, 'GET', '');
+        $result = json_decode($result, true);
+        return $result;
+    }
+
+    public function myselfHttp($url, $mehod, $data = '')
+    {
+        $extra = [
+            'header' => [
+                'Connection' => 'keep-alive',
+                'Cache-Control' => 'max-age=0',
+            ]
+        ];
+        $url .= '?' . http_build_query($data);
+        $result = $this->httpReader($url, $mehod, '', $extra);
+        $result = json_decode($result, true);
+
+        if (!$result || isset($result['error'])) {
+            if ($this->refresh_access_token()) {
+                $result = $this->httpReader($url, $mehod, '', $extra);
+                $result = json_decode($result, true);
+            }
+        }
+        return $result;
+    }
+
+}

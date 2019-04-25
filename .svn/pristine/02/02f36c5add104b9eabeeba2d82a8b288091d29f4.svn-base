@@ -1,0 +1,131 @@
+<?php
+
+namespace service\shipping;
+
+use think\Exception;
+
+/**
+ * Shipping 平台api
+ */
+class ShippingApi
+{
+    private static $instance = null;
+
+    /**
+     * 开放接口
+     * @param  array $config [description]
+     * @return [type]         [description]
+     */
+    public static function instance()
+    {
+        if (is_null(self::$instance)) {
+            self::$instance = new ShippingApi();
+        }
+
+        return self::$instance;
+    }
+
+    /**
+     * 实例化
+     * @param $type
+     * @return mixed
+     * @throws Exception
+     */
+    public function loader($type)
+    {
+        try {
+            $class = __NAMESPACE__ . '\\operation\\' . ucwords($type);
+            //$class = false !== strpos($type, '\\') ? $type : '\\service\\shipping\\operation\\' . ucwords($type);
+            if (class_exists($class)) {
+                return new $class();
+            } else {
+                throw new Exception("The api type file is not found", 1);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error Processing Request " . $e->getMessage(), 1);
+        }
+    }
+
+    public function label($type, $code, $order)
+    {
+        try {
+            $file = dirname(__FILE__) . "/label/" . ucwords($type) . "/" . $code . ".php";
+            if (is_file($file)) {
+                extract($order);
+                ob_start();
+                include $file;
+                $contents = ob_get_contents();
+                ob_end_clean();
+                return $contents;
+            } else {
+                throw new Exception("该物流方式的面单尚未生成", 1);
+            }
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    /**
+     * @title 注释..
+     * @param $type string 物流方式名称
+     * @param $code string 物流方式编号
+     * @param $order
+     * @param $change bool 是否打印转化面单
+     * @author starzhan <397041849@qq.com>
+     */
+    public function createLabel($type, $code, $order, $change = false)
+    {
+        try {
+            $className = "\service\shipping\label\Dao\\{$type}";
+            if (class_exists($className)) {
+                $o = new $className();
+                if ($change) {
+                    return $o->createChangeLabel($code, $order);
+                }
+                return $o->createLabel($code, $order);
+            }
+            throw new Exception('系统尚未实现该运输方式的自制面单：' . $type);
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    public function IsOpenWater($type)
+    {
+        try {
+            $className = "\service\shipping\label\Dao\\{$type}";
+            if (class_exists($className)) {
+                $o = new $className();
+                return $o->isOpenWater();
+            }
+            return 0;
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+    public function isCanDeclare($type,$shipping_code){
+        try {
+            $className = "\service\shipping\label\Dao\\{$type}";
+            if (class_exists($className)) {
+                $o = new $className();
+                return $o->isCanDeclare($shipping_code);
+            }
+            return 0;
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+
+    /**
+     * 资源配置
+     * @param  array $config [description]
+     * @return [type]         [description]
+     */
+    /*public function config(array $config)
+    {
+        array_merge(self::$config, $config);
+    }*/
+
+}

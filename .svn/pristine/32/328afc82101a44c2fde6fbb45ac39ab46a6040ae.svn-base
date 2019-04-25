@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php" colors="true">
+
+<filter>
+  <whitelist processUncoveredFilesFromWhitelist="true">
+    <directory suffix=".php">./src/DingTalk</directory>
+    <file>./src/DingTalk/Contacts/User.php</file>
+    <exclude>
+      <directory suffix=".php">.src/DingTalk</directory>
+      <file>./src/DingTalk/Contacts/User.php</file>
+    </exclude>
+  </whitelist>
+</filter>
+
+  <logging>
+    <log type="testdox-html" target="build/logs/clover.html"/>
+  </logging>
+
+  <testsuites>
+    <testsuite name="Unirest Test Suite">
+      <directory>./tests</directory>
+    </testsuite>
+  </testsuites>
+
+  <php>
+    <ini name="date.timezone" value="UTC"/>
+  </php>
+</phpunit>

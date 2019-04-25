@@ -1,0 +1,92 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-17
+ * Time: 上午11:48
+ */
+
+namespace swoole\wsClient;
+
+
+/**
+ * Class ExtParser
+ * 使用pecl_http扩展
+ * @package Swoole\Http
+ */
+class Parser
+{
+    const HTTP_EOF = "\r\n\r\n";
+    protected $buffer;
+    /**
+     * 头部解析
+     * @param $data
+     * @return array
+     */
+    static function parseHeader($data)
+    {
+        $header = array();
+        $header[0] = array();
+        $meta = &$header[0];
+        $parts = explode("\r\n\r\n", $data, 2);
+        // parts[0] = HTTP头;
+        // parts[1] = HTTP主体，GET请求没有body
+        $headerLines = explode("\r\n", $parts[0]);
+        // HTTP协议头,方法，路径，协议[RFC-2616 5.1]
+        list($meta['method'], $meta['uri'], $meta['protocol']) = explode(' ', $headerLines[0], 3);
+        //错误的HTTP请求
+        if (empty($meta['method']) or empty($meta['uri']) or empty($meta['protocol']))
+        {
+            return false;
+        }
+        unset($headerLines[0]);
+        //解析Header
+        $header = array_merge($header, self::parseHeaderLine($headerLines));
+        return $header;
+    }
+    /**
+     * 传入一个字符串或者数组
+     * @param $headerLines string/array`
+     * @return array
+     */
+    static function parseHeaderLine($headerLines)
+    {
+        if (is_string($headerLines))
+        {
+            $headerLines = explode("\r\n", $headerLines);
+        }
+        $header = array();
+        foreach ($headerLines as $_h)
+        {
+            $_h = trim($_h);
+            if (empty($_h)) continue;
+            $_r = explode(':', $_h, 2);
+            // 头字段名称首字母大写
+            $keys = explode('-', $_r[0]);
+            $keys = array_map("ucfirst", $keys);
+            $key = implode('-', $keys);
+            $value = isset($_r[1])?$_r[1]:'';
+            $header[trim($key)] = trim($value);
+        }
+        return $header;
+    }
+    static function parseParams($str)
+    {
+        $params = array();
+        $blocks = explode(";", $str);
+        foreach ($blocks as $b)
+        {
+            $_r = explode("=", $b, 2);
+            if(count($_r)==2)
+            {
+                list ($key, $value) = $_r;
+                $params[trim($key)] = trim($value, "\r\n \t\"");
+            }
+            else
+            {
+                $params[$_r[0]] = '';
+            }
+        }
+        return $params;
+    }
+}

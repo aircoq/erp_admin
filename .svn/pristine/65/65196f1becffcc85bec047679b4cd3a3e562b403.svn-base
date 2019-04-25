@@ -1,0 +1,104 @@
+<?php
+/**
+ * 亚马逊创建商品(跟卖) API 服务类
+ * @author wangwei 2019-3-6 18:07:45
+ */
+namespace service\amazon\Feed;
+
+use service\amazon\Feed\Base\FeedService;
+
+class ProductFeedService extends FeedService
+{
+    protected $_feedType = '_POST_PRODUCT_DATA_';
+    
+    /**
+     * 提交产品
+     * @param array $Param_ProductArray
+     * @param string | array $Param_MarketplaceIdList  商城 ID(数组或字符串)
+     * @param bool $Param_PurgeAndReplace  启用清除并替换功能
+     */
+    public function submitProductByArray(
+    		$Param_ProductArray,
+    		$Param_MarketplaceIdList=array(),
+    		$Param_PurgeAndReplace=false
+    		){
+    	$return = array(
+    			'ask' => 0,
+    			'message'=>'submitProductByArray_error',
+    			'data'=>array(
+    					'FeedSubmissionId'=>'',//上传数据提交的唯一编码
+    					'requestId'=>'',//请求id
+    					'FeedContent'=>'',//XML请求数据
+    					'FeedType'=>'',//已提交的上传数据类型,FeedType 枚举
+    					'SubmittedDate'=>'',//提交上传数据的日期和时间
+    					'FeedProcessingStatus'=>'',//所提交的上传数据的处理状态
+    			),
+    	);
+    	if(empty($Param_ProductArray)){
+    		$return['message'] = '提交的产品数据不能为空';
+    		return $return;
+    	}
+    	//整理产品数据格式
+    	$productData = $this->sortOutData($Param_ProductArray);
+    	//获取XML文本
+    	$Param_FeedContent = $this->getXmlContent($productData);
+    	$Param_FeedType = $this->_feedType;
+    	return $this->submitFeed($Param_FeedContent, $Param_FeedType,$Param_MarketplaceIdList,$Param_PurgeAndReplace);
+    }
+    
+    /**
+     * 整理产品数据格式
+     * @param array $Param_ProductArray  提交创建产品请求数据（注意是二维数组）
+     * Example :
+     * $Param_ProductArray = array(
+     *      0=>array(
+     *                'seller_sku'=>'设置的销售SKU',
+     *                'standard_product_id_type'=>'跟卖的产品信息类型,如ASIN',
+     *                'standard_product_id_value'=>'跟卖的产品信息',
+     *                'condition_type'=>'物品状况类型',
+     *                'condition_note'=>'物品状况描述',
+     *          ),
+     *      1=>array(
+     *            ..........
+     *          )    
+     *     );
+     *   
+     * @return array
+     */
+    public function sortOutData($Param_ProductArray){
+        // 数组，请严格按照该格式拼装
+        $data = array();
+        $data['Header'] = array(
+            'DocumentVersion' => '1.01',
+            'MerchantIdentifier' => $this->_tokenConfig['MERCHANT_ID']
+        );
+        $data['MessageType'] = 'Product';
+        $data['PurgeAndReplace'] = 'false';//是否替换所有产品，千万注意，这里只能为fasle
+        foreach($Param_ProductArray as $k => $v){
+        	$arr = array(
+        			'Message' => array(
+        					'MessageID' => $k + 1,
+        					'OperationType' => 'Update',
+        					'Product' => array(
+        							'SKU' => $v['seller_sku'],
+        							'StandardProductID' => array(
+        									'Type'=>$v['standard_product_id_type'],
+        									'Value'=>$v['standard_product_id_value']
+        							),
+        							'Condition'=>array(
+        									'ConditionType'=>$v['condition_type'],
+        									'ConditionNote'=>$v['condition_note']
+        							),
+//         							'DescriptionData'=>array(
+//         									'Brand'=>'品牌名称',
+//         									'Description'=>'物品描述(2000字符)',
+//         									'ItemType'=>'',
+//         							)
+        					)
+        			)
+        	);
+            $data[] = $arr;
+        }
+        return $data;
+    }
+}

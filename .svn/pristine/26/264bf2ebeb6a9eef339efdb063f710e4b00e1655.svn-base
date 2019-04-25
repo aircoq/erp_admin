@@ -1,0 +1,88 @@
+<?php
+
+
+namespace service\distribution\operation;
+
+
+class Goods extends Common
+{
+    public function getCategoryTree()
+    {
+        $url = '/api/goods-classify/tree';
+        $data = $this->get($url);
+        $result = [];
+        foreach ($data as $id => $v) {
+            if ($id == 'child_ids') {
+                continue;
+            }
+            $aPath = explode(',', $v['path']);
+            $aName = [];
+            foreach ($aPath as $id) {
+                $name = $data[$id]['name'];
+                $aName[] = $name;
+            }
+            $v['full_name'] = implode('/', $aName);
+            $result[$id] = $v;
+        }
+        return $result;
+    }
+
+    public function saveGoodsBase($spu, $classify_names, $canUseChannel)
+    {
+        $canUseChannel = json_encode($canUseChannel);
+        $url = '/api/goods-spu/save';
+        $data = [
+            'spu' => $spu,
+            'classify_names' => $classify_names,
+            'channels' => $canUseChannel
+        ];
+        return $this->post($url, $data);
+    }
+
+    public function saveLang($spu, $detail)
+    {
+        $url = '/api/goods-spu-lang/save';
+        $data = [
+            'spu' => $spu,
+            'detail' => json_encode($detail),
+        ];
+
+        return $this->post($url, $data);
+    }
+
+    public function saveSku($spu, $aSku)
+    {
+        $url = '/api/goods-sku/save';
+        $data = [
+            'spu' => $spu,
+            'skus' => json_encode($aSku),
+        ];
+        return $this->post($url, $data);
+    }
+
+    public function getSpuAttr($spu)
+    {
+        $url = '/api/classify-attribute-spu';
+        $url .= '?spu=' . $spu;
+        return $this->uGet($url);
+    }
+
+    public function saveImg($spu, $spu_thumb, $sku_thumb, $del_images = [], $aSku)
+    {
+        $url = '/api/goods-image/save';
+        $data = [
+            'spu' => $spu,
+            'spu_thumb' => $spu_thumb,
+            'sku_thumb' => $sku_thumb,
+            'del_images' => $del_images,
+            'skus' => $aSku
+        ];
+        return $this->post($url, $data);
+    }
+
+    public function getWarehouse()
+    {
+        $url = '/api-warehouse/options';
+        return $this->get($url);
+    }
+}

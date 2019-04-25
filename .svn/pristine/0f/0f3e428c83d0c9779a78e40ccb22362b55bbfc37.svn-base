@@ -1,0 +1,25 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-24
+ * Time: 上午11:29
+ */
+
+namespace erp;
+
+
+class ErpAccessRule
+{
+    private $rules = [];
+
+    public function __construct()
+    {
+
+    }
+
+    public function addRule(AbsAccessRule $rule)
+    {
+        return $rule;
+    }
+}

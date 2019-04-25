@@ -1,0 +1,131 @@
+<?php
+// +----------------------------------------------------------------------
+// | 客服发送邮件功能控制器
+// +----------------------------------------------------------------------
+// | File  : AmazonEmail.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-18
+// +----------------------------------------------------------------------
+namespace app\customerservice\controller;
+
+
+use app\common\controller\Base;
+use think\Exception;
+use think\Request;
+use app\customerservice\service\AmazonEmail as AmazonEmailServ;
+
+/**
+ * @module 客服管理
+ * @title Amazon售后邮件
+ * @author LiuLianSen
+ * @url /amazon-emails/sent-emails
+ */
+class AmazonSentEmail extends Base
+{
+
+    /**
+     * <pre>
+     * 是否是测试发送
+     * true,将对TEST_SEND_RECEIVER设置的收件箱进行发送
+     * @var bool
+     */
+    const IS_TEST_SEND = false;
+
+    /**
+     * 测试发送时的收件箱
+     * @var  string
+     */
+    const TEST_SEND_RECEIVER = '305806568@qq.com';
+
+    protected $sendMailAttachRoot = ROOT_PATH .'public/upload/email/amazon';
+
+    /**
+     * @var AmazonEmailServ
+     */
+    protected $defServ = null;
+
+    public function __construct(Request $request = null)
+    {
+        parent::__construct($request);
+        $this->defServ = new AmazonEmailServ();
+
+    }
+
+
+    /**
+     * @title 查询Amazon发送邮件接口
+     * @url /amazon-emails/sent-emails
+     * @method get
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function index(Request $request)
+    {
+        return json($this->defServ->searchSentEmail($request->param()));
+    }
+
+    /**
+     * @title Amazon发送邮件
+     * @url /amazon-emails/sent-emails/send
+     * @method post
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function create(Request $request)
+    {
+        try {
+            $res = $this->defServ->senMail($request->param(),$this->sendMailAttachRoot);
+            if($res){
+                return json(['message'=>'发送成功']);
+            }else{
+                return json(['message'=>'发送失败', 500]);
+            }
+        } catch (Exception $e){
+            throw new Exception($e->getMessage() . $e->getFile() . $e->getLine());
+        }
+    }
+
+    /**
+     * @title 回复Amazon邮件
+     * @url /amazon-emails/reply-emails
+     * @method post
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function replyEmail(Request $request)
+    {
+        try {
+            $res = $this->defServ->replyEmail($request->param(),$this->sendMailAttachRoot);
+            if($res){
+                return json(['message'=>'回复成功']);
+            }else{
+                return json(['message'=>'回复失败', 500]);
+            }
+        } catch (Exception $e){
+            throw new Exception($e->getMessage() . $e->getFile() . $e->getLine());
+        }
+    }
+
+    /**
+     * @title Amazon失败邮件重新发送
+     * @url /amazon-emails/sent-mails/resend/:mail_id
+     * @method post
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function reSendMail(Request $request)
+    {
+        try{
+            $res = $this->defServ->reSendMail($request->param());
+            if($res){
+                return json(['message'=>'发送成功']);
+            }else{
+                return json(['message'=>'发送失败', 500]);
+            }
+        } catch (Exception $e){
+            throw new Exception($e->getMessage() . $e->getFile() . $e->getLine());
+        }
+    }
+}

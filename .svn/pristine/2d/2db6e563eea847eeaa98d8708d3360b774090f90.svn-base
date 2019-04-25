@@ -1,0 +1,77 @@
+<?php
+
+namespace service\alinew;
+
+use Exception;
+
+/**
+ * @desc 速卖通api接口
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-03-13 17:26:11
+ */
+class AliexpressApi
+{
+
+    private static $instance; //实例
+    private static $config; //配置信息
+    private static $object; //调用的对象
+
+    /**
+     * @desc 单例模式，禁止实例化
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-13 17:27:11
+     */
+
+    private function __construct($config)
+    {
+        self::$config = $config;
+    }
+
+    /**
+     * @desc 单例模式，禁止克隆
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-13 17:28:11
+     */
+    private function __clone()
+    {
+        
+    }
+
+    /**
+     * @desc 单例模式，获取实例
+     * @return object 实例化对象本身
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-13 17:30:11
+     */
+    public static function instance($config)
+    {
+        // if (!isset(self::$instance) || is_null(self::$instance)) {
+        self::$instance = new self($config);
+        // }
+        return self::$instance;
+    }
+
+    /**
+     * @desc 获取实例
+     * @param string $type 需要实例化的类
+     * @return object 实例化的类对象
+     * @throws Exception
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-13 20:15:11
+     */
+    public function loader($type)
+    {
+        $class = false !== strpos($type, '\\') ? $type : '\\service\\alinew\\operation\\' . ucwords($type);
+        //检测类是否存在
+        if (!$class || !class_exists($class)) {
+            throw new Exception("The cache $class is not find \n", 1);
+        }
+        //检测之前是否实例化过
+        // if (!isset(self::$object[$type]) || is_null(self::$object[$type])) {
+            self::$object[$type] = new $class(self::$config);
+        // }
+        //返回对象
+        return self::$object[$type];
+    }
+
+}

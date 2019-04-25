@@ -1,0 +1,36 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-21
+ * Time: 上午9:43
+ */
+
+namespace command;
+
+
+use modeldata\ModelData;
+use think\console\Command;
+use think\console\Input;
+use think\console\Output;
+
+class ModelDataClass extends Command
+{
+    /**
+     * 配置swoole 命令参数
+     * @see \think\console\Command::configure()
+     */
+    protected function configure()
+    {
+        // 指令配置
+        $this
+            ->setName('model-data-class')
+            ->setDescription('command entrance');
+    }
+
+    protected function execute(Input $input, Output $output)
+    {
+        $modelData = new ModelData();
+        $modelData->generate();
+    }
+}

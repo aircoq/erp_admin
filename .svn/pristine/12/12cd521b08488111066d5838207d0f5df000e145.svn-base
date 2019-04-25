@@ -1,0 +1,322 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-24
+ * Time: 上午11:03
+ */
+
+namespace Api\Doc;
+
+
+class ClassDoc
+{
+    const passMethods = [
+        '__construct',
+        '__init'
+    ];
+    private $class;
+    private $classDoc;
+    private $reflect;
+    private $reflectDoc;
+    private $errors = [];
+    public function __construct($class)
+    {
+        $this->class = $class;
+        $this->reflect = new \ReflectionClass($class);
+        $docClass = $this->getClassDocClass();
+        if(class_exists($docClass)){
+            $this->reflectDoc = new \ReflectionClass($docClass);
+        }
+    }
+
+    public function getActions()
+    {
+        $methods = $this->reflect->getMethods(\ReflectionMethod::IS_PUBLIC);
+        $actions = [];
+        $this->errors = [];
+        foreach ($methods as $method){
+            if($this->isPassMethod($method)){
+                continue;
+            }
+            $parser = $this->parser($method->getDocComment());
+            if(isset($parser['disabled'])){
+                continue;
+            }
+            try{
+                $actions[$method->name] = $this->getActionDoc($method->name);
+            }catch (DocException $exception){
+                $this->errors[] = unserialize($exception->getMessage());
+            }
+        }
+        return $actions;
+    }
+
+    public function getController()
+    {
+        $controller = [];
+        $controller['title'] = $this->getClassDocAttr('title');
+        $controller['module'] = $this->getClassDocAttr('module','默认模块');
+        $actions = $this->getActions();
+        $controller['actions'] = array_values($actions);
+        return $controller;
+    }
+
+    public function getClassDoc()
+    {
+        if($this->classDoc){
+            return $this->classDoc;
+        }
+        $class = $this->parser($this->reflect->getDocComment());
+        if($this->reflectDoc){
+            $docClass = $this->parser($this->reflectDoc->getDocComment());
+            if($class !== $docClass){
+                foreach ($docClass as $key => $item){
+                    $class[$key] = $item;
+                }
+            }
+        }
+        if(!isset($class['title'])){
+            throw new DocException(serialize($this->class." not define title"));
+        }
+        $this->classDoc = $class;
+        return $this->classDoc;
+    }
+
+    public function getClassDocAttr($name, $def = null)
+    {
+        $class = $this->getClassDoc();
+        return param($class, $name, $def);
+    }
+
+    public function getErrors()
+    {
+        return array_filter($this->errors, function($error){
+            !empty($error);
+        });
+    }
+
+    private function isPassMethod($method)
+    {
+        if($method instanceof \ReflectionMethod){
+            $method = $method->name;
+        }
+        return in_array($method, static::passMethods);
+    }
+
+    public function parser($docStrings)
+    {
+        $parser = new DocParser();
+        return $parser->parse($docStrings);
+    }
+
+    public function getActionDoc($actionName)
+    {
+        $doc = $this->parser($this->reflect->getMethod($actionName)->getDocComment());
+        $doc['name'] = $this->class."::".$actionName;
+        $doc['mca'] = $this->getModule()."/".$actionName;
+        $doc['method_name'] = $actionName;
+        if($this->reflectDoc){
+            $doc1 = $this->parser($this->reflectDoc->getMethod($actionName)->getDocComment());
+            if($doc !== $doc1){
+                foreach ($doc1 as $key => $item){
+                    $doc[$key] = $item;
+                }
+            }
+        }
+        $doc = $this->packBuildIn($actionName, $doc);
+        $doc = $this->catchException($actionName, $doc);
+        if(empty($doc)){
+            throw new DocException(serialize($this->class." $actionName not api config!"));
+        }
+        $this->fixAction($doc);
+        return $doc;
+    }
+
+    private function getModule()
+    {
+        preg_match("/app\\\\([\w]+)\\\\controller\\\\([\w]+)/i", $this->class, $match);
+        return "{$match[1]}/{$match[2]}";
+    }
+
+    private function isControllerClass($class)
+    {
+        return !!preg_match("/app\\\\([\w]+)\\\\controller\\\\([\w]+)/i", $class);
+    }
+
+    private function biIndex($doc)
+    {
+        if(!isset($doc['url'])){
+            $doc['url'] = "";
+        }
+        if(!isset($doc['method'])){
+            $doc['method'] = 'get';
+        }
+        if(!isset($do['title'])){
+            $classDoc = $this->getClassDoc();
+            $doc['title'] = "{$classDoc['title']}（页面）";
+        }
+        return $doc;
+    }
+
+    private function biSave($doc)
+    {
+        if(!isset($doc['url'])){
+            $doc['url'] = "";
+        }
+        if(!isset($doc['method'])){
+            $doc['method'] = 'post';
+        }
+        if(!isset($do['title'])){
+            $classDoc = $this->getClassDoc();
+            $doc['title'] = "保存{$classDoc['title']}";
+        }
+        return $doc;
+    }
+
+    private function biRead($doc)
+    {
+        if(!isset($doc['url'])){
+            $doc['url'] = ":id(\d+)";
+        }
+        if(!isset($doc['method'])){
+            $doc['method'] = 'get';
+        }
+        if(!isset($do['title'])){
+            $classDoc = $this->getClassDoc();
+            $doc['title'] = "获取{$classDoc['title']}";
+        }
+        return $doc;
+    }
+
+    private function biUpdate($doc)
+    {
+        if(!isset($doc['url'])){
+            $doc['url'] = ":id(\d+)";
+        }
+        if(!isset($doc['method'])){
+            $doc['method'] = 'put';
+        }
+        if(!isset($do['title'])){
+            $classDoc = $this->getClassDoc();
+            $doc['title'] = "编辑{$classDoc['title']}";
+        }
+        return $doc;
+    }
+
+    private function biEdit($doc)
+    {
+        if(!isset($doc['url'])){
+            $doc['url'] = ":id(\d+)/edit";
+        }
+        if(!isset($doc['method'])){
+            $doc['method'] = 'get';
+        }
+        if(!isset($do['title'])){
+            $classDoc = $this->getClassDoc();
+            $doc['title'] = "编辑{$classDoc['title']}";
+        }
+        return $doc;
+    }
+
+    private function biDelete($doc)
+    {
+        if(!isset($doc['url'])){
+            $doc['url'] = ":id(\d+)";
+        }
+        if(!isset($doc['method'])){
+            $doc['method'] = 'delete';
+        }
+        if(!isset($do['title'])){
+            $classDoc = $this->getClassDoc();
+            $doc['title'] = "删除{$classDoc['title']}";
+        }
+        return $doc;
+    }
+
+    private function biCreate($doc)
+    {
+        if(!isset($doc['url'])){
+            $doc['url'] = "create";
+        }
+        if(!isset($doc['method'])){
+            $doc['method'] = 'get';
+        }
+        if(!isset($do['title'])){
+            $classDoc = $this->getClassDoc();
+            $doc['title'] = "新添{$classDoc['title']}";
+        }
+        return $doc;
+    }
+
+    private function catchException($actionName, $doc)
+    {
+        $this->errors[$actionName] = [];
+        if(!isset($doc['url'])){
+            $this->errors[$actionName][] = "$actionName not defined url";
+        }
+
+        if(!isset($doc['title'])){
+            $this->errors[$actionName][] = "$actionName not defined title";
+        }
+
+        if(!isset($doc['method'])){
+            $this->errors[$actionName][] = "$actionName not defined method";
+        }
+        if(isset($doc['apiRelate'])){
+            foreach ($doc['apiRelate'] as $apiRelate){
+                $apiRelates = explode("&", trim($apiRelate));
+                foreach ($apiRelates as $item){
+                    $temp = explode("::",$item);
+                    if(isset($temp[1])){
+                        if(!$this->isControllerClass($temp[0])){
+                            $this->errors[$actionName][] = "{$this->class} $actionName apiRelate $item isn't controller class action";
+                        }
+                    }
+                }
+            }
+        }
+        return $doc;
+    }
+
+    private function packBuildIn($actionName, $doc)
+    {
+        $buildInFunctionName = 'bi'.firstUpper($actionName);
+        if(method_exists($this,$buildInFunctionName)){
+            return call_user_func_array([$this, $buildInFunctionName], [$doc]);
+        }else{
+            return $doc;
+        }
+    }
+
+    private function fixAction(&$doc)
+    {
+        $parentDoc = $this->getClassDoc();
+        if(!isset($doc['url'])){
+            throw new DocException(serialize($this->class." {$doc['method_name']} not define url"));
+        }
+        if(!preg_match('/^\//',$doc['url'])){
+            $parentUrl = param($parentDoc, 'url', $this->getModule());
+            $parentUrl = preg_replace('/(\/)$/', '',$parentUrl);
+            $doc['url'] = $parentUrl."/".$doc['url'];
+            $doc['url'] = preg_replace('/(\/)$/', '',$doc['url']);
+        }
+        $doc['url_params'] = [];
+        if(preg_match_all("/:([\w\d_]+)/i", $doc['url'], $match)){
+            $doc['url_params'] = $match[0];
+        }
+        if(!param($doc, 'author')){
+            $doc['author'] = param($parentDoc, 'author', "没有定义作者");
+        }
+        $doc['description'] = param($doc, 'description', '');
+    }
+
+
+
+    public function getClassDocClass()
+    {
+        preg_match("/app\\\\([\w]+)\\\\controller\\\\([\w]+)/i", $this->class, $match);
+        return 'app\\'.$match[1].'\\'.'doc'.'\\'.$match[2];
+
+    }
+}

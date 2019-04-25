@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.8213387502528875 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:270pt;background-color:white;Microsoft YaHei;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1" style="font-family:Microsoft YaHei;width:260pt;page-break-after:always">
+        <table cellpadding="0" cellspacing="0" style="width:260pt;table-layout:fixed;word-wrap:break-word;border-collapse:collapse;margin: auto 0 ">
+            <tbody>
+            <tr>
+                <td style="line-height: 9.05mm;text-align: right; font-weight: bold;border-bottom:solid 1pt #000; ">
+                    标准快递
+                </td>
+            </tr>
+            <tr >
+                <td >
+                    <table cellpadding="0" cellspacing="0" style="width:260pt;border-collapse:collapse;">
+                        <tr style="line-height: 13mm;text-align: center; border-bottom:solid 1pt #000;font-size: 30pt ">
+                            <td  colspan="3" >
+                               <?php echo isset(explode('|',$process_code)[0])?explode('|',$process_code)[0]:$process_code ?>
+                            </td>
+                        </tr>
+                        <tr style="height: 10mm;text-align: left;border-bottom:solid 1pt #000; ">
+                            <td colspan="3"  >
+                               <?php echo isset(explode('|',$process_code)[1])?explode('|',$process_code)[1]:'' ?>
+                            </td>
+                        </tr>
+                        <tr style="height:17mm; border-bottom:solid 1pt #000; ">
+                            <td  style="width: 10pt;text-align: center;border-right:solid 1pt #000;font-size: 8pt">
+                                收件
+                            </td>
+                            <td style="font-size: 8pt;">
+                                <div style="margin: 3pt 0;">
+                                    <?php echo $name ?>  <?php echo $tel ?>  <?php echo $phone ?><br>
+                                    <?php echo $province ?>. <?php echo $city ?>. <?php echo $street ?>. <?php echo $street2 ?>
+                                </div>
+
+                            </td>
+                            <td style="font-size: 8pt;width:80pt;border-left: solid 1pt #000; " rowspan="2">
+                                <div style="height:100%;width:100%;">
+                                    <div style=" text-align:center;height:5mm;width:100%;border-bottom: solid 1pt #000">服务信息</div>
+                                    <div style="height:20mm;width:100%;">体积：<br><br>
+                                        重量：<br>
+                                       <?php echo number_format($estimated_weight/1000,3)?>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr style="height:13mm; border-bottom:solid 1pt #000; ">
+                            <td  style="width: 10pt;text-align: center;border-right:solid 1pt #000;font-size: 8pt">
+                                寄件
+                            </td>
+                            <td style="">
+                                <div style="margin: 5pt 0;font-size: 8pt;">
+                                    <?php echo $sender['sender_name'] ?>  <?php echo $sender['sender_phone'] ?>  <?php echo $sender['sender_mobile'] ?><br>
+                                    <?php echo $sender['sender_state'] ?>. <?php echo $sender['sender_city'] ?>. <?php echo $sender['sender_street'] ?>. <?php echo $sender['sender_district'] ?>
+
+                                </div>
+
+                            </td>
+                        </tr>
+                        <tr style="height: 15.05mm;text-align: center; border-bottom:solid 1pt #000; ">
+                            <td colspan="3" >
+                                <div  style="margin: 5pt 0;">
+                                    <img style="width:230pt;" src="<?php echo $this->imgSrc($shipping_number);?>">
+
+                                </div>
+                                <div>
+                                   <?php echo $shipping_number ?>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr style="height: 16mm;text-align: left; border-bottom:solid 1pt #000; ">
+                            <td colspan="3" >
+                                <div style="width: 50%;float: left;border-right:solid 1pt #000;height:16mm;font-size: 6pt;">
+                                    快件送达收件人地址，经收件人或收件人
+                                    （寄件人）允许的代收人签字，视为送达
+                                    ，您的签字代表您已经验收此包裹，并已确
+                                    认商品信息无误、包装完好、没有划痕、破
+                                    损等表面质量问题。
+                                </div>
+                                <div style="width: 45%;float: left;font-size: 8pt;">
+                                    签收人:<br><br>
+                                    时间:
+                                </div>
+
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr style="border-bottom: solid 1pt #000">
+                <td style="height: 15mm;">
+                    <table cellpadding="0" cellspacing="0" style="width:260pt ;border-collapse:collapse;">
+                        <tr style="text-align: center">
+                            <td style="width: 90pt;border-right: solid 1pt #000;"></td>
+                            <td>
+                                <div  style="margin-top: 5pt">
+                                    <img style="width:150pt;" src="<?php echo $this->imgSrc($shipping_number);?>"><br>
+
+                                </div>
+                                <div style="text-align: center">
+                                    <?php echo $shipping_number ?>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td >
+                    <table cellpadding="0" cellspacing="0" style="width:260pt;border-collapse:collapse;">
+
+                        <tr style="height:15mm; border-bottom:solid 1pt #000; ">
+                            <td  style="width: 10pt;text-align: center;border-right:solid 1pt #000;font-size: 8pt">
+                                收件
+                            </td>
+                            <td style="font-size: 8pt;">
+                                <div style="margin: 4pt 0;">
+                                    <?php echo $name ?>  <?php echo $tel ?>  <?php echo $phone ?><br>
+                                    <?php echo $province ?>. <?php echo $city ?>. <?php echo $street ?>. <?php echo $street2 ?>
+                                </div>
+
+                            </td>
+                            <td style="font-size: 8pt;width:80pt;border-left: solid 1pt #000; " rowspan="2">
+
+                            </td>
+                        </tr>
+                        <tr style="height:15mm; border-bottom:solid 1pt #000; ">
+                            <td  style="width: 10pt;text-align: center;border-right:solid 1pt #000;font-size: 8pt">
+                                寄件
+                            </td>
+                            <td style="">
+                                <div style="margin: 5pt 0;font-size: 8pt;">
+                                    <?php echo $sender['sender_name'] ?>  <?php echo $sender['sender_phone'] ?>  <?php echo $sender['sender_mobile'] ?><br>
+                                    <?php echo $sender['sender_state'] ?>. <?php echo $sender['sender_city'] ?>. <?php echo $sender['sender_street'] ?>. <?php echo $sender['sender_district'] ?>
+
+                                </div>
+
+                            </td>
+                        </tr>
+                        <tr style="text-align: center; height:16mm ;font-size: 6pt">
+                            <td colspan="3" >
+                                <div style="text-align: left ;height:16mm ;width:60%;float:left;margin-left: 3pt;font-weight: bold;">
+                                    此张面单为补打请将上一张检查后作废
+                                    订单号:<?php  echo $channel_order_id?><br>
+                                    <?php echo $number ?><br>
+
+                                </div>
+                                <div style="text-align: right;font-weight: bold;margin-right: 3pt;margin-top: 20pt">
+                                    已安检<br>
+                                    已验视
+                                </div>
+
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+</div>
+
+
+
+</body>
+</html>

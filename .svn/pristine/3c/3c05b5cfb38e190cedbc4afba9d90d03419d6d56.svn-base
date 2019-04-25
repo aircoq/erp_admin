@@ -1,0 +1,495 @@
+<?php
+
+namespace service\shipping\operation;
+
+use service\shipping\operation\ShippingMethodBase;
+use think\Exception;
+use app\common\cache\Cache;
+use org\Curl;
+use app\order\service\OrderService;
+use app\warehouse\service\WarehouseGoods;
+
+/**
+ * desc:万邑链
+ * Class WinitLian
+ * @package service\shipping\operation
+ */
+class WinitLian
+{
+    private $config = [
+        'sandbox' => false,
+        'token' => '',
+        'app_key' => '',
+        'sandboxUrl' => 'http://cedpopenapi.sandbox.winit.com.cn/cedpopenapi/service',
+        'productionUrl' => 'http://openapi.winit.com.cn/cedpopenapi/service',
+    ];
+
+    private $post_data = [
+        'action' => '',
+        'app_key' => '',
+        'data' => '',
+        'format' => 'json',
+        'platform' => 'SELLERERP',
+        'sign_method' => 'md5',
+        'timestamp' => '',
+        'version' => "1.0"
+    ];
+    private $result = ['data' => [], 'error' => [], 'success' => false];
+
+    /**
+     * 获取授权信息
+     * @param int $warehouse_id
+     * @throws Exception
+     */
+    private function getToken($config)
+    {
+       /* $config=[
+            'client_secret'=>'rondaful',
+            'accessToken'=>'a1ea22ea-1c8e-427e-ad2d-f156ad4cce8a',
+        ];*/
+        if (empty($config['client_secret']) || empty($config['accessToken'])) {
+            throw new Exception('账号授权信息缺失');
+        }
+        $this->config['token'] = $config['accessToken'];
+        $this->config['app_key'] = $config['client_secret'];
+        return true;
+
+    }
+
+    /**
+     * 获取提交数据
+     * @param string $action
+     * @param string $data
+     * @return array
+     */
+    private function getPostData($action, $data)
+    {
+        $this->post_data['app_key'] = $this->config['app_key'];
+        $this->post_data['timestamp'] = date('Y-m-d H:i:s');
+        $this->post_data['action'] = $action;
+        $this->post_data['data'] = $data;
+        $this->post_data['sign'] = $this->getSign($this->post_data, $this->config['token']);
+        return $this->post_data;
+    }
+
+
+    /**
+     * 获取仓库信息
+     * @param int $warehouse_id
+     * @return array (warehouseCode, warehouseName, warehouseId, warehouseAddress)
+     */
+    public function getWarehouse(array $config)
+    {
+        try {
+            $this->getToken($config);
+            $post_data = $this->getPostData('wanyilian.platform.queryWarehouse', "{}");
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code']) {
+                $data = [];
+                foreach ($info['data'] as $key => $item) {
+                    $data[$key]['code'] = $item['warehouseCode'];
+                    $data[$key]['name'] = $item['warehouseName'];
+                }
+                $this->result['success'] = true;
+                $this->result['data'] = $data;
+            } else {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg' => $info['msg']
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取所有物流渠道
+     * @param array $config
+     * @return array
+     */
+    public function getExpress(array $config)
+    {
+        try {
+            $this->getToken($config);
+            $data['warehouseCode'] = $config['carrier_code'];
+            $post_data = $this->getPostData('wanyilian.platform.queryDeliveryWay', $data);
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code']) {
+                $data = [];
+                foreach ($info['data'] as $key => $item) {
+                    $data[$key]['code'] = $item['winitProductCode'];
+                    $data[$key]['name'] = $item['deliveryWay'];
+                }
+                $this->result['success'] = true;
+                $this->result['data'] = $data;
+            } else {
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg' => $info['msg']
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取仓库库存
+     * @param $config
+     * @param array $params
+     */
+    public function getProductInventory(array $config)
+    {
+        set_time_limit(0);
+        try {
+            $this->getToken($config);
+            $statusArr=['Y','N'];
+            $inventory=[];
+            $info=[];
+            foreach ($statusArr as $key=>$status){
+                $info = $this->getResponseData($config,$status);
+                if($key>0){
+                    break;
+                }
+                $inventory=$info;
+            }
+            $list=array_merge($info,$inventory);
+            $this->result['success'] = true;
+            $this->result['data'] =$list;
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 2,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 组装库存返回格式
+     * @param array $lists
+     * @return array
+     */
+    private function buildReturnInventory($lists)
+    {
+        $data = [];
+        if(empty($lists)){
+            return true;
+        }
+        foreach ($lists as $item) {
+            $temp['thirdparty_goods_sku'] = $item['randomSKU']??'';
+            $temp['warehouse_code'] = $item['warehouseCode']??'';
+            $temp['third_intransit_quantity'] = 0; //第三方在途数
+            $temp['third_avaliable_quantity'] = $item['supplyInventory']??""; //第三方可用（可售) //待上架不加
+            $temp['third_defects_quantity'] = 0; //第三方故障品
+            $temp['third_quantity'] = $item['supplyInventory']??""; //第三方库存(可用+待出库)
+            $data[] = $temp;
+            unset($temp);
+        }
+        return $data;
+    }
+
+    private function getSign($info, $token)
+    {
+        $str = $token;
+        foreach ($info as $key => $value) {
+            if ($key == 'sign') {
+                continue;
+            }
+            if ($key == 'data') {
+                $str .= $key . json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                continue;
+            }
+            $str .= $key . $value;
+        }
+        $str .= $token;
+        $sign = $info['sign_method']($str);
+        return strtoupper($sign);
+    }
+
+    /**
+     * 创建出库单(确认状态)
+     * createOutboundOrder
+     * @param int $order_id
+     * @return array
+     */
+    public function createOrder($config, $order)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            $this->getToken($config);
+            //组装请求数据
+            $data = $this->formatPackageInfo($order);
+            $post_data = $this->getPostData('wanyilian.distributor.order.create', $data);
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code'] && isset($info['data']['orderNums'])) {
+                $this->result['data']['number'] = $order['number'];                            // 客户订单号
+                $this->result['data']['package_code'] = $info['data']['orderNums'][0]['orderId'];                              // One World包裹处理号
+                $this->result['data']['trackingNumber'] = $info['data']['orderNums'][0]['orderNo'];                            // 跟踪号
+                $this->result['data']['has_trackingNumber'] = true;                           // 是否有跟踪号
+                $this->result['data']['confirm'] = true;                                                 // 是否交运
+                $this->result['data']['label'] = false;                              // 是否有pdf
+                $this->result['data']['label_url'] = '';                              // 是否有pdf
+                $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                $this->result['success'] = true;
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => $info['msg'] ?? '未知错误',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+        return $this->result;
+    }
+
+
+    /**
+     * 发送请求
+     *
+     * @param array $data 发送数据
+     * @return object json decode.
+     */
+    private function callOperation($data)
+    {
+        $url = $this->getUrl();
+        $post_data = json_encode($data);
+        $headers[] = 'Content-Type:application/json';
+        $headers[] = 'Content-Length:' . strlen($post_data);
+        $response = Curl::curlPost($url, $post_data, $headers);
+        $result = json_decode($response, true);
+        if (!$result) {
+            throw new Exception('系统错误!!');
+        }
+        return $result;
+    }
+
+    /**
+     * 递归获取数据
+     * @param string $func
+     * @param array $other_params
+     * @param int $page
+     * @param int $pageSize
+     * @throws Exception
+     * @return array
+     */
+    private function getResponseData($config, $status,$page = 1, $pageSize = 200)
+    {
+        $data = [
+            'SPU' => '',
+            'isHavingInventory' => $status,
+            'pageParams' => [
+                'pageNo' => $page,
+                'pageSize' => $pageSize,
+            ],
+            'warehouseCode' => $config['carrier_code'],
+        ];
+        $post_data = $this->getPostData('wanyilian.supplier.spu.querySPUList', $data);
+        $rs = $this->callOperation($post_data);
+        if (0 == $rs['code']) {
+            if (isset($rs['data']['pageParams']) && empty($rs['data']['pageParams']['totalCount'])) {
+                $response_data[] = [
+                    'thirdparty_goods_sku' => 0,
+                    'warehouse_code'=> $config['carrier_code'],
+                    'third_intransit_quantity' => 0, //第三方在途数
+                    'third_avaliable_quantity' =>0,//第三方可用（可售) //待上架不加
+                    'third_defects_quantity' => 0, //第三方故障品
+                    'third_quantity' => 0, //第三方库存(可用+待出库)
+                ];
+                return $response_data;
+            }
+            $response_data=[];
+            foreach ($rs['data']['SPUList'] as $spuList) {
+                foreach ($spuList['SKUList'] as $val) {
+                    $response_data[] = [
+                        'thirdparty_goods_sku' => $val['randomSKU']??'',
+                        'warehouse_code'=> $val['warehouseCode']??'',
+                        'third_intransit_quantity' => 0, //第三方在途数
+                        'third_avaliable_quantity' =>$val['supplyInventory']??"",//第三方可用（可售) //待上架不加
+                        'third_defects_quantity' => 0, //第三方故障品
+                       'third_quantity' => $val['supplyInventory']??"", //第三方库存(可用+待出库)
+                    ];
+                }
+                unset($spuList);
+            }
+            $total = $rs['data']['pageParams']['totalCount'];
+            $page++;
+            $num = $page * $pageSize;
+            if ($total > $num) {
+                $next = $this->getResponseData($config,$status, $page);
+                $response_data = array_merge($response_data, $next);
+            }
+            return $response_data;
+        } else {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg' => $rs['msg'] ?? '获取失败'
+            ];
+            return $this->result;
+        }
+
+    }
+
+
+    /**
+     * 组织请求url及参数
+     *
+     * @param string $path
+     * @return string $url
+     */
+    private function getUrl()
+    {
+        $url = $this->config['sandbox'] ? $this->config['sandboxUrl'] : $this->config['productionUrl'];
+        return $url;
+    }
+
+    /**
+     * 组织包裹信息
+     * @param array $order
+     * @return array order info
+     */
+    public function formatPackageInfo($order)
+    {
+        $warehouseGoods = new WarehouseGoods();
+        $items = [];
+        foreach ($order['product'] as $sku_id => $item) {
+            $qty = $item['qty'];
+            $items[] = [
+                "productCode" => $warehouseGoods->getThirdSku($order['warehouse_id'], $sku_id), //第三方sku$item['sku'];
+                "productNum" => "$qty",
+            ];
+        }
+        $data = [
+            "address1" => $order["street"],
+            "address2" => $order["street2"],
+            "city" => $order['city'],
+            "emailAddress" => $order['email'],
+            "isAuto" => "Y", //Y标记为代发货，N表示创建订单状态为草稿
+            "packageList" => [
+                [
+                    "deliveryWayCode" => $order['shipping_method_code'],
+                    "productList" => $items,
+                    "warehouseCode" => Cache::store('warehouse')->getWarehouseCodeById($order['warehouse_id']),
+
+                ]
+            ],
+            "phoneNum" => $order['phone'] . ' ' . $order['tel'],
+            "recipientName" => $order["name"],
+            "region" => $order["province"],
+            "repeatable" => "N",
+            "sellerOrderNo" => $order['number'],
+            "state" => $order['country_code'],
+            "zipCode" => $order['zip']
+        ];
+        return $data;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config, $order)
+    {
+        try {
+            $this->getToken($config);
+            $data = [
+                'orderNums' => [$order['shipping_number']],
+            ];
+            $post_data = $this->getPostData('wanyilian.distributor.order.void', $data);
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code'] && isset($info['data']) && $info['data']['failedCount'] != 1) {
+                $this->result['success'] = true;
+            } else {
+                $this->result['success'] = false;
+                $this->result['error'] = [
+                    'error_msg' => $info['data']['results'][0]['reason'] ?? '取消失败',
+                    'error_code' => 1
+                ];
+            }
+            return $this->result;
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+    }
+
+    /**
+     * @desc 包裹交运
+     * @param array $config 配置信息
+     * @param array $order 包裹信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2017-12-28 11:59:11
+     */
+    public function confirm($config, $order)
+    {
+        try {
+            $this->getToken($config);
+            $data = [
+                'orderNums' => [$order['shipping_number']],
+            ];
+            $post_data = $this->getPostData('wanyilian.distributor.order.confirm', $data);
+            $info = $this->callOperation($post_data);
+            if (0 == $info['code'] && isset($info['data']) && $info['data']['failedCount'] != 1) {
+                $this->result['success'] = true;
+                $this->result['data']['confirm'] = true;
+                $this->result['data']['trackingNumber'] = $info['data']['results'][0]['orderNum'];
+                $this->result['data']['label'] = false;
+                $this->result['data']['package_code'] = '';                              //包裹处理号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];                           // 是否有跟踪号
+                $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                $this->result['data']['warehouse_id'] = $order['warehouse_id'];
+                $this->result['success'] = true;
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => $info['data']['results'][0]['reason'] ?? '交运失败',
+                    'error_code' => 1
+                ];
+            }
+            return $this->result;
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+    }
+
+    /**
+     * 获取跟踪号
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function getTrackingNumber(array $config, array $order)
+    {
+        try {
+            $this->result['error'] = [
+                'error_msg' => '不支持获取跟踪号',
+                'error_code' => 1
+            ];
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+
+}

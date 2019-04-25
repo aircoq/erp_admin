@@ -1,0 +1,75 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wcg
+ * Date: 2018/12/24
+ * Time: 20:50
+ */
+
+namespace swoole\messageAction;
+
+
+use app\common\cache\Cache;
+use app\common\cache\driver\Queuer;
+use app\common\service\SwooleQueueJob;
+use swoole\PipeMessageAction;
+use swoole\Swoole;
+
+class KillProcess extends PipeMessageAction
+{
+    private static $waitKillProcess = [];
+    public function execute($server, $fromWorkerId = null)
+    {
+        $ms = $this->getData('ms');
+        $pid = $this->getData('pid');
+        switch ($this->getData('op')){
+            case 'wait':
+                self::$waitKillProcess[$pid] = swoole_timer_after($ms, function()use($pid){
+                    $this->killProcess($pid);
+                    $this->onKilled();
+                });
+                break;
+            case 'cancel':
+                if(isset(self::$waitKillProcess[$pid])){
+                    swoole_timer_clear(self::$waitKillProcess[$pid]);
+                    unset(self::$waitKillProcess[$pid]);
+                }
+
+                break;
+        }
+    }
+
+    public function onKilled()
+    {
+        /**
+         * @var $cache Queuer
+         */
+        $cache = Cache::store('queuer');
+        list($queuer, $params) = $this->getData('params');
+        /**
+         * @var $obj SwooleQueueJob
+         */
+        $obj = new $queuer($params);
+        $needRest = $obj->onTimeout($params);
+        echo "onKilled $queuer $params then $needRest\n";
+        if($needRest){
+            $cache->restWaitQueue($queuer, $params);
+        }else{
+            $cache->remWaitQueue($queuer, $params);
+        }
+
+    }
+
+    public function killProcess($pid)
+    {
+        \swoole_process::kill($pid, 9);
+    }
+
+    public function cancel()
+    {
+        getSwooleInstance()->sendPipeMessage(new KillProcess([
+            'op' => 'cancel',
+            'pid' =>$this->getData('pid')
+        ]));
+    }
+}

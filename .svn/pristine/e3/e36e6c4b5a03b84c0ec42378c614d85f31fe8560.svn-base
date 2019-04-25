@@ -1,0 +1,70 @@
+<?php
+
+namespace service\aliexpress\operation;
+
+use service\aliexpress\operation\Common;
+
+/**
+ * Doc: Aliexpress评价
+ * User: Tom
+ * Date: 17-3-20
+ * Time: 下午6:11
+ */
+class Evaluate extends Common
+{
+    private $baseUrl = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/';
+    
+    /**
+     * 查询待卖家评价的订单信息
+     * @param int $currentPage      当前页数
+     * @param string $pageSize      每页记录数
+     * @param string $orderIds      订单ID
+     * @return array
+     */
+    public function querySellerEvaluationOrderList($currentPage,$pageSize=20,$orderIds='')
+    {
+        $url = $this->baseUrl."api.evaluation.querySellerEvaluationOrderList/".$this->client_id;
+        $data = [      
+            'currentPage'   =>  $currentPage,
+            'pageSize'   =>  $pageSize,
+            'orderIds'       =>  $orderIds,            
+            'access_token'  =>  $this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url,$data);
+        if(isset($newResult['success'])&&$newResult['success']&&!isset($newResult['error_code'])){
+            $countPage = ceil($newResult['totalItem']/$pageSize);
+            $reponse = isset($newResult['listResult'])?$newResult['listResult']:[];
+            return ['msg'=>'','response'=>$reponse,'status'=>1,'countPage'=>$countPage];
+        }
+        return ['msg'=>$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    /**
+     * 卖家对未评价的订单进行评价
+     * @param string $orderId   订单编号
+     * @param string $feedbackContent 回评内容
+     * @param int $score 评分数
+     * @return array
+     */
+    public function saveSellerFeedback($orderId,$feedbackContent,$score)
+    {
+        return ['msg'=>'','response'=>'','status'=>1];
+        $url = $this->baseUrl."api.evaluation.saveSellerFeedback/".$this->client_id;
+        $data = [        
+            'orderId'           =>  $orderId,      
+            'score'             =>  $score,
+            'feedbackContent'   =>  $feedbackContent,
+            'access_token'      =>  $this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['success'])&&$newResult['success']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        $error_msg = isset($newResult['errorMessage'])?$newResult['errorMessage']:(isset($newResult['error_message'])?$newResult['error_message']:'未知错误');
+        return ['msg'=>$error_msg,'response'=>'','status'=>0];
+    }
+  
+}
+

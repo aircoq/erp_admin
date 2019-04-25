@@ -1,0 +1,43 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-4-19
+ * Time: 下午2:14
+ */
+namespace service\pandao\operation;
+class Account extends Common
+{
+    private $url='https://mall.my.com/oauth/v2/token';
+
+    /**
+     * 获取授权信息
+     * grant_type=password
+     * client_id={{oauth_client_id}}
+     * client_secret={{oauth_client_secret}}
+     * username={{merchant_username}}
+     * password={{merchant_password}}
+     * @param $params
+     * @return mixed
+     */
+    public function authorization($params){
+        $params['grant_type']='password';
+        $response = $this->curlPost($this->url,$params);
+        return $response;
+    }
+
+    /**
+     * 刷新token
+     * rant_type=refresh_token
+     * client_id={{oauth_client_id}}
+     * client_secret={{oauth_client_secret}}
+     * refresh_token=OWJkMjBmZjc0M2NmZjc2NmRjNjMzZGZmZTljNGViOWVjZWY4NzQ0YzYyMDc1OWE2MmRlNWIzYWUyMjM5Y2NkZA
+     * @param $params
+     * @return mixed
+     */
+    public function refreshToken($params){
+        $params['grant_type']='refresh_token';
+        $response = $this->curlPost($this->url,$params);
+        return $response;
+    }
+}

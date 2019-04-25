@@ -1,0 +1,89 @@
+<?php
+/**
+ * 亚马逊修改商品库存 API 服务类
+ * @author wangwei 2019-3-6 18:06:05
+ */
+namespace service\amazon\Feed;
+
+use service\amazon\Feed\Base\FeedService;
+
+class InventoryFeedService extends FeedService
+{
+    protected $_feedType = '_POST_INVENTORY_AVAILABILITY_DATA_';
+    
+    /**
+     * 提交库存
+     * @param array $Param_InventoryArray
+     * @param string | array $Param_MarketplaceIdList  商城 ID(数组或字符串)
+     * @param bool $Param_PurgeAndReplace  启用清除并替换功能
+     */
+    public function submitInventoryByArray(
+    		$Param_InventoryArray,
+    		$Param_MarketplaceIdList=array(),
+    		$Param_PurgeAndReplace=false
+    		){
+    	$return = array(
+    			'ask' => 0,
+    			'message'=>'submitInventoryByArray_error',
+    			'data'=>array(
+    					'FeedSubmissionId'=>'',//上传数据提交的唯一编码
+    					'requestId'=>'',//请求id
+    					'FeedContent'=>'',//XML请求数据
+    					'FeedType'=>'',//已提交的上传数据类型,FeedType 枚举
+    					'SubmittedDate'=>'',//提交上传数据的日期和时间
+    					'FeedProcessingStatus'=>'',//所提交的上传数据的处理状态
+    			),
+    	);
+    	if(empty($Param_InventoryArray)){
+    		$return['message'] = '提交的库存数据不能为空';
+    		return $return;
+    	}
+    	//整理库存数据格式
+    	$inventoryData = $this->sortOutData($Param_InventoryArray);
+    	//获取XML文本
+    	$Param_FeedContent = $this->getXmlContent($inventoryData);
+    	$Param_FeedType = $this->_feedType;
+    	return $this->submitFeed($Param_FeedContent, $Param_FeedType,$Param_MarketplaceIdList,$Param_PurgeAndReplace);
+    }
+    
+    /**
+     * 整理库存数据格式
+     * @param array $Param_InventoryArray  提交改库存请求数据（注意是二维数组）
+     * Example :
+     * $Param_InventoryArray = array(
+     *      0=>array(
+     *                'seller_sku'=>'销售SKU',
+     *                'qty'=>'数量',
+     *          ),
+     *      1=>array(
+     *            ..........
+     *          )    
+     *     );
+     *   
+     * @return array
+     */
+    public function sortOutData($Param_InventoryArray){
+        // 数组，请严格按照该格式拼装
+        $data = array();
+        $data['Header'] = array(
+            'DocumentVersion' => '1.01',
+            'MerchantIdentifier' => $this->_tokenConfig['MERCHANT_ID']
+        );
+        $data['MessageType'] = 'Inventory';
+        foreach($Param_InventoryArray as $k => $v){
+        	$arr = array(
+        			'Message' => array(
+        					'MessageID' => $k + 1,
+        					'OperationType' => 'Update',
+        					'Inventory' => array(
+//         							'SwitchFulfillmentTo' => 'MFN',
+        							'SKU' => $v['seller_sku'],
+        							'Quantity' => $v['qty']
+        					)
+        			)
+        	);
+            $data[] = $arr;
+        }
+        return $data;
+    }
+}

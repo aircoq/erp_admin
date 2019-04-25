@@ -1,0 +1,703 @@
+<?php
+namespace service\ebay;
+
+use app\customerservice\service\EbayMessageHelp;
+use think\Exception;
+use think\Loader;
+use app\common\cache\Cache;
+use app\common\model\ebay\EbayMessage as EbayMessageModel;
+
+
+/**
+ * 站内信API
+ * 
+ * @author tanbin
+ *        
+ */
+class EbayMessageApi extends EbayBaseApi
+{
+
+    protected $config;
+
+    /**
+     * 初始化
+     * 
+     * @param array $config            
+     */
+    public function __construct($config = [])
+    {
+        parent::__construct($config, 1);
+    }
+
+    /**
+     * 下载MyMessage消息
+     * @throws Exception SDK
+     * @return NULL[]
+     */
+    public function getMessage($accountId, $accountName, $createTimeFrom, $createTimeTo, $folder = 0)
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetMyMessagesRequestType');
+        $getmessagerequest = new \GetMyMessagesRequestType();
+
+        $total = 0;
+        $pagination = new \PaginationType();
+        $pageNum = 1;
+        $perPage = 100;
+        $totalPage = 1; // 总页数 默认为1
+        do {
+            $pagination->setPageNumber($pageNum);
+            $pagination->setEntriesPerPage($perPage);
+            $getmessagerequest->setPagination($pagination);
+
+            $getmessagerequest->setWarningLevel("High");
+            $getmessagerequest->addDetailLevel("ReturnHeaders"); // ReturnSummary 、ReturnHeaders
+            $getmessagerequest->addDetailLevel("ReturnSummary");
+            $getmessagerequest->setStartTime(gmdate("Y-m-d\TH:i:s.000\Z", $createTimeFrom));
+            $getmessagerequest->setEndTime(gmdate("Y-m-d\TH:i:s.000\Z", $createTimeTo));
+            if ($folder == 1) {
+                $getmessagerequest->setFolderID(1);
+            }
+            //echo '页码：'. $pageNum. "\r\n";
+            for ($i = 0; $i < 3; $i++) {
+                $response = $this->_proxy->GetMyMessages($getmessagerequest);
+                $objArray = $this->xmlToArraySDK($response);
+                if (isset($objArray['Ack'])) {
+                    break;
+                }
+            }
+            //echo '页码：'. $pageNum. "下载完成开始匹配数据\r\n";
+
+            if (!isset($objArray['Ack'])) {
+                throw new Exception('EbayMessage抓取中未获取Ack状态参数，响应数据为：' . json_encode($response, JSON_UNESCAPED_UNICODE));
+            }
+
+            if ($objArray['Ack'] == 'Failure') {
+                throw new Exception('EbayMessage抓取中Ack状态参数值：Failure，响应数据为：' . json_encode($response, JSON_UNESCAPED_UNICODE));
+            }
+
+            //给定的文件夹中的条数；
+            if (isset($objArray['Summary']['FolderSummary'][$folder]['TotalMessageCount'])) {
+                $totalMessage = $objArray['Summary']['FolderSummary'][$folder]['TotalMessageCount'];
+                $totalPage = ceil($totalMessage / $perPage); // 总共页数
+            }
+
+            // 设置返回数据数量
+            $messageLists = [];
+            if (isset($objArray['Messages']['Message'])) {
+                $messageLists = $objArray['Messages']['Message'];
+            }
+
+            if (count($messageLists) == 0) {
+                break;
+            }
+
+            // 一维数组需要转
+            $result = isset($messageLists['Sender']) ? [$messageLists] : $messageLists;
+
+            $total += $this->handelMyMessage($result, $accountId, $accountName, $folder);
+            //echo '页码：'. $pageNum. "保存完成----------------\r\n";
+
+            $pageNum += 1;
+        } while ($pageNum <= $totalPage);
+
+        return $total;
+    }
+
+
+    public function handelMyMessage($res, $accountId, $accountName, $folder) {
+        $ebayMessageModel = new EbayMessageModel();
+        $serv = new EbayMessageHelp();
+
+        // 下载本次数据详细信息
+        $detaillist = $this->getMessageDetailList($res);
+
+        $total = 0;
+        $time = time();
+        $datas = [];
+        foreach ($res as $key => $item) {
+            $message_id = $item['ExternalMessageID'] ?? $item['MessageID'];
+            $SendToName = $item['SendToName'] ?? $item['RecipientUserID'];
+
+            if ($item['Sender'] == 'eBay' || $item['Sender'] == 'csfeedback@ebay.com') {
+                $message_type = 2; // ebay平台 发送
+            } elseif ($item['Sender'] == $accountName) {
+                $message_type = 3; // 卖家 发送
+            } else {
+                $message_type = 1; // 买家 发送
+            }
+
+            //分成两部分判断，如果是发件箱，先找本地有相配的没有，没有再新增；
+            $cache_msg = [];
+            if (empty($cache_msg)) {
+                $cache_msg = $ebayMessageModel->field('id,message_id,group_id,replied,status,local_order_id,transaction_id')->where([
+                    'message_id' => $message_id
+                ])->find();
+            }
+            if ($message_type == 3 && empty($cache_msg) && !empty($item['ItemID'])) {
+                $where['sender'] = $item['Sender'];
+                $where['send_to_name'] = $SendToName;
+
+                $where['send_status'] = 1;
+                $where['item_id'] = $item['ItemID'];
+
+                $tmp_time = strtotime($item['ReceiveDate']);
+                $where['send_time'] = ['BETWEEN', [$tmp_time - 10, $tmp_time]];
+
+                $cache_msg = $ebayMessageModel->field('id,message_id,group_id,replied,status,local_order_id,transaction_id')->where($where)->find();
+            }
+
+            $data = [];
+            $detaliData = [];
+
+            // 信息
+            $data['id'] = $cache_msg ? $cache_msg['id'] : 0;
+            $data['group_id'] = $cache_msg ? $cache_msg['group_id'] : 0;
+            $data['message_id'] = $message_id;
+            $data['send_time'] = strtotime($item['ReceiveDate']);
+            $data['expiration_time'] = strtotime($item['ExpirationDate']);
+
+            //回复状态；
+            $data['replied'] = $data['status'] = 1;
+            if ($item['Replied'] == 'false' || $item['Replied'] === false) {
+                $data['replied'] = $data['status'] = 0;
+            }
+
+            //回复状态,如果已存在，且是被忽略的，则标记为已读；
+            if (!empty($cache_msg['status']) && $cache_msg['status'] == 2) {
+                $data['replied'] = 1;
+                $data['status'] = 2;
+            }
+
+            //标记已读；
+            $data['read_status'] = 1;
+            if ($data['replied'] == 0 && ($item['Read'] == 'false' || $item['Read'] === false)) {
+                $data['read_status'] = 0;
+            }
+
+            $data['sender'] = $item['Sender'];
+            $data['send_to_name'] = $SendToName;
+            $data['item_id'] = $item['ItemID'] ?? '';
+            $data['message_type'] = $message_type;
+
+            //交易ID
+            if (!empty($cache_msg['transaction_id'])) {
+                $data['transaction_id'] = $cache_msg['transaction_id'];
+            } else {
+                $data['transaction_id'] = $serv->extractTransactionId($detaillist[$item['MessageID']]['Text']);
+            }
+
+            //本地订单ID；
+            if (!empty($cache_msg['local_order_id'])) {
+                $data['local_order_id'] = $cache_msg['local_order_id'];
+            } else {
+                $data['local_order_id'] = $serv->getSystemOrder($data['item_id'], $data['transaction_id'], $accountId);
+            }
+
+            //不存在的
+            if (empty($cache_msg['id']) && $message_type != 2) {
+                //信息内容
+                $text = $serv->ExtractHtml($detaillist[$item['MessageID']]['Text']);
+                if (!empty($text)) {
+                    $data['message_text'] = $text;
+                }
+            }
+
+            $data['update_time'] = time();
+            if (!$data['id']) {
+                $data['external_message_id'] = $item['MessageID'];
+                $data['account_id'] = $accountId;
+                $data['subject'] = $item['Subject'];
+                $data['item_title'] = $item['ItemTitle'] ?? '';
+                //设置高优先级
+                if(param($item, 'HighPriority')){
+                     $data['level'] = 1;
+                 }
+                $data['created_time'] = $time;
+            }
+            
+            // 详细
+            $detaliData['message_id'] = $message_id;
+            if (!empty($data['message_text'])) {
+                $detaliData['message_document'] = $data['message_text'];
+            }
+            $detaliData['message_html'] = $detaillist[$item['MessageID']]['Text'];
+            $detaliData['check_transaction'] = $detaillist[$item['MessageID']]['CheckTrans'] ?? 0;
+            $detaliData['created_time'] = $time;
+            // 图片信息
+            $detaliData['media_info'] = '';
+            if (isset($item['MessageMedia'])) {
+                $detaliData['media_info'] = json_encode($item['MessageMedia']);
+            }
+
+            $data['media_info'] = $detaliData['media_info'];
+            $lists['data'] = $data;
+            $lists['detaliData'] = $detaliData;
+
+            // 分组
+            $groupData = [];
+            if ($message_type == 1) {
+                // 买家发送才需要统计分组
+                $groupData['account_id'] = $accountId;
+                $groupData['msg_count'] = 1;
+                $groupData['created_time'] = $time;
+                $groupData['update_time'] = $time;
+                $groupData['create_id'] = 0;
+                $groupData['sender_user'] = $data['sender'];
+                $groupData['receive_user'] = $data['send_to_name'];
+                $groupData['untreated_count'] = $data['replied'] ? 0 : 1;
+                $groupData['first_message_id'] = $groupData['last_message_id'] = $data['message_id'];
+                $groupData['item_id'] = $data['item_id'];
+                $groupData['first_receive_time'] = $data['send_time'];
+                $groupData['last_receive_time'] = $data['send_time'];
+                $groupData['last_transaction_id'] = $data['transaction_id'];
+                $groupData['local_order_id'] = $data['local_order_id'];
+
+                $groupData['status'] = $data['replied'];
+                $lists['groupData'] = $groupData;
+            }
+            $lists['downType'] = 'get_msg'; // 下载类型
+            $datas[] = $lists;
+            $total++;
+        }
+
+        if ($folder == 0) {
+            $ebayMessageModel->addAll($datas);
+        } else {
+            $ebayMessageModel->addAllOutbox($datas);
+        }
+        unset($res, $datas, $detaillist);
+
+        return $total;
+    }
+
+
+    /**
+     * 取出ebay详细信息 ：最多 一次 10 条
+     * 
+     * @return array Array(
+     *         [86356196592] => Array(
+     *         [Text] => test
+     *         [TransactionId] => 1959510719016
+     *         )
+     *         [86356196592] => Array(
+     *         [Text] => test
+     *         [TransactionId] => 1959510719016
+     *         ))
+     */
+    function getMessageDetailList($data)
+    {
+        $totalNum = count($data);
+        $forNum = ceil($totalNum / 10);
+        
+        $detaillist = array();
+        // 每次处理 10 条
+        for ($i = 0; $i < $forNum; $i ++) {
+            $message_arr = array_slice($data, $i * 10, 10);
+
+            $res = $this->getMessageDetailSdk(array_column($message_arr, 'MessageID'));
+            if ($res != '') {
+                $detaillist[] = $this->handelMessageDetail($res);
+            }
+        }
+        
+        // 合并数组处理
+        $result = array();
+        foreach ($detaillist as $list) {
+            foreach ($list as $mesId => $vo) {
+                $result[$mesId] = $vo;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * 取出ebay详细信息
+     */
+    function getMessageDetailSdk($messageids)
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetMyMessagesRequestType');
+        
+        $getmessagerequest = new \GetMyMessagesRequestType();
+        $getmessagerequest->setWarningLevel("High");
+        $getmessagerequest->addDetailLevel("ReturnMessages");
+        
+        $messageIDArrayType = new \MyMessagesMessageIDArrayType();
+        foreach ($messageids as $key=>$mesId) {
+            $messageIDArrayType->setMessageID($mesId, $key);
+        }
+        
+        $getmessagerequest->setMessageIDs($messageIDArrayType);
+        $response = $this->_proxy->GetMyMessages($getmessagerequest);
+        $result = $this->xmlToArraySDK($response);
+
+        if (!isset($result['Ack'])) {
+            throw new Exception('EbayMessage抓取中未获取Ack状态参数，响应数据为：'. json_encode($response, JSON_UNESCAPED_UNICODE));
+        }
+
+        return $result;
+    }
+
+    /**
+     * 下载消息
+     * 
+     * @throws Exception SDK
+     * @return NULL[]
+     */
+    public function getMemberMessage($createTimeFrom, $createTimeTo)
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetMemberMessagesRequestType');
+        
+        $request = new \GetMemberMessagesRequestType();
+        $pagination = new \PaginationType();
+        $pageNum = 1;
+
+        // 默认初始值
+        $response_data = [];
+        
+        do {
+            
+            $request->setWarningLevel("High");
+            $request->setStartCreationTime(gmdate("Y-m-d\TH:i:s.000\Z", $createTimeFrom));
+            $request->setEndCreationTime(gmdate("Y-m-d\TH:i:s.000\Z", $createTimeTo));
+            $request->setMailMessageType('All');
+
+            $pagination->setEntriesPerPage(100);
+            $pagination->setPageNumber($pageNum);
+            $request->setPagination($pagination);
+
+            //多试几次；
+            for ($i = 0; $i < 3; $i++) {
+                $response = $this->_proxy->GetMemberMessages($request);
+                $resultArr = $this->xmlToArraySDK($response);
+                if (isset($resultArr['Ack'])) {
+                    break;
+                }
+            }
+
+            if (!isset($resultArr['Ack'])) {
+                throw new Exception('EbayMessage抓取中未获取Ack状态参数，响应数据为：'. json_encode($response, JSON_UNESCAPED_UNICODE));
+            }
+
+            if ($resultArr['Ack'] == 'Failure') {
+                throw new Exception('EbayMessage抓取中Ack状态参数值：Failure，响应数据为：'. json_encode($response, JSON_UNESCAPED_UNICODE));
+            }
+
+            // 设置返回数据数量
+            $count_arr = 0;
+            if (param($resultArr, 'MemberMessage')) {
+                $count_arr = count($resultArr['MemberMessage']);
+            }
+            
+            $result = [];
+            if (isset($resultArr['MemberMessage']['MemberMessageExchange'])) {
+                if (isset($resultArr['MemberMessage']['MemberMessageExchange']['Question'])) {
+                    $result[] = $resultArr['MemberMessage']['MemberMessageExchange']; // 处理一维数组
+                } else {
+                    $result = $resultArr['MemberMessage']['MemberMessageExchange'];
+                }
+            }
+
+            $response_data = array_merge($response_data, $result);
+            $pageNum += 1;
+        } while ($count_arr > 0 && ($resultArr['HasMoreItems'] == 'true'));
+
+        return $response_data;
+    }
+
+    /**
+     * 回复消息
+     * 
+     * @param
+     *            $itemId,$body,$recipientID,$parentMessageID
+     * @throws Exception SDK
+     * @return NULL[]
+     */
+    public function replayMessage($message = array())
+    {
+        if ($this->_modeStatus == 1) {
+            $result['status'] = 1;
+            $result['message'] = '';
+            $result['Timestamp'] = time();
+            return $result;
+        }
+        
+        set_time_limit(0);
+        try {
+            Loader::import('trading.AddMemberMessageRTQRequestType');
+
+            $request = new \AddMemberMessageRTQRequestType();
+
+            $request->setWarningLevel("High");
+
+            $memberMessageType = new \MemberMessageType();
+            $memberMessageType->setDisplayToPublic(true);
+
+            $request->setItemID($message['itemId']);
+            $memberMessageType = new \MemberMessageType();
+            $memberMessageType->setBody($message['bodyText']);
+            $memberMessageType->setRecipientID($message['recipientID']);
+            $memberMessageType->setParentMessageID($message['parentMessageID']);
+            $memberMessageType->setEmailCopyToSender(true); // 发送邮件
+
+            if(isset($message['correlationID']) && $message['correlationID'] > 0){
+                $memberMessageType->setMessageID($message['correlationID']);
+            }
+
+            // 回复图片
+            if (isset($message['mediaName']) && isset($message['mediaUrl']) && ! empty($message['mediaName']) && ! empty($message['mediaUrl'])) {
+                $messageMedia = new \MessageMediaType();
+                $messageMedia->setMediaName($message['mediaName']);
+                $messageMedia->setMediaURL($message['mediaUrl']); // 为ebay服务器文件url
+                $memberMessageType->setMessageMedia($messageMedia);
+            }
+            $request->setMemberMessage($memberMessageType);
+
+            $response = [];
+            $response = $this->_proxy->AddMemberMessageRTQ($request);
+            $resultArr = $this->xmlToArraySDK($response);
+
+            if (isset($resultArr['Ack'])) {
+                if ($resultArr['Ack'] == 'Success') {
+                    $result['status'] = 1;
+                    $result['message'] = '发送成功';
+                    $result['Timestamp'] = param($resultArr, 'Timestamp');
+                } else if (!empty($resultArr['Errors'])) {
+                    $error = $resultArr['Errors']['LongMessage'] ??
+                        $resultArr['Errors']['ShortMessage'] ??
+                        json_encode($resultArr['Errors'], JSON_UNESCAPED_UNICODE);
+                    $result['status'] = 0;
+                    $result['message'] = $error;
+                }
+            } else {
+                $result['status'] = 0;
+                $result['message'] = $this->getfaultstring($response);
+            }
+        } catch (Exception $e) {
+            if (!empty($response)) {
+                $err['response'] = $response;
+            }
+            $err['msg'] = $e->getMessage();
+            $result['status'] = 0;
+            $result['message'] = json_encode($err);
+        }
+
+        return $result;
+    }
+
+    /**
+     * 发送站内信接口
+     * 
+     * @param array $data
+     *            发送信息
+     */
+    public function sendMessage($data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+        
+        set_time_limit(0);
+        //返回的数据；
+        $result = [
+            'status' => 0,
+            'message' => '发送失败'
+        ];
+        try {
+            Loader::import('trading.AddMemberMessageAAQToPartnerRequestType');
+            $request = new \AddMemberMessageAAQToPartnerRequestType();
+
+            $request->setWarningLevel("High");
+
+            $memberRequest = new \MemberMessageType();
+            $memberRequest->setEmailCopyToSender(true);
+            $memberRequest->setSubject($data['subject']);
+            $memberRequest->setBody($data['text']);
+            $memberRequest->setQuestionType($data['question_type']);
+            $memberRequest->setRecipientID($data['recipient_id']);
+
+            // 回复图片
+            if (isset($data['mediaName']) && isset($data['mediaUrl']) && ! empty($data['mediaName']) && ! empty($data['mediaUrl'])) {
+                $messageMedia = new \MessageMediaType();
+                $messageMedia->setMediaName($data['mediaName']);
+                $messageMedia->setMediaURL($data['mediaUrl']); // 为ebay服务器文件url
+                $memberRequest->setMessageMedia($messageMedia);
+            }
+
+            $request->setItemID($data['item_id']);
+            $request->setMemberMessage($memberRequest);
+
+            $datas = [];
+            $response = $this->_proxy->AddMemberMessageAAQToPartner($request);
+            $resultArr = $this->xmlToArraySDK($response);
+
+            if (isset($resultArr['Ack'])) {
+                if ($resultArr['Ack'] == 'Success') {
+                    $result['status'] = 1;
+                    $result['message'] = '发送成功';
+                } else if (!empty($resultArr['Errors'])) {
+                    $error = $resultArr['Errors']['LongMessage'] ??
+                        $resultArr['Errors']['ShortMessage'] ??
+                        json_encode($resultArr['Errors'], JSON_UNESCAPED_UNICODE);
+                    $result['status'] = 0;
+                    $result['message'] = $error;
+                }
+            } else {
+                $result['status'] = 0;
+                $result['message'] = $this->getfaultstring($response);
+            }
+
+        } catch (Exception $e) {
+            if (!empty($response)) {
+                $err['response'] = $response;
+            }
+            $err['msg'] = $e->getMessage();
+            $result['status'] = 0;
+            $result['message'] = json_encode($err);
+        }
+
+        return $result;
+    }
+
+
+    /**
+     * 拿取faultstring
+     * @param $xml
+     */
+    public function getfaultstring($xml)
+    {
+        if (strpos($xml, '<faultstring>') === false) {
+            return '';
+        }
+        preg_match('@<faultstring>(.*)</faultstring>@', $xml, $data);
+        return $data[1] ?? '';
+
+    }
+
+    /**
+     * 上传图片到ebay站点服务器
+     * 
+     * @param string $file
+     *            图片url
+     * @param string $fileName
+     *            图片名称
+     * @param string $picType
+     *            图片类型 [ 图片链接 - url 、 Base64Binary - binary]
+     */
+    public function uploadSitePic($file = '', $fileName = '', $picType = '')
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+        
+        set_time_limit(0);
+        Loader::import('trading.UploadSiteHostedPicturesRequestType');
+        
+        $request = new \UploadSiteHostedPicturesRequestType();
+        $request->setWarningLevel("High");
+        
+        // ******base64二进制测试*********
+        /*
+         * $file_path = 'http://www.XXX.com/images/201705/thumb_img/138_thumb_G_1495961409509.png';
+         * $file = file_get_contents($file_path);
+         * $file = base64_encode($file);
+         */
+        // ******base64二进制测试*********
+        
+        // ******图片url测试*********
+        /*
+         * $picType = 'url';
+         * $file = 'http://www.elangsheng.com/images/201705/thumb_img/140_thumb_G_1495902339928.png';
+         * $fileName = 'testpic';
+         */
+        // ******图片url测试*********
+        
+        if ($picType == 'url') {
+            $request->setExternalPictureURL($file); // 使用外部链接
+        } elseif ($picType == 'binary') {
+            $request->setPictureData($file); // Base64Binary
+        }
+        $request->setPictureName($fileName);
+
+        $response = $this->_proxy->UploadSiteHostedPictures($request);
+        $result = $this->xmlToArrayElement(simplexml_load_string($response, 'SimpleXMLElement', LIBXML_NOCDATA));
+
+        // ***********s 写入缓存日志********************
+        //$logs = [
+        //    'time' => date('Y-m-d H:i:s'),
+        //    'data' => [
+        //        'file' => $file,
+        //        'fileName' => $fileName,
+        //        'picType' => $picType
+        //    ],
+        //    'response' => $response
+        //];
+        //$cache_key = time();
+        //Cache::store('EbayMessage')->addUploadPicLogs($cache_key, $logs);
+        // ***********e 写入缓存日志********************
+        
+        if (isset($result['SiteHostedPictureDetails']['FullURL'])) {
+            $result['Timestamp'] = $result['Timestamp'];
+            $result['FullURL'] = $result['SiteHostedPictureDetails']['FullURL'];
+            return $result;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 删除站内信 - 暂时不用
+     */
+    public function deleteMessage($message_id)
+    {
+        return false;
+        set_time_limit(0);
+        Loader::import('trading.DeleteMyMessagesRequestType');
+        
+        $getmessagerequest = new \DeleteMyMessagesRequestType();
+        
+        $getmessagerequest->setWarningLevel("High");
+        $messageType = new \MyMessagesMessageIDArrayType();
+        $messageType->setMessageID($message_id);
+        $getmessagerequest->setMessageIDs($messageType);
+        
+        $response = $this->_proxy->DeleteMyMessages($getmessagerequest);
+        $result = $this->xmlToArraySDK($response);
+        print_r($result);
+        exit();
+    }
+
+    /*
+     * 处理message详情 ,处理html中标签，提出交易编号
+     */
+    private function handelMessageDetail($data)
+    {
+        $newdata = array();
+        if ($data['Ack'] == 'Success') {
+            
+            if (isset($data['Messages']['Message']['Text'])) {
+                $messageList[] = $data['Messages']['Message'];
+            } else {
+                $messageList = $data['Messages']['Message'];
+            }
+            
+            foreach ($messageList as $key => $message) {
+                $body_html = $message['Text'];
+                if (isset($message['Text'])) {
+                    $body_html = str_replace('<![CDATA[', " ", $body_html);
+                    $body_html = substr($body_html, 0, strlen($body_html) - 3);
+                }
+                
+                $newdata[$message['MessageID']]['Text'] = $body_html;
+                $newdata[$message['MessageID']]['TransactionId'] = '';
+                if ($body_html) {
+                    $newdata[$message['MessageID']]['CheckTrans'] = 1; //设置需要匹配交易号
+                }
+    	    }
+	    }
+	    unset($message);
+	    return $newdata;
+	}
+}

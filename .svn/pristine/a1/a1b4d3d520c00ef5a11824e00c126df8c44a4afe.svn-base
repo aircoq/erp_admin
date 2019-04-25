@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <?php foreach($list as $k=>$v);?>
+            <tr style="width:270pt;height:270pt;border:1pt solid #000;font-weight:bold;">
+            <td style="font-size:8pt;text-align:center;">
+                <span style="float:left;padding-left:70pt;"><?php echo $number?></span><br>
+                <br>
+                <br>
+                <span style="padding-left:10pt;"><img width="50%" height="50pt" src="<?php echo $this->imgSrc($shipping_number,'self');?>"></span><br>
+                <span><?php echo $shipping_number?></span>
+                <br>
+                <br>
+                <span style="float:left;padding-left:50pt;"  > Sku:<?php echo $v['sku'] ?></span>
+                <span style="float:right;padding-right:20pt;"  > 日本纯电-E电宝</span>
+
+            </td>
+            </tr>
+
+
+            </tbody>
+        </table>
+    </div>
+    <div style="margin-top:1pt;width:270pt;">
+
+    </div>
+</div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+
+
+        </table>
+    </div>
+</div>
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

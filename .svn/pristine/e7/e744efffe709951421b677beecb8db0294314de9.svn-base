@@ -1,0 +1,139 @@
+<?php
+namespace service\funmart\Product;
+
+use service\funmart\FunmartException;
+use service\funmart\RequestService;
+
+/**
+ * Class Common
+ * Created by linpeng
+ * createTime: time 2019/3/4 17:04
+ * @package service\funmart\Order
+ */
+class ProductService extends RequestService {
+
+
+    /***
+     * 获取商品选项接口
+     * @example
+     * $params=array(
+     * 			'token'=>'', //必需   商户中文名称
+     * 			'appkey'=>'', //必需   商户ID
+     * );
+     * @param $params
+     * @return array
+     */
+    public function GetSimpleOptions($params)
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>[],
+            'org_data'=>'',
+        ];
+
+        /**
+         * 1、设置请求参数(时间格式统一)
+         */
+        $params = is_array($params) ? $params : array();
+
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('product/get-simple-options');
+
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $Orders = $re['data'];
+                $return['data'] = isNumericArray($Orders) ? $Orders : $Orders;
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (FunmartException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+
+    /***
+     * 获取商品列表接口
+     * @example
+     * $params=array(
+     * 			'token'=>'', //必需   商户中文名称
+     * 			'appkey'=>'', //必需   商户ID
+     *          'page'     //非必需
+     * );
+     * @param $params
+     * @return array
+     */
+    public function GetProductList($params)
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>[],
+            'org_data'=>'',
+        ];
+
+        /**
+         * 1、设置请求参数(时间格式统一)
+         */
+        $params = is_array($params) ? $params : array();
+
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('product/get-product-list');
+
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $Orders = $re['data'];
+                $return['data'] = isNumericArray($Orders) ? $Orders : $Orders;
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (FunmartException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+
+}

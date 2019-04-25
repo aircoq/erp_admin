@@ -1,0 +1,80 @@
+<?php
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class SaiYang extends Base
+{
+
+    protected $is_open_water = 1;
+    public function createLabel($code,$order){
+        $strFun = "label";
+        if(!in_array($strFun,get_class_methods(self::class))){
+            throw new Exception('当前物流方式，无此方法'.$strFun);
+        }
+        $tmpList =  $order['list'];
+        $sort=[];
+        if(count($tmpList)>3){
+            foreach ($tmpList as $v){
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort,SORT_DESC,SORT_NUMERIC,$tmpList);
+            $tmpList = array_slice($tmpList,0,3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+    private function getZoneCode($process_code){
+        $label_code='';
+        $content='';
+        if(false!==strpos($process_code,'ZH')){
+            $label_code='1:NY';
+        }
+        if(false!==strpos($process_code,'ZD')){
+            $label_code='1:NY';
+        }
+        if(false!==strpos($process_code,'LH')){
+            $label_code='2:LA';
+        }
+        if(false!==strpos($process_code,'LD')){
+            $label_code='2:LA';
+        }
+        if(false!==strpos($process_code,'TH')){
+            $label_code='3:TX';
+
+        }
+        if(false!==strpos($process_code,'TD')){
+            $label_code='3:TX';
+
+        }
+        if(false!==strpos($process_code,'FH')){
+            $label_code='4:FL';
+
+        }
+        if(false!==strpos($process_code,'FD')){
+            $label_code='4:FL';
+
+        }
+        if(false!==strpos($process_code,'CH')){
+            $label_code='5:CH';
+        }
+        if(false!==strpos($process_code,'CD')){
+            $label_code='5:CH';
+        }
+        if(!$label_code){
+            throw new Exception($process_code.'没有此类型单号的面单');
+        }
+        $param['label_code']=$label_code;
+        $param['content']='MADE IN CHINA';
+        return $param;
+
+    }
+    private function label($order){
+        $message=$this->getZoneCode($order['process_code']);
+        $order['content'] = $message['content'];
+        $order['label_code'] = $message['label_code'];
+        return $this->display('public',$order);
+    }
+
+
+}

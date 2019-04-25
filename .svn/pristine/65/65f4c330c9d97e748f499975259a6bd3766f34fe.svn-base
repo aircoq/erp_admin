@@ -1,0 +1,23 @@
+{
+    "name": "odan/jwt",
+    "type": "library",
+    "description": "JSON Web Token (JWT)",
+    "keywords": ["library"],
+    "homepage": "http://github.com/odan/jwt",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "odan",
+            "email": "support@molengo.com",
+            "homepage": "http://www.molengo.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Odan\\Jwt\\": "src/Jwt"
+        }
+    }
+}

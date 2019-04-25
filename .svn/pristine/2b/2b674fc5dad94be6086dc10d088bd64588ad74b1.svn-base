@@ -1,0 +1,194 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: TOM
+ * Date: 2017/8/28
+ * Time: 13:43
+ */
+
+namespace org;
+
+
+use think\Exception;
+
+class Sftp
+{
+    private $host;
+    private $user;
+    private $pass;
+    private $port;
+    private $conn = false;
+    private $error;
+    private $stream;
+    private $stream_timeout = 100;
+    private $log;
+    private $lastLog;
+
+    public function __construct ( $host, $user, $pass, $port, $serverLog='' ) {
+        $this->host = $host;
+        $this->user = $user;
+        $this->pass = $pass;
+        $this->port = $port;
+        $this->sLog = $serverLog;
+
+        if ( $this->connect ()->authenticate () ) {
+            return true;
+        }
+    }
+
+    public function isConnected () {
+        return ( boolean ) $this->conn;
+    }
+
+    public function __get ( $name ) {
+        return $this->$name;
+    }
+
+    public function connect () {
+        if ( $this->conn = ssh2_connect ( $this->host, $this->port ) ) {
+            return $this;
+        }
+        throw new Exception( "Unable to connect to {$this->host}" );
+    }
+
+    public function authenticate () {
+        if ( ssh2_auth_password ( $this->conn, $this->user, $this->pass ) ) {
+            return $this;
+        }
+        throw new Exception ( "Unable to authenticate to {$this->host}" );
+    }
+
+    public function sendFile ( $localFile, $remoteFile, $permision = 0644 ) {
+        if ( ! is_file ( $localFile ) ) throw new Exception ( "Local file {$localFile} does not exist" );
+        $sftp = ssh2_sftp ( $this->conn );
+        $sftpStream = @fopen ( 'ssh2.sftp://' . $sftp . $remoteFile, 'w' );
+        if ( ! $sftpStream ) {
+            //  if 1 method failes try the other one
+            if ( ! @ssh2_scp_send ( $this->conn, $localFile, $remoteFile, $permision ) ) {
+                throw new Exception ( "Could not open remote file: $remoteFile" );
+            }
+            else {
+                return true;
+            }
+        }
+
+        $data_to_send = @file_get_contents ( $localFile );
+
+        if ( @fwrite ( $sftpStream, $data_to_send ) === false ) {
+            throw new Exception ( "Could not send data from file: $localFile." );
+        }
+
+        fclose ( $sftpStream );
+        return true;
+    }
+
+    public function getFile ( $remoteFile, $localFile ) {
+        if ( ssh2_scp_recv ( $this->conn, $remoteFile, $localFile ) ) {
+            return true;
+        }
+        throw new Exception ( "Unable to get file to {$remoteFile}" );
+    }
+
+    public function cmd ( $cmd, $returnOutput = false ) {
+        $this->stream = ssh2_exec ( $this->conn, $cmd );
+
+        if ( FALSE === $this->stream ) {
+            throw new Exception ( "Unable to execute command '$cmd'" );
+        }
+
+        stream_set_blocking ( $this->stream, true );
+        //stream_set_timeout ( $this->stream, $this->stream_timeout );
+        $this->lastLog = stream_get_contents ( $this->stream );
+
+        fclose ( $this->stream );
+        $this->log .= $this->lastLog . "\n";
+        return ( $returnOutput ) ? $this->lastLog : $this;
+    }
+
+    public function shellCmd ( $cmds = array () ) {
+        $this->shellStream = ssh2_shell ( $this->conn );
+
+        sleep ( 1 );
+        $out = '';
+        while ( $line = fgets ( $this->shellStream ) ) {
+            $out .= $line;
+        }
+
+        foreach ( $cmds as $cmd ) {
+            $out = '';
+            fwrite ( $this->shellStream, "$cmd" . PHP_EOL );
+            sleep ( 1 );
+            while ( $line = fgets ( $this->shellStream ) ) {
+                $out .= $line;
+                sleep ( 1 );
+            }
+        }
+
+        fclose ( $this->shellStream );
+    }
+
+    public function getLastOutput () {
+        return $this->lastLog;
+    }
+
+    public function getOutput () {
+        return $this->log;
+    }
+
+    public function disconnect () {
+        // if disconnect function is available call it..
+        if ( function_exists ( 'ssh2_disconnect' ) ) {
+            ssh2_disconnect ( $this->conn );
+        }
+        else { // if no disconnect func is available, close conn, unset var
+            @fclose ( $this->conn );
+            $this->conn = false;
+        }
+        // return null always
+        return NULL;
+    }
+
+    public function fileExists ( $path ) {
+        $output = $this->cmd ( "[ -f $path ] && echo 1 || echo 0", true );
+        return ( bool ) trim ( $output );
+    }
+
+    /**
+     * getFiles
+     * @param $path
+     * @param string $ext 文件扩展名
+     * @return array
+     */
+    public function getFiles($path,$ext=[])
+    {
+        $sftp = ssh2_sftp($this->conn);
+        $dh = opendir("ssh2.sftp://{$sftp}{$path}");
+        $files = [];
+        while (($file = readdir($dh)) !== false) {
+            $file = trim($file,'.');
+            $arr_filename = explode('.',$file);
+            if($count=count($arr_filename)<=1){
+                continue;
+            }
+            if(!empty($ext)){
+                if(!in_array(end($arr_filename),$ext)){
+                    continue;
+                }
+            }
+            $files[] = [
+                'file_name'=>rtrim($file,'.'.end($arr_filename)),
+                'ext'=>end($arr_filename),
+                'file'=>$path.'/'.$file
+            ];
+        }
+        closedir($dh);
+        return $files;
+    }
+
+    public function getFileStream($file)
+    {
+        $sftp = ssh2_sftp ( $this->conn );
+        $content = file_get_contents('ssh2.sftp://' . $sftp . $file);
+        return base64_encode($content);
+    }
+}

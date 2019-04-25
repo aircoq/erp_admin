@@ -1,0 +1,279 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Reece
+ * Date: 2018/9/7
+ * Time: 09:45
+ */
+
+namespace app\api\controller;
+
+use app\common\cache\Cache;
+use Nette\Utils\JsonException;
+use think\Controller;
+use think\Db;
+use think\Exception;
+use think\Request;
+use app\api\service\YksPurchase as YksPurchaseService;
+
+/**
+ * @module 有棵树接口
+ * @title 有棵树接口
+ * Class YksPurchase
+ * @package app\api\controller
+ */
+class YksPurchase extends Controller
+{
+    private const RDFKEY = '1df05b09f3a98dc367963e893003ab8a';
+    private $method = '';
+    private $page = 1;
+    private $pageSize = 50;
+    /**
+     * @desc 获取采购单
+     */
+    private function get_purchase_order_details($params)
+    {
+        try{
+            $search = $params['search'] ?? [];
+            $where = [];
+            if(param($search, 'start_purchaseorder_date') && param($search, 'end_purchaseorder_date')){
+                $where['create_time'] = ['between', [strtotime($search['start_purchaseorder_date']), strtotime($search['end_purchaseorder_date'])]];
+            }else if(param($search, 'start_purchaseorder_date')){
+                $where['create_time'] = ['>=', strtotime($search['start_purchaseorder_date'])];
+            }else if(param($search, 'end_purchaseorder_date')){
+                $where['create_time'] = ['<=', strtotime($search['end_purchaseorder_date'])];
+            }
+            if(param($search, 'purchaseorder_id')){
+                $where['id'] = $search['purchaseorder_id'];
+            }
+            if(param($search, 'sku')){
+                $where['sku'] = $search['sku'];
+            }
+            $result = (new YksPurchaseService())->getPurchaseOrderList($where, $this->page, $this->pageSize);
+            return json_encode($result);
+        }catch (Exception $ex){
+            return $this->makeResponseData(500, '服务器内部错误');
+        }
+    }
+
+    /**
+     * @desc 获取供应商
+     */
+    private function get_purchase_supplier_info($params)
+    {
+        try{
+            $search = $params['search'] ?? [];
+            $where = [];
+            if(param($search, 'start_date') && param($search, 'end_date')){
+                $where['update_time'] = ['between', [strtotime($search['start_date']), strtotime($search['end_date'])]];
+            }else if(param($search, 'start_date')){
+                $where['update_time'] = ['>=', strtotime($search['start_date'])];
+            }else if(param($search, 'end_date')){
+                $where['update_time'] = ['<=', strtotime($search['end_date'])];
+            }
+            if(param($search, 'supplier_id')){
+                $where['id'] = $search['supplier_id'];
+            }
+            $result = (new YksPurchaseService())->getSupplierList($where, $this->page, $this->pageSize);
+            return json_encode($result);
+        }catch (Exception $ex){
+            return $this->makeResponseData(500, '服务器内部错误');
+        }
+    }
+
+    /**
+     * @desc 获取入库单
+     */
+    private function get_purchase_warehouseorders($params)
+    {
+        try {
+            $search = $params['search'] ?? [];
+            $where = [];
+            if(param($search, 'start_warehouse_date') && param($search, 'end_warehouse_date')){
+                $where['r.update_time'] = ['between', [strtotime($search['start_warehouse_date']), strtotime($search['end_warehouse_date'])]];
+            }else if(param($search, 'start_warehouse_date')){
+                $where['r.update_time'] = ['>=', strtotime($search['start_warehouse_date'])];
+            }else if(param($search, 'end_warehouse_date')){
+                $where['r.update_time'] = ['<=', strtotime($search['end_warehouse_date'])];
+            }
+            if(param($search, 'purchaseorder_id')){
+                $where['r.virtual_purchase_order_id'] = $search['purchaseorder_id'];
+            }
+            if(param($search, 'warehouseorder_id')){
+                $where['r.id'] = $search['warehouseorder_id'];
+            }
+            if(param($search, 'supplier_id')){
+                $where['o.virtual_supplier_id'] = $search['supplier_id'];
+            }
+            $result = (new YksPurchaseService())->getInStockList($where, $this->page, $this->pageSize);
+            return json_encode($result);
+        }catch (Exception $ex){
+            return $this->makeResponseData(500, '服务器内部错误');
+        }
+    }
+
+    /**
+     * @desc 获取付款单
+     */
+    private function get_purchase_payment($params)
+    {
+        try {
+            $search = $params['search'] ?? [];
+            $where = [];
+            if(param($search, 'start_date') && param($search, 'end_date')){
+                $where['create_time'] = ['between', [strtotime($search['start_date']), strtotime($search['end_date'])]];
+            }else if(param($search, 'start_date')){
+                $where['create_time'] = ['>=', strtotime($search['start_date'])];
+            }else if(param($search, 'end_date')){
+                $where['create_time'] = ['<=', strtotime($search['end_date'])];
+            }
+            if(param($search, 'purchaseorder_id')){
+                $where['virtual_purchase_order_id'] = $search['purchaseorder_id'];
+            }
+            if(param($search, 'payment_id')){
+                $where['id'] = $search['payment_id'];
+            }
+            if(param($search, 'supplier_id')){
+                $where['virtual_supplier_id'] = $search['supplier_id'];
+            }
+            $result = (new YksPurchaseService())->getPaymentList($where, $this->page, $this->pageSize);
+            return json_encode($result);
+        }catch (Exception $ex){
+            return $this->makeResponseData(500, '服务器内部错误');
+        }
+    }
+
+    /**
+     * @desc 推送付款单
+     */
+    private function purchase_payment_success($params)
+    {
+        try{
+            $data = $params['data'];
+            if(empty($data)) return $this->makeResponseData(400, '数据为空');
+            if(!param($data, 'payment_id')) return $this->makeResponseData(400, '付款单id不能为空');
+            if(!param($data, 'purchaseorder_id')) return $this->makeResponseData(400, '采购单id不能为空');
+            if(!param($data, 'apply_money')) return $this->makeResponseData(400, '申请金额不能为空');
+            if(!param($data, 'payment_money')) return $this->makeResponseData(400, '付款金额不能为空');
+            if(!param($data, 'payment_time')) return $this->makeResponseData(400, '付款时间不能为空');
+            if(!is_numeric($data['apply_money']) || $data['apply_money']<0){
+                return $this->makeResponseData(400, '申请金额格式错误');
+            }
+            if(!is_numeric($data['payment_money']) || $data['payment_money']<0){
+                return $this->makeResponseData(400, '付款金额格式错误');
+            }
+            return (new YksPurchaseService())->doPayForYks($data, 2);
+        }catch (Exception $ex){
+            return $this->makeResponseData(500, '服务器内部错误');
+        }catch (JsonException $ex){
+            return $this->makeResponseData(400, $ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 推送驳回付款单
+     */
+    private function purchase_payment_reject($params)
+    {
+        try{
+            $data = $params['data'];
+            if(empty($data)) return $this->makeResponseData(400, '数据为空');
+            if(!param($data, 'payment_id')) return $this->makeResponseData(400, '付款单id不能为空');
+            if(!param($data, 'purchaseorder_id')) return $this->makeResponseData(400, '采购单id不能为空');
+            if(!param($data, 'apply_money')) return $this->makeResponseData(400, '申请金额不能为空');
+            if(!param($data, 'warehouseorders_money')) return $this->makeResponseData(400, '入库金额不能为空');
+            if(!param($data, 'reason')) return $this->makeResponseData(400, '驳回原因不能为空');
+            if(!is_numeric($data['apply_money']) || $data['apply_money']<0){
+                return $this->makeResponseData(400, '申请金额格式错误');
+            }
+            if(!is_numeric($data['warehouseorders_money']) || $data['warehouseorders_money']<0){
+                return $this->makeResponseData(400, '入库金额格式错误');
+            }
+            return (new YksPurchaseService())->doPayForYks($data, 3);
+        }catch (Exception $ex){
+            return $this->makeResponseData(500, '服务器内部错误');
+        }catch (JsonException $ex){
+            return $this->makeResponseData(400, $ex->getMessage());
+        }
+    }
+
+    /**
+     * @title 有棵树公用api接口
+     * @method post
+     * @url api/yks/index
+     * @param Request $request
+     * @return string
+     * @author Reece
+     * @date 2018-09-11 16:18:48
+     */
+    public function index(Request $request)
+    {
+        try{
+            $ip = $request->ip();
+            $params = $request->param();
+            $key = $request->header('RDFKEY');
+            $method = $params['method'] ?? '';
+            Db::table('yks_access_log')->insert(['ip'=>$ip, 'params'=>json_encode($params), 'key'=>$key, 'method'=>$method, 'create_date'=>date('Y-m-d H:i:s', time())]);
+            $whiteIpList = [
+                '127.0.0.1',
+                '116.6.104.4',
+                '113.98.247.88',
+                '218.17.195.138',
+                gethostbyname('hznewerp.youkeshu.com')
+            ];
+            if(!in_array($ip, $whiteIpList)){
+                return 'Access forbidden!';
+            }
+            $this->method = $method;
+            $pagination = $params['pagination'] ?? [];
+            if(empty($key) || $key !== self::RDFKEY){
+                return $this->makeResponseData(400, 'RDFKEY验证失败');
+            }
+            $openApiList = [
+                'get_purchase_order_details',//获取利郎达采购单信息
+                'get_purchase_warehouseorders',//获取利郎达入库单信息
+                'get_purchase_payment',//获取利郎达付款单信息
+                'get_purchase_supplier_info',//获取利郎达供应商信息
+                'purchase_payment_success',//YKS推送付款信息
+                'purchase_payment_reject'//YKS推送驳回付款信息
+            ];
+            if(empty($method) || !in_array($method, $openApiList)) return $this->makeResponseData(400, 'method不存在');
+            isset($pagination['page']) && $this->page = abs(intval($pagination['page']));
+            isset($pagination['limit']) && $this->pageSize = abs(intval($pagination['limit']));
+            if($this->pageSize > 500){
+                return $this->makeResponseData(400, '每页数量最大500');
+            }
+            return $this->$method($params);
+        }catch (Exception $ex){
+            return $ex->getMessage();
+        }
+    }
+
+    /**
+     * @title 测试推送有棵树
+     * @method post
+     * @url api/yks/push-test123
+     * @param Request $request
+     * @author Reece
+     * @date 2018-09-12 15:43:27
+     */
+    public function pushTest(Request $request)
+    {
+        $params = $request->param();
+        Cache::handler(true)->hSet('hash:1688_msg_push_test', date('YmdHis'), json_encode($params));
+        $service = new YksPurchaseService();
+        $method = $params['method'];
+        $info = $params['info'];
+        var_export($service->$method($info));
+    }
+
+    private function makeResponseData($code, $message)
+    {
+        return json_encode([
+            'code' => $code,
+            'method' => $this->method,
+            'msg' => $message,
+            'data' => []
+        ]);
+    }
+}

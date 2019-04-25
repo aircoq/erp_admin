@@ -1,0 +1,554 @@
+<?php
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\order\task\VovaOrder;
+use think\Exception;
+use app\common\cache\Cache;
+use app\common\model\OrderDetail;
+use app\common\model\Order;
+use app\order\service\PackageService;
+use org\Curl;
+use app\carrier\queue\UploadHtmlLabelQueue;
+
+/**
+ * Class Vova
+ * @package service\shipping\operation
+ */
+class Vova
+{
+
+    private $_config = [
+        'merchant_id' => '',
+        'secret_key' => '',
+//        'url' => 'http://vovapost-api.vova.com/v1',
+        'url' => 'https://vovapost-api.vova.com.hk/v1',
+        'header' => [
+            'Content-type:application/json'
+        ]
+
+    ];
+    private $result = ['data' => [], 'error' => [], 'success' => false];
+    // 递四方代码
+    private $fourCode = ['190', '191', '210', '205', '206'];
+    // e邮宝
+    private $emsCode = ['381'];
+    // 中邮小包
+    private $chinaCode = ['379', '380'];
+    //仓库类型
+    const zhongshan = 2;
+    const jinhua = 6;
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+
+    private function formatHeader($channel_account_id, $warehouse_id = false, $shipping_method_code = false)
+    {
+        $vovaAcount = Cache::store('VovaAccount')->getAccountById($channel_account_id);
+        if (empty($vovaAcount['merchant_id']) || empty($vovaAcount['secret_key'])) {
+            throw new Exception('缺少必要授权信息');
+        }
+        $this->_config['merchant_id'] = $vovaAcount['merchant_id'];
+        if ($warehouse_id == self::jinhua && in_array($shipping_method_code, array_merge($this->emsCode, $this->chinaCode))) {
+            $this->_config['merchant_id'] = $vovaAcount['jinhua_id'];
+        }
+        $this->_config['secret_key'] = $vovaAcount['secret_key'];
+        return true;
+
+    }
+
+    public function formatPackageInfo($order)
+    {
+        $packageService = new PackageService();
+        $order_ids = $packageService->getOrderIdsByPackageId($order['package_id']);
+        $orderModel = new OrderDetail();
+        $detailList = $orderModel->field('channel_item_id,sku_id,sku,sku_quantity')->where(['order_id' => ['in', $order_ids]])->select();
+        $total_weight = 0;
+        $products = [];
+        foreach ($detailList as $item) {
+            $total_weight += isset($order['declared_info'][$item['sku_id']]['declared_weight']) ? number_format($order['declared_info'][$item['sku_id']]['declared_weight'] / 1000, 2) : '';
+            $products[] = [
+                "order_goods_sn" => $item['channel_item_id'] ?? '',
+                "goods_sku" => $item['sku'] ?? '',
+                "category_en" => $order['declared_info'][$item['sku_id']]['declared_name_en'] ?? '',
+                "category_local" => $order['declared_info'][$item['sku_id']]['declared_name_cn'] ?? '',
+                "description_en" => $order['declared_info'][$item['sku_id']]['declared_name_en'] ?? '',
+                "description_local" => $order['declared_info'][$item['sku_id']]['declared_name_cn'] ?? "",
+                "country_of_origin" => 'China',
+                "country_of_origin_code" => 'CN',
+                "declare_value" => isset($order['declared_info'][$item['sku_id']]['declared_value']) ? number_format($order['declared_info'][$item['sku_id']]['declared_value'], 1) : '',
+                "price_unit" => 'dollar',
+                "price_currency" => $order['declared_currency'],
+                "weight" => isset($order['declared_info'][$item['sku_id']]['declared_weight']) ? number_format($order['declared_info'][$item['sku_id']]['declared_weight'] / 1000, 2) : '',
+                "weight_unit" => "kg",
+                "quantity" => $item['sku_quantity'],
+                "has_battery" => false,
+                "has_metal" => false,
+                "is_flammable" => false,
+                "is_powder" => false,
+                "is_liquid" => false,
+                "hs_code" => $order['declared_info'][$item['sku_id']]['hs_code'] ?? "",
+                "length" => 0,
+                "width" => 0,
+                "height" => 0,
+                "dimension_unit" => "cm",
+                "image_url" => $order['declared_info'][$item['sku_id']]['url'] ?? "",
+                "product_url" => $order['declared_info'][$item['sku_id']]['url'] ?? ''
+            ];
+        }
+        $data = [
+            "access_token" => $this->_config['secret_key'],
+            "vova_platform_id" => $this->_config['merchant_id'],
+            "timestamp" => gmdate("Y-m-d\TH:i:s", time()),
+            "pickup_type" => 1,//integerexample: 1揽收方式(中邮小包和E邮宝,EMS,E特快必填):0: decided by carrier1: on site (上门揽收)2: wait arrival (等待送达)
+            "incoterm" => "DDU",
+            "logistics_product_id" => (int)$order['shipping_method_code'],
+            "paid_with_vova" => false,
+            'payment_account' => [
+                "payer_id" => "",
+                "payer_name" => "",
+                "payer_email" => "",
+                "payer_phone" => "",
+                "payer_mobile" => "",
+                "payer_contact_name" => ""
+            ],
+            'sender' => [
+                "company" => $order['sender']['sender_company'],
+                "phone" => $order['sender']['sender_phone'],
+                "email" => $order['sender']['sender_email'],
+                "country_code" => $order['sender']['sender_country'],
+                "zipcode" => $order['sender']['sender_zipcode'],
+                "address_local" => [
+                    "name" => $order['sender']['sender_name'],
+                    "country" => $order['sender']['sender_country'],
+                    "province" => $order['sender']['sender_state'],
+                    "city" => $order['sender']['sender_city'],
+                    "district" => $order['sender']['sender_district'],
+                    "street" => $order['sender']['sender_street'],
+                    "street_address1" => $order['sender']['sender_street'],
+                    "street_address2" => ''
+                ],
+                "address_en" => [
+                    "name" => $order['sender']['sender_name'],
+                    "country" => $order['sender']['sender_country'],
+                    "province" => $order['sender']['sender_state'],
+                    "city" => $order['sender']['sender_city'],
+                    "district" => $order['sender']['sender_district'],
+                    "street" => $order['sender']['sender_street'],
+                    "street_address1" => $order['sender']['sender_street'],
+                    "street_address2" => ''
+                ],
+            ],
+            "receiver" => [
+                "company" => $order['name'],
+                "phone" => empty($order['phone']) ? $order['tel'] : $order['phone'],
+                "email" => $order['email'],
+                "country_code" => $order['country_code'],
+                "zipcode" => $order['zip'],
+                "address" => [
+                    "name" => $order['name'],
+                    "country" => $order['country_name'],
+                    "province" => !empty($order['province']) ? $order['province'] : $order['city'],
+                    "city" => $order['city'],
+                    "district" => '',
+                    "street" => '',
+                    "street_address1" => $order['street'],
+                    "street_address2" => $order['street2']
+                ],
+            ],
+            'parcel' => [
+                "length" => 0,
+                "width" => 0,
+                "height" => 0,
+                "dimension_unit" => "cm",
+                "parcel_weight" => $total_weight,
+                "product_list" => $products
+            ],
+        ];
+        if (in_array($order['shipping_method_code'], $this->emsCode)) {
+            $data["chinapost_return_type"] = 2;//退回方式(中邮小包和E邮宝,EMS,E特快必填):1: Abandoned (丢弃)2: Returned (退回)
+            $data["chinapost_printcode"] = '01'; //	string example: 00面单尺寸(E邮宝,EMS,E特快必填):01: print label on 44 paper 00: print label on A4 size paper
+            $data["sender"]['chinapost_province_code'] = $order['sender']['sender_state']; //省份代码(E邮宝,EMS,E特快必填)
+            $data["sender"]['chinapost_city_code'] = $order['sender']['sender_city'];     //城市代码(E邮宝,EMS,E特快必填)
+            $data["sender"]['chinapost_county_code'] = $order['sender']['sender_district'];   //乡镇代码(E邮宝,EMS,E特快必填)
+            $data["chinapost_pickup"] = [
+                'company' => $order['pickup']['pickup_company'],
+                'phone' => $order['pickup']['pickup_mobile'],
+                "province_code" => $order['pickup']['pickup_state'],
+                "city_code" => $order['pickup']['pickup_city'],
+                "zipcode" => $order['pickup']['pickup_zipcode'],
+                'country_code' => $order['pickup']['pickup_country'],
+                'address' => [
+                    'name' => $order['pickup']['pickup_name'],
+                    'country' => $order['pickup']['pickup_country'],
+                    'province' => $order['pickup']['pickup_state'],
+                    'city' => $order['pickup']['pickup_city'],
+                    'street_address1' => $order['pickup']['pickup_street']
+                ],
+            ];
+        }
+        if (in_array($order['shipping_method_code'], $this->chinaCode)) {
+            $data["chinapost_return_type"] = 2;//退回方式(中邮小包和E邮宝,EMS,E特快必填):1: Abandoned (丢弃)2: Returned (退回)
+            $data["chinapost_mail_kind"] = 3;//HK-航空  SAL: SAL-航空水陆路 SLL: SLL-水陆路
+            $data["chinapost_channel"] = 'HK';//SLL
+            $data["chinapost_whcode"] = $order['warehouse_id'] == self::zhongshan ? 'Tran_Store_11127281' : ($order['warehouse_id'] == self::jinhua ? 'Tran_Store_702653' : '');
+        }
+        return $data;
+    }
+
+
+    /**
+     * 创建出库单 -- 下单
+     * createDevlieryOrder
+     * @param array $token 授权信息
+     * @param array $orders 包裹详情
+     * @return array
+     */
+    public function createOrder($config, $order, $confirm = true)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if ($this->formatHeader($order['channel_account_id'], $order['warehouse_id'], $order['shipping_method_code'])) {
+                $data = $this->formatPackageInfo($order);
+                $param = json_encode($data);
+                $response = $this->request($param);
+                $rs = json_decode($response, true);
+                //日志记录
+                $arr_log = [
+                    'url' => $this->_config['url'],
+                    'header' => '',
+                    'request' => $param,
+                    'response' => $response
+                ];
+                if (in_array($order['number'], ['154740236844', '154823055979'])) {
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log, true);
+                }
+                if ($rs && isset($rs['code']) && $rs['code'] == 20000 && isset($rs['vovapost_order_sn']) && !empty($rs['vovapost_order_sn'])) {
+                    $tracking = $this->getOrderStatus($rs['vovapost_order_sn']);
+                    $this->result['data']['number'] = $order['number'];      // 参考号
+                    $this->result['data']['package_code'] = $rs['vovapost_order_sn'];
+                    $this->result['data']['trackingNumber'] = $tracking['orders'][0]['logistics_tracking_number'] ?? '';  // 包裹号就是跟踪号
+                    $this->result['data']['has_trackingNumber'] = true;
+                    $this->result['data']['confirm'] = false;                              // 放到交运里面去获取跟踪号
+                    $this->result['data']['label'] = true;                              // 是否有pdf
+                    $this->result['data']['label_url'] = '';                              // 是否有pdf
+                    $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                    $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                    $this->result['success'] = true;
+
+                } else {
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+                    $this->result['error'] = [
+                        'error_msg' => $rs['message'] ?? '请求失败',
+                        'error_code' => 1
+                    ];
+
+                }
+            }
+
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取跟踪号
+     */
+    public function getOrderStatus($process_code)
+    {
+        $processTack = explode('-', $process_code);
+        $process_code = isset($processTack[0]) ? $processTack[0] : $process_code;
+        $tack['access_token'] = $this->_config['secret_key'];
+        $tack['vovapost_order_sn'] = [$process_code];
+        $pramTack = json_encode($tack);
+        $responseJson = Curl::curlPost($this->_config['url'] . '/order/GetOrderStatus', $pramTack, $this->_config['header']);
+        $response = json_decode($responseJson, true);
+        return $response;
+    }
+
+
+    /**
+     * 获取跟踪号
+     */
+    public function getTrackingNumber($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            if ($this->formatHeader($order['channel_account_id'])) {
+                $rs = $this->getOrderStatus($order['process_code']);
+                // 处理响应内容
+                if (isset($rs['code']) && $rs['code'] == 20000 && isset($rs['orders'][0]['logistics_tracking_number']) && !empty($rs['orders'][0]['logistics_tracking_number'])) {
+                    $this->result['data']['trackingNumber'] = in_array($order['shipping_method_code'], $this->fourCode) ? $rs['orders'][0]['logistics_service_number'] : $rs['orders'][0]['logistics_tracking_number'];  // 跟踪号
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => $rs['message'] ?? '',
+                        'error_code' => 1
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取所有物流渠道
+     * @param array $config
+     * @return array
+     */
+
+    public function getExpress($config)
+    {
+        $url = 'https://merchant-api.vova.com.hk/v1/order/ShippingCarrierList?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1MzQ3NTI1MDgsInNjb3BlIjpbImdldCIsInBvc3QiXSwidWlkIjoiMzUxNyIsInVOYW1lIjoieHVlbGkifQ.s4tlK1LtXRtBPzus1OwsCzuYVBwirkbjQ85MiR-CdYw\'';
+        $response = Curl::curlGet($url);
+        $rs = json_decode($response, true);
+        if ($rs['code'] == 20000 && is_array($rs['data'])) {
+            $result = [];
+            foreach ($rs['data'] as $value) {
+                if ($value['logistics_type'] == '线上') {
+                    $result[] = [
+                        'code' => $value['carrier_id'],
+                        'name' => $value['display_name'],
+                    ];
+                }
+
+                $this->result['success'] = true;
+                $this->result['data'] = $result;
+            }
+        } else {
+            $error = $rs = ['msg'] ?? '未知错误';
+            throw new Exception($error);
+        }
+        return $this->result;
+    }
+
+
+    /**
+     * 获取标签
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            if ($this->formatHeader($order['channel_account_id'])) {
+                if ($order['label_source_type'] == '1' && !empty($order['shipping_number']) && isset($order['package_id'])) {
+                    (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg' => '自画面单不需要api获取，自动生成静态html文件'
+                    ];
+                    $this->result['number'] = $order['number'];
+                    return $this->result;
+                }
+                $rs = $this->getOrderStatus($order['process_code']);
+                if (isset($rs['code']) && $rs['code'] == 20000 && isset($rs['orders'][0]['label_url']) && !empty($rs['orders'][0]['label_url'])) {
+                    $responseString = Curl::curlGet($rs['orders'][0]['label_url']);
+                    $service = new PackageLabelFileService();
+                    $label_url = $service->uploadLabelFile($order['number'], base64_encode($responseString), 'pdf');
+                    $this->result['data']['src'] = $label_url;
+                    $this->result['data']['type'] = 'pdf';
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg' => $rs['message']
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 提交交运
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function confirm(array $config, array $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            if ($this->formatHeader($order['channel_account_id'])) {
+                $rs = $this->getOrderStatus($order['process_code']);
+                if (isset($rs['code']) && $rs['code'] == 20000 && isset($rs['orders'][0]['logistics_tracking_number']) && !empty($rs['orders'][0]['logistics_tracking_number'])) {
+                    $this->result['number'] = $order['number'];
+                    $this->result['success'] = true;
+                    $this->result['data']['confirm'] = true;
+                    $this->result['data']['trackingNumber'] = in_array($order['shipping_method_code'], $this->fourCode) ? $rs['orders'][0]['logistics_service_number'] : $rs['orders'][0]['logistics_tracking_number'];  // 跟踪号
+                    $this->result['data']['label'] = false;
+                    $this->result['data']['package_code'] = in_array($order['shipping_method_code'], $this->fourCode) ? $order['process_code'] . '-' . $rs['orders'][0]['logistics_tracking_number'] : $order['process_code']; //包裹处理号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];  // 是否有跟踪号
+                    $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                    $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                    $this->result['data']['warehouse_id'] = $order['warehouse_id'];
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => isset($rs['orders'][0]['state_value']) ? $rs['orders'][0]['state_value'] : ($rs['message'] ? '申请单号失败' : '申请单号失败'),
+                        'error_code' => 1
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            if ($this->formatHeader($order['channel_account_id'])) {
+                $processTack = explode('-', $order['process_code']);
+                $process_code = isset($processTack[0]) ? $processTack[0] : $order['process_code'];
+                $data = [
+                    'access_token' => $this->_config['secret_key'],
+                    'vovapost_order_sn' => $process_code,
+                    'cancel_reason' => '更换信息',
+                    'timestamp' => gmdate("Y-m-d\TH:i:s", time()),
+                ];
+                $pramTack = json_encode($data);
+                $responseJson = Curl::curlPost($this->_config['url'] . '/order/CancelOrder', $pramTack, $this->_config['header']);
+                $response = json_decode($responseJson, true);
+                //日志记录
+                $arr_log = [
+                    'url' => $this->_config['url'],
+                    'header' => '',
+                    'request' => $pramTack,
+                    'response' => $responseJson
+                ];
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+                if (isset($response['code']) && $response['code'] == 20000) {
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg' => $response['message']
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 请求地址
+     * request
+     * @return array
+     */
+    public function request($param)
+    {
+        $response = Curl::curlPost($this->_config['url'] . '/order/CreateLogisticsOrder', $param, $this->_config['header']);
+        return $response;
+    }
+
+    /**
+     * 递四方香港仓请求
+     * request
+     * @return array
+     */
+    public function four($order)
+    {
+        try {
+            if ($this->formatHeader($order['channel_account_id'], 2)) {
+                return $this->formatPackageInfo($order);
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+    }
+
+    /**
+     * 递四方香港仓请求获取跟踪号
+     * request
+     * @return array
+     */
+    public function fourTacking($order)
+    {
+        try {
+            if ($this->formatHeader($order['channel_account_id'])) {
+                return $this->getOrderStatus($order['process_code']);
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+    }
+
+    /**
+     * 更新面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getUpdateLabel($config, $order)
+    {
+        $data = [
+            'access_token' => $this->_config['secret_key'],
+            'vovapost_order_sn' => $order['process_code'],
+            'logistics_tracking_number' => $order['shipping_number'],
+            'timestamp' => gmdate("Y-m-d\TH:i:s", time()),
+        ];
+        $pramTack = json_encode($data);
+        $responseJson = Curl::curlPost($this->_config['url'] . '/order/UpdateLabel', $pramTack, $this->_config['header']);
+        $response = json_decode($responseJson, true);
+    }
+
+}

@@ -1,0 +1,263 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-4-24
+ * Time: 上午10:58
+ */
+
+namespace app\index\controller;
+use think\Db;
+use app\common\exception\JsonErrorException;
+use app\common\service\Common;
+use think\Exception;
+use think\Request;
+use app\common\controller\Base;
+use app\common\service\Common as CommonService;
+use app\index\service\UmkaAccountService;
+use app\common\cache\Cache;
+/**
+ * @module 账号管理
+ * @title umka账号
+ * @url /umka-account
+ * @package app\index\controller
+ * @author zhaixueli
+ */
+class UmkaAccount extends Base
+{
+
+    protected $umkaAccountService;
+
+    protected function init()
+    {
+        if (is_null($this->umkaAccountService)) {
+            $this->umkaAccountService = new UmkaAccountService();
+        }
+    }
+
+    /**
+     * @title 显示资源列表
+     * @return \think\Response
+     * @apiRelate app\index\controller\MemberShip::memberInfo
+     * @apiRelate app\index\controller\MemberShip::save
+     * @apiRelate app\index\controller\MemberShip::update
+     * @apiRelate app\index\controller\User::staffs
+     */
+    public function index()
+    {
+        $request = Request::instance();
+        if (isset($request->header()['X-Result-Fields'])) {
+            $field = $request->header()['X-Result-Fields'];
+            $field = explode(',', $field);
+        }
+
+        $result = $this->umkaAccountService->getList($request->param());
+        // $result = $this->umkaAccountService->accountList($request);
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 添加账号
+     * @method POST
+     * @url /umka-account
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function add(Request $request)
+    {
+        try {
+            $params = $request->param();
+            $user = Common::getUserInfo($request);
+            $uid = $user['user_id'];
+            $response = $this->umkaAccountService->add($params, $uid);
+            if ($response === false) {
+                return json(['message' => $this->umkaAccountService->getError()], 400);
+            }
+            return json(['message' => '添加成功', 'data' => $response]);
+        } catch (Exception $exp) {
+            throw new JsonErrorException("File:{$exp->getFile()};Line:{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    /**
+     * @title 显示指定的资源
+     * @method GET
+     * @param  int $id
+     * @url /umka-account/:id
+     * @return \think\Response
+     */
+    public function read($id)
+    {
+        $result = $this->umkaAccountService->read($id);
+        return json($result, 200);
+    }
+
+    /**
+     * @title 更新账号
+     * @method PUT
+     * @url /umka-account
+     * @return \think\Response
+     */
+    public function update(Request $request)
+    {
+        try {
+            $params = $request->param();
+            if (!$params['id']) {
+                return json(['message' => '缺少必要参数ID'], 400);
+            }
+            $user = Common::getUserInfo($request);
+            $uid = $user['user_id'];
+            $response = $this->umkaAccountService->add($params, $uid);
+            if ($response === false) {
+                return json(['message' => $this->umkaAccountService->getError()], 400);
+            }
+            return json(['message' => '更新成功', 'data' => $response]);
+        } catch (Exception $exp) {
+            throw new JsonErrorException("File:{$exp->getFile()};Line:{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+
+    /**
+     * @title 停用，启用账号
+     * @url states
+     * @method post
+     */
+
+    public function changeStatus(Request $request)
+    {
+        $params = $request->param();
+        //var_dump($params);die;
+        $response = $this->umkaAccountService->changeStatus($params);
+        if ($response === false) {
+            return json(['message' => $this->umkaAccountService->getError()], 400);
+        }
+        return json(['message' => '操作成功', 'data' => $response]);
+    }
+
+
+
+
+    /**
+     * @title 查询umka账号
+     * @noauth
+     * @url query
+     * @method get
+     */
+    public function query(Request $request, pddAccountService $service)
+    {
+        $param = $request->param();
+        $keyword = param($param, 'keyword');
+        $page = param($param, 'page', 1);
+        $pageSize = param($param, 'pageSize', 20);
+        $json = $service->query($keyword, $page, $pageSize);
+        return json($json);
+    }
+
+    /**
+     * @title 获取Token
+     * @url token
+     * @method post
+     * @return \think\response\Json
+     * @throws Exception
+     */
+    public function token()
+    {
+        set_time_limit(0);
+        $request = Request::instance();
+        $id = $request->post('id', 0);
+        if (empty($id)) {
+            return json(['message' => '参数错误'], 400);
+        }
+        //var_dump($request);die;
+        $data['client_id'] = $request->post('client_id', 0);
+        $data['client_secret'] = $request->post('client_secret', 0);
+        $data['name'] = $request->post('name', 0);
+        $data['password'] = $request->post('password', 0);
+        if (empty($data['client_secret']) || empty($data['name'])) {
+            return json(['message' => '参数信息错误'], 400);
+        }
+        //获取操作人信息
+        $user = CommonService::getUserInfo($request);
+        //var_dump($user);die;
+        if (!empty($user)) {
+            $data['update_id'] = $user['user_id'];
+        }
+        $res = $this->umkaAccountService->getToken($id, $data);
+        if (param($data, 'code', 0) == 200) {
+            return json(['message' => '获取成功', 'date' => $res]);
+        } else {
+            return json(['message' => param($res, 'msg', '账号授权失败')], 400);
+        }
+    }
+
+
+    /**
+     * @title 获取Token
+     * @url refresh_token/:id
+     * @method GET
+     * @return \think\response\Json
+     * @throws Exception
+     */
+    public function refresh_token($id = 0)
+    {
+        //echo(111);die;
+        if ($id == 0) {
+            return json_error('缺少参数ID');
+        }
+       // echo 11;die;
+        return $this->umkaAccountService->refresh_token($id);
+    }
+
+    /**
+     * @title 授权页面
+     * @url authorization
+     * @method post
+     * @return \think\response\Json
+     */
+    public function authorization()
+    {
+        $request = Request::instance();
+        $id = $request->post('id', 0);
+        if (empty($id)) {
+            return json(['message' => '参数错误'], 400);
+        }
+        $result = $this->umkaAccountService->authorization($id);
+        return json($result[0], 200);
+    }
+
+    /**
+     * @title 批量修改账号的抓取状态
+     * @url update_download
+     * @method post
+     * @return \think\response\Json
+     */
+    public function update_download(Request $request)
+    {
+        $params = $request->param();
+        $ids = $request->post('ids');
+        $data = $params;
+        $model = $this->umkaAccountService->update_download($ids, $data);
+        return json(['message' => '操作成功', 'data' => $model]);
+
+    }
+
+    /**
+     * @title 获取Umka账号日志
+     * @method get
+     * @url /umka-account/log/:id
+     * @param  \think\Request $request
+     * @param  string $site
+     * @return \think\Response
+     */
+    public function getLog(Request $request)
+    {
+        return json(
+            $this->umkaAccountService->getUmkaLog($request->param()),
+            200
+        );
+    }
+
+  }
+

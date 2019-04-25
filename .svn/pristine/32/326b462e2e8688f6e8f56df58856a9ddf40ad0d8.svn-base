@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.5526475073239963 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;">
+        <div style="width:270pt;border-bottom:1pt solid #000;">
+            <div style="float:left;width:240pt;">
+                <div style="margin-left:10pt;font-size:11pt;line-height:12pt;">YANWEN</div>
+                <div style="width:240pt;text-align:center;font-size:9pt;line-height:10pt;"><span
+                        style="display:inline-block;height:30pt;line-height:30pt;overflow-y:hidden">
+                        <img style="width:190pt;height:45pt;" src="<?php echo $this->imgSrc($shipping_number);?>"> </span>
+                    <br>
+                    <?php echo $shipping_number;?>
+                </div>
+            </div>
+
+            <div style="clear:both"></div>
+        </div>
+        <div style="width:270pt;padding:2pt 0;font-size:9pt;line-height:10pt;font-weight:bold;text-align:center;border-bottom:1pt solid #000;">
+            燕文专线追踪小包-普货
+        </div>
+        <div style="width:266pt;padding:2pt;font-size:10pt;line-height:12pt;"><strong>To:</strong><br> <?php echo $name;?>
+            Tel: <?php echo $phone;?> <br> <?php echo $street.$street2;?>  <br>
+            <?php echo $city;?>  <?php echo $province;?>  <?php echo $zip;?><br>
+            <?php echo $country_en_name;?> <br>
+            <div style="border-bottom: 1px solid;height:20px;"> <span style="float: left">OrderNo:P<?php echo $number;?></span><span style="float: right;font-size: 8pt">302065</span>  </div>
+        </div>
+        <div style="width:270pt;">
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto;width:240pt;table-layout:fixed;border-collapse:collapse;font-size:10pt;line-height:10pt;font-weight: bold">
+                <tr>
+                    <td style="border: solid 1px;">件数<br>
+                        Quantity</td>
+                    <td style="border: solid 1px;">价值<br>
+                        Value</td>
+                    <td style="border: solid 1px;">目的地<br>
+                        Country</td>
+                </tr>
+
+                <tr>
+                    <td style="border: solid 1px;"><?php echo $total_qty;?>
+                        </td>
+                    <td style="border: solid 1px;"><?php echo number_format($total_value,2);?>
+                        </td>
+                    <td style="border: solid 1px;"><?php echo $country_name?><br>
+                        </td>
+                </tr>
+
+            </table>
+        </div>
+        <div style="border-top: 1px solid;height:20px;margin-top: 10px;">
+            <div style="width:50%;text-align:left;font-size:10pt;line-height:11pt;float: left">Product Description:<br><?php echo $list[0]['declared_name_en'];?> </div>
+            <div style="width:40%;text-align:right;font-size:10pt;line-height:11pt;float: right">Weight:<?php echo number_format($total_weight/1000,2);?>KG</div>
+        </div>
+        <div style="height:20px;margin-top: 10px;text-align: right">
+            <?php echo date('Y-m-d',time())?>
+        </div>
+        <div style="clear:both"></div>
+    </div>
+    <div style="width:270pt;margin-top:2pt;overflow-x:hidden;">
+
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+
+</body>
+</html>

@@ -1,0 +1,113 @@
+<?php
+// +----------------------------------------------------------------------
+// | 
+// +----------------------------------------------------------------------
+// | File  : MailSender.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-27
+// +----------------------------------------------------------------------
+
+namespace imap;
+
+use app\common\cache\Cache;
+use PHPMailer\PHPMailer\PHPMailer;
+
+class MailSender
+{
+    static protected $instance = null;
+    protected $lastErrorInfo = '';
+
+    /**
+     * @var EmailAccount
+     */
+    protected $account = null;
+
+
+    private function __construct()
+    {
+    }
+
+    /**
+     * 获取MailSender单粒
+     * @return MailSender
+     */
+    static public function getInstance()
+    {
+        if(static::$instance === null){
+            static::$instance = new self();
+        }
+        return static::$instance;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLastErrorInfo()
+    {
+        return $this->lastErrorInfo;
+    }
+
+
+    /**
+     * 设置当前邮箱账号
+     * @param EmailAccount $account
+     */
+    public function setAccount(EmailAccount $account)
+    {
+        $this->account = $account;
+        $this->lastErrorInfo = '';
+    }
+
+
+
+    /**
+     * 发送邮件
+     * 如果发送失败返回false,使用getLastErrorInfo获取错误信息
+     * @param $customerAddress
+     * @param $subject
+     * @param $content
+     * @param $attachFile
+     * @return bool
+     */
+    public function send($customerAddress,$subject, $content,$attachFile)
+    {
+        $account = $this->account;
+        $phpMailer = new PHPMailer();
+        $_this = $this;
+        $phpMailer->isSMTP();
+        $phpMailer->SMTPAuth = true;
+        $phpMailer->SMTPSecure = 'tls';
+//        $phpMailer->SMTPDebug = 2;
+        $phpMailer->Host = $account->getSmtpServ();
+        $phpMailer->Port = $account->getSmtpSslPort();
+
+        $phpMailer->Username = $account->getEmailAccount();
+        $phpMailer->Password = $account->getEmailPassWord();
+
+        $phpMailer->setFrom($account->getEmailAccount());
+        $phpMailer->addAddress($customerAddress);
+        $phpMailer->CharSet = 'UTF-8';
+        $phpMailer->Subject = $subject;
+        $phpMailer->isHTML();
+        $phpMailer->Body = $content;
+        //附近是数组，还是字符串；
+        if (is_array($attachFile)) {
+            foreach ($attachFile as $file) {
+                $phpMailer->addAttachment($file);
+            }
+        } else {
+            $phpMailer->addAttachment($attachFile);
+        }
+        $isSent = $phpMailer->send();
+        if(!$isSent){
+            $this->lastErrorInfo = $phpMailer->ErrorInfo;
+//            Cache::handler()->hSet('hash:email_send_log:'. $_this->account->getEmailAccount(), date('YmdHis'), $phpMailer->ErrorInfo);
+        }
+        unset($phpMailer);
+        gc_collect_cycles();
+        return $isSent;
+    }
+
+}

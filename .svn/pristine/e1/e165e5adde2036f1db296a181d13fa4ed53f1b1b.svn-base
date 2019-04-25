@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr style="width:270pt;">
+                <td colspan="2" style="height:50pt;border:solid 1pt #000;padding:2pt 0;border-bottom:0;border-right:0;font-weight: bold;font-size:9pt;">
+                    <span style="float:left;width:100pt;text-align:center;"> <img width="100%"
+src="data:image/png;base64,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">
+
+                    <span style="border:1pt solid #000;font-size:12pt;"> <?php echo $country_code?></span>
+                    </span>
+
+
+                </td>
+                <td colspan="2" style="border:solid 1pt #000;font-weight: bold;border-left:0;border-bottom:0;float:right;width:160pt;text-align:center;padding:2pt 0;"><span> <img
+                            style="width:150pt;height:50pt;"
+                            src="<?php echo $this->imgSrc($shipping_number,'self');?>"> </span><br>
+                    <?php echo $shipping_number;?>
+                </td>
+
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+
+            <tr>
+                <td style="width:100pt;border:solid 1pt #000;border-top:0;padding:0 2pt;border-weight:bold;font-size:10pt;line-height:15pt;word-break:break-all;word-wrap:break-word;">
+                    <strong> FROM:<br> <?php echo $sender['sender_street']?>
+                        <?php echo $sender['sender_state']?><br>
+                        <br> <?php echo $sender['sender_phone']?></strong>
+                </td>
+                <td rowspan="2"
+                    style="border:solid 1pt #000;width:150pt;padding:0 2pt;font-size:8pt;line-height:15pt;word-wrap:break-word;">
+                    <strong>SHIP TO:<br>
+                        <?php echo $name;?><br>
+                        <?php echo $street.$street2;?><br>
+                        <?php echo $city?> <?php echo $province?> <br>
+                        <?php echo $country_en_name;?><br>
+
+                        ZIP:<?php echo $zip?></strong>
+                     <span style="float:right;font-size:12pt;"><?php echo $country_name?></span><br>
+                 <strong>      Phone: <?php echo $phone;?>
+                    </strong>
+                </td>
+            </tr>
+            <tr>
+                <td style="width:100pt;border:1pt solid #000;font-size:8pt;"><strong>   自编号:<?php echo $number ?></strong> </td>
+
+            </tr>
+            <tr>
+
+            </tr>
+            <tr>
+                <td colspan="1">
+                    <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+                        <tr>
+                            <td style="width:60pt;border:solid 1pt #000;padding:0 2pt;font-size:8pt;line-height:12pt;">
+                                退件单位：
+                            </td>
+                            <td style="border:solid 1pt #000;;font-size:8pt;line-height:12pt;">
+                             中邮东莞仓
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;font-weight: bold;line-height:9pt;">
+            <tbody>
+            <tr>
+                <td style="width:160pt;border:solid 1pt #000;word-wrap:break-word;text-align:center;"> description of
+                    contents
+                </td>
+                <td style="width:56pt;border:solid 1pt #000;text-align:center;"> Kg.</td>
+                <td style="border:solid 1pt #000;text-align:center;"> Val(US $)</td>
+            </tr>
+            <?php foreach ($list as $k=>$v):?>
+                <tr>
+                    <td style="border:solid 1pt #000;word-wrap:break-word;padding:0 2pt;vertical-align:middle">
+
+                        <?php echo $v['declared_name_cn'];?>*<?php echo $v['qty'];?>
+                        <?php echo $v['declared_name_en'];?>*<?php echo $v['qty'];?>
+                    </td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;vertical-align:middle;text-align:center;"> <?php echo number_format($v['declared_weight']/1000,3,".",'');?> kg</td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;vertical-align:middle;text-align:center;"> <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?></td>
+                </tr>
+            <?php endforeach;?>
+            <tr>
+                <td style="border:solid 1pt #000;word-wrap:break-word;padding:0 2pt;"> Total Gross Weight(KG)</td>
+                <td style="border:solid 1pt #000;text-align:center;"> <?php echo number_format($total_weight/1000,3,'.','');?></td>
+                <td style="border:solid 1pt #000;text-align:center;"> <?php echo number_format($total_value,2,'.','');?></td>
+            </tr>
+            <tr>
+                <td colspan="3"
+                    style="border:solid 1pt #000;border-bottom:0;word-wrap:break-word;padding:0 2pt;font-size:6pt;line-height:7pt;">
+                    I certify that the particulars given in this declaration are correct and this item does not contain
+                    any dangerous articles prohibited by legislation or by postal or customers regulations.
+                </td>
+            </tr>
+            <br>
+            <tr>
+                <td style="border:solid 1pt #000;border-top:0;border-right:0;padding:0 2pt;"> Sender"s signiture:
+                </td>
+                <td colspan="2"
+                    style="border:solid 1pt #000;border-top:0;padding:0 2pt;border-left:0;text-align:right;"><span
+                        style="display:inline-block;padding:0 5pt;font-size:12pt;line-height:13pt;">  已验视 </span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<?php
+/**
+ * PayPal异常处理类
+ * @author Jacky 2017-9-25 00:52:32
+ */
+class PayPal_Exception extends Exception{
+    /** @var string */
+    private $_message = null;
+    /** @var int */
+    private $_httpStatu = null;
+    /** @var string */
+    private $_ack = null;
+    /** @var string */
+    private $_version = null;
+    /** @var string */
+    private $_correlationId = null;
+    /** @var string */
+    private $_timesTamp = null;
+    /** @var string */
+    private $_build = null;
+    /** @var array */
+    private $_errors = array();
+    /** @var array */
+    private $_org = null;
+
+    /**
+     * 构造方法
+     * @param array $errorInfo
+     * @example
+     * $errorInfo = array(
+     *          'Message'=>'',
+     *          'HttpStatu'=>'',
+     *          'Ack'=>'',
+     *          'Version'=>'',
+     *          'CorrelationId'=>'',
+     *          'TimesTamp'=>'',
+     *          'Build'=>'',
+     *          'Errors'=>array(
+     *                      0=>array(
+     *                          'ErrorCode'=>'',
+     *                          'ShortMessage'=>'',
+     *                          'LongMessage'=>'',
+     *                          'SeverityCode'=>'',
+     *                      ),
+     *                      .....
+     *          ),
+     *          'ORG'=>''
+     * );
+     */
+    public function __construct(array $errorInfo = array()){
+        if (isset($errorInfo["Exception"]) && $errorInfo["Exception"] instanceof PayPal_Exception) {
+        	$this->_message = $errorInfo["Exception"]->getErrorMessage();
+        	$this->_httpStatu  = $errorInfo["Exception"]->getHttpStatu();
+        	$this->_ack  = $errorInfo["Exception"]->getAck();
+        	$this->_version  = $errorInfo["Exception"]->getVersion();
+        	$this->_correlationId  = $errorInfo["Exception"]->getCorrelationId();
+        	$this->_timesTamp  = $errorInfo["Exception"]->getTimesTamp();
+        	$this->_build  = $errorInfo["Exception"]->getBuild();
+        	$this->_errors  = $errorInfo["Exception"]->getErrors();
+        	$this->_org= $errorInfo["Exception"]->getORG();
+        } else {
+        	$this->_message = $this->arr_val($errorInfo, 'Message');
+        	$this->_httpStatu = $this->arr_val($errorInfo, 'HttpStatu');
+        	$this->_ack = $this->arr_val($errorInfo, 'Ack');
+        	$this->_version = $this->arr_val($errorInfo, 'Version');
+        	$this->_correlationId = $this->arr_val($errorInfo, 'CorrelationId');
+        	$this->_timesTamp = $this->arr_val($errorInfo, 'TimesTamp');
+        	$this->_build = $this->arr_val($errorInfo, 'Build');
+        	$this->_errors = $this->arr_val($errorInfo, 'Errors');
+        	$this->_org = $this->arr_val($errorInfo, 'ORG');
+        }
+        parent::__construct($this->_message);
+    }
+
+    /**
+     * 从数组里取值
+     * @param array $arr
+     * @param string $key
+     * @return unknown|NULL
+     */
+    private function arr_val($arr, $key) {
+        if(array_key_exists($key, $arr)) {
+            return $arr[$key];
+        } else {
+            return null;
+        }
+    }
+   
+    /**
+     * 获取错误信息
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getErrorMessage() {
+    	return $this->_message;
+    }
+    
+    /**
+     * 获取http请求状态码
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getHttpStatu(){
+        return $this->_httpStatu;
+    }
+    
+    /**
+     * 获取响应状态
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getAck(){
+        return $this->_ack;
+    }
+    
+    /**
+     * 获取接口版本
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getVersion(){
+        return $this->_version;
+    }
+    
+    /**
+     * 获取标识ID
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getCorrelationId(){
+        return $this->_correlationId;
+    }
+    
+    /**
+     * 获取响应时间戳
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getTimesTamp(){
+        return $this->_timesTamp;
+    }
+    
+    /**
+     * 获取内部标识号
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getBuild(){
+        return $this->_build;
+    }
+    
+    /**
+     * 获取错误信息集
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getErrors(){
+        return $this->_errors;
+    }
+    
+    /**
+     * 获取返回的原始数据
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getORG() {
+        return $this->_org;
+    }
+
+}

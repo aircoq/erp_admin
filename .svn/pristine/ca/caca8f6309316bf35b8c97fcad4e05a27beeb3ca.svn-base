@@ -1,0 +1,102 @@
+<?php
+
+namespace service\alinew\operation;
+
+use Exception;
+use service\alinew\operation\Common;
+
+/**
+ * @desc 申明发货接口
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-03-26 11:52:11
+ */
+class SellerShipment extends Common
+{
+
+    private $sendType = [1 => 'all', 2 => 'part']; //发货类型
+
+    /**
+     * @desc 填写订单发货通知
+     * @param string $serviceName       物流服务key
+     * @param string $logisticsNo       物流追踪号
+     * @param string $outRef            用户需要发货的订单id
+     * @param string $sendType          状态包括：全部发货(all)、部分发货(part)
+     * @param string $trackingWebsite   当serviceName=Other的情况时，需要填写对应的追踪网址
+     * @param string $description       备注
+     * @return array
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-27 19:51:11
+     */
+
+    public function sellerShipment($params)
+    {
+        try {
+            $data = [];
+            //方法参数
+            $data['service_name'] = $params['service_name'];
+            $data['logistics_no'] = $params['logistics_no'];
+            $data['description'] = param($params, 'description');
+            $data['send_type'] = param($this->sendType, $params['send_type']);
+            $data['out_ref'] = $params['out_ref'];
+            $data['tracking_website'] = $params['tracking_website'];
+            //功能参数
+            $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+            $request = new \LiliangdaErpOrderproductDataRequest();
+            $request->setAction('updateShipment');
+            $request->setClassName('Order');
+            $request->setModule('order');
+            $request->setClientId($this->config['client_id']);
+            $request->setClientSecret($this->config['client_secret']);
+            $request->setToken($this->config['token']);
+            $request->setRequestParams(json_encode($data));
+            return $client->execute($request);
+        } catch (Exception $ex) {
+            throw new Exception($ex->getFile() . $ex->getLine() . $ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 修改订单发货通知
+     * @param string $oldserviceName       旧的物流服务代码
+     * @param string $oldlogisticsNo       旧的物流追踪号
+     * @param string $newserviceName       新的物流服务代码
+     * @param string $newlogisticsNo       新的物流追踪号
+     * @param string $outRef            用户需要发货的订单id
+     * @param string $sendType          状态包括：全部发货(all)、部分发货(part)
+     * @param string $trackingWebsite   当serviceName=Other的情况时，需要填写对应的追踪网址
+     * @param string $description       备注
+     * @return array
+     * @author zhaibin
+     * @date 2019-02-27 19:51:11
+     */
+
+    public function modifyShipment($params)
+    {
+        try {
+            $data = [];
+            //方法参数
+            $data['old_service_name'] = $params['old_service_name'];
+            $data['old_logistics_no'] = $params['old_logistics_no'];
+            $data['new_service_name'] = $params['new_service_name'];
+            $data['new_logistics_no'] = $params['new_logistics_no'];
+            $data['description'] = param($params, 'description');
+            $data['send_type'] = param($this->sendType, $params['send_type']);
+            $data['out_ref'] = $params['out_ref'];
+            $data['tracking_website'] = $params['tracking_website'];
+            //功能参数
+            $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+            $request = new \LiliangdaErpOrderproductDataRequest();
+            $request->setAction('modifyShipment');
+            $request->setClassName('Order');
+            $request->setModule('order');
+            $request->setClientId($this->config['client_id']);
+            $request->setClientSecret($this->config['client_secret']);
+            $request->setToken($this->config['token']);
+            $request->setRequestParams(json_encode($data));
+            return $client->execute($request);
+        } catch (Exception $ex) {
+            throw new Exception($ex->getFile() . $ex->getLine() . $ex->getMessage());
+        }
+    }
+
+}

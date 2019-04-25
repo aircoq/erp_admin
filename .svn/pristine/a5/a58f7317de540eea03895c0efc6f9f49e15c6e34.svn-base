@@ -1,0 +1,305 @@
+<?php
+
+namespace app\index\controller;
+
+use app\common\cache\Cache;
+use app\common\controller\Base;
+use app\common\service\Common;
+use app\index\service\FunmartAccountService;
+use app\index\service\AccountService;
+use service\funmart\Common\CommonService;
+use think\Db;
+use think\Exception;
+use think\Request;
+use app\common\model\fummart\FummartAccount as FunmartAccountModel;
+use think\Validate;   //现funmart平台
+use app\common\service\ChannelAccountConst;
+
+/**
+ * @module 账号管理
+ * @title funmart账号
+ * @url /funmart-account
+ * @package app\index\controller
+ * @author linpeng
+ */
+class FunmartAccount extends Base
+{
+    /**
+     * @title  funamrt平台账号列表
+     * @method get
+     * @param Request $request
+     * @return \think\response\Json
+     * @throws \think\Exception
+     */
+    public function index(Request $request)
+    {
+        $res = (new FunmartAccountService)->getList($request->param());
+        return json($res,200);
+    }
+
+
+    /**
+     * @title 显示指定的funmart账号
+     * @method GET
+     * @url /funmart-account/:id(\d+)
+     * @param $id
+     * @return \think\response\Json
+     * @throws \think\Exception
+     */
+    public function read($id)
+    {
+        $account = Cache::store('FunmartAccount')->getTableRecord($id);
+        $result = [$account];
+        $result[0]['download_order'] = (int)$result[0]['download_order'];
+        $result[0]['sync_delivery'] = (int)$result[0]['sync_delivery'];
+        $result[0]['download_listing'] = (int)$result[0]['download_listing'];
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 编辑funmart账号
+     * @url /funmart-account/:id(\d+)/edit
+     * @method GET
+     * @param $id
+     * @return \think\response\Json
+     * @throws \think\Exception
+     */
+    public function edit($id)
+    {
+        $account = Cache::store('FunmartAccount')->getTableRecord($id);
+        $result = [$account];
+        $result[0]['download_order'] = (int)$result[0]['download_order'];
+        $result[0]['sync_delivery'] = (int)$result[0]['sync_delivery'];
+        $result[0]['download_listing'] = (int)$result[0]['download_listing'];
+        $result[0]['site_status'] = $account ? AccountService::getSiteStatus($account['base_account_id'], $account['code']) : null;
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 更新funmart账号
+     * @method put
+     * @url /funmart-account/:id(\d+)
+     * @param  \think\Request $request
+     * @param  int $id
+     * @return \think\Response
+     */
+    public function update(Request $request, $id)
+    {
+        $params = $request->param();
+        isset($params['download_order']) and $data['download_order'] = intval($params['download_order']);
+        isset($params['sync_delivery']) and $data['sync_delivery'] = intval($params['sync_delivery']);
+        isset($params['download_listing']) and $data['download_listing'] = intval($params['download_listing']);
+        // $validateAccount = new \app\common\validate\FunmartAccount();
+        // if (!$validateAccount->scene('edit')->check($data)) {
+        //     return json(['message' => $validateAccount->getError()], 400);
+        // }
+
+        //判断授权；
+//         if (!empty($data['merchant_id']) && !empty($data['access_key_id']) && !empty($data['secret_key'])) {
+//             $data['is_authorization'] = 1;
+//         } else {
+//             $data['is_authorization'] = 0;
+//         }
+
+        $new_data = $data;
+        $new_data['site_status'] = !empty($params['site_status']) ? intval($params['site_status']) : 0;
+        $user = Common::getUserInfo($request);
+        $operator = [];
+        $operator['operator_id'] = $user['user_id'];
+        $operator['operator'] = $user['realname'];
+        $operator['account_id'] = $id;
+
+        $model = new FunmartAccountModel();
+        //启动事务
+        Db::startTrans();
+        try {
+            if (empty($data)) {
+                return json(['message' => '数据参数不能为空'], 200);
+            }
+            $data['update_time'] = time();
+            $old_data = $model::get($id);
+            $model->allowField('download_order,download_order,download_listing')->save($data, ['id' => $id]);
+
+            if (in_array($new_data['site_status'], [1, 2, 3, 4])) {
+                $old_data['site_status'] = AccountService::setSite(
+                    ChannelAccountConst::channel_Fummart,
+                    $old_data['base_account_id'],
+                    $old_data['code'],
+                    $operator['operator_id'],
+                    $new_data['site_status']
+                );
+            }
+            FunmartAccountService::addFunmartLog($operator, 1, $new_data, $old_data);
+
+            Db::commit();
+
+            //更新缓存
+            $cache = Cache::store('FunmartAccount');
+            foreach ($data as $key => $val) {
+                $cache->updateTableRecord($id, $key, $val);
+            }
+            return json(['message' => "更新成功!"], 200);
+        } catch (Exception $e) {
+            Db::rollback();
+            return json(['message' => '更新失败'.$e->getMessage()], 500);
+        }
+    }
+
+
+    /**
+     * @title 系统状态切换
+     * @url /funmart-account/change-status
+     * @method post
+     */
+    public function changeStatus(Request $request)
+    {
+        try {
+            $params = $request->param();
+            $userInfo = Common::getUserInfo($request);
+            if (!empty($userInfo)) {
+                $params['updater_id'] = $userInfo['user_id'];
+                $params['realname'] = $userInfo['realname'];
+            }
+            $ser = new FunmartAccountService();
+            $ser->changeStatus($params);
+            return json(['message' => '切换系统状态成功'], 200);
+        } catch (Exception $ex) {
+            return json(['message' => $ex->getMessage()], 400);
+        }
+    }
+    /**
+     * @title 更新funmart账号授权信息
+     * @method put
+     * @url /funmart-account-token/:id(\d+)
+     * @param Request $request
+     * @param $id
+     * @return \think\response\Json
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getToken(Request $request, $id)
+    {
+        $params = $request->param();
+        $data['name'] = trim($params['name']);
+        $data['id'] = $id;
+        $data['phone'] = trim($params['phone']);
+        $data['email'] = trim($params['email']);
+        $data['secrect'] = trim($params['secrect']);
+        $data['appkey'] = trim($params['appkey']);
+
+        $userInfo = Common::getUserInfo($request);
+        $data['updater_id'] = param($userInfo, 'user_id', '');
+
+        if(empty($data['name'])) {
+            return json(['message' => 'name 不能为空'], 400);
+        }
+        if (empty($data['phone'])) {
+            return json(['message' => 'phone 不能为空'], 400);
+        }
+        if (empty($data['email'])) {
+            return json(['message' => 'email 不能为空'], 400);
+        }
+        if (empty($data['secrect'])) {
+            return json(['message' => 'secrect 不能为空'], 400);
+        }
+        if (empty($data['appkey'])) {
+            return json(['message' => 'appkey 不能为空'], 400);
+        }
+        if (!$id) {
+            return json(['message' => 'id 不能为空'], 400);
+        }
+
+        $postData = [
+            'name' => $data['name'],
+            'phone' => $data['phone'],
+            'email' => $data['email'],
+            'secrect' => $data['secrect'],
+        ];
+        $model = new FunmartAccountModel();
+        $res = $model->field('id')->where('id', $id)->find();
+        if (!$res) {
+            return json(['message' => '账号不存在'], 400);
+        }
+        // $postData = array(
+        //     'name' => "利朗达",            //必需
+        //     'phone' => "15914130311",   //必需
+        //     'email' => "bhjgvjk@outlook.com",       //必需
+        //     'secrect' => "cz5uax3pqyi3",        //必需
+        // );
+        try {
+            $obj = new CommonService($data['appkey'], '');
+            $re = $obj->GetToken($postData);
+            if (param($re, 'ask') == 1 && param($re, 'api_token')) {
+                Db::startTrans();
+                $data['token'] = param($re, 'api_token');
+                $data['is_authorization'] = 1;
+                $data['is_invalid'] = 1;
+                if (empty($data)) {
+                    return json(['message' => '数据参数不能为空'], 200);
+                }
+                $data['updated_time'] = time();
+                $model->allowField(true)->save($data, ['id' => $id]);
+                Db::commit();
+                //更新缓存
+                $cache = Cache::store('FunmartAccount');
+                foreach ($data as $key => $val) {
+                    $cache->updateTableRecord($id, $key, $val);
+                }
+                return json(['message' => "更新成功!"], 200);
+            }else {
+                return json(['message' => $re['message']], 400);
+            }
+        } catch (Exception $e) {
+            Db::rollback();
+            return json(['message' => '更新失败'], 500);
+        }
+    }
+
+    /**
+     * @title 批量设置funmart账号
+     * @method post
+     * @url /funmart-account/batch-set
+     * @param Request $request
+     * @return \think\response\Json
+     * @throws \Exception
+     * @author Reece
+     * @date 2018-08-14 17:51:14
+     */
+    public function batchUpdate(Request $request)
+    {
+        try{
+            $params = $request->post();
+            if(!param($params, 'ids')) throw new Exception('请先选择数据');
+            $ids = json_decode($params['ids'], true);
+
+            $user = Common::getUserInfo($request);
+            $params['user_id'] = $user['user_id'];
+            $params['realname'] = $user['realname'];
+
+            $service = new FunmartAccountService();
+            $result = $service->batchUpdate($ids, $params);
+            return json(['message'=>'操作成功', 'data'=>$result]);
+        }catch (Exception $ex){
+            return json(['message'=>$ex->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 获取Funmart账号日志
+     * @method get
+     * @url /funmart-account/log/:id
+     * @param  \think\Request $request
+     * @param  string $site
+     * @return \think\Response
+     */
+    public function getLog(Request $request)
+    {
+        return json(
+            (new FunmartAccountService)->getFunmartLog($request->param())
+            , 200
+        );
+    }
+}

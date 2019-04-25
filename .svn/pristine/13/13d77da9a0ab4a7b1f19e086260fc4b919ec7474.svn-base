@@ -1,0 +1,17 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-5-19
+ * Time: 下午4:39
+ */
+
+namespace nowapi;
+
+
+use app\common\exception\JsonErrorException;
+
+class NowApiException extends JsonErrorException
+{
+
+}

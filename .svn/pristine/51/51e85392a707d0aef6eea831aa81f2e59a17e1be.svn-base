@@ -1,0 +1,118 @@
+<?php
+namespace service\shipping\operation;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+use app\common\model\OrderDetail;
+/**
+ * 创优达国际快递
+ * @class cydExpress
+ * @package service\shipping\operation
+ */
+class CydExpress
+{
+
+    /**
+     * 获取运输方式详细信息
+     * @param array $config 账号 token配置
+     * @return array
+     */
+    public function getExpress(array $config)
+    {
+        $this->result['data'] = [
+            [
+                'code' => '5851',
+                'name' => 'UPS---CYD',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code' => '95574',
+                'name' => 'UPS-电动车专线',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code' => '8520',
+                'name' => 'ARAMEX——中东专线',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code' => 'CYD',
+                'name' => '澳洲专线-CYD',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code' => '6969',
+                'name' => '香港DHL-膏粉液',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code' => '2223',
+                'name' => '日本专线-CYD',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code' => '222',
+                'name' => '香港DHL-CYD',
+                'has_tracking_number' => 1
+            ],
+            [
+                'code' => '8520',
+                'name' => 'FEDEX-CYD',
+                'has_tracking_number' => 1
+            ]
+        ];
+        $this->result['success'] = true;
+        return $this->result;
+    }
+
+    /**
+     * 创建物流订单
+     * @param array $config
+     * @param $order
+     * @return array
+     */
+    public function createOrder(array $config,$order,$confirm = false)
+    {
+
+        if (!isset($order['number'])) {
+            $order = $order[0];
+        }
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = true;
+        $this->result['data']['number']             = $order['number'];      // 客户订单号
+        $this->result['data']['package_code']       = '';      // 包裹处理号
+        $this->result['data']['trackingNumber']     = '';   // 跟踪号$info['intl_tracking_no']
+        $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+        $this->result['data']['confirm']             = true;                              // 是否交运
+        $this->result['data']['label']               = false;                              // 是否有pdf
+        $this->result['data']['label_url']          = '';                              // 是否有pdf
+        $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+        $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+        $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+        return $this->result;
+    }
+
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = true;
+        return $this->result;
+    }
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        if($order['label_source_type']=='1' && isset($order['package_id'])){
+                (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+            ];
+            $this->result['number'] = $order['number'];
+            return $this->result;
+        }
+    }
+}

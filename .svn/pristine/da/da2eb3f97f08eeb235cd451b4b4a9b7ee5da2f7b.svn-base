@@ -1,0 +1,92 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2018/12/27
+ * Time: 16:27
+ */
+
+namespace Logistics\Query;
+
+
+use Logistics\Exceptions\HttpException;
+
+class BaiduQuery extends Query
+{
+    public function __construct()
+    {
+        $this->url = 'https://sp0.baidu.com/9_Q4sjW91Qh3otqbppnN2DJv/pae/channel/data/asyncqury';
+    }
+
+    /**
+     * 生成请求随机字符串数组
+     *
+     * @return array
+     */
+    private function randNumber(): array
+    {
+        $str = $subStr = '';
+        for ($i = 0; $i < 15; $i++) {
+            $str .= \mt_rand(0, 9);
+        }
+        for ($i = 0; $i < 3; $i++) {
+            $subStr .= \mt_rand(0, 9);
+        }
+        return [$str . '_' . \time() . $subStr, \time() . $subStr];
+    }
+
+    /**
+     * 调用百度查询接口
+     *
+     * @param string $code
+     * @param string $type
+     * @return array
+     * @throws HttpException
+     */
+    public function callInterface(string $code, string $type = ''): array
+    {
+        try {
+            $rand = $this->randNumber();
+            $urlParams = [
+                'cb' => 'jQuery1102047' . $rand[0],
+                'appid' => 4001,
+                'com' => '',
+                'nu'=> $code,
+                'vscode' => '',
+                'token' => '',
+                '_' => $rand[1],
+            ];
+            $this->format($this->curl($this->url, $urlParams));
+            $this->response['logistics_bill_no'] = $code;
+            return $this->response;
+        } catch (\Exception $exception) {
+            throw new HttpException($exception->getMessage());
+        }
+    }
+
+    /**
+     * 优化接口返回数据
+     *
+     * @param string $response
+     * @return void
+     * @throws HttpException
+     */
+    protected function format(string $response): void
+    {
+        $pattern = '/(jQuery1102047\d{15}\_\d+\()({.*})\)$/i';
+        if (preg_match($pattern, $response, $match) == 0) {
+            throw new HttpException('No data');
+        }
+        $response = \json_decode($match[2], true);
+        if ($response['status'] != 1) {
+            throw new HttpException($response['msg']);
+        }
+        $this->response = [
+            'status'  => $response['status'],
+            'message' => $response['msg'],
+            'error_code' => $response['error_code'],
+            'data' => $response['data']['info']['context'] ?? '',
+            'logistics_company' => $response['com'] ?? '',
+        ];
+    }
+}

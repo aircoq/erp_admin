@@ -1,0 +1,154 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-20
+ * Time: 下午4:41
+ */
+
+namespace rpc;
+
+use Hprose\Socket\Server;
+use think\Config;
+
+
+class ModuleServer extends CentralServer
+{
+    private $name;
+    private $port;
+    private $auth;
+    private $onlyModules;
+    private $server;
+    public function __construct()
+    {
+        $this->init();
+        $this->name = Config::get('module.name');
+        $this->port = Config::get('module.port');
+        $this->auth = Config::get('module.auth');
+        if($onlyModules = Config::get('module.onlyModules')){
+            if(!empty($onlyModules)){
+                $this->onlyModules = $onlyModules;
+            }
+        }
+    }
+
+    public function broadHeart()
+    {
+    }
+    public function start()
+    {
+        $this->server = new Server('tcp://0.0.0.0:' . $this->port);
+
+        // 发布方法
+        $this->server->addFunction([$this,'moduleApi'], 'moduleApi');
+        $this->server->addFunction([$this,'moduleApi2'], 'moduleApi2');
+        $this->server->addFunction([$this,'moduleHeart'], 'moduleHeart');
+
+        // 添加中间件
+        $this->server->addInvokeHandler([$this,"authMiddle"]);
+
+        // 发布缺失方法处理函数
+        $this->server->addMissingFunction([$this,'missing']);
+        $this->server->addFilter(new CallCount($this->name));
+
+        $this->listenCodeChange();
+        // TODO: 添加心跳检测（用定时器？，或者 Hprose 是否有自带的相关功能？）
+
+        // 启动服务
+        $this->server->start();
+    }
+
+    public function listenCodeChange()
+    {
+//        $pid = pcntl_fork();
+//
+//        if (!$pid) {
+//            if (extension_loaded('inotify') && $reload = Config::get('swoole.reload')) {
+//                echo "loaded:inotify\n";
+//                $inotify = inotify_init();
+//                dir_iteration(APP_PATH, function($dir, $type)use($inotify){
+//                    if($type === 'dir'){
+//                        inotify_add_watch($inotify, $dir, IN_CREATE |IN_DELETE | IN_MODIFY);
+//                    }
+//                });
+//                dir_iteration(APP_EXTEND, function($dir, $type)use($inotify){
+//                    if($type === 'dir'){
+//                        inotify_add_watch($inotify, $dir, IN_CREATE |IN_DELETE | IN_MODIFY);
+//                    }
+//                });
+//
+//                swoole_event_add($inotify, function ($inotify) use ($reload) {
+//                    $read = inotify_read($inotify);
+//                    if (!empty($read)) {
+//                        $this->swoole->sendMessage(serialize(new TimerReload($reload)), 1);
+//                    }
+//                });
+//            }
+//        }
+    }
+
+    public function moduleHeart()
+    {
+        
+    }
+
+    public function moduleApi(ModuleApi $moduleApi){
+        if($this->onlyModules){
+            if(!in_array($moduleApi->getFromModule(), $this->onlyModules)){
+                return $this->callError("not support this module");
+            }
+        }
+        if($moduleApi->getAuth() !== $this->auth){
+            return $this->callError('auth error');
+        }
+        return serialize($this->localCall($moduleApi->getApi(), $moduleApi->getParams()));
+    }
+
+    public function moduleApi2($api)
+    {
+        if($this->onlyModules){
+            if(!in_array($api['fromModule'], $this->onlyModules)){
+                return $this->callError("not support this module");
+            }
+        }
+        return serialize($this->localCall($api['api'],$api['params']));
+    }
+
+    public function missing(){
+        error_log("missing:");
+        error_log(var_export(func_get_args()));
+    }
+
+    public function authMiddle($name, array &$args, \stdClass $context, \Closure $next)
+    {
+        switch ($name){
+            case 'moduleApi':
+                $signModel = new Sign();
+                break;
+            case 'moduleHeart':
+                break;
+        }
+        return $next($name, $args, $context);
+    }
+
+    public function localCall($api, $params)
+    {
+        $agent = new ModuleAgent();
+        return $agent($api, $params);
+    }
+
+    public function setHeartbeat()
+    {
+        
+    }
+
+    public function callError($error)
+    {
+        return $this->callResult($error, 500);
+    }
+
+    public function callResult($result, int $state = 200)
+    {
+        return serialize(['code'=>$state, 'result' => $result]);
+    }
+}

@@ -1,0 +1,1271 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class Yanwen extends Base
+{
+
+    protected $is_open_water = 1;
+    public function isCanDeclare($code)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "canDeclare_".$code  ;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('此渠道不能预览报关单' . $strFun);
+        }
+        return $this->$strFun($code);
+    }
+    /*
+     * 土耳其邮政挂号小包(含电)
+     */
+    private function canDeclare_239(){
+        return 1;
+    }
+    /*
+     * 土耳其邮政平邮小包(含电)
+     */
+    private function canDeclare_240(){
+        return 1;
+    }
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 2);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+    private function getZoneCode($country_code)
+    {
+        $zoneMap = [];
+        $zoneMap['AF'] = '1';
+        $zoneMap['BD'] = '1';
+        $zoneMap['BN'] = '1';
+        $zoneMap['BT'] = '1';
+        $zoneMap['CN'] = '1';
+        $zoneMap['FM'] = '1';
+        $zoneMap['GU'] = '1';
+        $zoneMap['ID'] = '1';
+        $zoneMap['IN'] = '1';
+        $zoneMap['KH'] = '1';
+        $zoneMap['KP'] = '1';
+        $zoneMap['KR'] = '1';
+        $zoneMap['LA'] = '1';
+        $zoneMap['LK'] = '1';
+        $zoneMap['MM'] = '1';
+        $zoneMap['MP'] = '1';
+        $zoneMap['MV'] = '1';
+        $zoneMap['MY'] = '1';
+        $zoneMap['NP'] = '1';
+        $zoneMap['PH'] = '1';
+        $zoneMap['PK'] = '1';
+        $zoneMap['SG'] = '1';
+        $zoneMap['TH'] = '1';
+        $zoneMap['TP'] = '1';
+        $zoneMap['TW'] = '1';
+        $zoneMap['VN'] = '1';
+        $zoneMap['AD'] = '2';
+        $zoneMap['AE'] = '2';
+        $zoneMap['AG'] = '2';
+        $zoneMap['AI'] = '2';
+        $zoneMap['AM'] = '2';
+        $zoneMap['AS'] = '2';
+        $zoneMap['AT'] = '2';
+        $zoneMap['AU'] = '2';
+        $zoneMap['AZ'] = '2';
+        $zoneMap['BB'] = '2';
+        $zoneMap['BE'] = '2';
+        $zoneMap['BH'] = '2';
+        $zoneMap['BM'] = '2';
+        $zoneMap['BS'] = '2';
+        $zoneMap['BZ'] = '2';
+        $zoneMap['CA'] = '2';
+        $zoneMap['CC'] = '2';
+        $zoneMap['CH'] = '2';
+        $zoneMap['CK'] = '2';
+        $zoneMap['CR'] = '2';
+        $zoneMap['CU'] = '2';
+        $zoneMap['CX'] = '2';
+        $zoneMap['CY'] = '2';
+        $zoneMap['DE'] = '2';
+        $zoneMap['DM'] = '2';
+        $zoneMap['DO'] = '2';
+        $zoneMap['ES'] = '2';
+        $zoneMap['FJ'] = '2';
+        $zoneMap['FO'] = '2';
+        $zoneMap['FR'] = '2';
+        $zoneMap['GB'] = '2';
+        $zoneMap['GD'] = '2';
+        $zoneMap['GF'] = '2';
+        $zoneMap['XE'] = '2';
+        $zoneMap['GI'] = '2';
+        $zoneMap['GL'] = '2';
+        $zoneMap['GP'] = '2';
+        $zoneMap['GQ'] = '2';
+        $zoneMap['GR'] = '2';
+        $zoneMap['GS'] = '2';
+        $zoneMap['GT'] = '2';
+        $zoneMap['HN'] = '2';
+        $zoneMap['HT'] = '2';
+        $zoneMap['IE'] = '2';
+        $zoneMap['IL'] = '2';
+        $zoneMap['IQ'] = '2';
+        $zoneMap['IR'] = '2';
+        $zoneMap['IT'] = '2';
+        $zoneMap['JM'] = '2';
+        $zoneMap['JO'] = '2';
+        $zoneMap['JP'] = '2';
+        $zoneMap['KG'] = '2';
+        $zoneMap['KI'] = '2';
+        $zoneMap['KN'] = '2';
+        $zoneMap['KW'] = '2';
+        $zoneMap['KY'] = '2';
+        $zoneMap['KZ'] = '2';
+        $zoneMap['LB'] = '2';
+        $zoneMap['LC'] = '2';
+        $zoneMap['LI'] = '2';
+        $zoneMap['LU'] = '2';
+        $zoneMap['MC'] = '2';
+        $zoneMap['MH'] = '2';
+        $zoneMap['MN'] = '2';
+        $zoneMap['MQ'] = '2';
+        $zoneMap['MS'] = '2';
+        $zoneMap['MT'] = '2';
+        $zoneMap['MX'] = '2';
+        $zoneMap['NC'] = '2';
+        $zoneMap['NF'] = '2';
+        $zoneMap['NI'] = '2';
+        $zoneMap['NL'] = '2';
+        $zoneMap['AN'] = '2';
+        $zoneMap['NR'] = '2';
+        $zoneMap['NZ'] = '2';
+        $zoneMap['OM'] = '2';
+        $zoneMap['PA'] = '2';
+        $zoneMap['PF'] = '2';
+        $zoneMap['PG'] = '2';
+        $zoneMap['PM'] = '2';
+        $zoneMap['PN'] = '2';
+        $zoneMap['PR'] = '2';
+        $zoneMap['PT'] = '2';
+        $zoneMap['QA'] = '2';
+        $zoneMap['SA'] = '2';
+        $zoneMap['SB'] = '2';
+        $zoneMap['SH'] = '2';
+        $zoneMap['SJ'] = '2';
+        $zoneMap['SM'] = '2';
+        $zoneMap['SV'] = '2';
+        $zoneMap['SY'] = '2';
+        $zoneMap['TC'] = '2';
+        $zoneMap['TJ'] = '2';
+        $zoneMap['TM'] = '2';
+        $zoneMap['TO'] = '2';
+        $zoneMap['TR'] = '2';
+        $zoneMap['TT'] = '2';
+        $zoneMap['TV'] = '2';
+        $zoneMap['US'] = '2';
+        $zoneMap['UZ'] = '2';
+        $zoneMap['VA'] = '2';
+        $zoneMap['VC'] = '2';
+        $zoneMap['VG'] = '2';
+        $zoneMap['VI'] = '2';
+        $zoneMap['VU'] = '2';
+        $zoneMap['WF'] = '2';
+        $zoneMap['WS'] = '2';
+        $zoneMap['XA'] = '2';
+        $zoneMap['XB'] = '2';
+        $zoneMap['XD'] = '2';
+        $zoneMap['XE'] = '2';
+        $zoneMap['XF'] = '2';
+        $zoneMap['XG'] = '2';
+        $zoneMap['XH'] = '2';
+        $zoneMap['XI'] = '2';
+        $zoneMap['XJ'] = '2';
+        $zoneMap['XK'] = '2';
+        $zoneMap['XL'] = '2';
+        $zoneMap['XM'] = '2';
+        $zoneMap['YE'] = '2';
+        $zoneMap['AL'] = '3';
+        $zoneMap['AN'] = '3';
+        $zoneMap['AO'] = '3';
+        $zoneMap['AR'] = '3';
+        $zoneMap['BA'] = '3';
+        $zoneMap['BF'] = '3';
+        $zoneMap['BG'] = '3';
+        $zoneMap['BI'] = '3';
+        $zoneMap['BJ'] = '3';
+        $zoneMap['BO'] = '3';
+        $zoneMap['BR'] = '3';
+        $zoneMap['BW'] = '3';
+        $zoneMap['BY'] = '3';
+        $zoneMap['CD'] = '3';
+        $zoneMap['CF'] = '3';
+        $zoneMap['CG'] = '3';
+        $zoneMap['CI'] = '3';
+        $zoneMap['CL'] = '3';
+        $zoneMap['CM'] = '3';
+        $zoneMap['CO'] = '3';
+        $zoneMap['CV'] = '3';
+        $zoneMap['CZ'] = '3';
+        $zoneMap['DJ'] = '3';
+        $zoneMap['DK'] = '3';
+        $zoneMap['DZ'] = '3';
+        $zoneMap['EC'] = '3';
+        $zoneMap['EE'] = '3';
+        $zoneMap['EG'] = '3';
+        $zoneMap['ER'] = '3';
+        $zoneMap['ET'] = '3';
+        $zoneMap['FI'] = '3';
+        $zoneMap['FK'] = '3';
+        $zoneMap['GA'] = '3';
+        $zoneMap['GE'] = '3';
+        $zoneMap['GH'] = '3';
+        $zoneMap['GM'] = '3';
+        $zoneMap['GN'] = '3';
+        $zoneMap['GW'] = '3';
+        $zoneMap['GY'] = '3';
+        $zoneMap['HR'] = '3';
+        $zoneMap['HU'] = '3';
+        $zoneMap['IS'] = '3';
+        $zoneMap['KE'] = '3';
+        $zoneMap['KM'] = '3';
+        $zoneMap['LR'] = '3';
+        $zoneMap['LS'] = '3';
+        $zoneMap['LT'] = '3';
+        $zoneMap['LV'] = '3';
+        $zoneMap['LY'] = '3';
+        $zoneMap['MA'] = '3';
+        $zoneMap['MD'] = '3';
+        $zoneMap['ME'] = '3';
+        $zoneMap['MG'] = '3';
+        $zoneMap['MK'] = '3';
+        $zoneMap['ML'] = '3';
+        $zoneMap['MR'] = '3';
+        $zoneMap['MU'] = '3';
+        $zoneMap['MW'] = '3';
+        $zoneMap['MZ'] = '3';
+        $zoneMap['NA'] = '3';
+        $zoneMap['NE'] = '3';
+        $zoneMap['NG'] = '3';
+        $zoneMap['NO'] = '3';
+        $zoneMap['PE'] = '3';
+        $zoneMap['PL'] = '3';
+        $zoneMap['PY'] = '3';
+        $zoneMap['RE'] = '3';
+        $zoneMap['RO'] = '3';
+        $zoneMap['RS'] = '3';
+        $zoneMap['RU'] = '3';
+        $zoneMap['RW'] = '3';
+        $zoneMap['SC'] = '3';
+        $zoneMap['SD'] = '3';
+        $zoneMap['SE'] = '3';
+        $zoneMap['SI'] = '3';
+        $zoneMap['SK'] = '3';
+        $zoneMap['SL'] = '3';
+        $zoneMap['SN'] = '3';
+        $zoneMap['SO'] = '3';
+        $zoneMap['SR'] = '3';
+        $zoneMap['ST'] = '3';
+        $zoneMap['SZ'] = '3';
+        $zoneMap['TD'] = '3';
+        $zoneMap['TG'] = '3';
+        $zoneMap['TN'] = '3';
+        $zoneMap['TZ'] = '3';
+        $zoneMap['UA'] = '3';
+        $zoneMap['UG'] = '3';
+        $zoneMap['UY'] = '3';
+        $zoneMap['VE'] = '3';
+        $zoneMap['XO'] = '3';
+        $zoneMap['ZA'] = '3';
+        $zoneMap['ZM'] = '3';
+        $zoneMap['ZW'] = '3';
+        if (!$country_code)
+            return '';
+        $zone = $zoneMap[$country_code] ?? '';
+        if (!$zone)
+            return '';
+        return $zone;
+    }
+
+    private function getZoneCodePm($country_code)
+    {
+        $zoneMap = [];
+        $zoneMap['AF'] = '1';
+        $zoneMap['BD'] = '1';
+        $zoneMap['BT'] = '1';
+        $zoneMap['BN'] = '1';
+        $zoneMap['KH'] = '1';
+        $zoneMap['GU'] = '1';
+        $zoneMap['IN'] = '1';
+        $zoneMap['ID'] = '1';
+        $zoneMap['KP'] = '1';
+        $zoneMap['KR'] = '1';
+        $zoneMap['LA'] = '1';
+        $zoneMap['MY'] = '1';
+        $zoneMap['MV'] = '1';
+        $zoneMap['MP'] = '1';
+        $zoneMap['FM'] = '1';
+        $zoneMap['MM'] = '1';
+        $zoneMap['NP'] = '1';
+        $zoneMap['PK'] = '1';
+        $zoneMap['PH'] = '1';
+        $zoneMap['SG'] = '1';
+        $zoneMap['LK'] = '1';
+        $zoneMap['TH'] = '1';
+        $zoneMap['TP'] = '1';
+        $zoneMap['VN'] = '1';
+        $zoneMap['AD'] = '2';
+        $zoneMap['AI'] = '2';
+        $zoneMap['AG'] = '2';
+        $zoneMap['AM'] = '2';
+        $zoneMap['XD'] = '2';
+        $zoneMap['AT'] = '2';
+        $zoneMap['AZ'] = '2';
+        $zoneMap['XH'] = '2';
+        $zoneMap['BS'] = '2';
+        $zoneMap['BH'] = '2';
+        $zoneMap['XJ'] = '2';
+        $zoneMap['BB'] = '2';
+        $zoneMap['BE'] = '2';
+        $zoneMap['BZ'] = '2';
+        $zoneMap['BM'] = '2';
+        $zoneMap['IO'] = '2';
+        $zoneMap['XA'] = '2';
+        $zoneMap['XK'] = '2';
+        $zoneMap['KY'] = '2';
+        $zoneMap['CX'] = '2';
+        $zoneMap['CC'] = '2';
+        $zoneMap['CK'] = '2';
+        $zoneMap['XF'] = '2';
+        $zoneMap['CR'] = '2';
+        $zoneMap['CU'] = '2';
+        $zoneMap['CY'] = '2';
+        $zoneMap['DM'] = '2';
+        $zoneMap['DO'] = '2';
+        $zoneMap['SV'] = '2';
+        $zoneMap['GQ'] = '2';
+        $zoneMap['FO'] = '2';
+        $zoneMap['FJ'] = '2';
+        $zoneMap['GF'] = '2';
+        $zoneMap['PF'] = '2';
+        $zoneMap['XE'] = '2';
+        $zoneMap['GI'] = '2';
+        $zoneMap['GR'] = '2';
+        $zoneMap['GL'] = '2';
+        $zoneMap['GD'] = '2';
+        $zoneMap['GP'] = '2';
+        $zoneMap['GT'] = '2';
+        $zoneMap['HT'] = '2';
+        $zoneMap['HN'] = '2';
+        $zoneMap['IR'] = '2';
+        $zoneMap['IQ'] = '2';
+        $zoneMap['IE'] = '2';
+        $zoneMap['JM'] = '2';
+        $zoneMap['JO'] = '2';
+        $zoneMap['KZ'] = '2';
+        $zoneMap['KI'] = '2';
+        $zoneMap['KW'] = '2';
+        $zoneMap['KG'] = '2';
+        $zoneMap['LB'] = '2';
+        $zoneMap['LI'] = '2';
+        $zoneMap['LU'] = '2';
+        $zoneMap['XI'] = '2';
+        $zoneMap['MT'] = '2';
+        $zoneMap['MH'] = '2';
+        $zoneMap['MQ'] = '2';
+        $zoneMap['MC'] = '2';
+        $zoneMap['MN'] = '2';
+        $zoneMap['MS'] = '2';
+        $zoneMap['NR'] = '2';
+        $zoneMap['NC'] = '2';
+        $zoneMap['NI'] = '2';
+        $zoneMap['OM'] = '2';
+        $zoneMap['PA'] = '2';
+        $zoneMap['PG'] = '2';
+        $zoneMap['PN'] = '2';
+        $zoneMap['PT'] = '2';
+        $zoneMap['PR'] = '2';
+        $zoneMap['QA'] = '2';
+        $zoneMap['AS'] = '2';
+        $zoneMap['SM'] = '2';
+        $zoneMap['SA'] = '2';
+        $zoneMap['SB'] = '2';
+        $zoneMap['XG'] = '2';
+        $zoneMap['SJ'] = '2';
+        $zoneMap['KN'] = '2';
+        $zoneMap['SH'] = '2';
+        $zoneMap['LC'] = '2';
+        $zoneMap['PM'] = '2';
+        $zoneMap['VC'] = '2';
+        $zoneMap['SY'] = '2';
+        $zoneMap['TJ'] = '2';
+        $zoneMap['TO'] = '2';
+        $zoneMap['VG'] = '2';
+        $zoneMap['TT'] = '2';
+        $zoneMap['XB'] = '2';
+        $zoneMap['TR'] = '2';
+        $zoneMap['TM'] = '2';
+        $zoneMap['TC'] = '2';
+        $zoneMap['TV'] = '2';
+        $zoneMap['AE'] = '2';
+        $zoneMap['UZ'] = '2';
+        $zoneMap['VU'] = '2';
+        $zoneMap['VA'] = '2';
+        $zoneMap['XM'] = '2';
+        $zoneMap['WF'] = '2';
+        $zoneMap['WS'] = '2';
+        $zoneMap['YE'] = '2';
+        $zoneMap['AL'] = '3';
+        $zoneMap['BY'] = '3';
+        $zoneMap['BA'] = '3';
+        $zoneMap['BG'] = '3';
+        $zoneMap['HR'] = '3';
+        $zoneMap['CZ'] = '3';
+        $zoneMap['EE'] = '3';
+        $zoneMap['FI'] = '3';
+        $zoneMap['GE'] = '3';
+        $zoneMap['IS'] = '3';
+        $zoneMap['KO'] = '3';
+        $zoneMap['LV'] = '3';
+        $zoneMap['LT'] = '3';
+        $zoneMap['MK'] = '3';
+        $zoneMap['MD'] = '3';
+        $zoneMap['ME'] = '3';
+        $zoneMap['PL'] = '3';
+        $zoneMap['RO'] = '3';
+        $zoneMap['RS'] = '3';
+        $zoneMap['SK'] = '3';
+        $zoneMap['SI'] = '3';
+        $zoneMap['UA'] = '3';
+        $zoneMap['DZ'] = '4';
+        $zoneMap['AO'] = '4';
+        $zoneMap['AR'] = '4';
+        $zoneMap['BJ'] = '4';
+        $zoneMap['BO'] = '4';
+        $zoneMap['BW'] = '4';
+        $zoneMap['BR'] = '4';
+        $zoneMap['BF'] = '4';
+        $zoneMap['BI'] = '4';
+        $zoneMap['CM'] = '4';
+        $zoneMap['CV'] = '4';
+        $zoneMap['CF'] = '4';
+        $zoneMap['TD'] = '4';
+        $zoneMap['CL'] = '4';
+        $zoneMap['CO'] = '4';
+        $zoneMap['KM'] = '4';
+        $zoneMap['CD'] = '4';
+        $zoneMap['CI'] = '4';
+        $zoneMap['CD'] = '4';
+        $zoneMap['DJ'] = '4';
+        $zoneMap['EC'] = '4';
+        $zoneMap['EG'] = '4';
+        $zoneMap['ER'] = '4';
+        $zoneMap['ET'] = '4';
+        $zoneMap['FK'] = '4';
+        $zoneMap['GA'] = '4';
+        $zoneMap['GM'] = '4';
+        $zoneMap['GH'] = '4';
+        $zoneMap['GN'] = '4';
+        $zoneMap['GW'] = '4';
+        $zoneMap['GY'] = '4';
+        $zoneMap['KE'] = '4';
+        $zoneMap['LS'] = '4';
+        $zoneMap['LR'] = '4';
+        $zoneMap['LY'] = '4';
+        $zoneMap['MG'] = '4';
+        $zoneMap['MW'] = '4';
+        $zoneMap['ML'] = '4';
+        $zoneMap['MR'] = '4';
+        $zoneMap['MU'] = '4';
+        $zoneMap['MA'] = '4';
+        $zoneMap['MZ'] = '4';
+        $zoneMap['NA'] = '4';
+        $zoneMap['AN'] = '4';
+        $zoneMap['NE'] = '4';
+        $zoneMap['NG'] = '4';
+        $zoneMap['PY'] = '4';
+        $zoneMap['PE'] = '4';
+        $zoneMap['RE'] = '4';
+        $zoneMap['RW'] = '4';
+        $zoneMap['ST'] = '4';
+        $zoneMap['SN'] = '4';
+        $zoneMap['SC'] = '4';
+        $zoneMap['SL'] = '4';
+        $zoneMap['SO'] = '4';
+        $zoneMap['ZA'] = '4';
+        $zoneMap['SD'] = '4';
+        $zoneMap['SR'] = '4';
+        $zoneMap['SZ'] = '4';
+        $zoneMap['TZ'] = '4';
+        $zoneMap['TG'] = '4';
+        $zoneMap['TN'] = '4';
+        $zoneMap['UG'] = '4';
+        $zoneMap['UY'] = '4';
+        $zoneMap['VE'] = '4';
+        $zoneMap['ZM'] = '4';
+        $zoneMap['ZW'] = '4';
+        $zoneMap['AU'] = '5';
+        $zoneMap['CA'] = '5';
+        $zoneMap['FR'] = '5';
+        $zoneMap['DE'] = '5';
+        $zoneMap['GB'] = '5';
+        $zoneMap['IL'] = '5';
+        $zoneMap['IT'] = '5';
+        $zoneMap['JP'] = '5';
+        $zoneMap['MX'] = '5';
+        $zoneMap['NL'] = '5';
+        $zoneMap['NZ'] = '5';
+        $zoneMap['XL'] = '5';
+        $zoneMap['ES'] = '5';
+        $zoneMap['CH'] = '5';
+        $zoneMap['US'] = '5';
+        $zoneMap['VI'] = '5';
+        $zoneMap['DK'] = '6';
+        $zoneMap['HU'] = '6';
+        $zoneMap['NO'] = '6';
+        $zoneMap['RU'] = '6';
+        $zoneMap['SE'] = '6';
+        if (!$country_code)
+            return '';
+        $zone = $zoneMap[$country_code] ?? '';
+        if (!$zone)
+            return '';
+        return $zone;
+    }
+
+    private function getXuMap($countryCode)
+    {
+        $xuMap = [];
+
+        $xuMap["RU"] = 1;
+        $xuMap["US"] = 2;
+        $xuMap["BR"] = 3;
+        $xuMap["UK"] = 4;
+        $xuMap["CA"] = 5;
+        $xuMap["CL"] = 6;
+        $xuMap["BY"] = 7;
+        $xuMap["FR"] = 8;
+        $xuMap["IL"] = 9;
+        $xuMap["MX"] = 10;
+        $xuMap["HU"] = 11;
+        $xuMap["HR"] = 12;
+        $xuMap["ES"] = 13;
+        $xuMap["SK"] = 14;
+        $xuMap[" PE"] = 15;
+        $xuMap["LV"] = 16;
+        $xuMap["LK"] = 17;
+        $xuMap["DK"] = 18;
+        $xuMap["BG"] = 19;
+        $xuMap["NO"] = 20;
+        $xuMap["CO"] = 21;
+        $xuMap["MV"] = 22;
+        $xuMap["RO"] = 23;
+        $xuMap["AU"] = 24;
+        $xuMap["KZ"] = 25;
+        $xuMap["TH"] = 26;
+        $xuMap["GR"] = 27;
+        $xuMap["ZA"] = 28;
+        $xuMap["DE"] = 29;
+        $xuMap["NZ"] = 30;
+        $xuMap["MD"] = 31;
+        $xuMap["FI"] = 32;
+        $xuMap["MU"] = 33;
+        $xuMap["IN"] = 34;
+        $xuMap["NG"] = 35;
+        $xuMap["CZ"] = 36;
+        $xuMap["UA"] = 37;
+        $xuMap["SE"] = 38;
+        $xuMap["LT"] = 39;
+        $xuMap["SG"] = 40;
+        $xuMap["AE"] = 41;
+        $xuMap["MY"] = 42;
+        $xuMap["PL"] = 43;
+        $xuMap["AL"] = 44;
+        $xuMap["BE"] = 45;
+        $xuMap["ID"] = 46;
+        $xuMap["SI"] = 47;
+        $xuMap["IT"] = 48;
+        $xuMap["BA"] = 49;
+        $xuMap["CR"] = 50;
+        $xuMap["MK"] = 51;
+        $xuMap["SA"] = 52;
+        $xuMap["AR"] = 53;
+        $xuMap["UY"] = 54;
+        $xuMap["AM"] = 55;
+        $xuMap["TR"] = 56;
+        $xuMap["KR"] = 57;
+        $xuMap["PR"] = 58;
+        $xuMap["SV"] = 59;
+        $xuMap["CY"] = 60;
+        $xuMap["BH"] = 61;
+        $xuMap["MT"] = 62;
+        $xuMap["BO"] = 63;
+        $xuMap["EC"] = 64;
+        $xuMap["AZ"] = 65;
+        $xuMap["IS"] = 66;
+        $xuMap["GE"] = 67;
+        $xuMap["BN"] = 68;
+        $xuMap["JP"] = 69;
+        $xuMap["LB"] = 70;
+        $xuMap["ME"] = 71;
+        $xuMap["VE"] = 72;
+        $xuMap["KE"] = 73;
+        $xuMap["IE"] = 74;
+        $xuMap["JO"] = 75;
+        $xuMap["DZ"] = 76;
+        $xuMap["PH"] = 77;
+        $xuMap["GH"] = 78;
+        $xuMap["MA"] = 79;
+        $xuMap["KW"] = 80;
+        $xuMap["OM"] = 81;
+        $xuMap["PK"] = 82;
+        $xuMap["QA"] = 83;
+        $xuMap["UZ"] = 84;
+        $xuMap["RE"] = 85;
+        $xuMap["FJ"] = 86;
+        $xuMap["KH"] = 87;
+        $xuMap["FO"] = 88;
+        $xuMap["JM"] = 89;
+        $xuMap["SC"] = 90;
+        $xuMap["TZ"] = 91;
+        $xuMap["DO"] = 92;
+        $xuMap["GL"] = 93;
+        $xuMap["PY"] = 94;
+        $xuMap["EG"] = 95;
+        $xuMap["VN"] = 96;
+        $xuMap["BD"] = 97;
+        $xuMap["GT"] = 98;
+        $xuMap["MZ"] = 99;
+        $xuMap["ZM"] = 100;
+        $xuMap["AN"] = 101;
+        $xuMap["BW"] = 102;
+        $xuMap["HN"] = 103;
+        $xuMap["IQ"] = 104;
+        $xuMap["RS"] = 105;
+        $xuMap["TT"] = 106;
+        $xuMap["GI"] = 107;
+        $xuMap["LU"] = 108;
+        $xuMap["NI"] = 109;
+        $xuMap["PF"] = 110;
+        $xuMap["RW"] = 111;
+        $xuMap["YE"] = 112;
+        $xuMap["ZW"] = 113;
+        $xuMap["AO"] = 114;
+        $xuMap["BB"] = 115;
+        $xuMap["CH"] = 116;
+        $xuMap["EE"] = 117;
+        $xuMap["MN"] = 118;
+        $xuMap["PA"] = 119;
+        $xuMap["TM"] = 120;
+        $xuMap["TN"] = 121;
+        $xuMap["AG"] = 122;
+        $xuMap["BF"] = 123;
+        $xuMap["BM"] = 124;
+        $xuMap["BZ"] = 125;
+        $xuMap["CU"] = 126;
+        $xuMap["CV"] = 127;
+        $xuMap["ET"] = 128;
+        $xuMap["GD"] = 129;
+        $xuMap["IR"] = 130;
+        $xuMap["LC"] = 131;
+        $xuMap["LI"] = 132;
+        $xuMap["NA"] = 133;
+        $xuMap["NC"] = 134;
+        $xuMap["NL"] = 135;
+        $xuMap["NP"] = 136;
+        $xuMap["PG"] = 137;
+        $xuMap["PT"] = 138;
+        $xuMap["SD"] = 139;
+        $xuMap["SR"] = 140;
+        $xuMap["TJ"] = 141;
+        $xuMap["VI"] = 142;
+        $xuMap["AF"] = 143;
+        $xuMap["BT"] = 144;
+        $xuMap["TP"] = 145;
+        $xuMap["KP"] = 146;
+        $xuMap["LA"] = 147;
+        $xuMap["MP"] = 148;
+        $xuMap["MM"] = 149;
+        $xuMap["AI"] = 150;
+        $xuMap["XD"] = 151;
+        $xuMap["AT"] = 152;
+        $xuMap["XH"] = 153;
+        $xuMap["BS"] = 154;
+        $xuMap["XJ"] = 155;
+        $xuMap["IO"] = 156;
+        $xuMap["XA"] = 157;
+        $xuMap["XK"] = 158;
+        $xuMap["KY"] = 159;
+        $xuMap["XE"] = 160;
+        $xuMap["CX"] = 161;
+        $xuMap["CC"] = 162;
+        $xuMap["XF"] = 163;
+        $xuMap["DM"] = 164;
+        $xuMap["GQ"] = 165;
+        $xuMap["GF"] = 166;
+        $xuMap["HT"] = 167;
+        $xuMap["KI"] = 168;
+        $xuMap["KG"] = 169;
+        $xuMap["XI"] = 170;
+        $xuMap["MH"] = 171;
+        $xuMap["MC"] = 172;
+        $xuMap["MS"] = 173;
+        $xuMap["NR"] = 174;
+        $xuMap["NF"] = 175;
+        $xuMap["PN"] = 176;
+        $xuMap["AS"] = 177;
+        $xuMap["WS"] = 178;
+        $xuMap["SB"] = 179;
+        $xuMap["XG"] = 180;
+        $xuMap["SJ"] = 181;
+        $xuMap["KN"] = 182;
+        $xuMap["SH"] = 183;
+        $xuMap["PM"] = 184;
+        $xuMap["VC"] = 185;
+        $xuMap["SY"] = 186;
+        $xuMap["TO"] = 187;
+        $xuMap["VG"] = 188;
+        $xuMap["XB"] = 189;
+        $xuMap["TC"] = 190;
+        $xuMap["TV"] = 191;
+        $xuMap["VU"] = 192;
+        $xuMap["VA"] = 193;
+        $xuMap["XM"] = 194;
+        $xuMap["WF"] = 195;
+        $xuMap["BJ"] = 196;
+        $xuMap["BI"] = 197;
+        $xuMap["CM"] = 198;
+        $xuMap["CF"] = 199;
+        $xuMap["TD"] = 200;
+        $xuMap["KM"] = 201;
+        $xuMap["CD"] = 202;
+        $xuMap["CG"] = 203;
+        $xuMap["CI"] = 204;
+        $xuMap["DJ"] = 205;
+        $xuMap["ER"] = 206;
+        $xuMap["FK"] = 207;
+        $xuMap["GA"] = 208;
+        $xuMap["GM"] = 209;
+        $xuMap["GN"] = 210;
+        $xuMap["GW"] = 211;
+        $xuMap["GY"] = 212;
+        $xuMap["LS"] = 213;
+        $xuMap["LR"] = 214;
+        $xuMap["LY"] = 215;
+        $xuMap["MG"] = 216;
+        $xuMap["MW"] = 217;
+        $xuMap["ML"] = 218;
+        $xuMap["MR"] = 219;
+        $xuMap["NE"] = 220;
+        $xuMap["ST"] = 221;
+        $xuMap["SN"] = 222;
+        $xuMap["SL"] = 223;
+        $xuMap["SO"] = 224;
+        $xuMap["SZ"] = 225;
+        $xuMap["TG"] = 226;
+        $xuMap["UG"] = 227;
+
+        if (!$countryCode)
+            return '';
+        $sorting = $xuMap[$countryCode] ?? '';
+        if (!$sorting)
+            return '';
+        return $sorting;
+    }
+
+    private function getSignMap($countryCode)
+    {
+        $zoneMap = [];
+        $zoneMap['BR'] = '#1';
+        $zoneMap['RU'] = '#2';
+        $zoneMap['FR'] = '#3';
+        $zoneMap['ES'] = '#4';
+        $zoneMap['UA'] = '#5';
+        $zoneMap['DE'] = '#6';
+        $zoneMap['IL'] = '#7';
+        $zoneMap['GB'] = '#8';
+        $zoneMap['SE'] = '#9';
+        $zoneMap['CA'] = '#10';
+        $zoneMap['NL'] = '#11';
+        $zoneMap['NZ'] = '#12';
+        $zoneMap['US'] = '#13';
+        $zoneMap['AU'] = '#14';
+        $zoneMap['NO'] = '#15';
+        $zoneMap['GR'] = '#16';
+        $zoneMap['BY'] = '#17';
+        $zoneMap['TR'] = '#18';
+        $zoneMap['HU'] = '#19';
+        $zoneMap['CH'] = '#20';
+        $zoneMap['CZ'] = '#21';
+        $zoneMap['IE'] = '#22';
+        $zoneMap['EE'] = '#23';
+        $zoneMap['DK'] = '#24';
+        $zoneMap['HR'] = '#25';
+        $zoneMap['CL'] = '#26';
+        $zoneMap['MT'] = '#27';
+        $zoneMap['SK'] = '#28';
+        $zoneMap['PT'] = '#29';
+        $zoneMap['FI'] = '#30';
+        $zoneMap['BG'] = '#31';
+        $zoneMap['LV'] = '#32';
+        $zoneMap['LT'] = '#33';
+        $zoneMap['PL'] = '#34';
+        $zoneMap['MX'] = '#35';
+        $zoneMap['IT'] = '#36';
+        $zoneMap['KR'] = '#37';
+        $zoneMap['RO'] = '#38';
+        $zoneMap['KZ'] = '#39';
+        $zoneMap['CY'] = '#40';
+        $zoneMap['TH'] = '#41';
+        $zoneMap['BE'] = '#42';
+        $zoneMap['ID'] = '#43';
+        $zoneMap['SA'] = '#44';
+        $zoneMap['SI'] = '#45';
+        $zoneMap['AT'] = '#46';
+        $zoneMap['IN'] = '#47';
+        $zoneMap['SG'] = '#48';
+        $zoneMap['PE'] = '#49';
+        $zoneMap['MD'] = '#50';
+        $zoneMap['MY'] = '#51';
+        $zoneMap['AR'] = '#52';
+        $zoneMap['JP'] = '#53';
+        $zoneMap['RS'] = '#54';
+        $zoneMap['AZ'] = '#55';
+        $zoneMap['CO'] = '#56';
+        $zoneMap['ZA'] = '#57';
+        $zoneMap['LK'] = '#58';
+        $zoneMap['IS'] = '#59';
+        $zoneMap['MK'] = '#60';
+        $zoneMap['NG'] = '#61';
+        $zoneMap['UY'] = '#62';
+        $zoneMap['LB'] = '#63';
+        $zoneMap['PH'] = '#64';
+        $zoneMap['BN'] = '#65';
+        $zoneMap['AL'] = '#66';
+        $zoneMap['EC'] = '#67';
+        $zoneMap['AE'] = '#68';
+        $zoneMap['AM'] = '#69';
+        $zoneMap['UZ'] = '#70';
+        $zoneMap['LU'] = '#71';
+        $zoneMap['MU'] = '#72';
+        $zoneMap['BA'] = '#73';
+        $zoneMap['KW'] = '#74';
+        $zoneMap['ME'] = '#75';
+        $zoneMap['VE'] = '#76';
+        $zoneMap['OM'] = '#77';
+        $zoneMap['SV'] = '#78';
+        $zoneMap['MV'] = '#79';
+        $zoneMap['GE'] = '#80';
+        $zoneMap['PK'] = '#81';
+        $zoneMap['VN'] = '#82';
+        $zoneMap['QA'] = '#83';
+        $zoneMap['CR'] = '#84';
+        $zoneMap['PS'] = '#85';
+        $zoneMap['GH'] = '#86';
+        $zoneMap['TW'] = '#87';
+        $zoneMap['ZM'] = '#88';
+        $zoneMap['IR'] = '#89';
+        $zoneMap['DZ'] = '#90';
+        $zoneMap['PR'] = '#91';
+        $zoneMap['EG'] = '#92';
+        $zoneMap['TM'] = '#93';
+        $zoneMap['BO'] = '#94';
+        $zoneMap['PF'] = '#95';
+        $zoneMap['HK'] = '#96';
+        $zoneMap['BH'] = '#97';
+        $zoneMap['KE'] = '#98';
+        $zoneMap['LC'] = '#99';
+        $zoneMap['NC'] = '#100';
+        $zoneMap['KH'] = '#101';
+        $zoneMap['RE'] = '#102';
+        $zoneMap['YE'] = '#103';
+        $zoneMap['GP'] = '#104';
+        $zoneMap['FJ'] = '#105';
+        $zoneMap['IQ'] = '#106';
+        $zoneMap['MA'] = '#107';
+        $zoneMap['PG'] = '#108';
+        $zoneMap['PY'] = '#109';
+        $zoneMap['KG'] = '#110';
+        $zoneMap['CM'] = '#111';
+        $zoneMap['JO'] = '#112';
+        $zoneMap['SC'] = '#113';
+        $zoneMap['LA'] = '#114';
+        $zoneMap['BZ'] = '#115';
+        $zoneMap['KP'] = '#116';
+        $zoneMap['ZW'] = '#117';
+        $zoneMap['CK'] = '#118';
+        $zoneMap['TJ'] = '#119';
+        $zoneMap['PA'] = '#120';
+        $zoneMap['GF'] = '#121';
+        $zoneMap['TT'] = '#122';
+        $zoneMap['MQ'] = '#123';
+        $zoneMap['GM'] = '#124';
+        $zoneMap['TN'] = '#125';
+        $zoneMap['YK'] = '#126';
+        $zoneMap['TZ'] = '#127';
+        $zoneMap['BW'] = '#128';
+        $zoneMap['FO'] = '#129';
+        $zoneMap['CU'] = '#130';
+        $zoneMap['NA'] = '#131';
+        $zoneMap['NE'] = '#132';
+        $zoneMap['AF'] = '#133';
+        $zoneMap['MO'] = '#134';
+        $zoneMap['KY'] = '#135';
+        $zoneMap['MZ'] = '#136';
+        $zoneMap['HT'] = '#137';
+        $zoneMap['GT'] = '#138';
+        $zoneMap['BB'] = '#139';
+        $zoneMap['AW'] = '#140';
+        $zoneMap['GU'] = '#141';
+        $zoneMap['GY'] = '#142';
+        $zoneMap['AD'] = '#143';
+        $zoneMap['HN'] = '#144';
+        $zoneMap['AO'] = '#145';
+        $zoneMap['GA'] = '#146';
+        $zoneMap['DJ'] = '#147';
+        $zoneMap['GN'] = '#148';
+        $zoneMap['CI'] = '#149';
+        $zoneMap['AG'] = '#150';
+        $zoneMap['LR'] = '#151';
+        $zoneMap['LY'] = '#152';
+        $zoneMap['MS'] = '#153';
+        $zoneMap['RW'] = '#154';
+        $zoneMap['MW'] = '#155';
+        $zoneMap['ML'] = '#156';
+        $zoneMap['DM'] = '#157';
+        $zoneMap['BF'] = '#158';
+        $zoneMap['MN'] = '#159';
+        $zoneMap['BD'] = '#160';
+        $zoneMap['MM'] = '#161';
+        $zoneMap['MC'] = '#162';
+        $zoneMap['NP'] = '#163';
+        $zoneMap['NI'] = '#164';
+        $zoneMap['SL'] = '#165';
+        $zoneMap['SN'] = '#166';
+        $zoneMap['WS'] = '#167';
+        $zoneMap['BM'] = '#168';
+        $zoneMap['KN'] = '#169';
+        $zoneMap['SM'] = '#170';
+        $zoneMap['SD'] = '#171';
+        $zoneMap['SR'] = '#172';
+        $zoneMap['TO'] = '#173';
+        $zoneMap['VU'] = '#174';
+        $zoneMap['UG'] = '#175';
+        $zoneMap['SY'] = '#176';
+        $zoneMap['JM'] = '#177';
+        $zoneMap['GI'] = '#178';
+        $zoneMap['BJ'] = '#179';
+        $zoneMap['BS'] = '#180';
+        $zoneMap['SZ'] = '#181';
+        $zoneMap['WF'] = '#182';
+        $zoneMap['BT'] = '#183';
+        $zoneMap['BI'] = '#184';
+        $zoneMap['TG'] = '#185';
+        $zoneMap['DO'] = '#186';
+        $zoneMap['CG'] = '#187';
+        $zoneMap['AN'] = '#188';
+        $zoneMap['LI'] = '#189';
+        $zoneMap['MG'] = '#190';
+        $zoneMap['MR'] = '#191';
+        $zoneMap['MH'] = '#192';
+        $zoneMap['AS'] = '#193';
+        $zoneMap['FM'] = '#194';
+        $zoneMap['PM'] = '#195';
+        $zoneMap['SS'] = '#196';
+        $zoneMap['ET'] = '#197';
+        $zoneMap['CD'] = '#198';
+        $zoneMap['KI'] = '#199';
+        $zoneMap['SO'] = '#200';
+        $zoneMap['ER'] = '#201';
+        $zoneMap['GD'] = '#202';
+        $zoneMap['AI'] = '#203';
+        $zoneMap['GL'] = '#204';
+        $zoneMap['GW'] = '#205';
+        $zoneMap['KM'] = '#206';
+        $zoneMap['JE'] = '#207';
+        $zoneMap['GG'] = '#208';
+        $zoneMap['VG'] = '#209';
+        $zoneMap['VI'] = '#210';
+        $zoneMap['IM'] = '#211';
+        $zoneMap['TL'] = '#212';
+        $zoneMap['PW'] = '#213';
+        $zoneMap['TD'] = '#214';
+        $zoneMap['MF'] = '#215';
+        $zoneMap['IC'] = '#216';
+        $zoneMap['VA'] = '#217';
+        $zoneMap['EH'] = '#218';
+        $zoneMap['GQ'] = '#219';
+        $zoneMap['NR'] = '#220';
+        $zoneMap['MP'] = '#221';
+        $zoneMap['CF'] = '#222';
+        $zoneMap['YT'] = '#223';
+        $zoneMap['AX'] = '#224';
+        $zoneMap['AQ'] = '#225';
+        $zoneMap['BL'] = '#226';
+        $zoneMap['BQ'] = '#227';
+        $zoneMap['BV'] = '#228';
+        $zoneMap['CC'] = '#229';
+        $zoneMap['CV'] = '#230';
+        $zoneMap['CW'] = '#231';
+        $zoneMap['CX'] = '#232';
+        $zoneMap['FK'] = '#233';
+        $zoneMap['GS'] = '#234';
+        $zoneMap['HM'] = '#235';
+        $zoneMap['IO'] = '#236';
+        $zoneMap['LS'] = '#237';
+        $zoneMap['NF'] = '#238';
+        $zoneMap['NK'] = '#239';
+        $zoneMap['NU'] = '#240';
+        $zoneMap['PN'] = '#241';
+        $zoneMap['SB'] = '#242';
+        $zoneMap['SH'] = '#243';
+        $zoneMap['SJ'] = '#244';
+        $zoneMap['ST'] = '#245';
+        $zoneMap['SX'] = '#246';
+        $zoneMap['TC'] = '#247';
+        $zoneMap['TF'] = '#248';
+        $zoneMap['TK'] = '#249';
+        $zoneMap['TV'] = '#250';
+        $zoneMap['UM'] = '#251';
+        $zoneMap['VC'] = '#252';
+
+        if (!$countryCode)
+            return '';
+        $sign = $zoneMap[$countryCode] ?? '';
+        if (!$sign)
+            return '';
+        return $sign;
+    }
+
+    private function getCgCode($countryCode, $postCode)
+    {
+
+        if (!$countryCode)
+            return '';
+        $postCode3 = substr($postCode, 0, 3);
+        $postCode1 = substr($postCode, 0, 1);
+        if ($countryCode == 'US') {
+            if (intval($postCode3) >= 850 && intval($postCode3) <= 891)
+                return 'LAX';
+            if (intval($postCode3) >= 900 && intval($postCode3) <= 967)
+                return 'LAX';
+            if ($postCode3 == '968' || $postCode3 == '935')
+                return 'HNL';
+            if (intval($postCode1) >= 0 && intval($postCode1) <= 3)
+                return 'JFK';
+            if (intval($postCode1) >= 4 && intval($postCode1) <= 7)
+                return 'ORD';
+            if ($postCode1 == '8' || $postCode1 == '9')
+                return 'SFO';
+        }
+        if ($countryCode == 'AU') {
+            if ($postCode1 == '0' || $postCode1 == '1' || $postCode1 == '2')
+                return 'SYD';
+            if ($postCode1 == '3' || $postCode1 == '5' || $postCode1 == '7' || $postCode1 == '8')
+                return 'MEL';
+            if ($postCode1 == '4' || $postCode1 == '9')
+                return 'BNE';
+            if ($postCode1 == '6')
+                return 'PER';
+        }
+        if ($countryCode == 'CA') {
+            $postCode1 = strtoupper($postCode1);
+
+            if ($postCode1 >= 'A' && $postCode1 <= 'P')
+                return 'YTO';
+            if ($postCode1 >= 'R' && $postCode1 <= 'Y')
+                return 'YVR';
+        }
+        if ($countryCode == 'IN') {
+            if (intval($postCode3) >= 351 && intval($postCode3) <= 699)
+                return 'BOM';
+            else
+                return 'DEL';
+        }
+        if ($countryCode != 'US' || 'AU' || 'CA' || 'IN') {
+            return '';
+        }
+
+
+    }
+
+    /*
+         * @desc 邮编格式转化
+         * @params $country_code 国家编码
+         * @params $zip 邮编
+         * @return string
+         */
+    public function getZipFormat($zip)
+    {
+        if (!$zip) {
+            return '';
+        }
+
+        $code5 = ['480', '533', '536', '540', '612', '621', '624', '632', '635', ''];
+        $zip_0 = mb_substr($zip, 0, 3, 'utf-8');
+        $code = '';
+        if (($zip_0 >= '000' && $zip_0 <= '069') || ($zip_0 >= '074' && $zip_0 <= '078') || ($zip_0 >= '080' && $zip_0 <= '087') || ($zip_0 >= '090' && $zip_0 <= '099') || ($zip_0 >= '105' && $zip_0 <= '109') || ($zip_0 >= '117' && $zip_0 <= '229') || $zip_0 == '115') {
+            $code = '1F';
+        } elseif (($zip_0 >= '110' && $zip_0 <= '114') || $zip_0 == '103' || $zip_0 == '116') {
+            $code = '1P';
+        } elseif (($zip_0 >= '070' && $zip_0 <= '073') || $zip_0 == '079' || ($zip_0 >= '088' && $zip_0 <= '089')) {
+            $code = '1Q';
+        } elseif (($zip_0 >= '100' && $zip_0 <= '102') || $zip_0 == '104') {
+            $code = '1R';
+        } elseif (($zip_0 >= '400' && $zip_0 <= '433') || ($zip_0 >= '437' && $zip_0 <= '439') || ($zip_0 >= '450' && $zip_0 <= '459') || ($zip_0 >= '470' && $zip_0 <= '471') || ($zip_0 >= '475' && $zip_0 <= '477') || ($zip_0 >= '483' && $zip_0 <= '485') || in_array($zip_0, $code5) || ($zip_0 >= '493' && $zip_0 <= '497') || ($zip_0 >= '546' && $zip_0 <= '548') || ($zip_0 >= '550' && $zip_0 <= '609') || ($zip_0 >= '617' && $zip_0 <= '619') || ($zip_0 >= '640' && $zip_0 <= '699') || ($zip_0 >= '740' && $zip_0 <= '758') || ($zip_0 >= '760' && $zip_0 <= '772') || ($zip_0 >= '785' && $zip_0 <= '787') || ($zip_0 >= '789' && $zip_0 <= '799')) {
+            $code = '3F';
+        } elseif (($zip_0 >= '460' && $zip_0 <= '469') || ($zip_0 >= '472' && $zip_0 <= '474') || ($zip_0 >= '478' && $zip_0 <= '479')) {
+            $code = '3P';
+        } elseif (($zip_0 >= '498' && $zip_0 <= '499') || ($zip_0 >= '530' && $zip_0 <= '532') || ($zip_0 >= '534' && $zip_0 <= '535') || ($zip_0 >= '537' && $zip_0 <= '539') || ($zip_0 >= '541' && $zip_0 <= '545') || ($zip_0 >= '610' && $zip_0 <= '611') || $zip_0 == '549') {
+            $code = '3Q';
+        } elseif (($zip_0 >= '773' && $zip_0 <= '778') || $zip_0 == '759') {
+            $code = '3R';
+        } elseif (($zip_0 >= '613' && $zip_0 <= '616') || ($zip_0 >= '622' && $zip_0 <= '623') || ($zip_0 >= '625' && $zip_0 <= '631') || ($zip_0 >= '633' && $zip_0 <= '634') || ($zip_0 >= '636' && $zip_0 <= '639') || $zip_0 == '620') {
+            $code = '3U';
+        } elseif (($zip_0 >= '434' && $zip_0 <= '436') || ($zip_0 >= '481' && $zip_0 <= '482') || ($zip_0 >= '486' && $zip_0 <= '489') || $zip_0 == '492') {
+            $code = '3C';
+        } elseif (($zip_0 >= '779' && $zip_0 <= '784') || $zip_0 == '788') {
+            $code = '3D';
+        } elseif (($zip_0 >= '440' && $zip_0 <= '449')) {
+            $code = '3H';
+        } elseif (($zip_0 >= '813' && $zip_0 <= '849') || ($zip_0 >= '856' && $zip_0 <= '858') || ($zip_0 >= '861' && $zip_0 <= '862') || ($zip_0 >= '864' && $zip_0 <= '899') || ($zip_0 >= '909' && $zip_0 <= '918') || ($zip_0 >= '926' && $zip_0 <= '939') || $zip_0 == '854' || $zip_0 == '906') {
+            $code = '4F';
+        } elseif (($zip_0 >= '900' && $zip_0 <= '905') || ($zip_0 >= '907' && $zip_0 <= '908')) {
+            $code = '4P';
+        } elseif (($zip_0 >= '850' && $zip_0 <= '853') || ($zip_0 >= '859' && $zip_0 <= '860') || $zip_0 == '855' || $zip_0 == '863') {
+            $code = '4Q';
+        } elseif (($zip_0 >= '919' && $zip_0 <= '921')) {
+            $code = '4R';
+        } elseif (($zip_0 >= '922' && $zip_0 <= '925')) {
+            $code = '4U';
+        } elseif (($zip_0 >= '950' && $zip_0 <= '953') || ($zip_0 >= '956' && $zip_0 <= '979') || ($zip_0 >= '986' && $zip_0 <= '999') || $zip_0 == '942') {
+            $code = '2F';
+        } elseif (($zip_0 >= '980' && $zip_0 <= '985')) {
+            $code = '2P';
+        } elseif (($zip_0 >= '800' && $zip_0 <= '812')) {
+            $code = '2Q';
+        } elseif (($zip_0 >= '945' && $zip_0 <= '948')) {
+            $code = '2R';
+        } elseif (($zip_0 >= '940' && $zip_0 <= '941') || ($zip_0 >= '943' && $zip_0 <= '944') || ($zip_0 >= '954' && $zip_0 <= '955') || $zip_0 == '949') {
+            $code = '2U';
+        } elseif (($zip_0 >= '300' && $zip_0 <= '320') || ($zip_0 >= '322' && $zip_0 <= '326') || ($zip_0 >= '334' && $zip_0 <= '339') || ($zip_0 >= '341' && $zip_0 <= '346') || ($zip_0 >= '348' && $zip_0 <= '399') || ($zip_0 >= '700' && $zip_0 <= '739')) {
+            $code = '5F';
+        } elseif (($zip_0 >= '330' && $zip_0 <= '333') || $zip_0 == '340') {
+            $code = '5P';
+        } elseif (($zip_0 >= '327' && $zip_0 <= '329') || $zip_0 == '321' || $zip_0 == '347') {
+            $code = '5Q';
+        }
+
+        if (!$code)
+            return '';
+        return $code;
+
+    }
+
+    public function getPmk($country_code)
+    {
+        if (!$country_code)
+            return;
+        $pmk = array('1367', '1395', '1395', '1397', '1378', '1461', '1462', '1463', '1464', '1465', '1466', '1467', '1468', '1469', '1470', '1471', '1472');
+        $key = array_rand($pmk, 1);
+        return $pmk[$key];
+    }
+
+    //author by lan 土耳其邮政挂号小包(含电)
+    private function label_239($order)
+    {
+        return $this->display('239', $order);
+    }
+
+    //author by lan 土耳其邮政平邮小包(含电)
+    private function label_240($order)
+    {
+        return $this->display('240', $order);
+    }
+
+    //author by lan香港邮政挂号小包
+    private function label_107($order)
+    {
+        $order['zoneCode'] = $this->getZoneCode($order['country_code']);
+        return $this->display('107', $order);
+    }
+
+    //author by lan 香港邮政平邮小包
+    private function label_24($order)
+    {
+        $order['cgCode'] = $this->getCgCode($order['country_code'], $order['zip']);
+        $order['zoneCodePm'] = $this->getZoneCodePm($order['country_code']);
+        $order['xuMap'] = $this->getXuMap($order['country_code']);
+        return $this->display('24', $order);
+    }
+
+    //author by lan 马来西亚挂号小包-深圳
+    private function label_243($order)
+    {
+        $order['sigMap'] = $this->getSignMap($order['country_code']);
+        $order['pmk'] = $this->getPmk($order['country_code']);
+        return $this->display('243', $order);
+    }
+
+    //author by lan 马来西亚平邮小包-深圳
+    private function label_244($order)
+    {
+        $order['pmk'] = $this->getPmk($order['country_code']);
+        $order['sigMap'] = $this->getSignMap($order['country_code']);
+        return $this->display('244', $order);
+    }
+
+    //author by lan 燕文航空经济小包-特货
+    private function label_457($order)
+    {
+        return $this->display('457', $order);
+    }
+
+    //author by lan 燕文航空挂号小包-特货
+    private function label_456($order)
+    {
+        return $this->display('456', $order);
+    }
+
+    //author by lan 燕邮宝平邮-特货
+    private function label_141($order)
+    {
+        return $this->display('141', $order);
+    }
+
+    //author by lan 燕邮宝挂号
+    private function label_140($order)
+    {
+        return $this->display('140', $order);
+    }
+    //author by lan 中邮北京E邮宝(线下)  分拣码不确定  暂时不用
+//    private function label_197($order){
+//        $order['zoneZip']=$this->getZipFormat($order['zip']);
+//        return $this->display('197',$order);
+//    }
+    //author by lan 燕文专线追踪小包-普货
+    private function label_481($order)
+    {
+        return $this->display('481', $order);
+    }
+
+    //author by lan 燕文专线追踪小包-特货
+    private function label_484($order)
+    {
+        return $this->display('484', $order);
+    }
+
+}

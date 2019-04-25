@@ -1,0 +1,262 @@
+<?php
+namespace service\pm\NewSales;
+
+use service\pm\RequestService;
+use service\pm\PriceMinisterException;
+
+/**
+ * NewSales接口服务类
+ * @author wangwei 2019-2-27 17:26:55
+ */
+class NewSalesService extends RequestService{
+	
+	/**
+	 * 获取新的销售订单(需确认的订单)
+	 * @return array
+	 */
+	public function GetNewSales(){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+		
+		/**
+		 * 1、设置请求
+		 */
+		$this->setRequest('getnewsales', '2016-03-16');
+		
+		/**
+		 * 2、调用公共请求方法
+		 */
+		try {
+			$re = $this->executeRequest();
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+		
+		return $return;
+		
+	}
+	
+	/**
+	 * 接收销售(确认订单)
+	 * @param int $itemid
+	 * @return array
+	 */
+	public function AcceptSale($itemid){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+		
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($itemid)){
+			$return['message'] = 'itemid Not Empty';
+			return $return;
+		}
+		
+		/**
+		 * 2、设置请求
+		 */
+		$this->setRequest('acceptsale', '2010-09-20');
+		$this->setSuccessKey('saleacceptanceresult');
+		
+		/**
+		 * 3、调用公共请求方法
+		 */
+		try {
+			$params = array(
+					'itemid'=>$itemid,
+			);
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+		
+		return $return;
+		
+	}
+	
+	/**
+	 * 拒绝销售(拒绝订单)
+	 * @param int $itemid
+	 * @return array
+	 */
+	public function RefuseSale($itemid){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+		
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($itemid)){
+			$return['message'] = 'itemid Not Empty';
+			return $return;
+		}
+	
+		/**
+		 * 2、设置请求
+		*/
+		$this->setRequest('refusesale', '2010-09-20');
+		$this->setSuccessKey('saleacceptanceresult');
+		
+	
+		/**
+		 * 3、调用公共请求方法
+		*/
+		try {
+			$params = array(
+					'itemid'=>$itemid
+			);
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * 给买家发送留言
+	 * @param int $itemid
+	 * @param string $content
+	 * @return array
+	 */
+	public function ContactUserAboutItem($itemid,$content){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($itemid)){
+			$return['message'] = 'itemid Not Empty';
+			return $return;
+		}
+		if(empty($content)){
+			$return['message'] = 'content Not Empty';
+			return $return;
+		}
+		
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('contactuseraboutitem', '2011-02-02');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$params = array(
+					'itemid'=>$itemid,
+					'content'=>$content,
+			);
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+		
+		return $return;
+	
+	}
+	
+}

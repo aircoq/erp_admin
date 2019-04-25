@@ -1,0 +1,33 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-9-4
+ * Time: 上午10:00
+ */
+
+namespace swoole\messageAction;
+
+use swoole\PipeMessageAction;
+
+class StopQueueRuuner extends PipeMessageAction
+{
+    public  function execute($server, $fromWorkerId = null)
+    {
+        list('key'=>$key, 'task'=>$task) = $this->getData();
+        if($task){
+            $taskInfo = $server->tableTask->get($task);
+            if($taskInfo && $taskInfo['task'] === $key){
+                $taskInfo['status'] = false;
+                $server->tableTask->set($task, $taskInfo);
+            }
+        }else{
+            foreach ($server->tableTask as $task => $info) {
+                if($info['task'] === $key){
+                    $info['status'] = false;
+                    $server->tableTask->set($task, $info);
+                }
+            }
+        }
+    }
+}

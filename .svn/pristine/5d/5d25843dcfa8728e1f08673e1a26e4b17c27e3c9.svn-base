@@ -1,0 +1,16 @@
+{
+    "require": {
+        "barcode-bakery/barcode-common": "*",
+        "barcode-bakery/barcode-1d": "*"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "..\\packages\\barcode-common"
+        },
+        {
+            "type": "path",
+            "url": "..\\packages\\barcode-1d"
+        }
+    ]
+}

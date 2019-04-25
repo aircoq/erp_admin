@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.7973010250124479 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;font-size:10pt;line-height:12pt;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0">
+            <tbody>
+            <tr>
+                <td colspan="2"
+                    style="border:solid 1pt #000;text-align:center;width: 268pt;padding-left:2pt;height:20pt;colspan=2;">
+                    <strong>渠道：EUB（福州）</strong></td>
+            </tr>
+            <tr>
+                <td style="width:60pt;border:solid 1pt #000; font-size:10pt;line-height:12pt;text-align:center"><strong>第1/1件</strong>
+                </td>
+                <td style="width:210pt;border:solid 1pt #000; font-size:10pt;line-height:12pt;text-align:center">
+                    <strong>国家: <span style="line-height:16pt;"><?php echo $country_name;?>(<?php echo $country_code;?>)</span></strong></td>
+            </tr>
+            <tr>
+                <td colspan="2" style="border:solid 1pt #000;text-align:center;padding-top:2pt"><span
+                            style="display:inline-block;height:35pt;line-height:35pt;overflow-y:hidden;">
+                        <img  style="margin-bottom:5pt" width="80%" src="<?php echo $this->imgSrc($process_code);?>" />  </span><br>
+                    <?php echo $process_code; ?>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" valign="top"
+                    style="border:solid 1pt #000;border-bottom:0;width:150pt;padding-left:2pt;text-align:left;">
+                    <div style="width: 50pt;float: left"><strong>SHIP TO:</strong></div>
+                    <div style="float: left">
+                        <?php echo $name;?>
+                        <br> <?php echo $street.$street2;?>
+                        <br>
+                        <br> <?php echo $city?> <?php echo $province?> <?php echo $zip?> <br>
+                        <?php echo $country_en_name?> <br> Tel:<?php echo $phone?>  <br>
+                    </div></td>
+            </tr>
+            <tr>
+                <td colspan="2" style="border:solid 1pt #000;text-align:center;"><span
+                            style="display:inline-block;height:30pt;line-height:30pt;overflow-y:hidden">
+                        <img  width="80%" src="<?php echo $this->imgSrc('P'.$number);?>" /> </span>
+                    <br> <strong>P<?php echo $number; ?></strong></td>
+            </tr>
+            <tr style="">
+                <td colspan="2" style="border:solid 1pt #000;border-top:none;text-align:center;width: 268pt;padding-left:2pt;">C85935
+                    <span style="padding-left:5pt;"><?php echo date("Y-m-d H:i:s    ");?></span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

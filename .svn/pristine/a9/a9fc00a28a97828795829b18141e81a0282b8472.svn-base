@@ -1,0 +1,174 @@
+<?php
+namespace service\aliexpress\operation;
+
+use service\aliexpress\operation\Common;
+
+/**
+ *  aliexpress 线上分类api拉取
+ */
+class Category extends Common
+{
+
+    protected $client_id;
+    protected $client_secret;
+    protected $access_token;
+    protected $refresh_token ;
+    protected $server_host = 'http://gw.api.alibaba.com:80/openapi/';
+    protected $namespace = '';
+    protected $name = '';
+    
+    /**
+     * 构造函数
+     */
+    public function __construct($config)
+    {
+        parent::__construct($config);
+    }
+
+    
+    /**
+     * @author hot-zr
+     * @info 设置基础属性
+     * @param unknown $arrConfig
+     * @return \service\aliexpress\operation\Postproduct
+     */
+    
+    public function setConfig($arrConfig=[])
+    {
+    	foreach ($arrConfig as $k=>$v)
+    	{
+    		$this->$k= $v;
+    	}
+    	return $this;
+    }
+    
+    /**
+     * @info 发送数据
+     * @param unknown $arrConfig
+     */
+    private function buildSend($arrData=[])
+    {
+         $urlPath = implode('/',['param2',1,$this->namespace,$this->name,$this->client_id]);
+        foreach ($arrData as &$val)
+        {
+            $val = is_array($val)?json_encode($val):$val;
+        }
+        $arrData['access_token'] = $this->accessToken;
+        //$arrData['_aop_signature'] = $this->apiSign($arrData, $urlPath,$this->client_secret);
+        $strUrl = $this->server_host.$urlPath;
+        $result = $this->requestAliexpress($strUrl, $arrData);
+        return $result;
+    }
+    
+    /**
+     * @author hot-zr
+     * @info 查询指定类目适合的尺码模板 
+     * @param 参数  商品ID :$postCatId
+     * @return array
+     */
+    public function sizeModelsRequiredForPostCat($postCatId)
+    {
+    	$arrData['postCatId'] = $postCatId;
+    	$this->namespace = 'aliexpress.open';
+    	$this->name = 'api.sizeModelsRequiredForPostCat';
+    	return self::buildSend($arrData);
+    }
+    
+    /**
+     * @author hot-zr
+     * @info 判断发布类目尺码模板是否必须 
+     * @param 参数  商品ID : $postCatId
+     * @return array
+     */
+    public function sizeModelIsRequiredForPostCat($postCatId)
+    {
+    	$arrData['postCatId'] = $postCatId;
+    	$this->namespace = 'aliexpress.open';
+    	$this->name = 'sizeModelIsRequiredForPostCat';
+    	return self::buildSend($arrData);
+    }
+    
+    /**
+     * @author hot-zr
+     * @info 根据发布类目id、父属性路径（可选）获取子属性信息 
+     * @param 参数  商品ID : $arrData=['cateId','parentAttrValueList']
+     * @return array
+     */
+    public function getChildAttributesResultByPostCateIdAndPath ($arrData)
+    {
+    	$this->namespace = 'aliexpress.open';
+    	$this->name = 'getChildAttributesResultByPostCateIdAndPath';
+    	return self::buildSend($arrData);
+    }
+    
+    /**
+     * @author hot-zr
+     * @info 获取单个类目信息
+     * @param 参数  商品ID : cateId
+     * @return array
+     */
+    public function getPostCategoryById ($cateId=0)
+    {
+    	$arrData['cateId']=$cateId;
+    	$this->namespace = 'aliexpress.open';
+    	$this->name = 'api.getPostCategoryById';
+    	return self::buildSend($arrData);
+    }
+    
+    /**
+     * @author hot-zr
+     * @info 获取指定类目下子类目信息 
+     * @param 参数  商品ID : $cateId
+     * @return array
+     */
+    public function getChildrenPostCategoryById ($cateId=0)
+    {
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'api.getChildrenPostCategoryById';
+        $arrData['cateId'] = $cateId;
+        return self::buildSend($arrData);
+    }    
+    //@hot-zr 以下代码是原PHP工程师写的，不知道是否有用，所以保留没有更改。
+    
+    /**
+     * api 拉取分类
+     * @param unknown $data
+     * @return $result : 所有分类列表
+     */
+    public function getCategory($parentcateId = 0)
+    {
+        //$urlPath = 'param2/1/aliexpress.open/api.getChildrenPostCategoryById/'.$this->client_id;
+        $data['cateId'] = $parentcateId;
+        $data['access_token'] = $this->accessToken;
+        
+        //$signature = $this->apiSign($data, $urlPath);
+        $url       = "http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.getChildrenPostCategoryById/{$this->client_id}";
+        //$data['_aop_signature'] = $signature;
+        $result = $this->requestAliexpress($url, $data);
+        //$result = json_decode($result, true);
+        return $result;
+    }
+
+    /**
+     * api 获取分类属性
+     * @param string $appkey
+     * @param string $appsecret
+     * @param string $accessToken
+     * @param number $cateId
+     * @return $result : 所有属性列表
+     */
+    public function getCategoryAttr($cateId = 0)
+    {
+        //$urlPath = 'param2/1/aliexpress.open/getChildAttributesResultByPostCateIdAndPath/'.$this->client_id;
+        $data['cateId'] = $cateId;
+        $data['access_token'] = $this->accessToken;
+        
+        //$signature = $this->apiSign($data, $urlPath);
+        $url       = "http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/getChildAttributesResultByPostCateIdAndPath/{$this->client_id}";
+        //$data['_aop_signature'] = $signature;
+        $result   = $this->requestAliexpress($url, $data);
+        //$result = json_decode($result, true);
+        return $result;
+    }
+    
+}

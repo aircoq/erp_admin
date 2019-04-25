@@ -1,0 +1,392 @@
+<?php
+
+/**
+ * Description of AliexpressCategoryService
+ * @datetime 2017-6-6  11:14:59
+ * @author joy
+ */
+
+namespace app\publish\service;
+use think\Exception;
+use app\common\model\aliexpress\AliexpressProductTemplate;
+use app\common\model\aliexpress\AliexpressAccountCategoryPower;
+use app\common\model\aliexpress\AliexpressProduct;
+use app\publish\validate\AliCategoryAuthValidate;
+class AliexpressCategoryService {
+    protected $model;
+    protected $validate;
+    protected $productTemplateModel;
+    protected $aliexpressProductModel;
+
+    public  function __construct() {
+        $this->model = new  AliexpressAccountCategoryPower;
+        $this->validate = new  AliCategoryAuthValidate;
+        $this->productTemplateModel = new  AliexpressProductTemplate;
+        $this->aliexpressProductModel = new  AliexpressProduct;
+    }
+
+    /**
+     * 获取授权的本地分类与平台分类的关系
+     * @param $account_id
+     * @return false|\PDOStatement|string|\think\Collection
+     */
+    public static function getAuthCategory($account_id)
+    {
+        return AliexpressAccountCategoryPower::where('account_id',$account_id)->select();
+    }
+
+    /**
+     * 将分类转换为一维数组
+     * @param $categorys
+     * @return array
+     */
+    public static function getAuthCategoryArray($categorys)
+    {
+        $return=[];
+        if(empty($categorys))
+        {
+            return $return;
+        }
+        foreach ($categorys as $category)
+        {
+            $return[] = $category['local_category_id'];
+        }
+        return $return;
+    }
+
+    public function getTemplateContent($id)
+    {
+	    return AliexpressProductTemplate::where('id','=',$id)->find();
+    }
+    /**
+     * 获取单个账号下关联信息模板和自定义模板
+     * @param int $account_id 账号id
+     * @return array 
+     */
+    public  function getRelationAndCustomTemplate($account_id)
+    {
+        $customTemplates = $this->productTemplateModel->field('id,name')->where(['account_id'=>$account_id,'type'=>'custom'])->select();
+        
+        $relationTemplates = $this->productTemplateModel->field('id,name')->where(['account_id'=>$account_id,'type'=>'relation'])->select();
+        
+        return ['custom'=>$customTemplates,'relation'=>$relationTemplates];
+    }
+    /**
+     * 组装搜索条件
+     * @param type $param
+     * @return string
+     */
+    public  function getWhere($param)
+    {
+        $where=[];
+        if(isset($param['account_id']) && $param['account_id'])
+        {
+            $where['account_id']=['=',$param['account_id']];
+        }
+        
+        if(isset($param['category_id']) && $param['category_id'])
+        {
+            $where['category_id']=['=',$param['category_id']];
+        }
+        
+        if(isset($param['local_category_id']) && $param['local_category_id'])
+        {
+            $where['local_category_id']=['=',$param['local_category_id']];
+        }
+        return $where;
+    }
+    /**
+     * 统计总数量
+     * @param type $where
+     * @return type
+     */
+    public  function getCount($where)
+    {
+        $total = $this->model->where($where)->count();
+        return $total;
+    }
+    /**
+     * 获取速卖通授权刊登分类
+     * @param type $page
+     * @param type $pageSize
+     * @param type $param
+     * @return type
+     */
+    public  function getList($page=1,$pageSize=30,$param=[])
+    {
+        //搜索条件
+        $model = new AliexpressAccountCategoryPower();
+        $where = $this->getWhere($param);
+        //总条数
+        $total = $this->getCount($where);
+        //数据
+        $data = $model->alias('a')->with(['account','alicategory','localcategory'])->where($where)->page($page,$pageSize)->order('a.id desc')->select();
+         
+        return ['page'=>$page,'pageSize'=>$pageSize,'count'=>$total,'data'=>$data];
+    }
+    /**
+     * 新增速卖通授权刊登分类
+     * @param array $data
+     */
+    public  function addPublishCategory($data)
+    {
+        $data['account'] = json_decode($data['account'],true);
+        $data['local_category'] = json_decode($data['local_category'],true);
+        $this->validate->checkAdd($data,'add');
+        if($error = $this->validate->getError())
+        {
+            return ['result'=>false,'message'=>$error];
+        }
+        $accounts = $data['account'];
+        $alicategory = $data['category_id'];
+        $localcategory = $data['local_category'];
+        
+        foreach($accounts as $kk => $account)
+        {
+            foreach ($localcategory as $cate)
+            {
+                $item['account_id'] = $account;
+                $item['category_id'] = $alicategory;
+                $item['local_category_id'] = $cate;
+                $this->validate->checkAdd($item, 'every');
+                if($error=$this->validate->getError())
+                {
+                    ['result'=>false,'message'=>$error];
+                }else{
+                    try{
+                        $this->model->add($item);
+                    } catch (\think\Model $exp){
+                        throw $exp->getError();
+                    }
+                }
+            }     
+        }
+        
+        return ['result'=>true,'message'=>'新增成功'];;
+        
+    }
+    
+    /**
+     * 修改速卖通授权刊登分类
+     * @param array $data
+     */
+    public  function editPublishCategory($data)
+    {
+        $data['account'] = json_decode($data['account'],true);
+        $data['category_id']= $data['category_id'];
+        $data['unchecked'] = json_decode($data['unchecked'],true);
+        $data['checked'] = json_decode($data['checked'],true);
+       
+        $this->validate->checkAdd($data,'edit');
+        if($error = $this->validate->getError())
+        {
+            return ['result'=>false,'message'=>$error];
+        }
+        $accounts = $data['account'];
+        $alicategory = $data['category_id'];
+        foreach($accounts as $account)
+        {
+            if(!empty($data['unchecked']))
+            {
+                try{
+                    $del_response = $this->model->destroy($data['unchecked']);
+                } catch (Exception $exp){
+                    throw  new Exception($exp->getMessage());
+                } 
+            }
+           
+            $dataSet=[];
+            $ids = $data['checked'];
+            if($ids)
+            {
+                foreach ($ids as $key => $id) 
+                {
+                    $dataSet= ['account_id'=>$account,'category_id'=>$alicategory,'local_category_id'=>$id];
+                    try{
+                        $response = $this->model->add($dataSet);
+                    } catch (Exception $exp){
+                        throw  new Exception($exp->getMessage());
+                    } 
+                }
+            }                    
+        }
+        return ['result'=>true,'message'=>'修改成功'];   
+    }
+    /**
+     * 删除速卖通授权分类
+     * @param type $data
+     * @return type
+     */
+    public  function delete($data)
+    {
+        $res =  $this->model->destroy($data);
+        
+        if($res>0)
+        {
+            $message = '成功删除'.$res.'条记录';
+        }else{
+            $message = $res;
+        }
+        return $message;
+    }
+    /**
+     * 获取编辑数据
+     * @param type $id
+     */
+    public  function getEditData($id)
+    {
+        if(empty($id))
+        {
+            return false;
+        }
+        $data = $this->model->where(['id'=>$id])->find();
+        if($data)
+        {
+            $data['local_category'] = $this->model->where(['category_id'=>$data['category_id'],'account_id'=>$data['account_id']])->select();
+        }else{
+            $data['local_category'] = [];
+        }
+        
+        return $data;
+    }
+    /**
+     * 获取速卖通信息模板
+     * @param type $param
+     * @param type $page
+     * @param type $pageSize
+     * @param type $field
+     */
+    public  function getProductTemplates($param,$page,$pageSize,$field='*')
+    {
+        $model = new \app\common\model\aliexpress\AliexpressProductTemplate();
+        $data = $model->lists($param,$page,$pageSize);
+        return $data;
+    }
+    /**
+     * 创建关联信息模板
+     * @param type $data
+     * @return type
+     */
+    public  function create_relation_product_template($data)
+    {
+        $this->validate->checkAdd($data,'template');
+        if($error = $this->validate->getError())
+        {
+            return ['result'=>false,'message'=>$error];
+        }
+        
+        $data['type']='relation';
+        
+        $response = $this->productTemplateModel->addOne($data);
+        
+        return $response;
+        
+    }
+    /**
+     * 创建自定义信息模板
+     * @param type $data
+     * @return type
+     */
+    public  function create_custom_product_template($data)
+    {
+        $this->validate->checkAdd($data,'template');
+        if($error = $this->validate->getError())
+        {
+            return ['result'=>false,'message'=>$error];
+        }
+        $data['type']='custom';
+        $response = $this->productTemplateModel->addOne($data);
+        return $response;
+    }
+    /**
+     * 生成关联信息html标签
+     */
+    public  function getTemplateHtml($product_ids)
+    {
+     
+        if(empty($product_ids))
+        {
+            return json(['message'=>'商品id必填'],500);
+        }
+
+        $products =(new AliexpressProduct())->whereIn('product_id',$product_ids)->select();
+
+        $html  = $this->productTemplateModel->create_relation_template($products);
+
+        return $html;
+    }
+    /**
+     * 获取关联信息模板图片
+     * @param type $product_ids
+     * @return type
+     */
+    public  function getRelationTempateImages($product_ids)
+    {
+         
+        if(empty($product_ids))
+        {
+            return json(['message'=>'商品id必填'],500);
+        }
+         
+        $products =(new AliexpressProduct())->field('id,account_id,subject,product_id,imageurls')->whereIn('product_id',$product_ids)->select();
+        foreach($products as &$product)
+        {
+            $imges = explode(';', $product['imageurls']);
+            $main_image =array_shift($imges); 
+            unset($product['imageurls']);
+            $product['main_img'] = $main_image;
+        }
+        return $products;
+    }
+
+
+    /**
+     * 删除速卖通授权分类
+     * @param type $data
+     * @return type
+     */
+    public  function delete_product_template($data)
+    {
+        $res =  $this->productTemplateModel->destroy($data);
+        
+        if($res>0)
+        {
+            $message = '成功删除'.$res.'条记录';
+        }else{
+            $message = $res;
+        }
+        return $message;
+    }
+    /**
+     * 编辑速卖通信息模板
+     * @param array $data
+     */
+    public  function edit_product_template($data)
+    {
+        $this->validate->checkAddProductTemplate($data, 'edit_template');
+        if($error = $this->validate->getError())
+        {
+            return ['result'=>false,'message'=>$error];
+        }
+	    $where=[
+		    'name'=>['eq',$data['name']],
+		    //'module_contents'=>['eq',$data['module_contents']],
+		    'id'=>['<>',$data['id']],
+	    ];
+	    if((new AliexpressProductTemplate())->check($where))
+	    {
+		    return ['result'=>FALSE,'message'=>'已经存在同名的信息模板'];
+	    }else{
+		    $data['gmt_modified'] = date('YmdHis', time());
+		    $res = $this->productTemplateModel->allowField(true)->isUpdate(true)->save($data,['id'=>$data['id']]);
+		    if(is_numeric($res))
+		    {
+			    return ['result'=>true,'message'=>'更新成功'];
+		    }else{
+			    return ['result'=>false,'message'=>$this->productTemplateModel->getError()];
+		    }
+	    }
+
+
+    }
+}

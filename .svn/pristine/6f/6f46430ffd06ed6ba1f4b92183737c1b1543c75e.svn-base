@@ -1,0 +1,19 @@
+<?php
+namespace service\daraz\Order;
+
+use service\daraz;
+
+/**
+ * 品质管制接口服务类
+ * @author WangWei 2019-2-20 16:29:18
+ */
+class QualityControlService extends RequestService{
+	
+	public function GetQcStatus($params){
+		/**
+		 * 1、设置请求参数
+		 */
+		$params = is_array($params) ? $params : array();
+		
+	}
+}

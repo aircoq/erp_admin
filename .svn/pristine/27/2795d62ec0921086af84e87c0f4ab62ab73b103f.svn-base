@@ -1,0 +1,58 @@
+<?php
+
+namespace pandao;
+
+use app\common\cache\Cache;
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/5/22
+ * Time: 15:48
+ */
+class PandaoAccountApi extends PandaoBaseApi
+{
+    public function __construct($params = []) {
+        parent::__construct($params);
+    }
+
+    /**
+     * 通过code命取access_token;
+     * @return mixed
+     */
+    public function get_access_token() {
+        $url = 'https://mall.my.com/oauth/v2/token';
+        $postData = [
+            'client_id' => $this->client_id,
+            'client_secret' => $this->client_secret,
+            'grant_type' => 'password',
+            'username' => $this->username,
+            'password' => $this->password,
+        ];
+
+        $postData = http_build_query( $postData );
+        $result = $this->httpReader($url, 'POST', $postData);
+        return json_decode($result, true);
+    }
+
+    /**
+     * task里面列新access_token
+     * @param $params
+     * @return array|bool|mixed
+     */
+    public function task_refresh_access_token($params) {
+
+        if (!isset($params['expiry_time']) && !isset($params['refresh_token'])) {
+            return false;
+        }
+        //还剩两天再开始更新；
+        if ($params['expiry_time'] > (time() - 2 * 24 * 3600)) {
+            //已过期了
+            $this->client_id = $params['client_id'];
+            $this->client_secret = $params['client_secret'];
+            $this->refresh_token = $params['refresh_token'];
+            $this->shop_id = $params['id'];
+            return $this->_refresh_access_token();
+        }
+        return ['state' => true];
+    }
+}

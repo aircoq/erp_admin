@@ -1,0 +1,179 @@
+<?php
+// +----------------------------------------------------------------------
+// | 邮箱账号类
+// +----------------------------------------------------------------------
+// | File  : EmailAccount.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-19
+// +----------------------------------------------------------------------
+namespace imap;
+
+use \Exception as Exception;
+use imap\platform\AbsPlatform;
+use ReflectionClass;
+use app\common\service\Common;
+
+/**
+ * Class EmailAccount
+ * @package imap
+ */
+class EmailAccount
+{
+    protected $platformAccount  = '';
+    protected $emailAccount     = '';
+    protected $emailPassWord    = '';
+    protected $imapServ         = '';
+    protected $imapSslPort      = '';
+    protected $smtpServ         = '';
+    protected $smtpSslPort      = '';
+    public $mailBox          = 'INBOX';
+
+
+    /**
+     * @var AbsPlatform
+     */
+    protected $platform    = null;
+
+    /**
+     * @return mixed
+     */
+    public function getPlatformAccount()
+    {
+        return $this->platformAccount;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getEmailAccount()
+    {
+        return $this->emailAccount;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getEmailPassWord()
+    {
+        return $this->emailPassWord;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getImapServ()
+    {
+        return $this->imapServ;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getImapSslPort()
+    {
+        return $this->imapSslPort;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSmtpServ()
+    {
+        return $this->smtpServ;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSmtpSslPort()
+    {
+        return $this->smtpSslPort;
+    }
+
+    /**
+     * @var string
+     */
+    protected $attachmentsRootPath = ROOT_PATH . 'public/upload/email/attachments';
+
+    /**
+     * EmailAccount constructor.
+     * @param $platformAccount
+     * @param $emailAccount
+     * @param $emailPassWord
+     * @param $imapServ
+     * @param $imapSslPort
+     * @param $smtpServ
+     * @param $smtpSslPort
+     * @throws Exception
+     */
+    public function __construct($platformAccount, $emailAccount, $emailPassWord,$imapServ, $imapSslPort,$smtpServ,$smtpSslPort,$platfromClass = 'Amazon',$mailBox = 'INBOX')
+    {
+        $this->platformAccount = $platformAccount;
+        $this->emailAccount    = $emailAccount;
+        $this->emailPassWord   = $emailPassWord;
+        $this->imapServ        = $imapServ;
+        $this->imapSslPort     = $imapSslPort;
+        $this->smtpServ        = $smtpServ;
+        $this->smtpSslPort     = $smtpSslPort;
+        $this->mailBox         = $mailBox;
+
+        $platfromClass = 'imap\\platform\\'.ucfirst($platfromClass);
+        $this->platform = (new ReflectionClass($platfromClass))->newInstance();
+    }
+
+
+    /**
+     * <pre>
+     * 获取当前邮箱账户的邮件附件存储根目录
+     * 以当前系统目录分隔符结尾
+     * </pre>
+     * @return string
+     * @throws Exception
+     */
+    public function getAttachmentsRootPath()
+    {
+        $userInfo = Common::getUserInfo();
+        $user_id = empty($userInfo) ? 0 : $userInfo['user_id'];
+
+//        if(!is_string($this->attachmentsRootPath) || !preg_match('/^\/([\w-_]+\.?\/?)+$/',$this->attachmentsRootPath)){
+//            throw new Exception('附件存储根目录不是一个有效路径格式:'. $this->attachmentsRootPath);
+//        }
+        if( mb_strrpos($this->attachmentsRootPath , '/') !== mb_strlen($this->attachmentsRootPath) -1) {
+            $this->attachmentsRootPath .=  DIRECTORY_SEPARATOR;
+        }
+        return  $this->attachmentsRootPath . $user_id .DIRECTORY_SEPARATOR;
+    }
+
+
+    public function getImapServPath()
+    {
+//        return '{'.$this->imapServ .':'.$this->imapSslPort.'/pop3/ssl}';//pop3
+        return '{'.$this->imapServ .':'.$this->imapSslPort.'/imap/ssl}';//imap
+    }
+
+    /**
+     * @return string
+     */
+    public function getMailBox()
+    {
+        return $this->mailBox;
+    }
+
+    /**
+     * @param string $mailBox
+     */
+    public function setMailBox($mailBox)
+    {
+        $this->mailBox = $mailBox;
+    }
+
+    /**
+     * @return AbsPlatform
+     */
+    public function getPlatform()
+    {
+        return $this->platform;
+    }
+}

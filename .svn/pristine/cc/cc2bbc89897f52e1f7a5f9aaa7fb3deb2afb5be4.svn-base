@@ -1,0 +1,67 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-9-1
+ * Time: 下午2:28
+ */
+
+namespace rpc;
+
+
+class ModuleApi
+{
+    private $api;
+    private $sid;
+    private $auth;
+    private $fromModule;
+    private $params;
+    public function __construct($sid, $auth, $fromModule, $api, $params)
+    {
+        $this->auth = $auth;
+        $this->fromModule = $fromModule;
+        $this->sid = $sid;
+        $this->api= $api;
+        $this->params = $params;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getApi()
+    {
+        return $this->api;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getAuth()
+    {
+        return $this->auth;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFromModule()
+    {
+        return $this->fromModule;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getParams()
+    {
+        return $this->params;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSid()
+    {
+        return $this->sid;
+    }
+}

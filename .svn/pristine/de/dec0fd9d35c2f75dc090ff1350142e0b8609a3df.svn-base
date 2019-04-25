@@ -1,0 +1,31 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2018/9/25
+ * Time: 17:06
+ */
+
+namespace service\shopee\operation;
+
+
+class Image extends Common
+{
+
+    /**
+     * 本地图片地址转为平台图片地址
+     * @param array $images
+     * @return mixed
+     */
+    public function uploadImage($images)
+    {
+        $data = $this->getBaseConfig();
+        if(is_string($images)){
+            $images = [$images];
+        }
+        $data['images'] = $images;
+        $url = 'https://partner.shopeemobile.com/api/v1/image/upload';
+        $header =  $this->getHeader($data,$url,false);
+        return $this->doPost($url, $data, $header, false);
+    }
+}

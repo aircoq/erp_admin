@@ -1,0 +1,313 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Johnny<1589556545@qq.com>
+ * Date: 2018/5/18
+ * Time: 10:03
+ */
+namespace service\alinew\operation;
+
+use service\alinew\operation\Common;
+
+
+class MessageNotification extends Common
+{
+    /**
+     * 为已授权的用户开通消息服务
+     * @param array $topic_arr 消息主题列表，用半角逗号分隔。当用户订阅的topic是应用订阅的子集时才需要设置，
+     * 不设置表示继承应用所订阅的所有topic，一般情况建议不要设置。
+     * @return unknown|ResultSet|mixed
+     */
+    public function userPermit(array $topic_arr=[]){
+        $data = [];
+        //方法参数
+        if($topic_arr){
+            $data['topics'] = join(',', $topic_arr);
+        }
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('userPermit');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+    
+    /**
+     * 取消用户的消息服务
+     * @param string $nick  用户昵称
+     * @param string $user_platform 用户所属的平台类型，tbUIC:淘宝用户; icbu: icbu用户;ae:ae用户
+     * @return unknown|ResultSet|mixed
+     */
+    public function userCancel($nick,$user_platform){
+        $data = [];
+        //方法参数
+        $data['nick'] = $nick;
+        $data['user_platform'] = $user_platform;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('userCancel');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+
+    /**
+     * 查询指定用户开通的消息通道和组
+     * @param array $field_arr Y 需返回的字段列表，多个字段以半角逗号分隔。可选值：TmcUser结构体中的所有字段，一定要返回topic。
+     * @param string $nick Y 用户昵称
+     * @param string $user_platform N 用户所属的平台类型，tbUIC:淘宝用户; icbu: icbu用户;ae:ae用户
+     * @return unknown|ResultSet|mixed
+     */
+    public function userGet(array $field_arr, $nick, $user_platform=null){
+        $data = [];
+        //方法参数
+        $data['fields'] = join(',', $field_arr);
+        $data['nick'] = $nick;
+        $data['user_platform'] = $user_platform;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('userGet');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+    
+    /**
+     * 获取用户开通的topic列表
+     * @param string $nick Y 用户昵称
+     * @return unknown|ResultSet|mixed
+     */
+    public function userTopicsGet($nick){
+        $data = [];
+        //方法参数
+        $data['nick'] = $nick;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('userTopicsGet');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+    
+    /**
+     * 消费多条消息。消费时如果没有返回消息，建议做控制，不要一直调api，浪费应用的流量。如对程序做好优化，若没有消息则，sleep 100ms 等。
+     * @param string $group_name
+     * @param number $quantity
+     * @return unknown|ResultSet|mixed
+     */
+    public function messagesConsume($group_name,$quantity){
+        $data = [];
+        //方法参数
+        $data['group_name'] = $group_name;
+        $data['quantity'] = $quantity;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('messagesConsume');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+
+    /**
+     * 确认消费消息的状态
+     * @param string $group_name
+     * @param array $s_message_id_arr
+     * @param array $f_message_id_arr
+     * @return unknown|ResultSet|mixed
+     */
+    public function messagesConfirm($group_name, array $s_message_id_arr, array $f_message_id_arr=[]){
+        $data = [];
+        //方法参数
+        $data['group_name'] = $group_name;
+        $data['s_message_ids'] = join(',', $s_message_id_arr);
+        if($f_message_id_arr){
+            $data['f_message_ids'] = join(',', $f_message_id_arr);//已废弃
+        }
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('messagesConfirm');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+
+    /**
+     * 获取自定义用户分组列表
+     * @param array $group_names
+     * 要查询分组的名称，多个分组用半角逗号分隔，不传代表查询所有分组信息，但不会返回组下面的用户信息。
+     * 如果应用没有设置分组则返回空。组名不能以default开头，default开头是系统默认的组
+     *
+     * @param number $page_no 页码
+     * @param number $page_size 每页返回多少个分组
+     * @return unknown|ResultSet|mixed
+     */
+    public function groupsGet(array $group_name_arr=array(), $page_no=1, $page_size=40){
+        $data = [];
+        //方法参数
+        $data['group_names'] = join(',', $group_name_arr);
+        $data['page_no'] = $page_no;
+        $data['page_size'] = $page_size;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('groupsGet');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+
+    /**
+     * 为已开通用户添加用户分组
+     * @param string $group_name
+     * 分组名称，同一个应用下需要保证唯一性，最长32个字符。
+     * 添加分组后，消息通道会为用户的消息分配独立分组，但之前的消息还是存储于默认分组中。不能以default开头，default开头为系统默认组。
+     * 
+     * @param array $nick_arr 用户昵称列表，以半角逗号分隔，支持子账号，支持增量添加用户
+     * @param string $user_platform 用户所属于的平台类型，tbUIC:淘宝用户; icbu: icbu用户;ae:ae用户
+     * @return unknown|ResultSet|mixed
+     */
+    public function groupAdd($group_name, array $nick_arr, $user_platform = null){
+        $data = [];
+        //方法参数
+        $data['group_name'] = $group_name;
+        $data['nicks'] = join(',', $nick_arr);
+        $data['user_platform'] = $user_platform;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('groupAdd');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+    
+    /**
+     * 删除指定的分组或分组下的用户
+     * @param string $group_name
+     * 分组名称，分组删除后，用户的消息将会存储于默认分组中。警告：由于分组已经删除，用户之前未消费的消息将无法再获取。
+     * 不能以default开头，default开头为系统默认组。
+     *
+     * @param array $nick_arr 用户列表，不传表示删除整个分组，如果用户全部删除后，也会自动删除整个分组
+     * @param string $user_platform 用户所属于的平台类型，tbUIC:淘宝用户; icbu: icbu用户;ae:ae用户
+     * @return unknown|ResultSet|mixed
+     */
+    public function groupDelete($group_name, array $nick_arr = [], $user_platform = null){
+        $data = [];
+        //方法参数
+        $data['group_name'] = $group_name;
+        $data['nicks'] = join(',', $nick_arr);
+        $data['user_platform'] = $user_platform;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('groupDelete');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+
+    /**
+     * 根据topic名称路由消息到不同的分组。（前提：发送方未指定分组名） 如果是需要授权的消息，
+     * 分组路由先判断用户分组路由(使用taob ao.tmc.group.add添加的路由)，用户分组路由不存在时，才会判断topic分组路由
+     * @param string $group_name
+     * @param array $topic_arr
+     * @return unknown|ResultSet|mixed
+     */
+    public function topicGroupAdd($group_name, array $topic_arr){
+        $data = [];
+        //方法参数
+        $data['group_name'] = $group_name;
+        $data['topics'] = join(',', $topic_arr);
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('topicGroupAdd');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+
+    /**
+     * 删除根据topic名称路由消息到不同的分组关系
+     * @param string $group_name 消息分组名
+     * @param array $topic_arr 消息topic名称
+     * @param number $group_id 消息分组Id，一般不用填写，如果分组已经被删除，则根据问题排查工具返回的ID删除路由关系
+     * @return unknown|ResultSet|mixed
+     */
+    public function topicGroupDelete($group_name, array $topic_arr, $group_id = null){
+        $data = [];
+        //方法参数
+        $data['group_name'] = $group_name;
+        $data['topics'] = join(',', $topic_arr);
+        $data['group_id'] = $group_id;
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('topicGroupDelete');
+        $request->setClassName('MessageNotification');
+        $request->setModule('alimsg');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        $request->setToken($this->config['token']);
+        $request->setRequestParams(json_encode($data));
+        $res=$client->execute($request);
+        return $res;
+    }
+
+}

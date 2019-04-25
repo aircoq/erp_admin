@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.9579235085990616 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+    <div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+        <!-- 地址标签 -->
+        <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+            <div style="width:268pt;border:1pt solid #000;">
+                <div style="float:left;width:106pt;padding:0 2pt;font-size:8pt;line-height:8pt;word-wrap:break-word;">
+                    P.O.Box 4 <br> Suvarnabhumi Airport Post Office <br> Bangkok 10543 THAILAND
+                </div>
+                <div style="float:left;font-size:8pt;line-height:9pt;">
+                    <div style="width:122pt;margin:2pt;border:1pt solid #000;text-align:center;font-size:8pt;line-height:9pt;margin-left: 20pt;">
+                        Postage Paid <br> Special Permit No 4/2559 <br> Suvarnabhumi Airport Post
+                    </div>
+                </div>
+                <div style="clear:both"></div>
+            </div>
+            <div style="width:264pt;border:solid 1pt #000;border-top:0;padding:0 2pt;border-bottom: 0;">
+                <div style="width:120pt;float:left;word-wrap:break-word;font-size:8pt;line-height:9pt;"><strong>Deliver
+                        To:</strong> <br> <?php echo $name;?>
+                    <br> <?php echo $street.$street2;?>
+                    <br>  <?php echo $city?> ,<?php echo $province?> <br>
+                    <?php echo $country_en_name?> <?php echo $zip?>
+                </div>
+                <div style="width:144pt;float:left;margin-top: 2pt;text-align:center;font-size: 8pt;"><span
+                            style="display:inline-block;height:30pt;line-height:30pt;overflow-y:hidden;"> <img
+                                style="width:140pt;height:35pt;"
+                                src="<?php echo $this->imgSrc($process_code);?>"> </span><br>
+                    <strong style="margin-right:40pt;font-size: 10pt;"><?php echo $country_code;?></strong> <?php echo $process_code;?>
+                    <div style="font-size:9pt;line-height:11pt;"> Tel: <?php echo $phone;?> / <?php echo $tel;?></div>
+                </div>
+                <div style="clear:both;"></div>
+            </div>
+            <div style="width:268pt;border:1pt solid #000;">
+                <div style="float:left;width:130pt;font-size:8pt;line-height:14pt;padding:2pt;"> CUSTOMS DECLARATION
+                </div>
+                <div style="float:right;text-align:center;width:80pt;font-size:9pt;line-height:10pt;font-weight:bold;">
+                    CN22 <br> Important !
+                </div>
+                <div style="clear:both"></div>
+            </div>
+            <div style="width:268pt;border:1pt solid #000;border-top:0;border-bottom:0;font-size: 7pt;line-height: 7pt;">
+                <span style="width:50%;display: inline-block;"><input type="checkbox" style="margin:1pt"> Gift</span>
+                <span style="width:48%;display: inline-block;"><input type="checkbox" style="margin:1pt"> Commercial sample</span>
+                <span style="width:50%;display: inline-block;"><input type="checkbox"
+                                                                      style="margin:1pt"> Document</span> <span
+                        style="width:48%;display: inline-block;"><input type="checkbox" style="margin:1pt"
+                                                                        checked="true"> Other(Tick one or more boxes)</span>
+            </div>
+            <table cellpadding="0" cellspacing="0"
+                   style="width:270pt;border-collapse:collapse;font-size:7pt;line-height:9pt;">
+                <tbody>
+                <tr>
+                    <td style="width:140pt;border:solid 1pt #000;word-wrap:break-word;"> Detailed description of
+                        Contents
+                    </td>
+                    <td style="width:29pt;border:solid 1pt #000;"> Qty</td>
+                    <td style="width:50pt;border:solid 1pt #000;"> Weight (kg)</td>
+                    <td style="width:50pt;border:solid 1pt #000;"> Value (USD)</td>
+                </tr>
+                <?php foreach ($list as $k=>$v):?>
+                <tr>
+                    <td style="border:solid 1pt #000;word-wrap:break-word;padding:0 2pt;vertical-align:middle">
+                        <?php echo $v['declared_name_en'];?>
+                    </td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;vertical-align:middle"> <?php echo $v['qty'];?></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;vertical-align:middle">  <?php echo number_format($v['declared_weight']/1000,3,'.','');?></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;vertical-align:middle"> USD <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?></td>
+                </tr>
+                <?php endforeach;?>
+                <tr>
+                    <td colspan="2" style="height:10pt;border:solid 1pt #000;word-wrap:break-word;border-bottom:0">
+                        Origin:
+                    </td>
+                    <td style="border:solid 1pt #000;word-wrap:break-word;"> Total weight(kg)</td>
+                    <td style="border:solid 1pt #000;word-wrap:break-word;"> Total value(USD)</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="border:solid 1pt #000;"></td>
+                    <td style="border:solid 1pt #000;word-wrap:break-word;">  <?php echo number_format($total_weight/1000,3,'.','');?></td>
+                    <td style="border:solid 1pt #000;"> USD  <?php echo number_format($total_value,2,'.','');?></td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="border:solid 1pt #000;border-bottom:none;font-size:5pt;line-height:6pt;"> I
+                        the undersingned,certify the particulars given in this declaration are correct and this this
+                        item does not contain any dangerous artickes prohibited by legislation or by postal customs
+                        regulations.<br> <span style="font-size:6pt;line-height:7pt;">Date and sender Signature: <?php echo date('m/d H:i:s') ?></span>
+                        <span style="margin-left:20pt;font-size:6pt;line-height:7pt;"></span></td>
+                </tr>
+                <tr>
+                    <td style="border:solid 1pt #000;border-top:none;border-right:none;position:relative;">
+                        <div style="width:20pt;height:20pt;position:absolute;left:0;bottom:0;border-top:1pt solid #000;border-right:1pt solid #000;font-size:12pt;line-height:20pt;font-weight:bold;text-align:center;">
+                            P
+                        </div>
+                    </td>
+                    <td colspan="3" style="text-align:center;border:solid 1pt #000;border-top:none;border-left:none;">
+                        <span style="display:inline-block;height:30pt;line-height:32pt;overflow-y:hidden;"> <img
+                                    style="width:140pt;height:35pt;"
+                                    src="<?php echo $this->imgSrc($shipping_number);?>"> </span><br>
+                        <?php echo $shipping_number;?>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <div style="width:270pt;margin-top:1pt;">
+            </div>
+        </div>
+    </div>
+
+
+    <div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+
+</body>
+</html>

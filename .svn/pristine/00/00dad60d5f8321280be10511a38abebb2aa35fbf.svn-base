@@ -1,0 +1,201 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr>
+                <td colspan="7" style="border:1pt solid #000;border-bottom-width: 0;">
+                    <div style="padding-left: 1pt;font-size: 6pt;">
+                        If Undeliverable return to:<br>
+                        Locked Bag No:<br>
+                        Special Project Unit Pos Malaysia International Hub<br>
+                        Jalan KLIA S1, 64000 KLIA.<br>
+                        Account No: 2001025291-01<br>
+                    </div>
+                </td>
+                <td colspan="5" style="border:1pt solid #000;font-size: 6pt;font-weight:bold;text-align: left;">
+                    Bayaran Pos Jelas<br>
+                    Postage Paid<br>
+                    Pos Malaysia International Hub<br>
+                    Malaysia<br>
+                    PMK 1492<br>
+                </td>
+            </tr>
+            <tr style="font-size:10pt;font-weight: bold;height:20pt">
+                <td colspan="7" style="border:1pt solid #000;text-align: left;" rowspan="2">
+                    <div style="padding: 1pt;font-size: 8pt">
+                        <?php echo $name;?><br>
+                        <?php echo $street.' '.$street2?><br>
+                        <?php echo $city;?> ,<?php echo $province;?>   <?php echo $zip;?>
+                        <?php echo $country_en_name;?> <br>TEL: <?php echo $phone;?> / <?php echo $tel;?>
+                    </div>
+
+                </td>
+                <td colspan="3" style="border:1pt solid #000;font-size: 10pt;text-align: center;border-left-width: 0;">
+                    <?php echo $country_code ?>
+
+                </td>
+                <td colspan="2" style="border:1pt solid #000;line-height: 10pt;font-size: 10pt;text-align: center;">
+                    <?php echo $cg_code ?>
+
+                </td>
+            </tr>
+            <tr style="font-size:10pt;line-height: 10pt;font-weight: bold;line-height: 8.5pt;">
+                <td colspan="5" style="border:1pt solid #000;font-size: 7pt;text-align: left;">
+                    Order No:<br>
+                    P<?php echo $number ?><br>
+                    <?php echo $process_code ?><br>
+
+                </td>
+
+            </tr>
+            <tr style="font-size:10pt;font-weight: bold;">
+                <td colspan="12" style="text-align: center;height: 40pt">
+                    <div style="padding-top: 2pt"> <font style="font-weight: bold;font-size: 18pt"> R&nbsp;</font>
+                        <img style="height: 30pt" src="<?php echo $this->imgSrc($shipping_number);?>"></div>
+                    <?php echo $shipping_number;?>
+                </td>
+
+            </tr>
+            <tr style="line-height: 8.5pt;font-size: 9pt;">
+                <td colspan="5" rowspan="2" style="border:1pt solid #000;text-align: center;font-size: 6pt">
+                    <font style="font-weight: bold">CUSTOMS DECLARATION CN23</font><br>
+                    May be opened officially
+                </td>
+                <td colspan="3" rowspan="2" style="border:1pt solid #000;text-align: left;font-size: 6pt">
+                    Contents:<br>
+                    □Gift<br>
+                    □Commercial sample<br>
+                    □Document<br>
+                    ✔Other
+                </td>
+                <td colspan="2" style="border:1pt solid rgb(122, 68, 68);text-align: center;font-size: 6pt">
+                    Total Wt. (kg)
+                </td>
+                <td colspan="2" style="border:1pt solid #000;text-align: center;font-size: 6pt">
+                    Total Value ($)
+
+                </td>
+            </tr>
+            <tr style="line-height: 8.5pt;font-size: 8pt;">
+
+                <td colspan="2" style="border:1pt solid rgb(122, 68, 68);text-align: center">
+                    <?php echo number_format($total_weight/1000,3,'.','');?>
+                </td>
+                <td colspan="2" style="border:1pt solid #000;text-align: center">
+
+                    <?php echo number_format($total_value,3,'.','');?>
+                </td>
+            </tr>
+            <tr style="line-height: 8.5pt;font-size: 5pt;">
+                <td colspan="5" style="border:1pt solid #000;text-align: center;">
+                    Description of Contents
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: center;"> Sku/Qty</td>
+                <td colspan="2" style="border:1pt solid #000;text-align: center;">Weight(kg)</td>
+                <td colspan="2" style="border:1pt solid #000;text-align: center">Value</td>
+            </tr>
+
+            <?php foreach ($list as $k=>$v): if($k>0) break;?>
+            <tr style="font-size: 5pt;">
+
+                <td colspan="5"  style="border:1pt solid #000;text-align: center;">
+                    <?php echo $v['declared_name_en'];?>
+                </td>
+
+                <td colspan="3"  rowspan="2" style="border:1pt solid #000;text-align: center;"> <?php echo $v['sku']?>*<?php echo $v['qty']?></td>
+                <td colspan="2" style="border:1pt solid #000;text-align: center;"><?php echo number_format($v['declared_weight']/1000,3);?></td>
+                <td colspan="2" style="border:1pt solid #000;text-align: center"><?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?></td>
+            </tr>
+            <?php endforeach;?>
+            <tr style="line-height: 9pt;font-size: 5pt;">
+                <td colspan="5" style="border:1pt solid #000;text-align: left;">
+                    For commercial items only
+                </td>
+                <td colspan="4"  style="border:1pt solid #000;text-align: left;">License No:</td>
+            </tr>
+            <tr style="border-left:1pt solid #000;vertical-align: top;line-height: 9pt;font-size: 5pt;">
+                <td colspan="5"  style="text-align: left;">
+                    HS Tariff No:<?php echo $list[0]['hs_code'];?>
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;">
+                    Country of origin
+                </td>
+                <td colspan="4" style="border:1pt solid #000;text-align: left;">
+                    Certificate No:
+
+                </td>
+            </tr>
+            <tr style="border-left:1pt solid #000;vertical-align: top;line-height: 9pt;font-size: 5pt;">
+                <td colspan="5"  style="text-align: left;">
+
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;font-weight: bold">
+                    MALAYSIA
+                </td>
+                <td colspan="4" style="border:1pt solid #000;text-align: left;">
+                    Invoice No:
+
+                </td>
+            </tr>
+
+            <tr style="border-left:1pt solid #000;border-bottom:1pt solid #000;vertical-align: top;line-height: 9pt;font-size: 5pt;">
+                <td colspan="5"  style="text-align: left;border-top:1pt solid #000;border-right:1pt solid #000;font-size: 6pt">
+                    Importer’s ref(tax code/VATno) if any:
+                </td>
+                <td colspan="3" style="text-align: left;border-top:1pt solid #000;font-size: 6pt">
+                    Postage Fees:
+                </td>
+                <td colspan="4" style="border:1pt solid #000;text-align: left;font-size: 6pt">
+                    Office of origin/Date of posting:
+                </td>
+
+            </tr>
+            <tr style="border-left:1pt solid #000;border-bottom:1pt solid #000;vertical-align: top;font-size: 5pt;">
+                <td colspan="9"  style="text-align: left;font-size: 5pt;border:1pt solid #000;">
+                    Comments:(eq:goods subject to quarantine sanitary/phytosanitary inspection or other restrictions)
+                </td>
+                <td colspan="3"  rowspan="2 "  align="center" valign="middle" style="ont-size: 6pt;border-right:1pt solid #000;">
+                  P<?php echo $number ?>
+                </td>
+
+            </tr>
+            <tr style="border:1pt solid #000;vertical-align: top;">
+                <td colspan="9"  style="text-align: left; font-size: 5pt;border-right:1pt solid #000;">
+                    I certify that the particulars given in this customs declartion are correct and that this item doesnot contain
+                    any dangerous article prohibited by legislation or by postal or customs regulations.
+                </td>
+
+
+            </tr>
+            <tr style="border:1pt solid #000;vertical-align: top;line-height: 9pt;font-size: 5pt;">
+                <td colspan="5"  style="text-align: left;border:1pt solid #000;">
+                    Signature of sender: <font style="font-weight: bold">szrdf</font>
+                </td>
+                <td colspan="3"  style="text-align: left;border:1pt solid #000;">
+                    Date: <?php echo date('Y-m-d',time())?>
+                </td>
+                <td colspan="4"  style="text-align: center;border:1pt solid #000;font-weight: bold">
+                    YI YAN SHI
+                </td>
+
+
+            </tr>
+
+
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

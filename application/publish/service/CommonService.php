@@ -1,0 +1,485 @@
+<?php
+
+/**
+ * Description of CommonService
+ * @datetime 2017-6-14  17:26:15
+ * @author joy
+ */
+
+namespace app\publish\service;
+
+use app\common\exception\JsonErrorException;
+use app\common\cache\Cache;
+use app\common\model\aliexpress\AliexpressProduct;
+use app\common\model\aliexpress\AliexpressProductSku;
+use app\common\model\LogExportDownloadFiles;
+use app\common\model\pandao\PandaoProduct;
+use app\common\model\pandao\PandaoVariant;
+use app\common\model\wish\WishWaitUploadProduct;
+use app\common\model\wish\WishWaitUploadProductVariant;
+use app\report\model\ReportExportFiles;
+use think\Db;
+use think\Exception;
+use think\exception\PDOException;
+
+require_once(APP_PATH.'/../extend/XLSXWriter/xlsxwriter.class.php');
+
+class CommonService {
+    /**
+     * 获取本身和所有子分类
+     * @param $category_id
+     */
+    public static function getSelfAndChilds($category_id)
+    {
+        $categorys=[];
+        $category_list = Cache::store('category')->getCategoryTree();
+        array_push($categorys,$category_id);
+        $childs = $category_list[$category_id]['child_ids'];
+
+        if($childs)
+        {
+            foreach ($childs as $child)
+            {
+                array_push($categorys,$child);
+            }
+        }
+        return $categorys;
+    }
+    /**
+     * 生成sku编码
+     * @param type $sku
+     * @param type $separator
+     * @param type $len
+     * @param type $charlist
+     * @return string
+     */
+    public  function create_sku_code($sku,$separator='|',$len=20,$charlist='0-9')
+    {      
+        $left = $len - strlen($sku.$separator);      
+        $sku_code = $sku.$separator.\Nette\Utils\Random::generate($left, $charlist);     
+        return $sku_code;      
+    }
+    /**
+     * 生成随机sku编码
+     * @return type
+     */
+    public  function create_random_sku_code()
+    {
+        $charlist='0-9a-zA-Z|_';
+        $sku_cod = \Nette\Utils\Random::generate(20, $charlist);
+        return $sku_cod;
+    }
+    /**
+     * 生成捆绑商品sku
+     * @param type $data
+     * @param type $length
+     * @param type $charlist
+     * @return string
+     */
+    public  function create_sku_code_with_quantity($data,$length=20,$charlist='0-9')
+    {
+        $arr = explode('|', $data);
+        $sku_code='';
+        foreach ($arr as $k => $v) 
+        {
+            list($sku,$quantity)= explode('*', $v);
+            if(strlen($sku_code)<$length)
+                $sku_code = '_'.$sku.$sku_code;
+        }
+        $sku_code = substr($sku_code, 1);
+        if(strlen($sku_code)<$length)
+        {
+            $sku_code = $sku_code.'|';
+        }
+        
+        $left = $length  - strlen($sku_code); //剩余长度
+        
+        if($left>0)
+        {
+           $sku_code = $sku_code.\Nette\Utils\Random::generate($left, $charlist);
+        }
+        return $sku_code;
+    }
+    public static function replaceDesriptionHtmlTags($description)
+    {
+        if(empty($description))
+        {
+            return $description;
+        }
+        $description = str_replace('<br>', "\n", $description);
+        $description = str_replace('<br />', "\n", $description);
+        $description = str_replace('&nbsp;', " ", $description);
+
+        return $description;
+    }
+
+    /**
+     * @param $images 图片数据源
+     * @param  $source图片来源
+     * @param $source
+     */
+    public function saveImages(&$images,$source)
+    {
+        try {
+            // 保存图片
+            $return=[];
+            foreach($images as $k=>$image)
+            {
+                $return[$k]= $this->handleNetImage($image);
+            }
+            return $return;
+        } catch (JsonErrorException $exp) {
+            throw new JsonErrorException($exp->getMessage());
+        }
+    }
+
+    public function uploadImageAndSave($image,$source)
+    {
+        switch ($source)
+        {
+            case 1:
+                if (isset($image['name'])) {
+                    //list($name, $ext) = explode('.', $image['name']);
+                    $name = pathinfo($image['name'],PATHINFO_FILENAME);
+                    $tmp = explode('.', $image['name']);
+                    $ext = strtolower(end($tmp));
+                } else {
+                    $name = uniqid();
+                    $ext = 'jpg';
+                }
+                $filename = $this->savePic($image['image'], $name, $ext);
+                break;
+            case 2:
+                $name = uniqid();
+                $ext = 'jpg';
+                $filename = $this->saveNetPic($image, $name, $ext);
+                break;
+            default:
+                break;
+        }
+        return $filename;
+    }
+
+    public function saveNetImages($images)
+    {
+        try {
+            // 保存图片
+            $return=[];
+            foreach($images as $k=>$image)
+            {
+                $return[$k]= $this->handleNetImage($image);
+            }
+            return $return;
+        } catch (JsonErrorException $exp) {
+            throw new JsonErrorException($exp->getMessage());
+        }
+    }
+    /**
+     * 处理图片
+     * @param string $spu
+     * @param int $goods_id
+     * @param array $image
+     */
+    private function handleNetImage(&$image)
+    {
+
+        $name = uniqid();
+        $ext = 'jpg';
+        $filename = $this->saveNetPic($image, $name, $ext);
+        return $filename;
+    }
+    /**
+     * 保存图片
+     * @param string $spu
+     * @param stirng $image
+     * @param stirng $name
+     * @param string $ext
+     * @return string
+     * @throws Exception
+     */
+    private function saveNetPic($image, $name, $ext)
+    {
+        $base_path = ROOT_PATH.'/public/upload';
+
+        $dir = date('Y-m-d',time());
+
+        if (!is_dir($base_path . '/' . $dir) && !mkdir($base_path . '/' . $dir, 0777, true)) {
+            throw new Exception('目录创建不成功');
+        }
+
+        if (!in_array($ext, ['jpg', 'gif', 'png', 'jpeg'])) {
+            throw new Exception('图片格式不对');
+        }
+
+        $data = file_get_contents($image);
+
+        if (strpos('<?php', $data)) {
+            throw new Exception('上传内容有敏感信息');
+        }
+        $fileName = $name . '.' . $ext;
+        file_put_contents($base_path . '/' . $dir . '/' . $fileName, $data);
+        //$this->thumb($base_path . '/' . $dir . '/' . $fileName, 100, 100);
+        return $dir . '/' .$fileName;
+    }
+    public function saveLocalImages(&$images)
+    {
+        try {
+            // 保存图片
+            $return=[];
+            foreach($images as $k=>$image)
+            {
+                $return[$k]= $this->handle($image);
+            }
+            return $return;
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+    /**
+     * 处理图片
+     * @param string $spu
+     * @param int $goods_id
+     * @param array $image
+     */
+    private function handle(&$image)
+    {
+
+        $name = uniqid();
+        $ext = 'jpg';
+        $filename = $this->savePic($image, $name, $ext);
+        return $filename;
+    }
+
+    private function savePic($image, $name, $ext)
+    {
+        $base_path = ROOT_PATH.'/public/upload';
+
+        $dir = date('Ymd',time());
+
+        if (!is_dir($base_path . '/' . $dir) && !mkdir($base_path . '/' . $dir, 0777, true)) {
+            throw new JsonErrorException('目录创建不成功,请联系服务器管理员');
+        }
+
+        if (!in_array($ext, ['jpg', 'gif', 'png', 'jpeg'])) {
+            throw new JsonErrorException('图片格式不对');
+        }
+        $start=strpos($image,',');
+        $img= substr($image,$start+1);
+        $img = str_replace(' ', '+', $img);
+        $data = base64_decode($img);
+        if (strpos('<?php', $data)) {
+            throw new JsonErrorException('上传内容有敏感信息');
+        }
+        $fileName = $name . '.' . $ext;
+        file_put_contents($base_path . '/' . $dir . '/' . $fileName, $data);
+        //$this->thumb($base_path . '/' . $dir . '/' . $fileName, 100, 100);
+        return $dir . '/' .$fileName;
+    }
+
+    /**
+     * 获取图片上传的相对路径
+     * @return string
+     */
+    public static function getUploadPath()
+    {
+        return Cache::store('configParams')->getConfig('api_ip')['value'].DS.'upload'.DS;
+    }
+
+    public static function updateListingSellStatus($channel_id,$params)
+    {
+        if(is_array($params)){
+            $params = $params;
+        }elseif (is_json($params) || is_string($params)){
+            $params = json_decode($params,true);
+        }
+
+        if(isset($params['type']) && isset($params['id']) && isset($params['status']))
+        {
+            switch ($channel_id)
+            {
+                case 3:
+                    self::updateWishListingSellStatus($params);
+                    break;
+                case 4:
+                    self::updateAliexpressListingSellStatus($params);
+                    break;
+                case 8:
+                    self::updatePandaoListingSellStatus($params);
+                    break;
+                default:
+                    break;
+            }
+        }else{
+            throw new Exception("数据格式错误");
+        }
+    }
+    public static function updatePandaoListingSellStatus($params){
+        $id = $params['id'];$type=$params['type'];$status=$params['status'];
+        Db::startTrans();
+        try{
+            if($type==1)
+            {
+                PandaoProduct::where('goods_id',$id)->setField('spu_status',$status);
+            }elseif($type==2){
+                PandaoVariant::where('sku_id',$id)->setField('sell_status',$status);
+            }
+            Db::commit();
+        }catch (PDOException $exp){
+            Db::rollback();
+            throw new Exception($exp->getMessage());
+        }
+    }
+
+    public static function updateWishListingSellStatus($params)
+    {
+        $id = $params['id'];$type=$params['type'];$status=$params['status'];
+        Db::startTrans();
+        try{
+            if($type==1)
+            {
+                WishWaitUploadProduct::where('goods_id',$id)->setField('spu_status',$status);
+            }elseif($type==2){
+                WishWaitUploadProductVariant::where('sku_id',$id)->setField('sell_status',$status);
+            }
+            Db::commit();
+        }catch (PDOException $exp){
+            Db::rollback();
+            throw new Exception($exp->getMessage());
+        }
+    }
+    public static function updateAliexpressListingSellStatus($params)
+    {
+        $id = $params['id'];$type=$params['type'];$status=$params['status'];
+        Db::startTrans();
+        try{
+            if($type==1)
+            {
+                AliexpressProduct::where('goods_id',$id)->setField('spu_status',$status);
+            }elseif($type==2){
+                AliexpressProductSku::where('goods_sku_id',$id)->setField('sell_status',$status);
+            }
+            Db::commit();
+        }catch (PDOException $exp){
+            Db::rollback();
+            throw new Exception($exp->getMessage());
+        }
+    }
+
+    /**
+     * 导出csv格式
+     * @param $lists
+     * @param $header
+     * @param array $file
+     * @param int $transCode
+     * @return array|bool|string
+     */
+    public static function exportCsv($header, $lists, $fileInfo, $type,int $transCode = 0, $applyId=0)
+    {
+        $result = '文件生成失败';
+        try {
+            $aHeader = [];
+            foreach ($header as $v) {
+                if ($transCode) {
+                    $v['title'] = mb_convert_encoding($v['title'], 'gbk', 'utf-8');
+                }
+                $aHeader[] = $v['title'];
+            }
+
+            $fileName = $fileInfo['file_name'];
+            $downFileName = $fileName . '.csv';
+            $file = ROOT_PATH . 'public' . DS . 'download' . DS . $fileInfo['path'];
+            $filePath = $file . DS . $downFileName;
+            //无文件夹，创建文件夹
+            if (!is_dir($file) && !mkdir($file, 0777, true)) {
+                @unlink($filePath);
+                throw new Exception('创建文件夹失败。');
+            }
+            $fp = fopen($filePath, 'a');
+            fputcsv($fp, $aHeader);
+            foreach ($lists as $i => $row) {
+                $rowContent = [];
+                foreach ($header as $h) {
+                    $field = $h['key'];
+                    $value = isset($row[$field]) ? $row[$field] : '';
+                    if ($transCode) {
+                        $value = mb_convert_encoding($value,'gbk','utf-8');
+                    }
+                    $rowContent[] = is_numeric($value) ? $value . "\t" : $value; // 避免数字过长导致打开变科学计数法
+                }
+                fputcsv($fp, $rowContent);
+            }
+            fclose($fp);
+            if (is_file($filePath)) {
+                $result =  true;
+            }
+        } catch (\Throwable $e) {
+            $result = $e->getMessage();
+        }
+        return self::dealExportResult($result,$type,$fileInfo,$applyId);
+
+    }
+
+    /**
+     * @param $header
+     * @param $data
+     * @param $file
+     * @return bool|string
+     */
+    public static function xlsxwriterExport($header, $data, $fileInfo,$type,$applyId=0)
+    {
+        try {
+            $result = '文件生成失败';
+            //组装路径文件名信息
+            $fileName = $fileInfo['file_name'];
+            $downFileName = $fileName . '.xlsx';
+            $file = ROOT_PATH . 'public' . DS . 'download' . DS . $fileInfo['path'];
+            $filePath = $file . DS . $downFileName;
+
+            //无文件夹，创建文件夹
+            if (!is_dir($file) && !mkdir($file, 0777, true)) {
+                @unlink($filePath);
+                throw new Exception('创建文件夹失败');
+            }
+            $writer = new \XLSXWriter();
+            $writer->writeSheetHeader('Sheet1', $header);
+            foreach ($data as $dt) {
+                $writer->writeSheetRow('Sheet1', $dt);
+            }
+            $writer->writeToFile($filePath);
+            if (is_file($result)) {
+                $result = true;
+            }
+        } catch (\Throwable $e) {
+            $result = $e->getMessage();
+        }
+        return self::dealExportResult($result,$type,$fileInfo,$applyId);
+    }
+
+
+    /**
+     *  导出后的处理
+     * @param $res
+     * @param $type 0,普通导出；1,队列导出
+     * @param int $applyId
+     */
+    public static function dealExportResult($res, $type, $file,$applyId=0)
+    {
+        if ($type) {
+            $record = ReportExportFiles::get($applyId);
+            if ($res !== true) {
+                $record['status'] = 2;
+                $record['error_message'] = $res;
+                $record->isUpdate(true)->save();
+                return $res;
+            }
+            $record['exported_time'] = time();
+            $record['download_url'] = DS.'download'.DS.$file['path'].DS.$file['file_name'].'.'.$file['file_extension'];
+            $record['status'] = 1;
+            $record->allowField(true)->isUpdate(true)->save();
+            return true;
+        }
+        return (new LogExportDownloadFiles())->saveExportLog($file) ? true : '文件生成失败';
+    }
+
+
+}

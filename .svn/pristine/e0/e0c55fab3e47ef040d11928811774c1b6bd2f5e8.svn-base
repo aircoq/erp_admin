@@ -1,0 +1,144 @@
+<?php
+namespace service\aliexpress\operation;
+
+use service\aliexpress\operation\Common;
+use org\Curl;
+
+/**
+ *  aliexpress 线上分类api拉取
+ */
+class Images extends Common
+{
+
+    protected $client_id;
+    protected $client_secret;
+    protected $access_token;
+    protected $refresh_token ;
+    protected $server_host = 'http://gw.api.alibaba.com:80/';
+    protected $api_type = 'openapi';
+    protected $namespace = '';
+    protected $name = '';
+    
+    /**
+     * 构造函数
+     */
+    public function __construct($config)
+    {
+        parent::__construct($config);
+    }
+
+    
+    /**
+     * @author hot-zr
+     * @info 设置基础属性
+     * @param unknown $arrConfig
+     * @return \service\aliexpress\operation\Postproduct
+     */
+    
+    public function setConfig($arrConfig=[])
+    {
+    	foreach ($arrConfig as $k=>$v)
+    	{
+    		$this->$k= $v;
+    	}
+    	return $this;
+    }
+    
+    /**
+     * @info 发送数据
+     * @param unknown $arrConfig
+     */
+    private function buildSend($arrData=[])
+    {
+        $urlPath = implode('/',['param2',1,$this->namespace,$this->name,$this->client_id]);
+        foreach ($arrData as &$val)
+        {
+            $val = is_array($val)?json_encode($val):$val;
+        }
+        $arrData['access_token'] = $this->access_token;
+        //$arrData['_aop_signature'] = $this->apiSign($arrData, $urlPath,$this->client_secret);
+        $strUrl = $this->server_host.$this->api_type.'/'.$urlPath;
+        //$result = $this->curlPost($strUrl, $arrData);
+        $result = $this->requestAliexpress($strUrl,$arrData);
+        return $result;
+        
+    }
+    
+    /**
+     * @info 发送图片上传数据
+     * @param unknown $arrData
+     * @param unknown $strImageUrl
+     */
+    private function buildImagesSend($arrData=[],$strImageUrl)
+    {
+        $urlPath = implode('/',['param2',1,$this->namespace,$this->name,$this->client_id]);
+        foreach ($arrData as &$val)
+        {
+            $val = is_array($val)?json_encode($val):$val;
+        }
+        $arrData['access_token'] = $this->access_token;
+        $arrData['_aop_signature'] = $this->apiSign($arrData, $urlPath,$this->client_secret);
+        $strUrl = $this->server_host.$this->api_type.'/'.$urlPath.'?'.http_build_query($arrData);
+        //发送的格式
+        $strHttpEntityType = 'application/x-www-from-urlencoded';
+        $resImages = file_get_contents($strImageUrl);
+        $arrContext = array(
+            'http'=>array(
+                'method'=>'POST',
+                // 这里可以增加其他header..
+                'header'=>"Content-type: " .$strHttpEntityType ."\r\n".
+                'Content-length: '.strlen($resImages),
+                'content'=>$resImages)
+        );
+        $strStreamContext = stream_context_create($arrContext);
+        return json_decode(file_get_contents($strUrl,FALSE,$strStreamContext),true);
+    }
+    
+    /**
+     * @info 上传图片到图片银行
+     * @param unknown $strUrl
+     * @return mixed
+     */
+    public function uploadImage($strUrl)
+    {
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'api.uploadImage';
+        $this->api_type = 'fileapi';
+        $arrData ['fileName'] = pathinfo($strUrl)['basename'];
+        return $this->buildImagesSend($arrData,$strUrl);
+    }
+    /**
+     * @info 获取图片银行图片
+     * @param unknown $strUrl
+     * @return mixed
+     */
+    public function listImagePagination($arrData = [])
+    {
+        if(!isset($arrData['locationType']))
+        {
+            //定义默认为所有分组
+            $arrData['locationType']='allGroup';
+        }
+        
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'api.listImagePagination';
+        return $this->buildSend($arrData);
+    }
+
+    /**
+     * @info 上传图片到临时目录
+     * @param $strUrl
+     * @return mixed
+     */
+    public function uploadTempImage($strUrl)
+    {
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'api.uploadTempImage';
+        $this->api_type = 'fileapi';
+        $arrData['srcFileName'] = pathinfo($strUrl)['basename'];
+        $arrData['srcFileName'] = '1.jpg';
+        $result = $this->buildImagesSend($arrData,$strUrl);
+        return $result;
+    }
+
+}

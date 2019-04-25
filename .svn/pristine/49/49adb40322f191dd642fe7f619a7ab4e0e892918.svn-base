@@ -1,0 +1,51 @@
+<!-- saved from url=(0034)http://www.erp.com/jumia-test?test -->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>打印页面</title>
+</head>
+<body>
+<p style="text-align: center;"><span style="font-size:36px"><strong>Nigeria</strong></span></p>
+<style>.bodycontainer {
+        margin-left: 0px;
+        margin-right: 0px;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        width: 95%;
+    }
+</style>
+<p>&nbsp;</p>
+
+<div class="bodycontainer" style="text-align: center;">
+    <table border="0" cellpadding="3" cellspacing="0"
+           style="border-style:none; margin-bottom:20px; vertical-align:center;text-align:center; width:45%;padding-left: 44%;">
+        <tbody>
+        <tr style=" border-left: none; vertical-align: center; text-align: center;">
+            <td style="text-align: right; vertical-align:center;">
+                <p><strong>Parcel Number</strong></p>
+            </td>
+            <td style="padding-left: 0px;padding-left: 50px; "><img
+                        src="<?php echo $this->img($shipping_number,'',90,1);?>"
+                        alt="Tracking code" ><br />
+                <strong style="font-size:12px">*<?php echo $shipping_number ?>*</strong>
+            </td>
+        </tr>
+        <tr>
+            <td style="border-top:none; width:350px; "><strong>Order
+                    Number</strong></td>
+            <td style="border-left:none;border-top:none; vertical-align:top; text-align:center; padding-left: 0px; padding-left: 50px;"><img
+                        src="<?php echo $this->img($channel_order_number,'',115,1);?>"
+                        alt="Order Number">
+                <br />
+                <strong style="font-size:12px">*<?php echo $channel_order_number ?>*</strong>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+
+
+
+</body>
+</html>

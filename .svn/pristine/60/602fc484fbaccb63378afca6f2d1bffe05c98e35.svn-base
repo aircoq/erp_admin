@@ -1,0 +1,455 @@
+<?php
+/**
+ * 订单 API服务类
+ * @author wangwei
+ * @date 2018-11-16 13:42:36
+ */
+namespace service\amazon\Order;
+
+use service\amazon\Order\OrderBaseService;
+use org\XmlHandle;
+
+define('AMAZON_DATE_FORMAT', 'Y-m-d\TH:i:s\Z');
+class  OrderService extends OrderBaseService{
+	
+    /**
+     * 返回您在指定时间段内所创建或更新的订单
+     * @param array $Params
+     * @example $Params = [
+     *          'CreatedAfter'=>'',//N 订单创建开始时间，如:2019-01-24 17:36:33(北京时间，下同)
+     *          'CreatedBefore'=>//N 订单创建结束时间，默认值：当前时间减去两分钟
+     *          'LastUpdatedAfter'=>'',//N 订单更新开始时间
+     *          'LastUpdatedBefore'=>//N 订单创建结束时间，默认值：当前时间减去两分钟
+     *          'OrderStatus'=>//N 订单状态，枚举值（PendingAvailability、Pending、Unshipped、PartiallyShipped、Shipped、InvoiceUnconfirmed、Canceled、Unfulfillable）
+     *          'FulfillmentChannel'=>'',//N 订单配送方式，枚举值（AFN、MFN），默认值：全部
+     *          'PaymentMethod'=>'',//N 订单付款方式，枚举值（COD、CVS、Other），默认值：全部
+     *          'BuyerEmail'=>'',//N 买家的电子邮件地址
+     *          'SellerOrderId'=>'',//N 卖家所指定的订单编码。不是亚马逊订单编号
+     *          'TFMShipmentStatus'=>'',//N TFMShipmentStatus 值的列表。用于选择使用亚马逊配送服务 (TFM) 且当前配送状态与您指定的某个状态值相符的订单。如果指定 TFMShipmentStatus，则仅返回 TFM 订单
+     *          'MaxResultsPerPage'=>'',//N 每页条数，默认值：100
+     * ];
+     * 该 ListOrders 和 ListOrdersByNextToken 操作的最大请求限额为 6 个，恢复速率为每分钟 1 个请求(共用一个沙漏)
+     */
+    public function listOrders($Params){
+        $return = [
+            'ask' => 0,
+            'message'=>'listOrders_error',
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'data'=>[
+                'NextToken'=>'',
+                'LastUpdatedBefore'=>'',
+                'CreatedBefore'=>'',
+                'MerchantId'=>'',//卖家销售ID
+                'MarketplaceId'=>'',//市场ID
+                'Site'=>'',//站点代码
+                'Orders'=>[]
+            ],
+            'xml'=>'',
+        ];
+        
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MarketplaceWebServiceOrders_Model_ListOrdersRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        //设置商城ID
+        $request->setMarketplaceId($this->_MarketplaceId);
+        //设置时间
+        $timeTypeArr = ['CreatedAfter','CreatedBefore','LastUpdatedAfter','LastUpdatedBefore'];
+        foreach ($timeTypeArr as $timeType){
+            if(isset($Params[$timeType]) && !empty($Params[$timeType])){
+                $dateTime = new \DateTime($Params[$timeType]);
+                $dateTime->setTimezone(new \DateTimeZone('UTC'));
+                $funcName = "set{$timeType}";
+                $request->$funcName($dateTime->format(AMAZON_DATE_FORMAT));
+            }
+        }
+        //其他参数
+        $fieldNameArr = ['OrderStatus','FulfillmentChannel','PaymentMethod','BuyerEmail','SellerOrderId','TFMShipmentStatus','MaxResultsPerPage'];
+        foreach ($fieldNameArr as $fieldName){
+            if(isset($Params[$fieldName]) && !empty($Params[$fieldName])){
+                $funcName = "set{$fieldName}";
+                $request->$funcName($Params[$fieldName]);
+            }
+        }
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'listOrders');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['ListOrdersResponse']['ListOrdersResult'];
+            $Orders = [];
+            if($OrderList = paramNotEmpty($result, 'Orders', [])){
+                $Orders = paramNotEmpty($OrderList,'Order');
+                $Orders = isNumericArray($Orders) ? $Orders : [$Orders];
+            }
+            $return['ask'] = 1;
+            $return['data']['NextToken'] = paramNotEmpty($result, 'NextToken', '');
+            $return['data']['LastUpdatedBefore'] = paramNotEmpty($result, 'LastUpdatedBefore', '');
+            $return['data']['CreatedBefore'] = paramNotEmpty($result, 'CreatedBefore', '');
+            $return['data']['MerchantId'] = $this->_tokenConfig['MERCHANT_ID'];
+            $return['data']['MarketplaceId'] = $this->_MarketplaceId;
+            $return['data']['Site'] = $this->_tokenConfig['SITE'];
+            $return['data']['Orders'] = $Orders;
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 使用 NextToken 参数返回下一页订单
+     * @param string $NextToken //Y 下一页字符串标记
+     * 该 ListOrders 和 ListOrdersByNextToken 操作的最大请求限额为 6 个，恢复速率为每分钟 1 个请求(共用一个沙漏)
+     */
+    public function listOrdersByNextToken($NextToken){
+        $return = [
+            'ask' => 0,
+            'message'=>'listOrdersByNextToken_error',
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'data'=>[
+                'NextToken'=>'',
+                'LastUpdatedBefore'=>'',
+                'CreatedBefore'=>'',
+                'MerchantId'=>'',//卖家销售ID
+                'MarketplaceId'=>'',//市场ID
+                'Site'=>'',//站点代码
+                'Orders'=>[]
+            ],
+            'xml'=>'',
+        ];
+        
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MarketplaceWebServiceOrders_Model_ListOrdersByNextTokenRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        //设置NextToken
+        $request->setNextToken($NextToken);
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'listOrdersByNextToken');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['ListOrdersByNextTokenResponse']['ListOrdersByNextTokenResult'];
+            $Orders = [];
+            if($OrderList = paramNotEmpty($result, 'Orders', [])){
+                $Orders = paramNotEmpty($OrderList,'Order');
+                $Orders = isNumericArray($Orders) ? $Orders : [$Orders];
+            }
+            $return['ask'] = 1;
+            $return['data']['NextToken'] = paramNotEmpty($result, 'NextToken', '');
+            $return['data']['LastUpdatedBefore'] = paramNotEmpty($result, 'LastUpdatedBefore', '');
+            $return['data']['CreatedBefore'] = paramNotEmpty($result, 'CreatedBefore', '');
+            $return['data']['MerchantId'] = $this->_tokenConfig['MERCHANT_ID'];
+            $return['data']['MarketplaceId'] = $this->_MarketplaceId;
+            $return['data']['Site'] = $this->_tokenConfig['SITE'];
+            $return['data']['Orders'] = $Orders;
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 根据您指定的 AmazonOrderId 值返回订单
+     * @param string $AmazonOrderId //Y 亚马逊所定义的订单编码，格式为 3-7-7
+     * 该 GetOrder 操作的最大请求限额为 6 个，恢复速率为每分钟 1 个请求
+     */
+    public function getOrder($AmazonOrderId){
+        $return = [
+            'ask' => 0,
+            'message'=>'getOrder_error',
+            'data'=>[
+                'MerchantId'=>'',//卖家销售ID
+                'MarketplaceId'=>'',//市场ID
+                'Site'=>'',//站点代码
+                'Order'=>[],
+            ],
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        ];
+        
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MarketplaceWebServiceOrders_Model_GetOrderRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        //设置AmazonOrderId
+        $request->setAmazonOrderId($AmazonOrderId);
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'getOrder');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['GetOrderResponse']['GetOrderResult'];
+            $Order = [];
+            if($OrderList = paramNotEmpty($result, 'Orders', [])){
+                $Order = paramNotEmpty($OrderList,'Order');
+            }
+            //订单数据为空，认为错误
+            if(!empty($Order)){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+            }else{
+                $return['message'] = "Order Is Empty By AmazonOrderId: {$AmazonOrderId}";
+            }
+            $return['data']['MerchantId'] = $this->_tokenConfig['MERCHANT_ID'];
+            $return['data']['MarketplaceId'] = $this->_MarketplaceId;
+            $return['data']['Site'] = $this->_tokenConfig['SITE'];
+            $return['data']['Order'] = $Order;
+            $return['xml'] = $re['data'];
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 根据您指定的 AmazonOrderId 返回订单商品
+     * @param string $AmazonOrderId //Y 亚马逊所定义的订单编码，格式为 3-7-7
+     * 该 ListOrderItems 和 ListOrderItemsByNextToken 操作共享的最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求(共用一个沙漏)
+     */
+    public function listOrderItems($AmazonOrderId){
+        $return = [
+            'ask' => 0,
+            'message'=>'listOrderItems_error',
+            'data'=>[
+                'NextToken'=>'',
+                'AmazonOrderId'=>'',
+                'Items'=>[],
+            ],
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        ];
+        
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MarketplaceWebServiceOrders_Model_ListOrderItemsRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        //设置AmazonOrderId
+        $request->setAmazonOrderId($AmazonOrderId);
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'listOrderItems');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['ListOrderItemsResponse']['ListOrderItemsResult'];
+            $Items = [];
+            if($OrderItemList = paramNotEmpty($result, 'OrderItems', [])){
+                $Items = paramNotEmpty($OrderItemList,'OrderItem');
+                $Items = isNumericArray($Items) ? $Items : [$Items];
+            }
+            $return['ask'] = 1;
+            $return['data']['NextToken'] = paramNotEmpty($result, 'NextToken', '');
+            $return['data']['AmazonOrderId'] = paramNotEmpty($result, 'AmazonOrderId', '');
+            $return['data']['Items'] = $Items;
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 使用 NextToken 参数返回下一页订单商品
+     * @param string $AmazonOrderId //Y 亚马逊所定义的订单编码，格式为 3-7-7
+     * 该 ListOrderItems 和 ListOrderItemsByNextToken 操作共享的 最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求(共用一个沙漏)
+     */
+    public function listOrderItemsByNextToken($NextToken){
+        $return = [
+            'ask' => 0,
+            'message'=>'listOrderItemsByNextToken_error',
+            'data'=>[
+                'NextToken'=>'',
+                'AmazonOrderId'=>'',
+                'Items'=>[],
+            ],
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        ];
+        
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MarketplaceWebServiceOrders_Model_ListOrderItemsByNextTokenRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        //设置NextToken
+        $request->setNextToken($NextToken);
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'listOrderItemsByNextToken');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['ListOrderItemsByNextTokenResponse']['ListOrderItemsByNextTokenResult'];
+            $Items = [];
+            if($OrderItemList = paramNotEmpty($result, 'OrderItems', [])){
+                $Items = paramNotEmpty($OrderItemList,'OrderItem');
+                $Items = isNumericArray($Items) ? $Items : [$Items];
+            }
+            $return['ask'] = 1;
+            $return['data']['NextToken'] = paramNotEmpty($result, 'NextToken', '');
+            $return['data']['AmazonOrderId'] = paramNotEmpty($result, 'AmazonOrderId', '');
+            $return['data']['Items'] = $Items;
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 返回“订单 API”部分的运行状态
+     * 操作的最大请求限额为 2 个，恢复速率为 每 5 分钟 1 个请求
+     */
+    public function getServiceStatus(){
+        $return = array(
+            'ask' => 0,
+            'message'=>'getServiceStatus_error',
+            'data'=>array(),
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        );
+        
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MarketplaceWebServiceOrders_Model_GetServiceStatusRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'getServiceStatus');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $return['ask'] = 1;
+            $return['data'] = $data['GetServiceStatusResponse']['GetServiceStatusResult'];
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+	
+}

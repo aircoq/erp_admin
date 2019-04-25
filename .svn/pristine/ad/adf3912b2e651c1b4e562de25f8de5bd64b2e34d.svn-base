@@ -1,0 +1,92 @@
+<?php
+namespace service\daraz;
+
+/**
+ * Daraz基础数据类
+ * @author WangWei 2019-2-20 15:17:28
+ */
+class DarazLib{
+	
+	const API_VERSION = '1.0';
+	
+	/**
+	 * 获得Daraz配置数据
+	 * @param string $site 站点,不传返回所有配置数据
+	 */
+	public static function getDarazConfig($site=''){
+		$return = [];
+		$configArr = [
+		    //巴基斯坦Pakistan
+		    'PK'=>[
+		        'service_url'=>'https://api.sellercenter.daraz.pk',
+		    ],
+		    //孟加拉国Bangladesh
+		    'BD'=>[
+		        'service_url'=>'https://api.sellercenter.daraz.com.bd',
+		    ],
+		    //斯里兰卡Sri Lanka
+		    'LK'=>[
+		        'service_url'=>'https://api.sellercenter.daraz.lk',
+		    ],
+		    //尼泊尔Nepal
+		    'NP'=>[
+		        'service_url'=>'https://api.sellercenter.daraz.com.np',
+		    ],
+		    //缅甸Myanmar
+		    'MM'=>[
+		        'service_url'=>'https://api.sellercenter.shop.com.mm',
+		    ]
+		];
+		
+		//如果站点不为空则取站点数据，否则返回所有站点数据
+		if(!empty($site)){
+			$site = strtoupper($site);//转大写
+			$return = isset($configArr[$site]) ? $configArr[$site] : [] ;
+		}else{
+			$return = $configArr;
+		}
+		return $return;
+	}
+	
+	/**
+	 * 本地时间转Daraz时间
+	 * @param datetime $localDate 本地时间
+	 * @param string $site 站点(备用,后期可能不同站点时区不一样)
+	 * @return datetime
+	 */
+	public static function getDarazDate($localDate, $site=''){
+	    if(empty($localDate)){
+	        return '1970-01-01 08:00:00';
+	    }
+	    
+	    //平台时区  TODO 根据不同平台获取平台时区...
+	    $darazZone = new \DateTimeZone('Etc/GMT-5');//东五区,对应的PHP时区代码是Etc/GMT-5
+	    
+	    $dateTime = new \DateTime($localDate);
+	    $dateTime->setTimezone($darazZone);
+	    return $dateTime->format('Y-m-d H:i:s');
+	}
+	
+	/**
+	 * Daraz时间转本地时间
+	 * @param datetime $darazDate Daraz时间
+	 * @param string $site 站点(备用,后期可能不同站点时区不一样)
+	 * @return datetime
+	 */
+	public static function getLocalDate($darazDate, $site=''){
+	    if(empty($darazDate)){
+	        return '1970-01-01 08:00:00';
+	    }
+	    
+	    //平台时区  TODO 根据不同平台获取平台时区...
+	    $darazZone = new \DateTimeZone('Etc/GMT-5');//东五区,对应的PHP时区代码是Etc/GMT-5
+	    
+	    //本地时区
+	    $localZone = new \DateTimeZone(date_default_timezone_get());
+	    
+	    $dateTime = new \DateTime($darazDate, $darazZone);
+	    $dateTime->setTimezone($localZone);
+	    return $dateTime->format('Y-m-d H:i:s');
+	}
+	
+}

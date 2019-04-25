@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.3708949195269322 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow:hidden;page-break-after:always">
+        <div style="width:268pt;border:solid 1pt #000;">
+            <div style="width:120pt;float:left;font-size:10pt;line-height:12pt"></div>
+            <div style="width:140pt;float:right;font-size:10pt;line-height:12pt;font-weight:bold; border-left:solid 1pt #000;">
+                EUSLUT
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:264pt;padding:2pt;border:solid 1pt #000;text-align:center; border-bottom:0; border-top:0">
+            <div style="width:40pt;float:left;font-size:10pt;line-height:12pt"><img width="100%"
+                                                                                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFsAAABSCAIAAAC0Wz8GAAAR0UlEQVR4Ae3cZ6hmVXcH8Khj791o0HcssUUj2AtEUFFjRYllPkQHItiJBr+JoEE/iB0rWBDF3hBUxBpLbDGCWHnVWGPsvTua3zn/O8szZ+597uPceXmHl2d9OHedtddea+1V9t5nn/PchX799de/mlf4+eefp02b9ssvvxDgCo+kUEheeOGFUSALtRC2WbNmQRZZZJG0hiFN4Uyra4AWSAkPMSrgBNc1TVO8NhaPoOuBhaaSI/qCCvWPP/5ItOgtuuiiEFlQkRTnDz/8EPHNN9/84IMPIJ9++ulnn30GWWyxxQiByIJllllmpZVWgq+xxhprrrkmZOWVV15iiSUgJGDDDJdlkey2Mg59vsCUPJKqiR1MrAT+/vvvET///PNHHnkEcv/99z/xxBNxxJdffvnDDz8g8iOXpe9PP/0UBDHe0bTqqqsics1OO+0E2WOPPbbaaisOgmOrUorSdJ8v11HV9N04H3KkIpxieeaZZy699FJ67rrrro8//rgUJr3d1hyZOEuHNIk2PDnSZS621Vdf/aCDDiLhsMMO23jjjSGLL754JUspmiIyJY/QrUBS288999yZZ56JwhGpmhpV10QJbxgoK664YkqAHxFRvv32248++uiLL76A6xvX1KwUv4dz2WWXPeCAA7CdcMIJm2yyCaQKED5FGFVN34GT5IhAgZoy0xslUz36J598cu6556JfdtllFd5kjaimoywQyV133RXbDjvssNFGG0FWW221VNnSSy+dzMefNNH6yiuvPPzww5Ann3zyhRdegJiPJUjlXSSbfY866iitxx9//PLLLw/BQGwlVHKHtUkuDJPCJB7Rn7mpfItrhkoBp2h6/vnnjz76aEZHTdgYEYPWW2+9GTNmaDrwwAOVfQaTkkH87rvvllxySQh6hhejIxklTuejV199FdtNN910ww03vPfee+mSoWb8KDvvvPPZZ58N4Xras2Dru9RSSyH+LpjQI7GMLMYlhihl9O23365JZLKmwjkrjthggw1OPPFEFI4wWUDii4pSjTmUCmD8Ema9AjVmbHTdcsst6BdffPFrr70Gqdjou84666BcfvnlO+64Y7KP1+LWEhKZg6+jeWQu/4jYuCDggHe1BofYX4ErrrhC8BN/qaFYwAorrPDvLdibRqBeQhRAIQogptXV1AAg4QlD8ReblQtolapptfH9txYsOhIhkJGh3HrrrSU5MkvUMMiEVRMFLCAlOLNUMlxR8EuI0nXbbbeFn3XWWdtssw1ELbADkkknbISkKNzWPJo5RVPKpxjwlF7EKreIcuXW4I899thxxx0Hf/HFF1MpVJtuL7jgAsR99903MjXNLSQS5r6OqmYunwyTSKmaq6++2gqXRU78gSAffvjhtlUgWS3+BPYyP7dJ4Mr8ufViwxNm12KIdrcWO8sHKDbE/23hkEMOmV09zd/Yaa8YIbGqBA5GmsOLcSGWMUJN/mcLeQy1sFUGHnPMMV999VW64y/T28L/3m28gGHccYZY2tndNT23hIQhSHVJa11ti2ztQSoxU5vl/79aKBXDIKOqGbpqKhpvvfXW37WQDRUBJqp/biEJUqmRCEirXiiIKko3cSrC1YpSegupROvyJw11jHZN0gR43lE1LARM/YcWbGRKxaRIUzXEha9bn7FDyRx77LFJQhNHanXLLbfM3NEdKgkZQ5dYoyoVNSqSM6p33nnnf1pwnmJ4YegKmXQMGIgK2xtvvLHZZpsl7qyN5aeeeuoAsUbaVTGqmvGqpmJb3iqK469VVlklnUyo2Zg9/fTTA1zeDW/kVACFggplBV566aV/bMGjR8Ta/r/77rsVrl4xFn0iJGJd77nnnqw1NVZrwn+3wOyYBCEnXVCCRPI0f2xjUPU3ZrcQtwyCnHfeeU59UpMG4zwC0ekeEZB6bIMXdDdawaUuC+Qwnm+++eb888+HeGLOszKlFlQUV9ppgSfhIUNCySdhl112OeKII3SkIkqd6UbphRde6ChXk5oVibQyMgMc05W8iOeIi7cQ/6MFj+o6MBqoTzt0YFQ4hwFyAM6vv/7a0z2wwY00RpAM+CumSEZzSizRKznidhhFxZOOf2xh+vTpkUwLR4CnnnoqnJ68qwvvFA4ZzSNjmfHbn8SklyOS8J9aCJ/qAB7w4kutga5ru3jJbDJk1iy7SuWW2hauyJQj8hbIETiwuptHIrkkdMUOwPUSahCN4TzjjDOSj5QGcXxR0xPOaEHp9mpWXw1FCpM1zBkXSKX9bQvvv/9+iRtgXARGpioATnEihy+M/O9b8ITqPAkg8kXAKtzztdvBunqtGWeIVHvpAzidAWDttdf+vxZ6vTLqEEdVk5T97drMapKKeyCuyeoHHnjADIoS1yaSUqbHFjEhVjmEGGk56Xr55ZfxeBeFKG9nzpwJ8cx+8803Q6gwz0GcsOTWVahdgdYgg6/kg/CwRC7D11prrf322w/ibUla5YetA8pee+2ljsIvQdIaXc26KKm6zfi8i6sRat1///0RdQvRNRYTUXZEeq5FNL2j2A7sueeep512WnCHOhBGqyBIDZ5lJLsiQmKS1mGcYhSRVt0JYYZnYsg111xjioFQet9990H22WefniMQA6Oqme2J2X9lQPO5Q+VINkvey1WI7CDWX3/92fzNX3sWzzihJGu6rfCS5gnRrQMuyZLzcbrEE5HepFJJQJcOdRuZwyRIV1p6EQ6RX5tuuinEobQtcpoMDVIZCu8O321jVg0AnunDQyS+pnnaNB6xEMDZGnPLHYiDIV4gFpK+dEUyIhjcffhWojIKWrpiU7ZbbLGFuYw0qq2YEMO0BoVTx5oENI2qpu/2sYiFzGdeEQEP5nDA5d7C8SLoduXU+LVLnAiXU0mQMMC7txP1mmd6clB3NmdvKc0zHERnJQEUnMVc6saKWXNE5G1+jVYZezpIN8MIm9shh1T6IMFT4XQ1Xpm9fy1r5hnpBawkx2AbzFBcs+h4l1A8GXipnpaG9IQ7FtMGienLLbecB7Dw5JrWngUlrod02aICQ+nqMU/xtuSXnQQmDDYmksVtHtkhHlaxZdrG07VzjlqYok1/Gd3H9mZxEm853TEwVRNP201Jk67XtfZuh3RE9fpT5EhyIbYZS6mIUmme5VLJpCmnAWmtvhlIs25jKnOrOT1d7QUzrcixEDGHrZts4/qlK62YQyxp43acIrFUZFyGEO2xn/AyDN71YHM7Rd1/ed2bHOGwzDE8GoTb4t2k2dw5ktZJ3VGRwV9dKlCFTCpnUoaKM5kUleRYbkLNRpmcmJRh9sYVLY1HMFVb5uSy3rTiRcS6666LjeNqhOk85DXSYiU8q5jbmDWkkEnZIj8WRoVBBTGElAmeGJPHwnQhucYLH1VN39VNjvBQnMRnjppRypfWbQ529NQ4r/NIMn/D2zdqnu4rf6VDhuOaLHCYlo2ZlAmbNVRrMqinbSxHNANtf90CVrKACnTqQ0oXwtkTtIDcspl5sbYZUgu+8+MRgC6WIB9Uj2vz2NLdDr+R9TctcCFPA32c6EeB27C5bRub1gUHzBogpsYqs2kM9vYqFGbnANx5YFmesbiGMppHyjNjSDOPAL4Mku+QnR04Ign98ccfz8OObV/YasOTLgvaVaaoixhvEoT4iCRnOg6KcvqVM90adXcIYx5RL6Gmp7f/+a5WH6/Hgm+//faUYZNgkrMr5c+Os7NMKo+IXOrl7bffzn4E23bbbcfachm8OmYUC9bA/uyeZUCTI+Xg8q4fs/jGWJNjVw9Ft912G3zrrbfOclWTEOKCA0lztmX3xbCy3IoZm71C3G233TQZMqjK6I6i8QhHZKiYkk4KJBuTfOhwxx13YPPRpt9zdDsvOHiNzUxh2+3KNpOIj/MgxhU3WWJSNSqlunBW8FxHVdMPa7OHAyFLkMyd1pq9994b8aqrrnL1jbGr2sl3GcVfOaXV1FU1FQY7ou4EhgeQn8lbSveqT4ikZBGDUFHqMERgRLniSWshIeoFufbaa3Py7jbj8pWa4x5NbKsVk9joivDfHhPx6QmC+GAT4t2XqSQdnFZ6+4modsJGhPxMq1zNfJ79Ljaa8s2MH3yY7XOipzX8DLKKYcv7EAiZqhUSiH2YDz30UBQ/0jD49KUobkWPUrpiUrR7o67JD/y81oRoypdS7N98881ROCjGw1mSvoS4HVUNJ8wBY/uR0OKk4JmBfMGkWEL3Euiiiy7SevLJJ+fVlLB3Y1VRTYryfeLvwwhBSBwEucdGYCj4/eSzLKlyQEc88sgjUWIJSpJF8ue4EEPkSxlNfrKA4i1EpOnopy1w320kVaMxVx27Ax+rlMbeDhAa8E7Qg0Dk6pZP6B588EGKgR5Z2DDDOQKEGHo+1vCoRAL1AeMBcG4Fyi0g4dHbr2yWQnEbig/NARVkmmhAVFOE2BryM73qFyBef/31nsuA7mwGzuI97OV5DwPI6IKnV3DXOeaRjLx7xX3KKafkszZzYZq8zb333nvhnpOZQjFcuJIvLE7cSA+/+cL4gyMadviTBShB6NJEoNaMJF0SEk+rVPAUIk4MkKiGEGKQEDOI7xDylQax0Xv66aefdNJJWvFEFy2Q6CohGMBoHokffrtOmCNxuat9Torw2WefFRxd5YIvUSF+TQFP3GRvnC1cqVW34VcapVBYErcKeIU3dLeYkwLpFUuIoiv0CjUGclwlV35zf/DBB/v4hTGIsmD33XeH+H4kG87KQUhX7xxK3RTQ1MXdpmIdkYDp06czOnYnq30cr5SMH+iYkoYUJdJ4IQxuuyqK32iBJlfMoCstQrodUcKGP60mLJ8Nga4rN9xww0wf1RcSSK9cIypKUUZVI4fmhPhptu/6OaJVJGUm8PtNzwWAABUBBMQvv+y+AM44G3+kQZrQt8GvVkhlUNjMxIihu/YSJ91xaqowMqbp0Ipqv+X9o+c3NQKY5GpxAQ899FDpKrHpGKVpLbFpGn/11RYR4bZtBXALG8ipUhxLve94wN13391yNRvcQBS46kha3abVUItSyOyuzd8eseoOvQ1Qc/Ft3x9aEJ7Yo6htEXzODygtk0rapMioauYsGXeDfZZMCY9QB+xipUkypcnUFkTmX1vwWBg2vRLMdI+obqibipr9gxqt3bzQJflCVNmgb4g+KvuXFmr3aCDZ5ikWe6Ww0R7VPckhTnSdcPVlKzVWqfIhBVlorS+PPvooukc4320zNDxp5an84nTGjBl50UO3USWx4ezDX3kODyXrVxfXFLshXOPjpyuvvBJu1ac3HYUjbHboEM8ZHvCyIOqbUWTrqHUYGFVN30sT5kgY+VgQssgnGuiSJbnjJ3wzZ87MV8QSJwyuSRZPKNna+czW14L5bFD0hI4QuZBIwkOJFrkQ1dIKYmq0M4Rcd911d955p1/KFD9E8KPUMWieQnPKFyGVGpWhukwKE3qka2WM453oMJJkI+m8c8kll0DOOeecPOnqmL68FjaIdwL5d0SOJ5Letk/Zy3oki3wroi8CvZEkzSewfu8N4Q5+h+DhsgxVR8yIXtHnvzao0HrhgK1XejiHhwk9YqikiDZTEswyyIBrFjDmjIfd+W36jTfemEhyRAU8JhJYHUnOGJJumgzSB3N5nqQiKYMe/+Y2uOMfP+3V5BjJ4guRKVFBI2ujFzGWM7K0YB4Mo3mk758Jc6QYExa3opR0EIHMFFaZqlUMqZHXX3/dAadbB0WezSHYpEb6kpY0ya1WYYwKQaYiwdSamItzWmn0z23ymwUTkyNOfSsHSywJ8CQUCWEYPkHInNAjXYOiAHeMc9ttRQ+EWK1+m+ffPWny40oPivlXM16eZi405ohldHK7ZOqCJ78+MfKc5jn1MAfVxxzRWN50G2nE8rj5GMXUHoNdozS9Bl9HVdP3z4Q50mec7D7RCFfhiRuigsq/LLEe5XxcsiSSFWdhdPhm74vfIpp11MuEmowHmFCKBvAM2TTfPEJfOaJ0h9LN2JQGBmPoDQNz+MdtLZl/amRUNX0Pz88c6cvu3Pfir6USRNYEL0r6JZt07KZYR+QcaK/vHG2/82ZsF/g7e42xT2rHAIbyUQ0YpWqKgtAHSOja3O3Ypc8D/v+LdbuRTn49zwAAAABJRU5ErkJggg=="></div>
+            <div style="width:224pt;float:left;font-size:10pt;line-height:12pt;text-align:center"><span
+                        style="display:inline-block;height:25pt;line-height:27pt;overflow-y:hidden"> <img
+                            style="width:200pt;height:30pt;"
+                            src="<?php echo $this->imgSrc($shipping_number);?>"> </span>
+                <br> <?php echo $shipping_number;?>
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:264pt;padding:2pt;border:solid 1pt #000;border-bottom:0">
+            <div style="width:120pt;float:left;font-size:10pt;line-height:12pt"> Customer NO:利朗达</div>
+            <div style="width:140pt;float:left;font-size:10pt;line-height:12pt;font-weight:bold"> Weight(Kg):</div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:264pt;padding:2pt;border:solid 1pt #000;border-bottom:0">
+            <div style="width:200pt;float:left;word-wrap:break-word;"> <?php echo $name;?>
+                <br> <?php echo $street.$street2;?>
+                <br>
+                <?php echo $city?> ,<?php echo $province?> ,<?php echo $zip?>
+                <br> <?php echo $country_en_name?> <br> Tel:<?php echo $phone?>
+            </div>
+            <div style="width:60pt;text-align:center;float: left;font-size: 46pt;"> ★</div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:264pt;padding:2pt;border:solid 1pt #000; border-top:0">
+            <div style="width: 50pt; border:solid 1pt #000;float:right; border-bottom:0"> <?php echo $country_code;?></div>
+            <div style="clear:both;"></div>
+            <div style="width: 50pt; border:solid 1pt #000;float:right"> K</div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:264pt;padding:2pt;border:solid 1pt #000;border-top:0">
+            <div style="width:264pt;text-align:center"><span
+                        style="display:inline-block;height:25pt;line-height:27pt;overflow-y:hidden">
+                    <img style="width: 80%" src="<?php echo $this->imgSrc('P'.$number);?>"> </span></div>
+            <div style="width:264pt;">
+                <div style="width:180pt;float:left; font-size:10pt;line-height:12pt;"> HAWB:P<?php echo $number;?></div>
+                <div style="width:80pt;float:left; font-size:10pt;line-height:12pt;"> <?php echo date('d-m-Y');?></div>
+                <div style="clear:both;"></div>
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+
+
+    </div>
+</div>
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

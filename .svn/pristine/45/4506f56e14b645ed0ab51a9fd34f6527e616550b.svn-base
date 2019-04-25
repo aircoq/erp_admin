@@ -1,0 +1,569 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: zhuda
+ * Date: 2019/2/28
+ * Time: 15:25
+ */
+
+namespace app\index\service;
+
+
+use think\DB;
+use think\Request;
+use app\index\service\User as userService;
+use app\common\exception\JsonErrorException;
+use app\common\model\Bank;
+use app\common\model\account\CreditCard;
+use app\common\model\UserLog;
+use app\common\model\account\CreditCategory;
+use app\common\service\Excel;
+
+class CreditCardService
+{
+    private static $headers = [
+        '信用卡类别', '卡号', '卡主姓名', '银行', '有效期', '安全码', '状态'
+    ];
+
+    protected $bankArr = [];
+
+    /**
+     * @var creditcard
+     */
+    protected $creditCardModel;
+
+    public function __construct()
+    {
+        if (is_null($this->creditCardModel)) {
+            $this->creditCardModel = new CreditCard();
+        }
+    }
+
+    /**
+     * 接收错误并返回,当你调用此类时，如果遇到需要获取错误信息时，请使用此方法。
+     * @return mixed
+     */
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * 信用卡列表
+     * @return array
+     * @throws \think\exception\DbException
+     */
+    public function creditCardList()
+    {
+        $request = Request::instance();
+        $params = $request->param();
+
+        $order = 'credit_card.id';
+        $sort = 'desc';
+        $sortArr = [
+            'card_number' => 'c.card_number',
+            'card_master' => 'c.card_master',
+            'card_status' => 'c.card_status',
+            'card_category' => 'c.card_category',
+            'validity_date' => 'c.validity_date',
+            'account_count' => 'c.account_count',
+            'update_time' => 'c.update_time',
+        ];
+        if (!empty($params['order_by']) && !empty($sortArr[$params['order_by']])) {
+            $order = $sortArr[$params['order_by']];
+        }
+        if (!empty($params['sort']) && in_array($params['sort'], ['asc', 'desc'])) {
+            $sort = $params['sort'];
+        }
+        $page = $request->get('page', 1);
+        $pageSize = $request->get('pageSize', 10);
+        $field = 'c.id,c.card_number,c.card_master,c.card_status,c.card_category,c.validity_date,c.bank_id,c.security_code,t.num as account_count,c.synchronize_status,c.creator_id,c.create_time';
+        $count = $this->getWhere($params)->count();
+        $shopList = $this->getWhere($params)
+            ->field($field)
+            ->order($order, $sort)
+            ->page($page, $pageSize)
+            ->select();
+        $userService = new UserService();
+        $userLog = new UserLog();
+        $bank = (new bank())->select();
+        $temp = [];
+
+        foreach ($bank as $k => $v) {
+            $temp[$v['id']] = $v['bank_name'];
+        }
+
+        foreach ($shopList as $key => $item) {
+            $userInfo = $userService->getUser($item['creator_id']);
+            $shopList[$key]['department'] = $userLog->getDepartmentNameAttr('', ['operator_id' => $item['creator_id']]);
+            $shopList[$key]['creator'] = $userInfo['realname'] ?? '系统自动';
+            $shopList[$key]['create_time'] = date('Y-m-d H:i:s', $item['create_time']);
+            $shopList[$key]['bank'] = $item['bank_id'] ? $temp[$item['bank_id']] : '';
+            $shopList[$key]['account_count'] = (int)$item['account_count'];
+        }
+        $result = [
+            'data' => $shopList,
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'count' => $count,
+        ];
+        return $result;
+    }
+
+
+    /**
+     * 保存信用卡记录信息
+     * @param $data
+     * @return array|bool|false|\PDOStatement|string|\think\Model
+     * @throws \think\exception\DbException
+     */
+    public function save($data)
+    {
+        $time = time();
+        $data['create_time'] = $time;
+        $data['update_time'] = $time;
+        $data['account_count'] = $data['account_count'] ?? 0;
+
+        $bankModel = new Bank();
+        $bankCheck = $bankModel->where(['id' => $data['bank_id']])->count();
+        if ($bankCheck == 0) {
+            $this->error = '银行卡bank_id记录不存在';
+            return false;
+        }
+
+        Db::startTrans();
+        try {
+            $this->creditCardModel->allowField(true)->isUpdate(false)->save($data);
+            //获取最新的数据返回
+            $new_id = $this->creditCardModel->id;
+            Db::commit();
+        } catch (JsonErrorException $e) {
+            $this->error = $e->getMessage();
+            Db::rollback();
+            return false;
+        }
+
+        $creditInfo = $this->creditCardModel->field(true)->where(['id' => $new_id])->find();
+        $creditInfo['create_time'] = date('Y-m-d H:i:s', $creditInfo['create_time']);
+        $creditInfo['update_time'] = date('Y-m-d H:i:s', $creditInfo['update_time']);
+        return $creditInfo;
+    }
+
+
+    /**
+     * 根据ID查询信用卡记录
+     * @param $id
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws \think\exception\DbException
+     */
+    public function read($id)
+    {
+        $creditInfo = $this->creditCardModel->where(['id' => $id])->find();
+        if (!$creditInfo) {
+            $this->error = '无法查询到信用卡记录';
+            return false;
+        }
+        $bank = (new bank())->where(['id' => $creditInfo['bank_id']])->find();
+        $creditInfo['bank'] = $bank ? $bank['bank_name'] : '';
+        return $creditInfo;
+    }
+
+
+    /**
+     * 更新记录
+     * @param $id
+     * @param $data
+     * @return array|bool|false|\PDOStatement|string|\think\Model
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function update($id, $data)
+    {
+        $bankModel = new Bank();
+        $bankCheck = $bankModel->where(['id' => $data['bank_id']])->count();
+        if ($bankCheck == 0) {
+            $this->error = '银行卡bank_id记录不存在';
+            return false;
+        }
+
+        if (!$this->read($id)) {
+            return false;
+        }
+
+        Db::startTrans();
+        try {
+            $data['update_time'] = time();
+            unset($data['id']);
+            $this->creditCardModel->allowField(true)->save($data, ['id' => $id]);
+            Db::commit();
+        } catch (JsonErrorException $e) {
+            $this->error = $e->getMessage() . $e->getFile() . $e->getLine();
+            Db::rollback();
+            return false;
+        }
+
+        $creditInfo = $this->creditCardModel->field(true)->where(['id' => $id])->find();
+        $creditInfo['create_time'] = date('Y-m-d H:i:s', $creditInfo['create_time']);
+        $creditInfo['update_time'] = date('Y-m-d H:i:s', $creditInfo['update_time']);
+        return $creditInfo;
+    }
+
+    /**
+     * 查询条件获取
+     * @param $params
+     * @return mixed
+     */
+    public function getWhere($params)
+    {
+        $ModelCreditCardModel = new CreditCard();
+        $ModelCreditCardModel->alias('c')->join(" (SELECT  credit_card_id,count(*) as num FROM account where credit_card_id > 0 GROUP BY credit_card_id) as t ", "c.id = t.credit_card_id", 'left');
+        //信用卡状态
+        if (isset($params['card_status']) && ($params['card_status'] !== '')) {
+            // $where['credit_card.card_status'] = ['eq', $params['card_status']];
+            $ModelCreditCardModel->where('c.card_status', $params['card_status']);
+        }
+
+        if (isset($params['snType']) && isset($params['snText']) && !empty($params['snText'])) {
+            switch ($params['snType']) {
+                case 'card_number':
+                    $ModelCreditCardModel->where('c.card_number', 'like', '%' . $params['snText'] . '%');
+                    //$where['credit_card.card_number'] = ['like', '%'.$params['snText'].'%'];
+                    break;
+                case 'card_master':
+                    //$where['credit_card.card_master'] = ['like', '%'.$params['snText'].'%'];
+                    $ModelCreditCardModel->where('c.card_master', 'like', '%' . $params['snText'] . '%');
+                    break;
+                case 'validity_date':
+                    //$where['credit_card.validity_date'] = ['like', '%'.$params['snText'].'%'];
+                    $ModelCreditCardModel->where('c.validity_date', 'like', '%' . $params['snText'] . '%');
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        //信用卡类别
+        if (isset($params['card_category']) && ($params['card_category'] !== '')) {
+            //$where['credit_card.card_category'] = ['eq', $params['card_category']];
+            $ModelCreditCardModel->where('c.card_category', $params['card_category']);
+        }
+        $is_null = false;
+        if (isset($params['account_count_start']) && $params['account_count_start'] !== '') {
+            $ModelCreditCardModel->where('t.num', '>=', intval($params['account_count_start']));
+            if (!$params['account_count_start']) {
+                $ModelCreditCardModel->whereOr('t.num', 'exp', 'is null');
+                $is_null = true;
+            }
+        }
+        if (isset($params['account_count_end']) && $params['account_count_end'] !== '') {
+
+//            if(!$params['account_count_start']){
+//                $ModelCreditCardModel->where('t.num', '>=', intval($params['account_count_start']));
+//
+//            }
+            $ModelCreditCardModel->where('t.num', '<=', intval($params['account_count_end']));
+            if (!$params['account_count_end']) {
+                if (!$is_null) {
+                    $ModelCreditCardModel->whereOr('t.num', 'exp', 'is null');
+                }
+            }
+        }
+        //被绑定账号数
+        if (isset($params['taskCondition']) && isset($params['taskTime']) && $params['taskTime'] !== '') {
+
+            $ModelCreditCardModel->where('c.synchronize_status', trim($params['taskCondition']), $params['taskTime']);
+            //$where['credit_card.synchronize_status'] = [trim($params['taskCondition']), $params['taskTime']];
+        }
+        return $ModelCreditCardModel;
+    }
+
+
+    /**
+     * @title Excel导入信用卡数据
+     * @param array $params
+     * @param $user
+     * @return array
+     * @throws \think\Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function import(array $params, $user)
+    {
+        $filename = 'upload/' . uniqid() . '.' . $params['name'];
+        self::saveFile($filename, $params);
+        try {
+            $result = Excel::readExcel($filename);
+            @unlink($filename);
+            $len = count($result);
+            if ($len > 2001) {
+                throw new JsonErrorException('当前数据超越2千条，请分批处理');
+            }
+
+            $this->checkHeader($result);
+            $data['data'] = $this->convertData($result);
+            $data['user'] = $user;
+            $result = $this->saveAll($data);
+
+            if ($result === false) {
+                throw new JsonErrorException($this->getError());
+            }
+
+            return ['message' => '导入成功'];
+
+        } catch (JsonErrorException $ex) {
+            @unlink($filename);
+            throw new JsonErrorException($ex->getMessage());
+        }
+    }
+
+    /**
+     * 保存文件
+     * @param $filename
+     * @param $params
+     * @return mixed
+     * @throws Exception
+     */
+    public static function saveFile($filename, &$params)
+    {
+        if (empty($params['content'])) {
+            throw new Exception('添加的内容不能为空');
+        }
+        $start = strpos($params['content'], ',');
+        $content = substr($params['content'], $start + 1);
+        file_put_contents($filename, base64_decode(str_replace(" ", "+", $content)));
+        return $filename;
+    }
+
+
+    /**
+     * @title 检查头
+     * @param array $result
+     */
+    protected function checkHeader(array $result)
+    {
+        if (!$result) {
+            throw new Exception("未收到该文件的数据");
+        }
+        $row = reset($result);
+        $aRowFiles = array_keys($row);
+        $aDiffRowField = array_diff(self::$headers, $aRowFiles);
+        if (!empty($aDiffRowField)) {
+            throw new JsonErrorException("缺少列名[" . implode(';', $aDiffRowField) . "]");
+        }
+    }
+
+
+    /**
+     * @title 获取信用卡分类列表credit_category
+     * @param array $where
+     * @return array|null
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function creditCategorylist($where = [])
+    {
+        $list = (new CreditCategory())->where($where)->select();
+        if (!$list) {
+            return null;
+        }
+        $temp = [];
+        foreach ($list as $key => $item) {
+            $temp[$item['credit_category']] = $item;
+        }
+        return $temp;
+    }
+
+    /**
+     * 导入数据转换
+     * @param array $data
+     * @return array
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function convertData(array $data)
+    {
+        $result = [];
+        $bankModel = new Bank();
+        $creditCategory = $this->creditCategorylist();
+        foreach ($data as $k => $row) {
+            do {
+                $list = [];
+                $rowTmp = array_filter($row);
+                if (!$rowTmp) {
+                    continue(2);
+                }
+
+                //信用卡类别
+                if (isset($row['信用卡类别']) && $row['信用卡类别']) {
+
+                    if (isset($creditCategory[$row['信用卡类别']])) {
+                        throw new JsonErrorException("第" . ($k + 2) . "行信用卡类别不合法");
+                        break;
+                    }
+
+                    $list['card_category'] = $row['信用卡类别'];
+                } else {
+                    $list['message'] = "第" . ($k + 2) . "行信用卡类别不能为空";
+                    break;
+                }
+
+                //卡号
+                if (isset($row['卡号']) && $row['卡号']) {
+
+                    if (!is_numeric($row['卡号'])) {
+                        throw new JsonErrorException("第" . ($k + 2) . "行卡号不合法");
+                    }
+                    $list['card_number'] = $row['卡号'];
+
+                } else {
+                    throw new JsonErrorException("第" . ($k + 2) . "行卡号不存在");
+                    break;
+                }
+
+                //卡主姓名
+                if (isset($row['卡主姓名']) && $row['卡主姓名']) {
+
+                    $list['card_master'] = $row['卡主姓名'];
+
+                } else {
+                    throw new JsonErrorException("第" . ($k + 2) . "行卡主姓名不存在");
+                    break;
+                }
+
+                //银行
+                if (isset($row['银行']) && $row['银行']) {
+
+                    if (isset($this->bankArr[$row['银行']])) {
+                        $list['bank_id'] = $this->bankArr[$row['银行']];
+                    } else {
+
+                        $bank = $bankModel->where(['bank_name' => $row['银行']])->find();
+                        if (!$bank) {
+                            throw new JsonErrorException("第" . ($k + 2) . "行银行不存在");
+                            break;
+                        }
+
+                        $this->bankArr[$row['银行']] = $bank->id;
+                        $list['bank_id'] = $row['银行'];
+                    }
+
+                } else {
+                    throw new JsonErrorException("第" . ($k + 2) . "行银行不存在");
+                    break;
+                }
+
+                //有效期
+                if (isset($row['有效期']) && $row['有效期']) {
+
+                    $list['validity_date'] = $row['有效期'];
+
+                } else {
+                    throw new JsonErrorException("第" . ($k + 2) . "行有效期不存在");
+                    break;
+                }
+
+                //安全码
+                if (isset($row['安全码']) && $row['安全码']) {
+
+                    $list['security_code'] = $row['安全码'];
+
+                } else {
+                    throw new JsonErrorException("第" . ($k + 2) . "‘行安全码不存在");
+                    break;
+                }
+
+                //状态
+                if (isset($row['状态']) && ($row['状态'] == '正常' || $row['状态'] == '异常' || $row['状态'] == '注销')) {
+
+                    $list['card_status'] = $row['状态'];
+
+                } else {
+                    throw new JsonErrorException("第" . ($k + 2) . "‘行状态不合法");
+                    break;
+                }
+            } while (false);
+            $result[$k + 2] = $list;
+        }
+        return $result;
+    }
+
+    /**
+     * 批量写入
+     * @param array $data
+     * @return bool
+     */
+    public function saveAll(array $data)
+    {
+        try {
+            if (!isset($data['data']) || !isset($data['user'])) {
+                throw new JsonErrorException('参数错误');
+            }
+            Db::startTrans();
+            $time = time();
+            foreach ($data['data'] as $key => $list) {
+
+                $list['account_count'] = '';
+                $list['create_time'] = $time;
+                $list['creator_id'] = $data['user'];
+                $list['update_time'] = $time;
+                $list['update_id'] = $data['user'];
+
+                $result = $this->creditCardModel->insert($list);
+                if (!$result) {
+                    throw new JsonErrorException('写入错误');
+                }
+            }
+            Db::commit();
+            return true;
+        } catch (JsonErrorException $e) {
+            Db::rollback();
+            $this->error = $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * 导出模板
+     * @return mixed
+     */
+    public function importTemplate()
+    {
+        //默认数据；
+        $data = [
+            [
+                'card_category' => 'Mastercard、Visa 、AE',
+                'card_number' => '5329592971480842',
+                'card_master' => '某某',
+                'bank_id' => '中国银行',
+                'validity_date' => '02/20',
+                'security_code' => '221',
+                'card_status' => '正常、异常、注销',
+            ]
+        ];
+
+        $header = [
+            ['title' => '信用卡类别', 'key' => 'card_category', 'width' => 30],
+            ['title' => '卡号', 'key' => 'card_number', 'width' => 30],
+            ['title' => '卡主姓名', 'key' => 'card_master', 'width' => 30],
+            ['title' => '银行', 'key' => 'bank_id', 'width' => 30],
+            ['title' => '有效期', 'key' => 'validity_date', 'width' => 30],
+            ['title' => '安全码', 'key' => 'security_code', 'width' => 30],
+            ['title' => '状态', 'key' => 'card_status', 'width' => 30],
+
+        ];
+
+        $file = [
+            'name' => '信用卡导入模板',
+            'path' => 'export'
+        ];
+        $ExcelExport = new DownloadFileService();
+        return $ExcelExport->export($data, $header, $file);
+    }
+
+
+}

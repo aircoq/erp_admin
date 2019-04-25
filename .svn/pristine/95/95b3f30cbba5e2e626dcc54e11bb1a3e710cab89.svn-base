@@ -1,0 +1,261 @@
+<?php
+
+namespace app\index\controller;
+
+use app\common\controller\Base;
+use app\index\service\DepartmentTagService;
+use app\index\service\DepartmentTagMapService;
+use app\common\service\Common;
+use app\common\model\DepartmentTag as DeptTagModel;
+use think\Db;
+use think\Exception;
+/**
+ * @module 用户系统
+ * @title 部门标签管理
+ * @url /department-tag
+ */
+class DepartmentTag extends Base
+{
+
+    private $service;
+
+    /**
+     * Department constructor.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->service = new DepartmentTagService();
+    }
+
+    /**
+     * @title 部门标签列表
+     * @return \think\response\Json
+     */
+    public function index()
+    {
+        $params = $this->request->param();
+
+        // 筛选条件
+        $where['where'] = [];
+        if (isset($params['status'])) {
+            $where['where'] = ['status' => ['eq', (int)$params['status']]];
+        }
+
+        // 排序参数
+        $where['order'] = 'id ' . ((isset($params['order']) && $params['order'] == 1) ? 'DESC' : 'ASC');
+
+        // 分页参数
+        $where['page'] = (isset($params['page']) && $params['page'] > 0) ? (int)$params['page'] : 1;
+        $where['pageSize'] = (isset($params['pageSize']) && $params['pageSize'] > 0) ? (int)$params['pageSize'] : 20;
+
+        return json($this->service->getPageList($where), 200);
+    }
+
+    /**
+     * @title 添加部门标签
+      * @return \think\response\Json
+     */
+    public function save()
+    {
+        $params = $this->request->param();
+        if (empty($params)) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+
+        $validateTag = Validate('DepartmentTag');
+        if (!$validateTag->check($params)) {
+            return json(['message' => $validateTag->getError()], 400);
+        }
+
+        // 标签名不能重复
+        if ($this->service->tagNameIsExists(trim($params['name']))) {
+            return json(['message' => '标签名称已经存在'], 400);
+        }
+
+        if ($this->service->codeIsExists(trim($params['code']))){
+            return json(['message' => 'code已经存在，不能重复添加'], 400);
+        }
+
+        $params['creator_id'] = Common::getUserInfo()['user_id'];
+        $params['description'] = $params['description'] ?? '';
+
+        if ($id = $this->service->add($params)) {
+            return json(['message' => '新增成功', 'data' => $this->service->get($id)], 200);
+        } else {
+            return json(['message' => '新增失败'], 500);
+        }
+    }
+
+    /**
+     * @title 添加部门标签信息
+     * @param int $id 标签id
+     * @return \think\response\Json
+     */
+    public function read($id)
+    {
+        if (empty($id)) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+
+        if (!$tag = $this->service->get((int)$id)) {
+            return json(['message' => '标签不存在'], 400);
+        }
+
+        return json($tag, 200);
+    }
+
+    /**
+     * @title 保存更新的资源
+     * @param int $id 标签id
+     * @return \think\response\Json
+     */
+    public function update($id)
+    {
+        $params = $this->request->param();
+        if (empty($id) || empty($params)) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+
+        $validateTag = Validate('DepartmentTag');
+        if (!$validateTag->check($params)) {
+            return json(['message' => $validateTag->getError()], 400);
+        }
+
+        // 标签不存在
+        if (!$this->service->isExists($id)) {
+            return json(['message' => '标签不存在'], 400);
+        }
+
+        // 标签名不能重复
+        if ($this->service->tagNameIsExists(trim($params['name']), $id)) {
+            return json(['message' => '标签名称已经存在'], 400);
+        }
+
+        // 当前标签已绑定部门，不能修改
+        $depTagMapSer = new DepartmentTagMapService();
+        if ($depTagMapSer->isExists($id)) {
+            return json(['message' => '当前标签已绑定部门，不能修改'], 400);
+        }
+
+        // code已经存在
+        if ($this->service->codeIsExists(trim($params['code']), $id)){
+            return json(['message' => '标签code已存在'], 400);
+        }
+
+        // 修改
+        $params['description'] = $params['description'] ?? '';
+        if ($this->service->update($id, $params)) {
+            return json(['message' => '编辑成功', 'data' => $this->service->get($id)], 200);
+        } else {
+            return json(['message' => '编辑失败'], 500);
+        }
+    }
+
+    /**
+     * @title 删除
+     * @param int $id 标签id
+     * @return \think\response\Json
+     */
+    public function delete($id)
+    {
+        if (empty($id)) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+
+        // 当前标签已绑定部门，不能删除
+        $depTagMapSer = new DepartmentTagMapService();
+        if ($depTagMapSer->isExists($id)) {
+            return json(['message' => '当前标签已绑定部门，不能删除'], 400);
+        }
+
+        // 1、 删除标签表
+        if ($this->service->del($id)) {
+            return json(['message' => '删除成功'], 200);
+        } else {
+            return json(['message' => '删除失败'], 500);
+        }
+    }
+
+    /**
+     * @title 更改标签状态，启用或未启用
+     * @url status
+     * @method put
+     */
+    public function changeStatus()
+    {
+        $params = $this->request->param();
+        if (empty($params['id']) || !isset($params['status'])) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+
+        // 标签名称不存在时，不能编辑
+        if (!$this->service->isExists($params['id'])) {
+            return json(['message' => '标签不存在'], 400);
+        }
+
+        // 当前标签已绑定部门，不能修改
+        $depTagMapSer = new DepartmentTagMapService();
+        if ($depTagMapSer->isExists($params['id'])) {
+            return json(['message' => '当前标签已绑定部门，不能修改标签状态'], 400);
+        }
+
+        if ($this->service->updateStatus($params['id'], $params['status'])) {
+            return json(['message' => '标签状态更改成功'], 200);
+        }
+
+        return json(['message' => '标签状态更改失败'], 500);
+    }
+
+    /**
+     * @title 根据标签名称搜索
+     * @url search
+     * @method get
+     */
+    public function search()
+    {
+        $params = $this->request->param();
+        if (empty($params['name'])) {
+            return json(['message' => '请求参数错误'], 400);
+        }
+
+        $name = trim(strip_tags($params['name']));
+
+        $defaultStatus = [
+            DeptTagModel::STATUS_DISABLE,
+            DeptTagModel::STATUS_ENABLE,
+        ];
+
+        $status = isset($params['status']) ? [(int)$params['status']] : $defaultStatus;
+        return json($this->service->searchByName($name, $status), 200);
+    }
+
+    /**
+     * @title 根据标签状态进行搜索
+     * @url list
+     * @method get
+     */
+    public function getListByStatus()
+    {
+        $params = $this->request->param();
+
+        if (!isset($params['status'])) {
+
+            // 不传标签状态值，返回全部标签
+            return json($this->service->getAllList(), 200);
+        }
+
+        return json($this->service->getListByField('status', (int)$params['status']), 200);
+    }
+
+
+    /**
+     * @title 获取所有的标签名称和code
+     * @url names
+     * @method get
+     */
+    public function getNameList()
+    {
+        return json($this->service->getNameList(), 200);
+    }
+}

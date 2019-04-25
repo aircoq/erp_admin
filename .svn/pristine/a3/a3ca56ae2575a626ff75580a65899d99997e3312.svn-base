@@ -1,0 +1,67 @@
+<?php
+namespace org;
+/*
+* rocky 17-04-14
+*/
+class EbayXml {
+    public $xml;
+    private $parser;
+    public function __construct($data=""){
+        $this->parser = xml_parser_create();
+        xml_set_object($this->parser,$this);
+        xml_parser_set_option($this->parser,XML_OPTION_CASE_FOLDING,0);
+        xml_set_element_handler($this->parser,"tag_open","tag_close");
+        xml_set_character_data_handler($this->parser,"cdata");
+        if($data){
+            $this->parse($data);
+        }
+    }
+    
+    public function parse($data){
+        $this->xml=array();
+        xml_parse($this->parser,$data);
+    }
+
+    private function tag_open($parser,$tag,$attribute) {
+
+        if(sizeof($attribute)){
+            $this->xml[$tag."@Atts"]=$attribute;
+        }
+        $this->xml=array("@PARENT"=>$this->xml);
+    }
+
+    private function cdata($parser,$cdata) {
+        if(trim($cdata)) {
+            if(isset($this->xml["@DATA"])){
+                $this->xml["@DATA"].=$cdata;
+            }else{
+                $this->xml["@DATA"]=$cdata;
+            }
+        }
+    }
+
+    private function tag_close($parser,$tag) {
+        $obj=$this->xml["@PARENT"];
+        $subValue=isset($this->xml["@DATA"])?$this->xml["@DATA"]:null;
+        unset($this->xml["@PARENT"],$this->xml["@DATA"]);
+        if(isset($obj[$tag])){
+            if(!is_array($obj[$tag])||!isset($obj[$tag][0])){
+                $temp=$obj[$tag];
+                unset($obj[$tag]);
+                $obj[$tag]=array($temp);
+            }
+            if(sizeof($this->xml)){
+                $obj[$tag][]=$this->xml;
+            }else{
+                $obj[$tag][]=$subValue;
+            }
+        }else{
+            if(sizeof($this->xml)){
+                $obj[$tag]=$this->xml;
+            }else{
+                $obj[$tag]=$subValue;
+            }
+        }
+        $this->xml=$obj;
+    }
+} 

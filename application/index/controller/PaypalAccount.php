@@ -1,0 +1,392 @@
+<?php
+
+namespace app\index\controller;
+
+
+use think\Request;
+use think\Exception;
+use app\index\service\PaypalMember;
+use app\index\service\PaypalAccountService;
+use app\common\cache\Cache;
+use app\common\controller\Base;
+use app\common\validate\PaypalAccount as PaypalAccountValidate;
+use app\common\model\paypal\PaypalAccount as PaypalAccountModel;
+
+/**
+ * @module 账号管理
+ * @title Paypal账号
+ */
+class PaypalAccount extends Base
+{
+
+    public $server = null;
+
+    public function __construct(Request $request = null)
+    {
+        parent::__construct($request);
+        empty($this->server) && $this->server = new PaypalAccountService();
+
+    }
+
+    /**
+     * @title 列表
+     * @author tanbin
+     * @method GET
+     * @apiParam name:is_invalid type:int desc:是否启用
+     * @url /paypal-account
+     */
+    public function index()
+    {
+        $result = $this->server->getLists();
+        return json($result, 200);
+    }
+
+    /**
+     * @title 新增
+     * @param Request $request
+     * @method POST
+     * @apiParam name:account_name type:string desc:账号名称
+     * @url /paypal-account
+     * @return \think\response\Json
+     *
+     */
+    public function save(Request $request)
+    {
+        $validate = new PaypalAccountValidate();
+        $result = $validate->scene('add')->check($request->param());
+
+        if ($result !== true) {
+            return json(['message' => $validate->getError()], 400);
+        }
+
+        try {
+            $result = $this->server->save($request);
+            return json($result);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 查看
+     * @param $id
+     * @author tanbin
+     * @method GET
+     * @apiParam name:id type:int desc:ID
+     * @url /paypal-account/:id
+     * @return \think\response\Json
+     * @throws Exception
+     */
+    public function read($id)
+    {
+        $account_list = Cache::store('PaypalAccount')->getTableRecord($id);
+        $account_list['is_invalid'] = intval($account_list['is_invalid']);
+        $account_list['download_paypal'] = intval($account_list['download_paypal']);
+        $account_list['rest_client_id'] = $account_list['rest_client_id'] ?? '';
+        $account_list['rest_secret'] = $account_list['rest_secret'] ?? '';
+        $account_list['download_dispute'] = empty($account_list['download_dispute']) ? 0 : intval($account_list['download_dispute']);
+        $account_list['download_email'] = empty($account_list['download_email']) ? 0 : intval($account_list['download_email']);
+        $account_list['withdrawals_accounts'] = $this->server->readAccountWithdrawals(['paypal_account_id'=>$id], 'type_key as id,account');
+        $account_list['type'] = intval( $account_list['type']);
+        return json($account_list, 200);
+    }
+
+    /**
+     * @title 编辑
+     * @author tanbin
+     * @method GET
+     * @apiParam name:id type:int desc:ID
+     * @url paypal-account/:id/edit
+     */
+    public function edit($id)
+    {
+        $account_list = Cache::store('PaypalAccount')->getTableRecord($id);
+        $account_list['is_invalid'] = intval($account_list['is_invalid']);
+        $account_list['download_paypal'] = intval($account_list['download_paypal']);
+        $account_list['rest_client_id'] = $account_list['rest_client_id'] ?? '';
+        $account_list['rest_secret'] = $account_list['rest_secret'] ?? '';
+        $account_list['download_dispute'] = empty($account_list['download_dispute']) ? 0 : intval($account_list['download_dispute']);
+        $account_list['download_email'] = empty($account_list['download_email']) ? 0 : intval($account_list['download_email']);
+        $account_list['withdrawals_accounts'] = $this->server->readAccountWithdrawals(['paypal_account_id'=>$id], 'type_key as id,account');
+        $account_list['type'] = intval( $account_list['type']);
+        return json($account_list, 200);
+    }
+
+    /**
+     * @title 更新
+     * @author tanbin
+     * @method PUT
+     * @apiParam name:id type:int desc:ID
+     * @url /paypal-account/:id
+     */
+    public function update(Request $request, $id)
+    {
+
+        $validate = new PaypalAccountValidate();
+        $result = $validate->scene('edit')->check($request->param());
+
+        if ($result !== true) {
+            return json(['message' => $validate->getError()], 400);
+        }
+
+        try {
+            $result = $this->server->update($request, $id);
+            return json($result);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 获取成员列表
+     * @url /paypal-account/:id/member
+     * @method get
+     * @apiParam $id
+     * @author zhuda
+     */
+    public function memberList($id)
+    {
+        //要支持搜索
+        $result = (new PaypalMember())->getMemberList($id);
+        return json($result, 200);
+    }
+
+
+    /**
+     * @title 新增账号成员
+     * @method POST
+     * @param Request $request
+     * @url /paypal-account/add-member
+     * @author zhuda
+     * @return \think\response\Json
+     */
+    public function addMember(Request $request)
+    {
+        try {
+            $id = $request->post('id', 0);
+            $ids = $request->post('ids', 0);
+
+            if (empty($id)) {
+                throw new Exception("请求参数错误");
+            }
+
+            $idArr = explode(',', $ids);
+            if (!is_array($idArr)) {
+                throw new Exception("请求参数错误");
+            }
+            (new PaypalMember())->addPaypalMember($idArr, $id);
+            return json(['message' => '操作成功'], 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 获取账号信息
+     * @author zhuda
+     * @method get
+     * @url /paypal-account/paypal-info
+     */
+    public function getPayPalInfo(Request $request)
+    {
+        $data['server_id'] = $request->param('server_id', '');
+        $data['user_id'] = $request->param('user_id', '');
+        $result = $this->server->getPaypalInfo($data);
+        return json($result, 200);
+    }
+
+    /**
+     * @title paypal授权
+     * @author 张冬冬
+     * @method PUT
+     * @apiParam name:id type:int desc:ID
+     * @url /paypal-account/:id/authorization
+     */
+    public function authorization(Request $request, $id)
+    {
+        try {
+            $result = $this->server->authorization($request, $id);
+            return json($result);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title paypal显示邮箱密码
+     * @author 冬
+     * @method GET
+     * @apiParam id type:int desc:ID,password type:string desc:erp登录密码
+     * @url /paypal-account/show
+     */
+    public function show(Request $request)
+    {
+        try {
+            $data = $request->get();
+            $result = $this->validate($data, [
+                'id' => 'require|number',
+                'password' => 'require|min:1,'
+            ]);
+            if ($result !== true) {
+                throw new Exception($result);
+            }
+            $result = $this->server->viewPassword($data['password'], $data['id']);
+            return json(['email_password' => $result]);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 启用/停用 账号
+     * @author tanbin
+     * @method POST
+     * @apiParam name:id type:int desc:ID
+     * @apiParam name:is_invalid type:int desc:启用/停用
+     * @url /paypal-account/status
+     */
+    public function changeStatus()
+    {
+        $request = Request::instance();
+        $id = $request->post('id', 0);
+        $data['is_invalid'] = $request->post('is_invalid', 0);
+        if (empty($id)) {
+            return json(['message' => '参数错误'], 400);
+        }
+        $accountModel = new PaypalAccountModel();
+        if (empty($accountModel->where(['id' => $id])->find())) {
+            return json(['message' => '账号不存在'], 400);
+        }
+        try {
+            $data['updated_time'] = time();
+            $accountModel->allowField(true)->save($data, ['id' => $id]);
+            //更新缓存
+            foreach ($data as $key => $val) {
+                Cache::store('PaypalAccount')->updateTableRecord($id, $key, $val);
+            }
+            //$result = $accountModel->where(['id' => $id])->find();
+            return json(['message' => '操作成功'], 200);
+        } catch (Exception $e) {
+            return json(['message' => '操作失败'], 500);
+        }
+    }
+
+    /**
+     * @title 获取paypal账号
+     * @author tanbin
+     * @method GET
+     * @apiParam name:id type:int desc:ID
+     * @apiParam name:account type:string desc:账号名称
+     * @url /paypal-account/account
+     */
+    function getPaypalAccount()
+    {
+        $request = Request::instance();
+        $id = $request->get('id', 0);
+        $account = $request->get('account', 0);
+        $account_list = Cache::store('PaypalAccount')->getTableRecord();
+        if (empty($account_list)) {
+            return json([], 200);
+        }
+
+        if ($id) {
+            return json($account_list[$id], 200);
+        } elseif ($account) {
+            $result = [];
+            foreach ($account_list as $vo) {
+                if (strstr($vo['account_name'], $account)) {
+                    $result[] = $vo;
+                }
+            }
+            return json($result, 200);
+        } else {
+            return json($account_list, 200);
+        }
+    }
+
+
+    /**
+     * @title 批量开启
+     * @url /paypal-account/batch-set
+     * @method post
+     * @param Request $request
+     * @return \think\response\Json
+     * @throws Exception
+     */
+    public function batchSet(Request $request)
+    {
+        $params = $request->post();
+        $result = $this->validate($params, [
+            'ids|帐号ID' => 'require|min:1',
+            'is_invalid|系统状态' => 'require|number',
+            'download_paypal|抓取PayPal订单功能' => 'require|number',
+            'download_dispute|抓取PayPal纠纷' => 'require|number',
+            'download_email|抓取PayPal邮件' => 'require|number',
+        ]);
+
+        try {
+            if ($result != true) {
+                throw new Exception($result);
+            }
+
+            $result = $this->server->batchSet($params);
+            if ($result) {
+                return json(['message' => '更新成功']);
+            } else {
+                return json(['message' => '更新失败'], 400);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 设置paypal通知
+     * @author 冬
+     * @method POST
+     * @apiParam name:id type:int desc:ID
+     * @apiParam name:account type:string desc:账号名称
+     * @url /paypal-account/events
+     */
+    public function setNotifacation()
+    {
+        try {
+            $result = $this->server->setEvents();
+            return json($result);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 获取paypal通知
+     * @author 冬
+     * @method GET
+     * @url /paypal-account/:id/events
+     */
+    public function getNotifacation($id)
+    {
+        try {
+            $data = $this->server->getEvents($id);
+            return json(['data' => $data]);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 获取提款类型.
+     * @method GET
+     * @url /paypal-account/withdrawals-type
+     * @return \think\response\Json
+     */
+    public function withdrawalsType()
+    {
+        $data = $this->server->withdrawalsType();
+        return json(['data' => $data], 200);
+    }
+
+}

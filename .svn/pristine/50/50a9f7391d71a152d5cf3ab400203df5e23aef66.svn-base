@@ -1,0 +1,95 @@
+<?php
+/**
+ * Created by Phpstom.
+ * User: YangJiafei
+ * Date: 2019/4/16
+ * Time: 16:34
+ */
+
+
+namespace app\finance\validate;
+
+use think\Validate;
+
+class FinancePurchaseRecord extends Validate
+{
+    public $rule = [
+        'supplier_id'           => 'number',
+        'supplier_balance_type' => 'array',
+        'purchase_order_id'     => 'array',
+        'warehouse_id'          => 'number',
+        'purchaser_id'          => 'array',
+        'supply_chain_specialist_id' => 'array',
+        'date_b'                => 'date|checkDate',
+        'date_e'                => 'date|checkDate',
+        'page'                  => 'number',
+        'page_size'             => 'number',
+        'currency_code'         => '\w+',
+        'ids'                   => 'require|checkIds',
+        'fields'                => 'require|checkFields',
+        'export_type'           => 'require|number',
+    ];
+    public $msg = [
+        'supplier_id.number'           => '供应商商id必须是数字',
+        'supplier_balance_type.array' => '结算方式必须是数组',
+        'purchase_order_id.string'     => '采购单id必须是数字，或用逗号分隔的数字字符串',
+        'warehouse_id.number'          => '仓库id必须是数字',
+        'purchaser_id.number'          => '采购员id必须是数字，或用逗号分隔的数字字符串',
+        'supply_chain_specialist_id'   => '供应链专员id必须是数字，或用逗号分隔的数字字符串',
+        'date_b.date'                  => '开始日期不是日期类型',
+        'date_e.date'                  => '结束日期不是日期类型',
+        'page.number'                  => '页码必须是数字',
+        'page_size.number'             => '每页显示数必须是数字',
+        'ids'                          => '必须是数组的json格式',
+        'fields'                       => '必须是数组的json格式',
+        'export_type'                  => '必须是数字',
+    ];
+
+    protected $scene = [
+        'index' => [
+            'supplier_id',
+            'supplier_balance_type',
+            'purchase_order_id',
+            'warehouse_id',
+            'purchaser_id',
+            'supply_chain_specialist_id',
+            'date_b',
+            'date_e',
+            'page',
+            'page_size',
+        ],
+        'detail' => [
+            'supplier_id' => 'require|number',
+            'supplier_balance_type' => 'require|number',
+            'currency_code' => 'require'
+        ],
+        'export' => [
+            'ids',
+            'fields',
+            'export_type',
+        ]
+    ];
+
+    /**
+     * 只能查询前一天之前的数据
+     */
+    public function checkDate($value, $rule)
+    {
+        if ($value === date('Y-m-d')) {
+           return '时间不能是当天';
+        }
+        return true;
+    }
+
+    public function checkIds($value, $rule)
+    {
+        $ids = json_decode($value, true);
+        return is_array($ids);
+    }
+
+    public function checkFields($value, $rule)
+    {
+        $fields = json_decode($value, true);
+        return is_array($fields);
+    }
+}

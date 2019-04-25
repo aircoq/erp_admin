@@ -1,0 +1,407 @@
+<?php
+
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use think\Exception;
+use org\Curl;
+use app\common\cache\Cache;
+use think\Validate;
+use service\shopee\ShopeeApi;
+use app\order\service\OrderService;
+use app\order\service\ShopeeService;
+
+class Shopee
+{
+    const EVN = 'test';
+
+    // 配置信息
+    private $config = [
+
+        'create_url' => 'http://www.dywlwl.com/predictOrder.xsv',
+        'label_url' => 'http://www.dywlwl.com/PrintPDFLableServlet.xsv',
+        'info_url' => 'http://www.dywlwl.com/predictOrderquery.xsv'
+
+    ];
+
+
+    private function getApi($config)
+    {
+          return  ShopeeApi::instance($config);
+    }
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+
+    /**
+     * 获取运输方式详细信息
+     * @param array $config 账号 token配置
+     * @return array
+     */
+    public function getExpress(array $config)
+    {
+        $accountList = Cache::store('ShopeeAccount')->getAllCount();
+        $tmp = [];
+        $err = [];
+        foreach ($accountList as $k => $info) {
+            try {
+                if (empty($info['partner_id']) || empty($info['shop_id']) || empty($info['key']) || $info['platform_status'] == 0 || $info['status'] != 1) {
+                    continue;
+                }
+                $config = $this->setConfig($info['id']);
+                if (!$config) {
+                    continue;
+                }
+                $api = ShopeeApi::instance($config);
+                $result = $api->loader('Logistics')->getLogistics();
+                if (isset($result['logistics'])) {
+                    foreach ($result['logistics'] as $v) {
+                        $row = [];
+                        $row['name'] = $v['logistic_name'];
+                        $row['has_tracking_number'] = 1;
+                        $tmp[$row['name']] = $row;
+                    }
+                }
+            } catch (Exception $ex) {
+                $err[] = $ex->getMessage();
+            }
+        }
+        foreach ($tmp as $v) {
+            $name = str_replace(" - ", "-", $v['name']);
+            $name = str_replace(" ", "-", $name);
+            $v['code'] = $name;
+            $this->result['data'][] = $v;
+        }
+        $this->result['success'] = true;
+        return $this->result;
+    }
+
+    private function createData($config, $order)
+    {
+
+        return [];
+
+    }
+
+    private function getSender($order)
+    {
+        $value = $order['sender'];
+//        $value['sender_company'] = 'rondaful';
+        return $value;
+    }
+
+
+    private $result = [
+        'data' => [],
+        'error' => [],
+        'success' => false
+    ];
+    private $_config = [];
+
+    protected function setConfig($accountId)
+    {
+        $account = Cache::store('ShopeeAccount')->getId($accountId);
+        if (empty($account)) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => '未找到Shopee账号信息',
+                'error_code' => 1
+            ];
+            return false;
+        }
+
+        $this->_config['id'] = $account['id'];
+        $this->_config['shop_id'] = $account['shop_id'];
+        $this->_config['partner_id'] = $account['partner_id'];
+        $this->_config['key'] = $account['key'];
+
+//        $this->_config['id'] = 74;
+//        $this->_config['shop_id'] = 76513049;
+//        $this->_config['partner_id'] = 18020;
+//        $this->_config['key'] = 'a42ed72acc59cf4ff0762eed180e1404cf4de3337940100d7200e7f650fa3ba0';
+
+        return $this->_config;
+    }
+
+    /**
+     * 创建订单
+     * 渠道名
+     * @param array $config
+     * @param order
+     */
+    public function createOrder(array $bconfig, array $order, $confirm = false)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $OrderHelp = new OrderService();
+            $ret = $OrderHelp->getOrderInfo($order['order_id']);
+            if (!$ret) {
+                throw new Exception('找不到该订单信息');
+            }
+            $packageNumber = $order['number'];
+            $order['number'] = $ret['order_number'];
+            $this->result['number'] = $packageNumber;
+            $config = $this->setConfig($order['channel_account_id']);
+            if (!$config) {
+                return $this->result;
+            }
+            $api = $this->getApi($config);
+            $referenceID = $order['number'];
+            $Parameter = $api->loader('Logistics')->getParameterForInit($referenceID);
+            if(!$Parameter){
+                throw new Exception('连接shopee服务器失败');
+            }
+            if(isset($Parameter['non_integrated'])){
+                $Parameter['non_integrated']= ['tracking_no' => "SHOPEE".$packageNumber];
+            }
+            $result = $api->loader('Logistics')->init($referenceID, $Parameter);
+            //组装数据
+            $arr_log = [
+                'url' => '',
+                'header' => '',
+                'request' => $order,
+                'response' => $result
+            ];
+            if (isset($result['tracking_number']) && $result['tracking_number']) {
+                $this->result['data']['number'] = $packageNumber;      // 客户订单号
+                $this->result['data']['package_code'] = $packageNumber;      // 包裹处理号
+                $this->result['data']['trackingNumber'] = $result['tracking_number'];   // 跟踪号$info['intl_tracking_no']
+                $this->result['data']['has_trackingNumber'] = $bconfig['has_trackingNumber'];
+                $this->result['data']['confirm'] = true;                              // 是否交运
+                $this->result['data']['label'] = true;                              // 是否有pdf
+                $this->result['data']['label_url'] = '';                              // 是否有pdf
+                $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee'] = true;                              // 是否能查询实际费用
+                $this->result['data']['send'] = true;                              // 是否能查询物流订单状态
+                $this->result['success'] = true;
+            } else {
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+                $this->result['error'] = [
+                    'error_msg' => '请求超时',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+    protected function checkData($scene, $data)
+    {
+        $rule = [
+            ['channel_account_id', 'require|integer', '缺少Aliexpress账号ID|Aliexpress账号ID类型为integer'],
+            ['channel_id', 'egt:9', '该物流方式只支持Shopee平台'],
+            ['shipping_id', 'require|integer', '缺少shipping_id|shipping_id类型为integer'],
+            ['shipping_method_code', 'require', '缺少shipping_method_code'],
+            ['process_code', 'require', '缺少process_code'],
+            ['shipping_number', 'require', '缺少shipping_number'],
+        ];
+        $validate = new Validate($rule);
+        $validate->scene('create', ['channel_account_id', 'channel_id']);
+        $validate->scene('get_track_number', ['channel_account_id', 'process_code']);
+        $validate->scene('label', ['channel_account_id', 'shipping_number']);
+        if (!$validate->scene($scene)->check($data)) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $validate->getError(),
+                'error_code' => 1
+            ];
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 获取交运后的跟踪号
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function getTrackingNumber(array $config, array $order)
+    {
+        $OrderHelp = new OrderService();
+        $ret = $OrderHelp->getOrderInfo($order['order_id']);
+        if (!$ret) {
+            throw new Exception('找不到该订单信息');
+        }
+        $order['number'] = $ret['order_number'];
+        $this->result['number'] = $order['number'];
+        try {
+            $config = $this->setConfig($order['channel_account_id']);
+            if (!$config) {
+                return $this->result;
+            }
+            $ShopeeService = new ShopeeService();
+            $tableInfo = $ShopeeService->getOrderInfo($order['number']);
+            $tableNo = '';
+            if($tableInfo){
+                $tableNo = $tableInfo['tracking_no'];
+                if($tableNo){
+                    $this->result['data'] = [
+                        'trackingNumber' => $tableNo
+                    ];
+                    $this->result['success'] = true;
+                    return $this->result;
+                }
+            }
+            $api = $this->getApi($config);
+            $Parameter = $api->loader('Logistics')->getParameterForInit($order['number']);
+            $result = $api->loader('Logistics')->init($order['number'], $Parameter);
+            if (isset($result['tracking_number']) && $result['tracking_number']) {
+                if($tableNo){
+                    $result['tracking_number'] = $tableNo;
+                }
+                $this->result['data'] = [
+                    'trackingNumber' => $result['tracking_number']
+                ];
+                $this->result['success'] = true;
+            } else {
+                throw new Exception("跟踪号获取失败！");
+            }
+
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+
+        }
+        return $this->result;
+
+    }
+
+    /**
+     * 提交交运
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function confirm(array $config, array $order)
+    {
+
+    }
+
+    /**
+     * 获取物流订单真实重量和费用
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config, $order)
+    {
+
+    }
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageStatus($config, $order)
+    {
+
+    }
+
+    /**
+     * 取消包裹
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function cancel(array $config, array $order)
+    {
+
+    }
+
+    /**
+     * 获取仓库代码
+     * @param array 授权信息
+     * @param array $order 订单信息
+     * @return mixed[]
+     */
+    public function getLabel($config, $order)
+    {
+        try {
+            $OrderHelp = new OrderService();
+            $ret = $OrderHelp->getOrderInfo($order['order_id']);
+            $order['number'] = $ret['order_number'];
+            $config = $this->setConfig($order['channel_account_id']);
+            if (!$config) {
+                return $this->result;
+            }
+            $api = $this->getApi($config);
+            $result = $api->loader('Logistics')->getAirwayBill([$ret['order_number']]);
+            if (isset($result['result'])) {
+                $result = $result['result'];
+                if ($result['errors']) {
+                    if(is_array($result['errors'])){
+                        $errors = [];
+                        foreach ($result['errors'] as $err){
+                            $errors[] = $err;
+                        }
+                        $Parameter = $api->loader('Logistics')->getParameterForInit($ret['order_number']);
+                        $result = $api->loader('Logistics')->init($ret['order_number'], $Parameter);
+                        $result = $api->loader('Logistics')->getAirwayBill([$ret['order_number']]);
+                        if($result['errors']){
+                            throw new Exception(implode(',',$errors)."查不到面单信息");
+                        }
+                    }else{
+                        throw new Exception($result['errors']);
+                    }
+                }
+                if (isset($result['airway_bills'])) {
+                    $value = reset($result['airway_bills']);
+                    $content = file_get_contents($value['airway_bill']);
+                    if (strpos($content, '%PDF') !== 0) {
+                        throw new Exception('面单下载失败');
+                    }
+                    $newContent = base64_encode($content);
+                    $service = new PackageLabelFileService();
+                    $label_url = $service->uploadLabelFile($order['number'], $newContent, 'pdf');
+                    $this->result['data']['src'] = $label_url;
+                    $this->result['data']['type'] = 'pdf';
+                    $this->result['success'] = true;
+                    return $this->result;
+                }
+            }
+            throw new Exception('面单下载失败');
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg' => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    private function returnChannel($channelId)
+    {
+
+    }
+
+
+    public function getPackageDetails($token, $order)
+    {
+
+    }
+
+}

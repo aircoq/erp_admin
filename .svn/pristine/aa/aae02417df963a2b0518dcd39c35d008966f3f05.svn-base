@@ -1,0 +1,716 @@
+<?php
+namespace service\wish\operation;
+use app\common\cache\Cache;
+use app\common\service\WishService;
+use think\Exception;
+
+/**
+ * wish 产品管理
+ */
+class Product extends Common
+{
+    /**
+     * @var null
+     */
+    public $access_token;
+    protected $account_id=0;
+
+    /** 构造函数
+     * Product constructor.
+     * @param $config
+     */
+    public function __construct($config)
+    {
+        $this->access_token = $config['access_token'];
+        if(isset($config['id']))
+        {
+            $this->account_id=$config['id'];
+        }
+    }
+
+    /**
+     * 更新token
+     */
+    public function updateToken()
+    {
+        try{
+            (new WishService())->updateToken($this->access_token);
+            $account=[];
+            if($this->account_id)
+            {
+                $account = Cache::store('wishAccount')->getAccount($this->account_id);
+                if($account)
+                {
+                    $this->access_token  = $account['access_token'];
+                }else{
+                    throw new Exception("帐号id:[".$this->account_id."]缓存不存在");
+                }
+            }
+            return $account;
+        }catch(Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+    /**
+     * 获取一个产品的所有物流费用
+     * @param array $post
+     * @return array
+     */
+    public function getAllShipping($post)
+    {
+        try{
+            $url="https://china-merchant.wish.com/api/v2/product/get-all-shipping";
+
+            $response = $this->curlPost($url, $post);
+
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+    /**
+     * 修改指定国家的运费
+     * @param array $post
+     * @return array $response
+     */
+    public function updateShipping(array $post)
+    {
+        try{
+            $url="https://china-merchant.wish.com/api/v2/product/update-shipping";
+
+            $response = $this->curlPost($url, $post);
+
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /**
+     * 修改商品运费
+     * @param array $post
+     * @return array $response
+     */
+    public function updateMultiShipping(array $post)
+    {
+        try{
+            $url="https://china-merchant.wish.com/api/v2/product/update-multi-shipping";
+
+            $response = $this->curlPost($url, $post);
+
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /**
+     * Use the endpoint to create a new product
+     * @param $data
+     * @return array
+     */
+    public function postProduct($data)
+    {
+        try{
+            $url = "https://china-merchant.wish.com/api/v2/product/add";
+
+            $data['format']='json';
+            $data['access_token']=$this->access_token;
+
+            $response = $this->curlPost($url,$data);
+
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }elseif(isset($response['code']) && ($response['code']==1015 || $response['code']==1016)){
+//                $refreshResponse = $this->updateToken();
+//                if($refreshResponse)
+//                {
+//                    $this->postProduct($data);
+//                }
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+
+    }
+
+    /**
+     * To add a new variation to a product you can create a product variation
+     * @param $data
+     * @return array
+     */
+    public function postVariant($data)
+    {
+        try{
+            $url = "https://china-merchant.wish.com/api/v2/variant/add";
+
+            $data['format']='json';
+            $data['access_token']=$this->access_token;
+
+            $response = $this->curlPost($url,$data);
+
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }elseif(isset($response['code']) && ($response['code']==1015 || $response['code']==1016) ){
+//                $refreshResponse = $this->updateToken();
+//                if($refreshResponse)
+//                {
+//                    $this->postVariant($data);
+//                }
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 创建产品
+     * @param array $data
+     * @return array
+     */
+    public function createProduct(array $data)
+    {
+        try{
+            $url = "https://china-merchant.wish.com/api/v2/product/add?access_token=" . urlencode($this->access_token) . "&format=json";
+
+
+            foreach ($data as $key => $value)
+            {
+                $url .= "&" . $key . "=" . urlencode($value);
+            }
+
+            $response = $this->getdata($url);
+
+            if (isset($response['code']) && $response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }elseif(isset($response['code']) && $response['code']==1015){
+//                $refreshResponse = $this->updateToken();
+//                if($refreshResponse)
+//                {
+//                    $this->createProduct($data);
+//                }
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 更新产品
+     * @param array $data
+     */
+    public function updateProduct(array $data)
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/product/update';
+
+            $response = $this->curlPost($url,$data);
+
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 产品变体
+     * @param array $data
+     * @return array
+     */
+    public function variantProduct(array $data)
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/variant/add?access_token=' . urlencode($this->access_token);
+            //拼接参数
+            foreach ($data as $key => $value) {
+                $url .= '&' . $key . '=' . urlencode($value);
+            }
+            $response = $this->getdata($url);
+            if ($response['code'] == 0) {
+                return ['state' => true, 'data' => $response['data'],'message'=>$response['message'],'code'=>$response['code']];
+            }elseif($response['code']==1015){
+//                $refreshResponse = $this->updateToken();
+//                if($refreshResponse)
+//                {
+//                    $this->variantProduct($data);
+//                }
+            }
+            return ['state' => false,'message'=>$response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 检索变体产品的变化
+     * @param array $data
+     * @return array
+     */
+    public function retrieveProduct(array $data)
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/variant?access_token=' . urlencode($this->access_token);
+            //拼接参数
+            foreach ($data as $key => $value) {
+                $url .= '&' . $key . '=' . urlencode($value);
+            }
+            $response = $this->getdata($url);
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+    /**
+     * 使用curl方法查询product信息
+     * @param array $data
+     * @return array
+     */
+    public function retrieveProductCurl(array $data)
+    {
+        try{
+            $url="https://china-merchant.wish.com/api/v2/product";
+
+            $response = $this->curlPost($url, $data);
+
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 更新产品的变体
+     * @param array $data
+     * @return array
+     */
+    public function updateVariation(array $data)
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/variant/update' ;
+
+            $response = $this->curlPost($url,$data);
+
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 更换变体的sku
+     * @param array $data
+     * @return array
+     */
+    public function changeSku(array $data)
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/variant/change-sku?access_token=' . urlencode($this->access_token);
+            //拼接参数
+            foreach ($data as $key => $value) {
+                $url .= '&' . $key . '=' . urlencode($value);
+            }
+            $response = $this->getdata($url);
+            if ($response['code'] == 0) {
+                return ['state' => true, 'data' => $response['data']];
+            }
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+    /**
+     * 批量下载商品
+     * @param array $param
+     * @return string $job_id
+     */
+    public function batchProduct($param=[])
+    {
+        try{
+            set_time_limit(0);
+            $url="https://china-merchant.wish.com/api/v2/product/create-download-job";
+
+            $res = $this->curlPost($url,$param);
+
+            if($res['code']==0)
+            {
+                $job_id = $res['data']['job_id'];
+
+                return $job_id;
+            }
+            return false;
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+
+    }
+
+    public function batchProductDownload($param=array())
+    {
+        try{
+            set_time_limit(0);
+
+            $url="https://china-merchant.wish.com/api/v2/product/get-download-job-status";
+
+            $res = $this->curlPost($url,$param);
+
+            $job_id  = $param['job_id'];
+
+            if ($res['code'] == 0 && $res['data']['status'] == 'FINISHED')
+            {
+                $filename = $job_id . ".csv";
+                if ($this->curl($res['data']['download_link'], './wish/', $filename))
+                {
+                    return ['state' => true, 'job_id' => $job_id];
+                }
+            }
+            return ['state' => false, 'data' => $res['data']['status']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+    /**
+     * 获取商品
+     * @return [type] [description]
+     */
+    public function getGoods($data = [])
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/product/create-download-job?access_token=' . urlencode($this->access_token);
+            if (!empty($data)) {
+                foreach ($data as $key => $value) {
+                    $url .= "&" . $key . "=" . urlencode($value);
+                }
+            }
+            $response = $this->getdata($url);
+            if ($response['code'] == 0)
+            {
+                $job_id = $response['data']['job_id'];
+
+                return $job_id;
+                //入队列
+                # code ...
+            }
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 启用产品/上架
+     * @param array $data
+     */
+    public function enableProduct(array $data)
+    {
+        try{
+            $url = "https://china-merchant.wish.com/api/v2/product/enable";
+
+            $response = $this->curlPost($url,$data);
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 禁用产品/下架
+     * @param array $data
+     */
+    public function disableProduct(array $data)
+    {
+        try{
+            $url = "https://china-merchant.wish.com/api/v2/product/disable";
+            $response = $this->curlPost($url,$data);
+
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 启用变体
+     * @param array $data
+     * @return array
+     */
+    public function enableVariation(array $data)
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/variant/enable';
+
+            $response = $this->curlPost($url,$data);
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 禁用变体
+     * @param array $data
+     * @return array
+     */
+    public function disableVariation(array $data)
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/variant/disable';
+
+
+            $response = $this->curlPost($url,$data);
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 更改库存
+     * @param array $data
+     * @return array
+     */
+    public function updateInventory(array $data)
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/variant/update-inventory';
+
+            $response = $this->curlPost($url,$data);
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+    /**
+     * 获取批量下载商品信息job状态
+     * @param array $data
+     * @param int $flag
+     * @return array
+     */
+    public function getProductJobStatus(array $data,$flag=0)
+    {
+
+        try{
+            set_time_limit(0);
+            $job_id = $data['job_id'];  //下载启动的标识
+            $data['access_token'] = $this->access_token;
+            $url = "https://china-merchant.wish.com/api/v2/product/get-download-job-status";
+
+            $goods = $this->curlPost($url,$data);
+
+            if ($goods['code'] == 0 && $goods['data']['status'] == 'FINISHED')
+            {
+                if($flag==1)
+                {
+                    return ['state' => true, 'data' => $goods];
+                }else{
+                    //如果存在下载链接，而且数量大于0
+                    if(isset($goods['data']['download_link']) && isset($goods['data']['total_count']) && $goods['data']['total_count']>0)
+                    {
+                        $filename = $data['id'].'_'.$job_id . ".csv";
+
+                        if ($this->putContents2Csv($goods['data']['download_link'], ROOT_PATH . 'public' . DS.'wish_product'.DS, $filename))
+                        {
+                            return ['state' => true, 'data' => $job_id];
+                        }
+                    }elseif(isset($goods['data']['total_count']) && $goods['data']['total_count']==0){
+                        return ['state' => false, 'data' => $goods,'total_count'=>0];
+                    }else{
+                        return ['state' => false, 'data' => $goods];
+                    }
+                }
+            }else{
+                return ['state' => false, 'data' => $goods];
+            }
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+
+    }
+
+    public function putContents2Csv($url, $dir, $filename)
+    {
+        set_time_limit(0);
+        try{
+            if (!empty($dir) && !is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            $ch = curl_init ();
+            curl_setopt ( $ch, CURLOPT_CUSTOMREQUEST, 'GET' );
+            curl_setopt ( $ch, CURLOPT_SSL_VERIFYPEER, false );
+            curl_setopt ( $ch, CURLOPT_URL, $url );
+            ob_start ();
+            curl_exec ( $ch );
+            $return_content = ob_get_contents ();
+            ob_end_clean ();
+            curl_setopt($ch, CURLOPT_SSLVERSION,3);
+            $return_code = curl_getinfo ( $ch, CURLINFO_HTTP_CODE );
+
+            if($return_code == 200)
+            {
+                $fp = fopen($dir . $filename, "a"); //将文件绑定到流
+                if ($fp)
+                {
+                    fwrite($fp, $return_content); //写入文件
+                    fclose($fp);
+                }
+            }
+
+            curl_close($ch);
+            return true;
+        }catch(Exception $e){
+            return false;
+        }
+    }
+
+
+    /** 获取产品下载的状态，用来下载文件
+     * @param array $data
+     * @return array
+     */
+    public function downloadProduct(array $data,$flag=0)
+    {
+        set_time_limit(0);
+        try{
+            $job_id = $data['job_id'];  //下载启动的标识
+            $url = "https://china-merchant.wish.com/api/v2/product/get-download-job-status?access_token=" . urlencode($this->access_token) . "&job_id=" . urlencode($job_id);
+
+            $goods = $this->getdata($url);
+
+            if ($goods['code'] == 0 && $goods['data']['status'] == 'FINISHED') {
+                if($flag==1)
+                {
+                    return ['state' => true, 'data' => $goods];
+                }else{
+                    $filename = $job_id . ".csv";
+
+                    if ($this->curl($goods['data']['download_link'], './wish/', $filename))
+                    {
+                        return ['state' => true, 'data' => $job_id];
+                    }
+                }
+            }
+            return ['state' => false, 'data' => $goods['data']['status']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+
+    /** 从产品删除多余的图片
+     * @param $id
+     * @param string $parent_sku
+     * @return array
+     */
+    public function removeExtraImages($id,$parent_sku = '')
+    {
+        try{
+            $url = 'https://china-merchant.wish.com/api/v2/product/remove-extra-images?access_token='.urlencode($this->access_token)."&id=".urlencode($id);
+            if(empty($parent_sku)){
+                $url .= '&parent_sku='.$parent_sku;
+            }
+            $response = $this->getdata($url);
+            if ($response['code'] == 0)
+            {
+                return ['state' => true, 'data' => $response['data'],'code'=>$response['code'],'message'=>$response['message']];
+                //程序还要更改数据库里的product_id
+            }
+
+            return ['state' => false, 'message' => $response['message'],'code'=>$response['code']];
+        }catch (Exception $exp){
+            throw new Exception($exp->getMessage());
+        }
+
+    }
+}

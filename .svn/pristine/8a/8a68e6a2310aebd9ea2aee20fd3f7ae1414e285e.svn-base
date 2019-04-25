@@ -1,0 +1,721 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use org\Curl;
+use think\Exception;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+use app\common\model\OrderDetail;
+/**
+ * author by lanshushu
+ *  ShiHang 中邮小包shopee订单导入
+ */
+class ChinaPostShopee
+{
+    // 配置信息
+    private $_config = [
+
+        'url'   =>'http://xb.shenzhenpost.com.cn:7003/xbzz/services/mailSearch?wsdl',    //线上地址
+//        'url'   =>'http://test01.routdata.com/selfsys/services/mailSear?wsdl',    //测试地址
+        'header' => [
+            'Content-type:application/json;charset=utf-8'
+        ],
+        'custName'=>'',
+        'loginName'=>'',
+        'loginPwd'=>''
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return array | void
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_secret']) || empty($config['client_id']) ||empty($config['interface_user_password'])) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['custName'] = $config['client_secret'];
+        $this->_config['loginName'] = $config['client_id'];
+        $this->_config['loginPwd'] = $config['interface_user_password'];
+        return true;
+    }
+
+
+
+
+    /**
+     * 渠道列表
+     * @param string $orderNumber
+     * @return $newResult : 返回所有渠道列表
+     */
+    public function getExpress($config)
+    {
+        $data = [
+            ['code'=>'41','name'=>'shopee 跟踪小包'],
+            ['code'=>'41_AU','name'=>'澳大利亚跟踪小包'],
+            ['code'=>'41_PM', 'name'=>'prime 跟踪小包'],
+            ['code'=>'4','name'=>'挂号'],
+            ['code'=>'5','name'=>'平邮'],
+        ];
+
+        $result = [];
+        foreach($data as $value){
+            $result[] = [
+                'code'=>$value['code'],
+                'name'=>$value['name'],
+            ];
+
+        }
+        $this->result['success'] = true;
+        $this->result['data'] = $result;
+        return $this->result;
+
+    }
+
+    /**
+     * SimonBelieve 提交shoppe订单
+     * @param unknown $data : 订单信息数组
+     * @return $newResult : 结果信息数组
+     */
+    public function createOrder($config,$order,$confirm = true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $data['businessType'] = $order['shipping_method_code'];
+            $data['custName'] = $this->_config['custName'];
+            $data['loginName'] = $this->_config['loginName'];
+            $data['loginPwd'] = $this->_config['loginPwd'];
+            $data['mailList'][] = $this->buildData($order);
+            libxml_disable_entity_loader(false);
+            $client = new \SoapClient($this->_config['url']);
+            $requestData = ['in0'=>json_encode($data)];
+            $response = $client->prepareImportShopeeOrder($requestData);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->_config['url'],
+                'header'=>'',
+                'request'=>$data,
+                'response'=>$response
+            ];
+            $response_data = isset($response->out) ? json_decode($response->out,true) : json_decode($response,true);
+            if (is_array($response_data) && $response_data['Status']==0 && isset($response_data['MailCode']) && !empty($response_data['MailCode'])) {
+                $repeat_arr = ["LF360212442CN","LF360213332CN","LF360213814CN","LF360214488CN","LF360214616CN","LF360215191CN","LF360215506CN","LF360238904CN","LF360239578CN","LF360239581CN","LF360239595CN","LF360239618CN","LF360239621CN","LF360239635CN","LF360239825CN","LF360239856CN","LF360239873CN","LF360239887CN","LF360239900CN","LF360239913CN","LF360239935CN","LF360239944CN","LF360239958CN","LF360239961CN","LF360239975CN","LF360239989CN","LF360240046CN","LF360240001CN","LF360240015CN","LF360240029CN","LF360240050CN","LF360240063CN","LF360240077CN","LF360240085CN","LF360240103CN","LF360240125CN","LF360240134CN","LF360240148CN","LF360240165CN","LF360240647CN","LF360240735CN","LF360240871CN","LF360241381CN","LF360241395CN","LF360241642CN","LF360266088CN","LF360266105CN","LF360266114CN","LF360266304CN","LF360266352CN","LF360266423CN","LF360266437CN","LF360266445CN","LF360266468CN","LF360266471CN","LF360266499CN","LF360266508CN","LF360266511CN","LF360266525CN","LF360266573CN","LF360266587CN","LF360266595CN","LF360266600CN","LF360266613CN","LF360266627CN","LF360266644CN","LF360266661CN","LF360266675CN","LF360266689CN","LF360266692CN","LF360266701CN","LF360266715CN","LF360266732CN","LF360266746CN","LF360266777CN","LF360266785CN","LF360266803CN","LF360266825CN","LF360266834CN","LF360266848CN","LF360266851CN","LF360266865CN","LF360266879CN","LF360266882CN","LF360266896CN","LF360266905CN","LF360266922CN","LF360266936CN","LF360266940CN","LF360266967CN","LF360266975CN","LF360266984CN","LF360266998CN","LF360267021CN","LF360267035CN","LF360267083CN","LF360267049CN","LF360267070CN","LF360267106CN","LF360267123CN","LF360267145CN","LF360267168CN","LF360267171CN","LF360267185CN","LF360267208CN","LF360267211CN","LF360267225CN","LF360267239CN","LF360267273CN","LF360267287CN","LF360267295CN","LF360267300CN","LF360267327CN","LF360267344CN","LF360267358CN","LF360267375CN","LF360267392CN","LF360267446CN","LF360267450CN","LF360267463CN","LF360267485CN","LF360267494CN","LF360267503CN","LF360267534CN","LF360267551CN","LF360267565CN","LF360267579CN","LF360267582CN","LF360267596CN","LF360267605CN","LF360267619CN","LF360267622CN","LF360267636CN","LF360267640CN","LF360267653CN","LF360267667CN","LF360267675CN","LF360267684CN","LF360267698CN","LF360267707CN","LF360267715CN","LF360267738CN","LF360267741CN","LF360267755CN","LF360267769CN","LF360267790CN","LF360267812CN","LF360267826CN","LF360267830CN","LF360267843CN","LF360267865CN","LF360267888CN","LF360267914CN","LF360267891CN","LF360267905CN","LF360267931CN","LF360267959CN","LF360267962CN","LF360267976CN","LF360267980CN","LF360267993CN","LF360268000CN","LF360268013CN","LF360268027CN","LF360268035CN","LF360268075CN","LF360268089CN","LF360268092CN","LF360268115CN","LF360268163CN","LF360268185CN","LF360268194CN","LF360268217CN","LF360268248CN","LF360268265CN","LF360268279CN","LF360268340CN","LF360268353CN","LF360290952CN","LF360290966CN","LF360290970CN","LF360290983CN","LF360290997CN","LF360291017CN","LF360291025CN","LF360291034CN","LF360291343CN","LF360291799CN","LF360291768CN","LF360291771CN","LF360291785CN","LF360291808CN","LF360291811CN","LF360291825CN","LF360291839CN","LF360291842CN","LF360291856CN","LF360291860CN","LF360291873CN","LF360291887CN","LF360291900CN","LF360291913CN","LF360291927CN","LF360291935CN","LF360291944CN","LF360291961CN","LF360291975CN","LF360291992CN","LF360292009CN","LF360292012CN","LF360292026CN","LF360292030CN","LF360292065CN","LF360292074CN","LF360292088CN","LF360292105CN","LF360292114CN","LF360292128CN","LF360292145CN","LF360292159CN","LF360292162CN","LF360292176CN","LF360292180CN","LF360292193CN","LF360292220CN","LF360292508CN","LF360294044CN","LF360293004CN","LF360293361CN","LF360293980CN","LF360316782CN","LF360316898CN","LF360317085CN","LF360317139CN","LF360317160CN","LF360317173CN","LF360317187CN","LF360317195CN","LF360317244CN","LF360317315CN","LF360317332CN","LF360317350CN","LF360317363CN","LF360317465CN","LF360317536CN","LF360317553CN","LF360317567CN","LF360317575CN","LF360317598CN","LF360317607CN","LF360317615CN","LF360317624CN","LF360317638CN","LF360317655CN","LF360318179CN","LF360317709CN","LF360317730CN","LF360317916CN","LF360318315CN","LF360318430CN","LF360318531CN","LF360318562CN","LF360318576CN","LF360318616CN","LF360318620CN","LF360318633CN","LF360318647CN","LF360318678CN","LF360318681CN","LF360318695CN","LF360318704CN","LF360318735CN","LF360318752CN","LF360318770CN","LF360318806CN","LF360319214CN","LF360318939CN","LF360318987CN","LF360319109CN","LF360319245CN","LF360342941CN","LF360342915CN","LF360342924CN","LF360342938CN","LF360343054CN","LF360343111CN","LF360343156CN","LF360343187CN","LF360343465CN","LF360343482CN","LF360343730CN","LF360343933CN","LF360343947CN","LF360345599CN","LF360344253CN","LF360344267CN","LF360345112CN","LF360345545CN","LF360345554CN","LF360345625CN","LF360345642CN","LF360345713CN","LF360345829CN","LF360345850CN","LF360345863CN","LF360345885CN","LF360368135CN","LF360368144CN","LF360368158CN","LF360368161CN","LF360368175CN","LF360368192CN","LF360368201CN","LF360368215CN","LF360368229CN","LF360368232CN","LF360368250CN","LF360368263CN","LF360368277CN","LF360368285CN","LF360368303CN","LF360368317CN","LF360368325CN","LF360368334CN","LF360368348CN","LF360368351CN","LF360368365CN","LF360368379CN","LF360368382CN","LF360368396CN","LF360368405CN","LF360368419CN","LF360368422CN","LF360368436CN","LF360368440CN","LF360368453CN","LF360368467CN","LF360368475CN","LF360368484CN","LF360368498CN","LF360368515CN","LF360368524CN","LF360368538CN","LF360368541CN","LF360368569CN","LF360368572CN","LF360368586CN","LF360368590CN","LF360368609CN","LF360368612CN","LF360368626CN","LF360368630CN","LF360368643CN","LF360368657CN","LF360368665CN","LF360368674CN","LF360383994CN","LF360383963CN","LF360383977CN","LF360383985CN","LF360384005CN","LF360384014CN","LF360384028CN","LF360384031CN","LF360384045CN","LF360384059CN","LF360384076CN","LF360384080CN","LF360384093CN","LF360384102CN","LF360384116CN","LF360384120CN","LF360384133CN","LF360384195CN","LF360384204CN","LF360384218CN","LF360384221CN","LF360384235CN","LF360384249CN","LF360384252CN","LF360384266CN","LF360384270CN","LF360384283CN","LF360384297CN","LF360384306CN","LF360384310CN","LF360384323CN","LF360384337CN","LF360384345CN","LF360384354CN","LF360384368CN","LF360384371CN","LF360384385CN","LF360384399CN","LF360384408CN","LF360384411CN","LF360384425CN","LF360384439CN","LF360384442CN","LF360384456CN","LF360384460CN","LF360384473CN","LF360384487CN","LF360384495CN","LF360384500CN","LF360384513CN","LF360384527CN","LF360384535CN","LF360384544CN","LF360384592CN","LF360384734CN","LF360384765CN","LF360385289CN","LF360385156CN","LF360385200CN","LF360385235CN","LF360385292CN","LF360385350CN","LF360391823CN","LF360391939CN","LF360392381CN","LF360392497CN","LF360393020CN","LF360393271CN","LF360393285CN","LF360393373CN","LF360393387CN","LF360393651CN","LF360393682CN","LF360394864CN","LF360393784CN","LF360393824CN","LF360394405CN","LF360394878CN","LF360394881CN","LF360394895CN","LF360394904CN","LF360394921CN","LF360394935CN","LF360395516CN","LF360395048CN","LF360395153CN","LF360395462CN","LF360395533CN","LF360395547CN","LF360395555CN","LF360395578CN","LF360395581CN","LF360395595CN","LF360395604CN","LF360395618CN","LF360395621CN","LF360395635CN","LF360395649CN","LF360395670CN","LF360395811CN","LF360417503CN","LF360417738CN","LF360417809CN","LF360417826CN","LF360418044CN","LF360418716CN","LF360418849CN","LF360419478CN","LF360419835CN","LF360419932CN","LF360420533CN","LF360420480CN","LF360420502CN","LF360420520CN","LF360422137CN","LF360456590CN","LF360456609CN","LF360456612CN","LF360456630CN","LF360456643CN","LF360456674CN","LF360456688CN","LF360457051CN","LF360457079CN","LF360457207CN","LF360457255CN","LF360457343CN","LF360457547CN","LF360457710CN","LF360457785CN","LF360457887CN","LF360457913CN","LF360458012CN","LF360458074CN","LF360458255CN","LF360458295CN","LF360458366CN","LF360458383CN","LF360458600CN","LF360458635CN","LF360458658CN","LF360458689CN","LF360458729CN","LF360458825CN","LF360458998CN","LF360459070CN","LF360459097CN","LF360459110CN","LF360459273CN","LF360459415CN","LF360459327CN","LF360459358CN","LF360459375CN","LF360459446CN","LF360459494CN","LF360459812CN","LF360459865CN","LF360459874CN","LF360459888CN","LF360459891CN","LF360460064CN","LF360482246CN","LF360482294CN","LF360482365CN","LF360482379CN","LF360482405CN","LF360482453CN","LF360482507CN","LF360482538CN","LF360482802CN","LF360482820CN","LF360482878CN","LF360483184CN","LF360483207CN","LF360483241CN","LF360483428CN","LF360483476CN","LF360483502CN","LF360483520CN","LF360483555CN","LF360483564CN","LF360483578CN","LF360483604CN","LF360483618CN","LF360483649CN","LF360483652CN","LF360483697CN","LF360483723CN","LF360484026CN","LF360484508CN","LF360484701CN","LF360484715CN","LF360484729CN","LF360484940CN","LF360460841CN","LF360484817CN","LF360484825CN","LF360484879CN","LF360484936CN","LF360484984CN","LF360485004CN","LF360485035CN","LF360485123CN","LF360485154CN","LF360485199CN","LF360485208CN","LF360485260CN","LF360485300CN","LF360485358CN","LF360485432CN","LF360485446CN","LF360485485CN","LF360485494CN","LF360485503CN","LF360485517CN","LF360485551CN","LF360485605CN","LF360485619CN","LF360485724CN","LF360485738CN","LF360485809CN","LF360485830CN","LF360485962CN","LF360485931CN","LF360485945CN","LF360485959CN","LF360486035CN","LF360486061CN","LF360486101CN","LF360486438CN","LF360486574CN","LF360486747CN","LF360506000CN","LF360506013CN","LF360506027CN","LF360506058CN","LF360506115CN","LF360506146CN","LF360506150CN","LF360506163CN","LF360506177CN","LF360506185CN","LF360506194CN","LF360506225CN","LF360506234CN","LF360506251CN","LF360506265CN","LF360506282CN","LF360506296CN","LF360506305CN","LF360506340CN","LF360506384CN","LF360506398CN","LF360506407CN","LF360506424CN","LF360506455CN","LF360506509CN","LF360506628CN","LF360506631CN","LF360506693CN","LF360506755CN","LF360506764CN","LF360507345CN","LF360507402CN","LF360507977CN","LF360507985CN","LF360508005CN","LF360508028CN","LF360508031CN","LF360508045CN","LF360508059CN","LF360508062CN","LF360508076CN","LF360508093CN","LF360508102CN","LF360508120CN","LF360508147CN","LF360508155CN","LF360508178CN","LF360508195CN","LF360508235CN","LF360508252CN","LF360508266CN","LF360508270CN","LF360508306CN","LF360508323CN","LF360508345CN","LF360508354CN","LF360508368CN","LF360508371CN","LF360508385CN","LF360508399CN","LF360508408CN","LF360508425CN","LF360508439CN","LF360508442CN","LF360508456CN","LF360508460CN","LF360508473CN","LF360508487CN","LF360508495CN","LF360508500CN","LF360508513CN","LF360508558CN","LF360508561CN","LF360508589CN","LF360508629CN","LF360508592CN","LF360508601CN","LF360508646CN"];
+                if (in_array($response_data['MailCode'], $repeat_arr)) {
+                    throw new Exception('返回条码池为重复条码，重新物流商下单即可！');
+                }
+                $this->result['data']['number']             = $order['number'];                            // 客户参考号
+                $this->result['data']['package_code']       = $response_data['DefineOrderNo'];  // 运单号
+                $this->result['data']['trackingNumber']     = $response_data['MailCode'];   // 跟踪号
+                $this->result['data']['has_trackingNumber'] = true; // 是否有跟踪号
+                $this->result['data']['confirm']            = true;                               // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+            } else {
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                $errorInfo=$this->errorInfo();
+                $this->result['error'] = [
+                    'error_msg'  => isset($errorInfo[$response_data['ErrorCode']])?$errorInfo[$response_data['ErrorCode']]:'未知错误',
+                    'error_code' => 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+
+
+    /**
+     * 删除订单（暂时不可用）
+     * @param number $orderId
+     * @param string $customerId
+     */
+    public function cancel($config,$order)
+    {
+
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+
+    }
+
+
+    /**
+     * 获取跟踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getTrackingNumber($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+
+        $this->result['success'] = true;
+        return $this->result;
+    }
+
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        if($order['label_source_type']=='1'  && !empty($order['shipping_number']) && isset($order['package_id']) ){
+                (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+            ];
+            $this->result['number'] = $order['number'];
+            return $this->result;
+        }
+
+    }
+
+    public function buildData($data){
+        //产品信息
+        $ItemArr = [];
+        foreach($data['declared_info'] as $k=>$declared){
+            $declared = isset($data['declared_info'][$k]) ? $data['declared_info'][$k] : [];
+            $ItemArr[] = [
+                'declared_name_en'     => $declared['declared_name_en'],   //英文海关申报品名
+                'declared_name_ch'     => $declared['declared_name_cn'],  //中文海关申报品名
+                'mailInnerAmount'   => $declared['qty'],               //申报数量
+                'mailPrice' => number_format($declared['declared_value'],1),
+                'mailInnerWeight'     => intval(number_format($declared['declared_weight'])),   //申报重量，单位g,没有小数点
+            ];
+        }
+        //国家信息
+        $street=$data['city'].' '.$data['province'].' '.$data['street'].''.$data['street2'];
+        $street=str_replace('&','&amp;',$street);
+        $street=str_replace('<','&lt;',$street);
+        $street=str_replace('>','&gt;',$street);
+        $street=str_replace("'",'&apos;',$street);
+        $street=str_replace('"','&quot;',$street);
+        $countryList = Cache::store('country')->getCountry();
+        $result = [];
+        $result['countryName']=$countryList[$data['country_code']]['country_cn_name'];
+        $result['countryCode']=$data['country_code'];
+        $result['receiverName']=$data['name'];
+        $result['receiverAddress']=$street;
+        $result['receiverPhone']=empty($data['phone'])?$data['tel']:$data['phone'];
+        $result['mailWeight']=intval(number_format($data['declared_weight']));
+        $result['receiverCountry']=$data['country_name']; //收件人英文国家名
+        $result['receiverArea']=$data['province']; //收件人英文州名
+        $result['receiverCity']=$data['city']; //收件人英文城市名
+        $result['senderName']=$data['sender']['sender_name']; //寄件人姓名（英文）
+        $result['senderProvince']=$data['sender']['sender_state']; //寄件人省名（英文）
+        $result['senderCity']=$data['sender']['sender_city']; //寄件人城市名（英文）
+        $result['senderAddress']=$data['sender']['sender_street']; //寄件人地址（英文）
+        $result['senderPhone']=$data['sender']['sender_phone']; //寄件人电话
+        $result['mailInnerType']=5; //内件类型代码, 1：礼品;2：文件;3、商品货样;4、退回物品;5、其他
+        $result['mailInnerName']=$ItemArr[0]['declared_name_ch']; //内件名称
+        $result['mailInnerEngName']=str_replace('，','',$ItemArr[0]['declared_name_en']); //内件英文名称
+
+        $result['mailInnerWeight']=intval($ItemArr[0]['mailInnerWeight']); //单件重量，单位为克，不允许出现小数点
+        $result['mailInnerAmount']=$ItemArr[0]['mailInnerAmount']; //内件数量
+        $result['mailPrice']=$ItemArr[0]['mailPrice']; //申报价值,不允许为小数
+
+        $result['produceAddress']='CN'; //产地
+        $result['transType']=1; //运输方式 1：航空 3：水陆路
+        $result['deliveryPost']=$data['zip']; //寄达局邮编,俄罗斯收寄必须填写 6 位数字的邮编
+        $result['localMailCode']='';//本地条码，公司内部条码;
+        $result['definedNo']=$data['number'] ;//自定义信息,自定义唯一编码
+        $result['senderPostCode']=$data['sender']['sender_zipcode'];//寄件人邮编,如 518000
+        $result['accUserMobilePhone']=$data['tel'] ;//收件人移动电话
+        $result['definedOrder']=isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number']: $data['number'] ;//客户订单号，客户数据库中必须是唯一值，校验订单是否重复推送
+        return $result;
+
+    }
+
+    private  function  errorInfo(){
+        $data=[
+            'B0001'=>' 国家代码错误，没有找到对应的计费区业务',
+            'B0002'=>'邮件条码为空',
+            'B0003'=>'协议国际挂号小包邮件号码格式错误',
+            'B0004'=>'导入的数据中存在重复的邮件号码',
+            'B0005'=>'导入的邮件号码已使用过',
+            'B0006'=>'存在必填项寄达国名称为空的数据',
+            'B0007'=>'无效的寄达国名称',
+            'B0008'=>'寄达局邮编不正确，邮件需填入正确的邮编(6 位数字)',
+            'B0009'=>'寄达局邮编不正确，邮政编码不能以 0 开头',
+            'B0010'=>'收寄必须填写收件人姓名',
+            'B0011'=>'收寄收件人姓名不能含有中文',
+            'B0012'=>'收寄必须填写收件人',
+            'B0013'=>'收寄收件人地址不能含有中文',
+            'B0014'=>'收寄收件人地址必须 含有空格',
+            'B0015'=>'收件人地址长度超长,最大长度不能超过 200(一个俄文或中文长度为 2)',
+            'B0016'=>'收寄必须填写收件人电话',
+            'B0017'=>'收寄收件人电话不能含有中文',
+            'B0018'=>'邮件重量必须为整数',
+            'B0019'=>'英文国家名不能为空',
+            'B0020'=>'收寄必须填写收件人英文州名',
+            'B0021'=>'收寄收件人英文州名不能含有中文',
+            'B0022'=>'收寄必须填写收件人英文城市名',
+            'B0023'=>'收寄收件人英文城市名不能含有中文',
+            'B0024'=>'收寄必须填写寄件人姓名',
+            'B0025'=>'收寄寄件人姓名不能含有中文',
+            'B0026'=>'收寄必须填写寄件人省份英文',
+            'B0027'=>'收寄寄件人省份英文不能含有中文',
+            'B0028'=>'收寄必须填写寄件人城市英文',
+            'B0029'=>'收寄 寄件人城市英文不能含有中文',
+            'B0030'=>'收寄必须填写寄件人地址',
+            'B0031'=>'收寄寄件人地址不能含有中文',
+            'B0032'=>'寄件人地址长度超长,最大长度不能超过 120(一个俄文或中文长度为 2)',
+            'B0033'=>'收寄必须填写寄件人电话',
+            'B0034'=>'收寄寄件人电话不能含有中文',
+            'B0035'=>'内件类型代码错误',
+            'B0036'=>'收寄必须填写内件类型代码',
+            'B0037'=>'收寄内件类型代码不能含有中文',
+            'B0038'=>'收寄必须填写 内件名称中文',
+            'B0039'=>'收寄必须填写内件英文名称',
+            'B0040'=>'收寄内件英文名称不能含有中文',
+            'B0041'=>'内件重量错误',
+            'B0042'=>'内件件数不能大于 9999',
+            'B0043'=>'内件件数错误',
+            'B0044'=>'内件单价错误',
+            'B0045'=>'粤港小包邮件号码格式错误',
+            'B0046'=>'请检查该粤港小包条码是否已申请或已使用',
+            'B0047'=>'协议国际平常小包邮件号码格式错误',
+            'B0048'=>'英文国家名不能含有中文',
+            'B0049'=>'寄达国名称错误，没有找到对应的计费区',
+            'B0051'=>'协议国际平常小包邮件号码格式错误,必须为 11 为数字',
+            'B0052'=>'协议国际平常小包邮件号码未分配给该客户,不允许导入',
+            'B0053'=>'协议国际平常小包邮件号码已存在其他批次号中,不允许导入',
+            'B0000'=>'订单(挂件)导入成功',
+            'B0110'=>'挂件导入出现错误',
+            'B0120'=>'挂件导入数据格式不正确',
+            'B0130'=>'客户名称(全名)验证失败',
+            'B0140'=>'国际小包自助系统的用户名或密码验证失败',
+            'B0150'=>'邮件数量已超过 100 个',
+            'B0160'=>'邮件数量为 0 个',
+            'B0170'=>'运输方式为空',
+            'B0180'=>'接口导入失败，没有找到符合要求的数据',
+            'B0190'=>'挂件追加成功',
+            'B0200'=>'客户传入的批次号码系统中不存在,无法进行挂件数据追加',
+            'B0201'=>'客户未传入挂件批次号，无法进行平件挂件重导',
+            'B0202'=>'协议国际平常小包类型标识为空',
+            'B0203'=>'协议国际平常小包值不是 5',
+            'B0204'=>'协议国际平常小包 数据操作类型为空',
+            'B0205'=>'协议国际平常小包 数据操作类型非新增或删除',
+            'B0206'=>'协议国际平常小包 该批次已经提交，无法再新增或删除',
+            'B0207'=>'协议国际平常小包 批次号为空无法删除',
+            'B0208'=>'客户传入的平件批次号码系统中不存在,无法删除',
+            'B0209'=>'客户传入的批次号码已经提交，不允许删除',
+            'B0210'=>'删除平件挂件信息的请求格式错误',
+            'B0211'=>'删除平件挂件信息成功',
+            'B0212'=>'删除平件挂件信息失败',
+            'B0213'=>'客户传入的平件核称顺序号为空,不允许删除平件挂件',
+            'B0214'=>'客户传入的平件核称顺序号与实际不符合,不允许删除平件挂件',
+            'B0215'=>'客户传入的平件核称顺序号非数字，不允许删除平件挂件',
+            'B0216'=>'客户申请邮件条码类型为空',
+            'B0217'=>'客户申请邮件条码类型不正确',
+            'B0218'=>'系统分配邮件条码失败',
+            'B0219'=>'客户申请邮件条码成功',
+            'B0220'=>'邮件条码池资源不足,请联系营销经理',
+            'B0221'=>'系统分配邮件条码出现异常',
+            'B0222'=>'客户申请邮件条码个数非数字',
+            'B0223'=>'客户申请邮件条码个数必须大于 0',
+            'B0224'=>'客户申请邮件条码个数每次不能超过 1000 个',
+            'B0225'=>'客户申请邮件条码报文格式错误',
+            'B0226'=>'邮件重量必须是大于 0 的整数',
+            'B0227'=>'邮件重量不能为空',
+            'B0228'=>'平件导入成功',
+            'B0229'=>'平邮跟踪查询的请求格式错误',
+            'B0230'=>'推送失败，生成订单号或平邮核称顺序号异常',
+            'B0231'=>'邮件条码已导入',
+            'B0232'=>'发往美国的邮件寄达局邮编必须是 5 位数字',
+            'B0281'=>'线上客户名称不存在',
+            'B0282'=>'请确认线上客户自助系统帐号是否存',
+            'B0283'=>'户绑定邮件条码个数每次不能超过 200 个',
+            'B0284'=>'客户绑定邮件条码个数是 0 个',
+            'B0285'=>'客户绑定邮件的报文格式异常',
+            'B0286'=>'邮件绑定成功',
+            'B0287'=>'邮件绑定失败',
+            'B0288'=>'西班牙邮件需填入正确的邮编(5 位数字)',
+            'B0289'=>'推送失败条码，存在非线上邮件或邮件规则未维护',
+            'B0290'=>'存在条码其他客户已绑定，此批次绑定失败请确认',
+            'B0291'=>'邮件绑定数据库异常',
+            'B0292'=>'业务类型不存在',
+            'B0293'=>'运输方式不存在',
+            'B0294'=>'订单号不存在',
+            'B0295'=>'订单号已存在',
+            'B0296'=>'确认发货失败',
+            'B0297'=>'订单存在部分错误信息',
+            'B0298'=>'寄达局邮编为空',
+            'B0299'=>'订单已提交',
+            'B0300'=>'字段超长',
+            'B0301'=>'订单跟踪号未分配',
+            'B0302'=>'禁止发货国家',
+            'B0303'=>'获取平件批次号成功',
+            'B0304'=>'获取平件批次号失败',
+            'B0305'=>'申请平件批次号报文格式不正确',
+            'B0306'=>'寄达国家无效',
+            'B0307'=>'挂件，增强小包邮件号码格式错误',
+            'B0308'=>'协议挂件，禁止发货国家',
+            'B0309'=>'运输方式渠道代码异常',
+            'B0310'=>'业务类型是中欧班列，运输类型必须是水陆路',
+            'B0311'=>'业务类型是中欧班列，根据国家运输方式和业务类型判断当前订单不允许导入',
+            'B0312'=>'订单的业务类型 businessType 值，必须是 8(中欧班列)或 4(挂件)',
+            'B0313'=>'Shopee 订单的业务类型 businessType，必须是 4(挂件)，5(平件)或 41(跟踪小包)',
+            'B0314'=>'非 Shopee 子客户,禁止条码申请',
+            'B0315'=>'国家简码不允许为空',
+            'B0316'=>'国家简码不存在，请确认国家简码是否正确或联系邮政客服确认',
+            'B0317'=>'国家简码对应国家名称为空',
+            'B0318'=>'国家简码对应拼音码为空',
+            'B0319'=>'运输方式不允许为空',
+            'B0320'=>'运输方式值非法',
+            'B0321'=>'订单号不允许为空',
+            'B0322'=>'订单号订单号已存',
+            'B0323'=>'根据客户 ID 和条码类型申请 Shopee 邮件条码为空',
+            'B0324'=>'Shopeet 条码池资源不足或异常，请联系客服确认',
+            'B0325'=>'申请的 Shopeet 条码已存在',
+            'B0326'=>'申请的 Shopeet 条码为空，请联系客服确认',
+            'B0327'=>'条码类型不允许为空',
+            'B0328'=>'条码类型值不符合要求',
+            'B0700'=>'查询成功',
+            'B0701'=>'查询失败',
+            'B0702'=>'报文格式异常',
+            'S0000'=>'写入数据库失败',
+            'S0001'=>'写入邮件主表失败',
+            'S0002'=>'写入内件表失败',
+            'S0003'=>'写入扩展表失败',
+            'S0004'=>'系统通用错误',
+            'S0005'=>'订单号已存在',
+            'B0330'=>'条码类型，寄达国不允许',
+        ];
+        return $data;
+    }
+    public function  countryCode($country_name){
+        if(!$country_name){
+            return '';
+        }
+        $zoneMap = [];
+        $zoneMap["安道尔"] = 'ADE';
+        $zoneMap["奥地利"] = 'ADL';
+        $zoneMap["澳大利亚"] = 'ADLY';
+        $zoneMap["阿尔巴尼亚"] = 'AEBN';
+        $zoneMap["阿尔及利亚"] = 'AEJL';
+        $zoneMap["爱尔兰"] = 'AEL';
+        $zoneMap["阿富汗"] = 'AFH';
+        $zoneMap["安哥拉"] = 'AGL';
+        $zoneMap["阿根廷"] = 'AGT';
+        $zoneMap["埃及"] = 'AJ';
+        $zoneMap["安圭拉岛"] = 'AKLD';
+        $zoneMap["阿鲁巴"] = 'ALB';
+        $zoneMap["阿联酋"] = 'ALQ';
+        $zoneMap["阿曼"] = 'AM2';
+        $zoneMap["阿塞拜疆"] = 'ASBJ';
+        $zoneMap["埃塞俄比亚"] = 'ASEB';
+        $zoneMap["爱沙尼亚"] = 'ASNY';
+        $zoneMap["阿松森岛"] = 'ASSD';
+        $zoneMap["安提瓜和巴布达"] = 'ATGH';
+        $zoneMap["巴巴多斯"] = 'BBDS';
+        $zoneMap["巴布亚新几内亚"] = 'BBYX';
+        $zoneMap["博茨瓦纳"] = 'BCWN';
+        $zoneMap["不丹"] = 'BD5';
+        $zoneMap["冰岛"] = 'BD6';
+        $zoneMap["冰岛"] = 'BD6';
+        $zoneMap["波多黎各"] = 'BDLG';
+        $zoneMap["白俄罗斯"] = 'BELS';
+        $zoneMap["背风群岛"] = 'BFQD';
+        $zoneMap["波黑"] = 'BH';
+        $zoneMap["巴哈马"] = 'BHM';
+        $zoneMap["保加利亚"] = 'BJLY';
+        $zoneMap["布基纳法索"] = 'BJNF';
+        $zoneMap["巴基斯坦"] = 'BJST';
+        $zoneMap["巴林"] = 'BL7';
+        $zoneMap["波兰"] = 'BL8';
+        $zoneMap["布隆迪"] = 'BLD';
+        $zoneMap["巴拉圭"] = 'BLG';
+        $zoneMap["法属波利尼西亚"] = 'BLNX';
+        $zoneMap["比利时"] = 'BLS';
+        $zoneMap["巴勒斯坦"] = 'BLST';
+        $zoneMap["玻利维亚"] = 'BLWY';
+        $zoneMap["伯利兹"] = 'BLZ';
+        $zoneMap["百慕大群岛"] = 'BMDQ';
+        $zoneMap["贝宁"] = 'BN';
+        $zoneMap["博内尔"] = 'BNE';
+        $zoneMap["巴拿马"] = 'BNM';
+        $zoneMap["巴斯群岛"] = 'BSQD';
+        $zoneMap["巴西"] = 'BX';
+        $zoneMap["赤道几内亚"] = 'CDJN';
+        $zoneMap["库腊索岛"] = 'CNS';
+        $zoneMap["朝鲜"] = 'CX';
+        $zoneMap["东帝汶"] = 'DDW';
+        $zoneMap["多哥"] = 'DG0';
+        $zoneMap["德国"] = 'DG9';
+        $zoneMap["丹麦"] = 'DM';
+        $zoneMap["多米尼加共和国"] = 'DMNJ';
+        $zoneMap["多米尼克"] = 'DMNK';
+        $zoneMap["东萨摩亚"] = 'DSMY';
+        $zoneMap["大特克斯岛"] = 'DTKS';
+        $zoneMap["大溪地"] = 'DXD';
+        $zoneMap["厄瓜多尔"] = 'EGDE';
+        $zoneMap["俄罗斯"] = 'ELS';
+        $zoneMap["厄立特里亚"] = 'ELTL';
+        $zoneMap["梵蒂冈"] = 'FDG';
+        $zoneMap["佛得角"] = 'FDJ';
+        $zoneMap["法国"] = 'FG';
+        $zoneMap["斐济"] = 'FJ';
+        $zoneMap["福克兰群岛"] = 'FKLQ';
+        $zoneMap["芬兰"] = 'FL';
+        $zoneMap["菲律宾"] = 'FLB';
+        $zoneMap["法罗群岛"] = 'FLQ';
+        $zoneMap["法属圭亚那"] = 'FSGY';
+        $zoneMap["富图纳群岛"] = 'FTNQ';
+        $zoneMap["古巴"] = 'GB';
+        $zoneMap["甘比尔"] = 'GBE';
+        $zoneMap["冈比亚"] = 'GBY';
+        $zoneMap["关岛"] = 'GD';
+        $zoneMap["瓜德罗普岛"] = 'GDLP';
+        $zoneMap["刚果共和国"] = 'GG';
+        $zoneMap["刚果民主共和国"] = 'GGMZ';
+        $zoneMap["国际"] = 'GJ';
+        $zoneMap["哥伦比亚"] = 'GLBY';
+        $zoneMap["格鲁吉亚"] = 'GLJY';
+        $zoneMap["格陵兰岛"] = 'GLLD';
+        $zoneMap["格林纳丁斯岛"] = 'GLND';
+        $zoneMap["格林纳达"] = 'GLND1';
+        $zoneMap["姑鲁嫂"] = 'GLS';
+        $zoneMap["哥斯达黎加"] = 'GSDL';
+        $zoneMap["圭亚那"] = 'GYN';
+        $zoneMap["海地"] = 'HD';
+        $zoneMap["洪都拉斯"] = 'HDLS';
+        $zoneMap["韩国"] = 'HG';
+        $zoneMap["荷兰"] = 'HL';
+        $zoneMap["黑山"] = 'HS';
+        $zoneMap["荷属安的列群岛"] = 'HSAD';
+        $zoneMap["荷属库拉索岛"] = 'HSKL';
+        $zoneMap["哈萨克斯坦"] = 'HSKS';
+        $zoneMap["海峡群岛"] = 'HXQD';
+        $zoneMap["津巴布韦"] = 'JBBW';
+        $zoneMap["吉布提"] = 'JBT';
+        $zoneMap["吉尔吉斯斯坦"] = 'JEJS';
+        $zoneMap["金杰岛"] = 'JJD';
+        $zoneMap["捷克"] = 'JK';
+        $zoneMap["基里巴斯"] = 'JLBS';
+        $zoneMap["加罗林"] = 'JLL';
+        $zoneMap["金门岛"] = 'JMD';
+        $zoneMap["加纳"] = 'JN';
+        $zoneMap["加拿大"] = 'JND';
+        $zoneMap["加那利群岛"] = 'JNLQ';
+        $zoneMap["几内亚"] = 'JNY';
+        $zoneMap["几内亚比绍"] = 'JNYB';
+        $zoneMap["加蓬"] = 'JP';
+        $zoneMap["柬埔寨"] = 'JPZ';
+        $zoneMap["卡奔达"] = 'KBD';
+        $zoneMap["库克群岛"] = 'KKQD';
+        $zoneMap["科科斯群岛"] = 'KKSQ';
+        $zoneMap["凯科斯群岛"] = 'KKSQ3';
+        $zoneMap["科科斯"] = 'KKSQ4';
+        $zoneMap["克罗地区"] = 'KLDQ';
+        $zoneMap["克罗地亚"] = 'KLDY';
+        $zoneMap["库腊索"] = 'KLS';
+        $zoneMap["科摩罗"] = 'KML5';
+        $zoneMap["喀麦隆"] = 'KML6';
+        $zoneMap["开曼群岛"] = 'KMQD';
+        $zoneMap["肯尼亚"] = 'KNY';
+        $zoneMap["科特迪瓦"] = 'KTDW';
+        $zoneMap["卡塔尔"] = 'KTE';
+        $zoneMap["科威特"] = 'KWT';
+        $zoneMap["科西嘉岛"] = 'KXJD';
+        $zoneMap["利比里亚"] = 'LBLY';
+        $zoneMap["黎巴嫩"] = 'LBN';
+        $zoneMap["利比亚"] = 'LBY';
+        $zoneMap["洛德豪岛"] = 'LDHD';
+        $zoneMap["隆尔瓦多"] = 'LEWD';
+        $zoneMap["罗马尼亚"] = 'LMNY';
+        $zoneMap["留尼汪岛"] = 'LNWD';
+        $zoneMap["腊帕岛"] = 'LPD';
+        $zoneMap["卢森堡"] = 'LSB';
+        $zoneMap["莱索托"] = 'LST';
+        $zoneMap["立陶宛"] = 'LTW';
+        $zoneMap["拉脱维亚"] = 'LTWY';
+        $zoneMap["老挝"] = 'LW';
+        $zoneMap["卢旺达"] = 'L';
+        $zoneMap["列支敦士登"] = 'LZDS';
+        $zoneMap["马布亚新几内亚"] = 'MBYX';
+        $zoneMap["缅甸 "] = 'MD';
+        $zoneMap["马达加斯加"] = 'MDJS';
+        $zoneMap["马德拉群岛"] = 'MDLQ';
+        $zoneMap["马尔代夫"] = 'MEDF';
+        $zoneMap["摩尔多瓦"] = 'MEDW';
+        $zoneMap["马耳他"] = 'MET';
+        $zoneMap["马尔维纳斯群岛"] = 'MEWN';
+        $zoneMap["蒙古"] = 'MG7';
+        $zoneMap["美国"] = 'MG8';
+        $zoneMap["孟加拉国"] = 'MJLG';
+        $zoneMap["密克罗尼西亚联邦"] = 'MKLN';
+        $zoneMap["马克萨斯"] = 'MKSS';
+        $zoneMap["秘鲁"] = 'ML0';
+        $zoneMap["马里"] = 'ML9';
+        $zoneMap["摩洛哥"] = 'MLG';
+        $zoneMap["马其顿"] = 'MQD';
+        $zoneMap["莫桑比克"] = 'MSBK';
+        $zoneMap["莫桑比亚"] = 'MSBY';
+        $zoneMap["马绍尔"] = 'MSE';
+        $zoneMap["美属维尔京群岛"] = 'MSWE';
+        $zoneMap["马提尼克岛"] = 'MTNK';
+        $zoneMap["蒙特塞拉特岛"] = 'MTSL';
+        $zoneMap["墨西哥"] = 'MXG';
+        $zoneMap["马约特领土群"] = 'MYT';
+        $zoneMap["马者拉"] = 'MZL';
+        $zoneMap["纽埃"] = 'NA';
+        $zoneMap["尼泊尔"] = 'NBE';
+        $zoneMap["南非"] = 'NF';
+        $zoneMap["尼加拉瓜"] = 'NJLG';
+        $zoneMap["瑙鲁"] = 'NL';
+        $zoneMap["纳米比亚"] = 'NMBY';
+        $zoneMap["南乔治岛"] = 'NQZD';
+        $zoneMap["尼日尔"] = 'NRE';
+        $zoneMap["尼日利亚"] = 'NRLY';
+        $zoneMap["南斯拉夫"] = 'NSLF';
+        $zoneMap["挪威"] = 'NW';
+        $zoneMap["尼维斯岛"] = 'NWS';
+        $zoneMap["皮特开恩群"] = 'PTKE';
+        $zoneMap["葡萄牙"] = 'PTY';
+        $zoneMap["帕劳"] = 'PW';
+        $zoneMap["日本"] = 'RB';
+        $zoneMap["瑞典"] = 'RD';
+        $zoneMap["诺福克群岛"] = 'RFKQ';
+        $zoneMap["瑞士"] = 'RS';
+        $zoneMap["萨巴"] = 'SB';
+        $zoneMap["圣巴泰勒米"] = 'SBTL';
+        $zoneMap["圣诞岛"] = 'SDD';
+        $zoneMap["圣多美和普林西比"] = 'SDMH';
+        $zoneMap["萨尔瓦多"] = 'SEWD';
+        $zoneMap["塞尔维亚"] = 'SEWY';
+        $zoneMap["苏格兰"] = 'SGL';
+        $zoneMap["圣赫勒拿岛"] = 'SHLN';
+        $zoneMap["圣基茨"] = 'SJC';
+        $zoneMap["圣克里斯托"] = 'SKLS';
+        $zoneMap["圣克罗伊斯"] = 'SKLY';
+        $zoneMap["斯洛伐克"] = 'SLFK';
+        $zoneMap["塞拉利昂"] = 'SLLA';
+        $zoneMap["斯里兰卡"] = 'SLLK';
+        $zoneMap["苏里南"] = 'SLN';
+        $zoneMap["斯洛文尼亚"] = 'SLWN';
+        $zoneMap["圣卢西亚岛"] = 'SLXY';
+        $zoneMap["圣马丁"] = 'SMD';
+        $zoneMap["圣马力诺"] = 'SMLR';
+        $zoneMap["萨摩亚"] = 'SMY';
+        $zoneMap["塞内加尔"] = 'SNJE';
+        $zoneMap["赛班"] = 'SP';
+        $zoneMap["圣皮埃尔和密克隆岛"] = 'SPAEMKLD';
+        $zoneMap["塞浦路斯"] = 'SPLS';
+        $zoneMap["塞舌尔"] = 'SSE';
+        $zoneMap["沙特阿拉伯"] = 'STAL';
+        $zoneMap["圣托马斯"] = 'STMS';
+        $zoneMap["斯威士兰"] = 'SWSL';
+        $zoneMap["圣文森特"] = 'SWST';
+        $zoneMap["圣尤斯特歇斯"] = 'SYST';
+        $zoneMap["土阿莫土"] = 'TAMT';
+        $zoneMap["土布艾"] = 'TBA';
+        $zoneMap["土耳其"] = 'TEQ';
+        $zoneMap["泰国"] = 'TG';
+        $zoneMap["塔希提"] = 'THT';
+        $zoneMap["汤加"] = 'TJ';
+        $zoneMap["塔吉克斯坦"] = 'TJKS';
+        $zoneMap["托克劳群岛"] = 'TKLQ';
+        $zoneMap["土库曼斯坦"] = 'TKMS';
+        $zoneMap["特克斯群岛"] = 'TKSQ';
+        $zoneMap["特立尼达和多巴哥"] = 'TLND';
+        $zoneMap["特里斯岛"] = 'TLSD';
+        $zoneMap["突尼斯"] = 'TNS';
+        $zoneMap["坦桑尼亚"] = 'TSNY';
+        $zoneMap["托托拉岛"] = 'TTLD';
+        $zoneMap["图瓦卢"] = 'TWL';
+        $zoneMap["危地马拉"] = 'WDML';
+        $zoneMap["乌干达"] = 'WGD';
+        $zoneMap["乌克兰"] = 'WKL';
+        $zoneMap["文莱"] = 'WL';
+        $zoneMap["乌拉圭"] = 'WLG';
+        $zoneMap["瓦利斯群岛"] = 'WLSQ';
+        $zoneMap["瓦努阿图"] = 'WNAT';
+        $zoneMap["委内瑞拉"] = 'WNRL';
+        $zoneMap["乌兹别克斯坦"] = 'WZBK';
+        $zoneMap["西班牙"] = 'XBY';
+        $zoneMap["向风群岛"] = 'XFQD';
+        $zoneMap["锡金"] = 'XJ';
+        $zoneMap["新加坡"] = 'XJP';
+        $zoneMap["新喀里多尼亚"] = 'XKLD';
+        $zoneMap["希腊"] = 'XL';
+        $zoneMap["西撒哈拉"] = 'XSHL';
+        $zoneMap["西萨摩亚"] = 'XSMY';
+        $zoneMap["夏威夷群岛"] = 'XWYQ';
+        $zoneMap["新西兰"] = 'XXL';
+        $zoneMap["英属西印度群岛"] = 'XYDQ';
+        $zoneMap["象牙海岸"] = 'XYHA';
+        $zoneMap["匈牙利"] = 'XYL';
+        $zoneMap["印度"] = 'YD1';
+        $zoneMap["约旦"] = 'YD2';
+        $zoneMap["意大利"] = 'YDL';
+        $zoneMap["伊大尼"] = 'YDN';
+        $zoneMap["伊大尼"] = 'YDN';
+        $zoneMap["印度尼西亚"] = 'YDNX';
+        $zoneMap["英国"] = 'YG';
+        $zoneMap["约翰斯敦岛"] = 'YHSD';
+        $zoneMap["伊朗"] = 'YL';
+        $zoneMap["伊拉克"] = 'YLK';
+        $zoneMap["也门共和国"] = 'YM';
+        $zoneMap["牙买加"] = 'YMJ';
+        $zoneMap["亚美尼亚"] = 'YMNY';
+        $zoneMap["越南"] = 'YN';
+        $zoneMap["亚速尔群岛"] = 'YSEQ';
+        $zoneMap["以色列"] = 'YSL';
+        $zoneMap["英属维尔京群岛"] = 'YSWE';
+        $zoneMap["直布罗陀"] = 'ZBLT';
+        $zoneMap["赞比亚"] = 'ZBY';
+        $zoneMap["乍得"] = 'ZD';
+        $zoneMap["中非"] = 'ZF';
+        $zoneMap["智利"] = 'ZL';
+        $zoneMap["中途岛"] = 'ZTD';
+        $zoneMap["扎伊尔"] = 'ZYE';
+        if (!$zoneMap[$country_name])
+            return '';
+        return $zoneMap[$country_name];
+    }
+}

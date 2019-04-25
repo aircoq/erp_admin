@@ -1,0 +1,53 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+use app\carrier\service\ShippingMethod;
+
+class ChinaExpress extends Base
+{
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            $strFun = 'label_default';
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 1) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 1);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+    private function label_default($order)
+    {
+
+        $ShippingMethod = new ShippingMethod();
+        $order['shipping_name'] = $ShippingMethod->getFullName($order['shipping_id']);
+        return $this->display('default', $order);
+    }
+    private function label_funmart($order)
+    {
+        $orderModel = (new \app\common\model\Order());
+        $funmartModel = (new \app\common\model\funmart\FunmartOrder());
+
+        $orderDetail=$orderModel->where('id',$order['order_id'])->field('channel_order_number')->find();
+        $field="item_num,shop_sku,shop_spu,order_id";
+        $data=$funmartModel->where('order_id',$orderDetail['channel_order_number'])->field($field)->find();
+        if(empty($data)){
+            throw new Exception('平台订单未找到此订单信息！');
+        }
+        $arr=$data->toArray();
+        $rs=array_merge($order,$arr);
+        return $this->display('funmart', $rs);
+    }
+
+}

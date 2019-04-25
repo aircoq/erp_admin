@@ -1,0 +1,57 @@
+<?php
+
+namespace service\wish\operation;
+
+use think\Cache;
+use app\common\service\WishService;
+use think\Exception;
+
+/**
+ *  wish ProductBoost
+ */
+class ProductBoost extends Common
+{
+    /**
+     * @var null
+     */
+    public $access_token;
+
+    /** 构造函数
+     * ProductBoost constructor.
+     * @param $config
+     */
+    public function __construct($config)
+    {
+        $this->access_token = $config['access_token'];
+        parent::__construct($this->access_token);
+    }
+    
+    /**
+     * ProductBoost帐户余额的收费和取款活动列表
+     * @param int $limit
+     * @param int $start
+     * @return array
+     */
+    public function productBoostBalanceList($limit = 500, $start = 0)
+    {
+        $access_token = urlencode($this->access_token);
+        $start = urlencode($start);
+        $limit = urlencode($limit);
+        $url = sprintf(
+            "https://merchant.wish.com/api/v2/product-boost/balance/history?access_token=%s&start=%s&limit=%s",
+            $access_token, $start, $limit);
+        $context = stream_context_create(array(
+            'http' => array(
+                'method' => 'GET',
+                'ignore_errors' => true,
+            ),
+        ));
+        $response = file_get_contents($url, TRUE, $context);
+        $response = json_decode($response, true);
+        if ($response['code'] == 0) {
+            return $response;
+        }
+        return [];
+    }
+    
+}

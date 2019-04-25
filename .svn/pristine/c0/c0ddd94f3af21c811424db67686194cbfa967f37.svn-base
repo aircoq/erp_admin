@@ -1,0 +1,34 @@
+
+
+<?php
+
+
+require_once 'EbatNs_Session.php';
+require_once 'EbatNs_ServiceProxy.php';
+require_once 'EbatNs_DataConverter.php';
+
+$session = new EbatNs_Session();
+$session->setSiteId(0);
+$session->setUseHttpCompression(1);
+$session->setAppMode(0);
+$session->setDevId('96a1eee5-e4cb-43bb-89ff-1943863b91a4');
+$session->setAppId('ShenYanh-FastLine-PRD-b57734100-aaa0fbc8');
+$session->setCertId('PRD-577341007be2-2627-488b-8a70-5c62');
+$session->setRequestToken('AgAAAA**AQAAAA**aAAAAA**gB7RVw**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AAlIajCJGBqQSdj6x9nY+seQ**DGMDAA**AAMAAA**MeXmSDvMYHjQEpb5j2lQ7YDunaLaecgHSLnICmYqaSf/d4+8AonuTkX0NPLt79i6mxZ+PKysW4krzu37Mbn7mcWfH7A3IttY38NRufapP1ClqGPm9cE6vFccw0oFVlex7LWliD2qgxwxw841n8DA+aZWOwEUNpjYX0Dk/vZYl6gztXD0A/0vQuF20LM+yn35yk7F9AizVlw1aG6d8/Lh7slpic0UkZHqoZXPXlwP44DdOiyCEH26u6UauRcwMaihQ/0+FH5TEwd1KBhWkKpMe5hk3MYPY/tnKlwqBPYgsU09xPStXg+jgj0FyPfyqQm+l3319UfzOqzwW7b7WtbnS4IGKxAQuSaIe5h2E/psgXqzhRWGNy1sNeSMiZABix/NACZ5R5BrWLrblTTzjKHT65ldMsgyhdAsqmNvRV/+uD6T61nOmz5fasxVCuRNgFVM0OMyE2zCZV4pTiQdc/cGZfSE1oYduc9pmx5duVWph/JDwSWSUSXfumRkEXVUThQzDHIpOEND1sKqanz7v7WK9pjBF/iYuBSW/1PoA1GhY8W5+UJ1E5yWchw3ONhD+XXL2U75nRw0a2W8t2NrGuJG9e8jwLLauk807sRTokrhW83cqjezwmku2AIw2ISPLbmj1anRjLdUXUPdHZWvKGgD+SkcuU0v6+ubOD53nKRGAMW04YEFouZCCgvYmFFIcrLBhh9i4L2xnuCCRoic9lIVC9H2g/s7NaGcz23qmkeTtZeJxtKD38vj3bXDtGWQUl7C');
+$session->setTokenUsePickupFile(false);
+$session->setTokenMode(true);
+
+$proxy = new EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+
+require_once 'GetCategoriesRequestType.php';
+$getcategoriesrequest = new GetCategoriesRequestType();
+$getcategoriesrequest->setCategorySiteID("0");
+$getcategoriesrequest->setViewAllNodes("false");
+$getcategoriesrequest->setWarningLevel("High");
+$getcategoriesrequest->setVersion("981");
+$getcategoriesrequest->addDetailLevel("ReturnAll");
+
+$response = $proxy->GetCategories($getcategoriesrequest);
+
+print_r($response->categoriesreToArray);
+?>

@@ -1,0 +1,94 @@
+<?php
+
+namespace joom;
+
+use app\common\cache\Cache;
+/**
+ * Created by PhpStorm.
+ * User: zhangdongdong
+ * Date: 2018/1/6
+ * Time: 17:25
+ */
+class JoomListingApi extends JoomBaseApi
+{
+    public function __construct($params) {
+        parent::__construct($params);
+    }
+
+    /**
+     * @title 拉取listing数据
+     * @param $start 开始点最小为0；
+     * @param $limit 每次拉取的个数；
+     * @return mixed
+     */
+    public function getListing($start, $limit = 200) {
+        $url = 'https://api-merchant.joom.com/api/v2/product/multi-get';
+        $getData = [
+            'start' => $start,
+            'limit' => $limit,
+        ];
+
+        $result = $this->authcall($url, 'GET', $getData);
+        return $result;
+    }
+
+    /**
+     * 通过产品ID，拿取产品信息用于更新；
+     * @param $product_id 产品ID
+     */
+    public function getProduct($product_id) {
+        $url = 'https://api-merchant.joom.com/api/v2/product';
+        $data = [
+            'id' => $product_id,
+        ];
+
+        $result = $this->authcall($url, 'GET', $data);
+        return $result;
+    }
+
+    /**
+     * 操作产品上下架
+     * @param $product_id 产品ID
+     * @param string $type 类型，enable:上架； disable：下架；
+     * @return array|mixed
+     */
+    public function operation($product_id, $type = 'enable') {
+        if(!in_array($type, ['enable', 'disable'])) {
+            return [
+                'code' => -1,
+                'message' => '类型错误',
+            ];
+        }
+        $url = 'https://api-merchant.joom.com/api/v2/product/'. $type;
+        $data = [
+            'id' => $product_id,
+        ];
+
+        $data = http_build_query($data);
+        $result = $this->authcall($url, 'POST', $data);
+        return $result;
+    }
+
+    /**
+     * 操作的变体上下架
+     * @param $sku 变体sku
+     * @param string $type 类型，enable：上架； disable：下架
+     * @return array|mixed
+     */
+    public function variantOperation($sku, $type = 'enable') {
+        if(!in_array($type, ['enable', 'disable'])) {
+            return [
+                'code' => -1,
+                'message' => '类型错误',
+            ];
+        }
+        $url = 'https://api-merchant.joom.com/api/v2/variant/'. $type;
+        $data = [
+            'sku' => $sku,
+        ];
+
+        $data = http_build_query($data);
+        $result = $this->authcall($url, 'POST', $data);
+        return $result;
+    }
+}

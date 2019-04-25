@@ -1,0 +1,241 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: dhb5861
+ * Date: 2019/1/2
+ * Time: 11:51
+ */
+
+namespace PaypalClient\Transactions;
+
+
+use app\common\model\PaypalEventCode;
+use app\common\model\PaypalTransaction;
+use app\order\service\SettlementDetailSevice;
+use PaypalClient\Inventory\PaypalSync;
+use PaypalClient\PayPalRestBase;
+use app\common\cache\Cache;
+use think\Exception;
+
+class LoadTransactions
+{
+    /**
+     * @param $param
+     * start_date    开始时间
+     * end_date   结束时间
+     * page   页数
+     * @return array|mixed|string
+     *加载导入数据到mysql
+     */
+    public function loadData($param)
+    {
+        set_time_limit(0);
+        static $total = 0;
+        static $level = 1;
+        $param['page'] = isset($param['page'])?intval($param['page']):1;
+        $sync = new PaypalSync($param['account_id']);
+        $data = $sync->transactions($param);
+        if(isset($data['debug_id']))   //报错
+        {
+            return $data;
+        }
+        if(isset($data['total_pages']))
+        {
+            if($data['total_pages'] == 0)
+            {
+                $data['debug_id'] = "nodata_";
+                return $data;
+            }
+        }else{
+            return $data;
+        }
+        $this->dataToMysql($data,$param['account_id']);
+        $total += count($data['transaction_details']);
+        if($data['total_pages'] > 1 && $param['page'] < $data['total_pages'])
+        {
+            sleep(1);
+            $param['page']++;
+            $this->loadData($param);
+        }
+        return $total;
+    }
+
+    /**
+     * @param $data
+     * @param $account_id
+     * @return int
+     * 将抓取的数据插入数据库
+     */
+    public function dataToMysql($data,$account_id){
+        $data = $data['transaction_details'];
+        $need_unfold = ['transaction_info'];  //需要展开的字段
+        $insertTotal = 0;
+        foreach ($data as $key=>$alone)
+        {
+            $paypalTrans = new PaypalTransaction();
+            $insertData = [];
+            foreach ($alone as $alone_key=>$alone_filed)
+            {
+                if(in_array($alone_key,$need_unfold))
+                {
+                    $temp = $this->parseData("",$alone_filed);
+                    if(!empty($temp))
+                    {
+                        $insertData = array_merge($insertData,$temp);
+                    }
+                }else{
+                    if(is_array($alone_filed))
+                    {
+                        $insertData[$alone_key] = json_encode($alone_filed);
+                    }else{
+                        $insertData[$alone_key] = $alone_filed;
+                    }
+
+                }
+                switch ($alone_key)
+                {
+                    case "auction_info":
+                        $insertData['auction_info_auction_site'] = isset($alone_filed['auction_site'])?$alone_filed['auction_site']:"";
+                        break;
+                }
+            }
+
+            $insertData['paypal_account_id'] = $account_id;
+            $insertData['paypal_event_code_id'] = $this->maintainEventCode($insertData['transaction_event_code']);
+            unset($insertData['transaction_event_code']);
+            $insertData = $this->addCloumd($paypalTrans,$insertData);   //添加数据库字段
+            $time = time();
+            $insertData['update_time'] = $time;
+            $insertData['create_time'] = $time;
+            isset($insertData['transaction_initiation_date']) && $insertData['transaction_initiation_date'] = strtotime($insertData['transaction_initiation_date']);
+            isset($insertData['transaction_updated_date']) && $insertData['transaction_updated_date'] = strtotime($insertData['transaction_updated_date']);
+            $transaction_amount = json_decode($insertData['transaction_amount'],true);
+            $currency_code = empty($transaction_amount)?"":$transaction_amount['currency_code'];
+            $insertData['to_cny_rate'] = \app\index\service\Currency::getCurrencyRateByTime($currency_code,date('Y-m-d',$insertData['transaction_initiation_date']));
+            $has_where['transaction_id'] = $insertData['transaction_id'];
+            $has_where['paypal_event_code_id'] = $insertData['paypal_event_code_id'];
+            $insertData = $this->handleData($insertData);
+            $settlementDetail = new SettlementDetailSevice();
+            if($paypalTrans->where($has_where)->count() > 0)  //存在更新
+            {
+                unset($insertData['create_time']);
+                $paypalTrans->where($has_where)->update($insertData);
+                $settlementDetail->addChildDetail($insertData);
+            }else{
+                $paypalTrans->fetchSql(false)->insert($insertData);
+                $settlementDetail->addChildDetail($insertData);
+                $insertTotal++;
+            }
+        }
+        return $insertTotal;
+    }
+
+    private function handleData($insertData){
+        if(isset($insertData['custom_field']) && mb_strlen($insertData['custom_field']) > 127)
+        {
+            $insertData['custom_field'] = mb_substr($insertData['custom_field'],0,127);
+        }
+        if(isset($insertData['auction_info_auction_site']) && mb_strlen($insertData['auction_info_auction_site']) > 200)
+        {
+            $insertData['auction_info_auction_site'] = mb_substr($insertData['auction_info_auction_site'],0,200);
+        }
+        if(isset($insertData['invoice_id']) && mb_strlen($insertData['invoice_id']) > 240)
+        {
+            $insertData['invoice_id'] = mb_substr($insertData['invoice_id'],0,240);
+        }
+        if(isset($insertData['transaction_subject']) && mb_strlen($insertData['transaction_subject']) > 240)
+        {
+            $insertData['transaction_subject'] = mb_substr($insertData['transaction_subject'],0,240);
+        }
+        if(isset($insertData['shipping_amount_currency_code']) && mb_strlen($insertData['shipping_amount_currency_code']) > 240)
+        {
+            $insertData['shipping_amount_currency_code'] = mb_substr($insertData['shipping_amount_currency_code'],0,240);
+        }
+        if(isset($insertData['payment_method_type']) && mb_strlen($insertData['payment_method_type']) > 240)
+        {
+            $insertData['payment_method_type'] = mb_substr($insertData['payment_method_type'],0,240);
+        }
+        return $insertData;
+    }
+
+    //维护添加事件码
+    private function maintainEventCode($code)
+    {
+         $event = PaypalEventCode::get(['event_code'=>$code]);
+         if(!$event)
+         {
+             $insert['event_code'] = $code;
+             $insert['description'] = "";
+             $insert['name'] = "";
+             $insert['remark'] = "";
+             $insert['create_time'] = time();
+             $event = PaypalEventCode::create($insert);
+         }
+         return $event->id;
+    }
+
+    /**
+     * @param $parent_key
+     * @param $data
+     * @param int $first
+     * @return array
+     * 展开数据的子项
+     */
+    private function parseData($parent_key,$data,$first=1)
+    {
+
+        if(!empty($parent_key))
+        {
+            $parent_key .= "_";
+        }
+
+        if($first)
+        {
+            $this->tempArr = [];
+        }
+        $not_dispose = ["transaction_amount","ending_balance","available_balance","fee_amount"];
+        if(!empty($data) && is_array($data))
+        {
+            foreach ($data as $k=>$d)
+            {
+                if(is_array($d))
+                {
+                    if(!in_array($k,$not_dispose))
+                    {
+                        $this->parseData($parent_key.$k, $d,0);
+                    }else{
+                        $this->tempArr[$parent_key.$k] = json_encode($d);
+                    }
+                }else{
+                    $this->tempArr[$parent_key.$k] = $d;
+                }
+            }
+        }
+        return $this->tempArr;
+    }
+
+    /**
+     * @param $insertData
+     * @param bool $add
+     * @return bool
+     * 动态添加数据表列
+     */
+    private function addCloumd($paypalTrans,$insertData,$add=true)
+    {
+        if(!$add)
+        {
+            return false;
+        }
+        $fields = Cache::store("PaypalOrder")->getTableField();
+        $addkeys = array_keys($insertData);
+        $diff_fields = array_diff($addkeys,$fields);
+        if(!empty($diff_fields))
+        {
+            foreach ($diff_fields as $field)
+            {
+                unset($insertData[$field]);
+            }
+        }
+        return $insertData;
+    }
+}

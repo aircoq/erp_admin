@@ -1,0 +1,261 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class El extends Base
+{
+    public function isCanDeclare($code)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "canDeclare_".$code  ;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('此渠道不能预览报关单' . $strFun);
+        }
+        return $this->$strFun($code);
+    }
+    /*
+     * LA挂号
+     */
+    private function canDeclare_MO7997(){
+        return 1;
+    }
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+    private function getZoneCode($country_code)
+    {
+        $zoneMap=[];
+        $zoneMap["AU"]='9';
+        $zoneMap["GR"]='19';
+        $zoneMap["BE"]='18';
+        $zoneMap["AT"]='25';
+        $zoneMap["SE"]='42';
+        $zoneMap["GB"]='1';
+        $zoneMap["UK"]='1';
+        $zoneMap["FR"]='4';
+        $zoneMap["IT"]='8';
+        $zoneMap["CA"]='17';
+        $zoneMap["ES"]='7';
+        $zoneMap["DE"]='3';
+        $zoneMap["NO"]='10';
+        $zoneMap["CH"]='13';
+        $zoneMap["US"]='5';
+        $zoneMap["CZ"]='14';
+        $zoneMap["TR"]='33';
+        $zoneMap["RU"]='2';
+        $zoneMap["BR"]='6';
+        $zoneMap["ZA"]='22';
+        $zoneMap["NZ"]='16';
+        $zoneMap["BG"]='26';
+        $zoneMap["PL"]='41';
+        $zoneMap["LU"]='31';
+        $zoneMap["IE"]='24';
+        $zoneMap["FI"]='27';
+        $zoneMap["HU"]='15';
+        $zoneMap["AE"]='34';
+        $zoneMap["HR"]='23';
+        $zoneMap["DZ"]='44';
+        $zoneMap["AR"]='11';
+        $zoneMap["OM"]='40';
+        $zoneMap["AZ"]='45';
+        $zoneMap["EG"]='46';
+        $zoneMap["ET"]='47';
+        $zoneMap["BH"]='48';
+        $zoneMap["DJ"]='49';
+        $zoneMap["GH"]='50';
+        $zoneMap["DK"]='30';
+        $zoneMap["PT"]='41';
+        $zoneMap["QA"]='51';
+        $zoneMap["KW"]='52';
+        $zoneMap["KE"]='53';
+        $zoneMap["LB"]='54';
+        $zoneMap["MY"]='38';
+        $zoneMap["MK"]='55';
+        $zoneMap["MA"]='37';
+        $zoneMap["MZ"]='56';
+        $zoneMap["NG"]='39';
+        $zoneMap["RS"]='32';
+        $zoneMap["SRB"]='32';
+        $zoneMap["CY"]='29';
+        $zoneMap["LK"]='57';
+        $zoneMap["SK"]='21';
+        $zoneMap["SD"]='58';
+        $zoneMap["TZ"]='59';
+        $zoneMap["TN"]='60';
+        $zoneMap["UG"]='61';
+        $zoneMap["ID"]='35';
+        $zoneMap["JO"]='63';
+        $zoneMap["ZM"]='64';
+
+        if (!$country_code)
+            return '';
+        $zone = $zoneMap[$country_code] ?? '';
+        if (!$zone)
+            return '';
+        return $zone;
+    }
+
+    private function getZoneCodeM($country_code)
+    {
+
+        $zoneMap=[];
+        $zoneMap["AU"]='9';
+        $zoneMap["GR"]='19';
+        $zoneMap["BE"]='18';
+        $zoneMap["AT"]='25';
+        $zoneMap["SE"]='42';
+        $zoneMap["GB"]='1';
+        $zoneMap["UK"]='1';
+        $zoneMap["FR"]='4';
+        $zoneMap["IT"]='8';
+        $zoneMap["CA"]='17';
+        $zoneMap["ES"]='7';
+        $zoneMap["DE"]='3';
+        $zoneMap["NO"]='10';
+        $zoneMap["CH"]='13';
+        $zoneMap["US"]='5';
+        $zoneMap["CZ"]='14';
+        $zoneMap["TR"]='33';
+        $zoneMap["RU"]='2';
+        $zoneMap["BR"]='6';
+        $zoneMap["ZA"]='22';
+        $zoneMap["NZ"]='16';
+        $zoneMap["BG"]='26';
+        $zoneMap["PL"]='41';
+        $zoneMap["LU"]='31';
+        $zoneMap["IE"]='24';
+        $zoneMap["FI"]='27';
+        $zoneMap["HU"]='15';
+        $zoneMap["AE"]='34';
+        $zoneMap["HR"]='23';
+        $zoneMap["DZ"]='44';
+        $zoneMap["AR"]='11';
+        $zoneMap["OM"]='40';
+        $zoneMap["AZ"]='45';
+        $zoneMap["EG"]='46';
+        $zoneMap["ET"]='47';
+        $zoneMap["BH"]='48';
+        $zoneMap["DJ"]='49';
+        $zoneMap["GH"]='50';
+        $zoneMap["DK"]='30';
+        $zoneMap["PT"]='41';
+        $zoneMap["GA"]='66';
+        $zoneMap["CM"]='67';
+        $zoneMap["QA"]='51';
+        $zoneMap["KW"]='52';
+        $zoneMap["KE"]='53';
+        $zoneMap["LB"]='54';
+        $zoneMap["MY"]='38';
+        $zoneMap["MK"]='55';
+        $zoneMap["MA"]='37';
+        $zoneMap["MZ"]='56';
+        $zoneMap["NG"]='39';
+        $zoneMap["RS"]='32';
+        $zoneMap["SRB"]='32';
+        $zoneMap["CY"]='29';
+        $zoneMap["LK"]='57';
+        $zoneMap["SK"]='21';
+        $zoneMap["SD"]='28';
+        $zoneMap["TZ"]='59';
+        $zoneMap["TN"]='60';
+        $zoneMap["UG"]='61';
+        $zoneMap["IQ"]='62';
+        $zoneMap["ID"]='35';
+        $zoneMap["JO"]='63';
+        $zoneMap["ZM"]='64';
+        $zoneMap["JP"]='20';
+        $zoneMap["RO"]='28';
+        $zoneMap["SG"]='43';
+        $zoneMap["TH"]='65';
+        $zoneMap["IN"]='35';
+
+        if (!$country_code)
+            return '';
+        $zone = $zoneMap[$country_code] ?? '';
+        if (!$zone)
+            return '';
+        return $zone;
+    }
+
+
+    private function getTopCode($country_code)
+    {
+
+        $zoneMap=[
+            'JP'=>'D-30',
+            'AU'=>'D-3',
+            'GR'=>'D-16',
+            'BE'=>'D-12',
+            'SE'=>'D-34',
+            'IE'=>'D-14',
+            'FR'=>'D-1',
+            'NZ'=>'D-11',
+            'PL'=>'D-17',
+            'HU'=>'D-10',
+            'NO'=>'D-61',
+            'US'=>'D-13',
+            'HR'=>'D-25',
+            'AR'=>'D-28',
+            'NL'=>'D-62',
+            'DK'=>'D-24',
+            'AT'=>'D-19',
+            'DE'=>'D-4',
+            'GB'=>'D-2',
+        ];
+        if (!$country_code)
+            return '';
+        $zone = $zoneMap[$country_code] ?? '';
+        if (!$zone)
+            return '';
+        return $zone;
+    }
+    //author by lan LA挂号
+    private function label_MO7997($order){
+        $order['zoneCode']=$this->getZoneCode($order['country_code']);
+        return $this->display('MO7997',$order);
+    }
+
+    //author by lan 通邮经济小包
+    private function label_ZG7984($order){
+        $order['zoneCode']=$this->getZoneCodeM($order['country_code']);
+        return $this->display('ZG7984',$order);
+    }
+    //author by lan 通邮经济小包（带电）
+    private function label_ATO17429105($order){
+        $order['zoneCode']=$this->getZoneCode($order['country_code']);
+        return $this->display('ATO17429105',$order);
+    }
+
+    //author by lan TOPYOU航空小包
+    private function label_DQQ78116412($order){
+        $order['topCode']=$this->getTopCode($order['country_code']);
+        return $this->display('DQQ78116412',$order);
+    }
+
+
+
+
+
+
+
+
+}

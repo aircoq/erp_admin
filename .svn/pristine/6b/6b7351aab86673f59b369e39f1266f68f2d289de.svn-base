@@ -1,0 +1,1099 @@
+<?php
+namespace service\shipping\operation;
+
+use service\shipping\operation\ShippingMethodBase;
+use think\Exception;
+use app\common\cache\Cache;
+use org\Curl;
+use app\warehouse\service\WarehouseGoodsForecast;
+use app\warehouse\service\WarehouseGoods;
+/**
+ * Class Fourpx
+ * @package service\shipping\operation
+ */
+class Wangji
+{
+    private     $config = [
+
+        'code'           => '',
+        'client_secret'  => '',
+        'client_id'      => '',
+        'access_token'      => '',
+        'refresh_token'      => '',
+//        'customerId'     => '4ceda4060b7f471f83cbddb2914099ee',//测试账号卖家id
+//        'url'            => 'http://wmstest.007ex.com/api', //测试
+
+        'customerId'     => '24ed081d0bcb4158b38a9f7ece265bc0',//线上账号卖家id
+        'url'            => 'http://api.007ex.com/api', //线上
+        'header'         =>  [
+            'Content-type:application/json'
+        ]
+    ];
+
+    private $result = ['data' => [], 'error' => [], 'success' => false];
+
+
+    // 计量单位
+    private $measure_unit = [
+        'EA', 'KG', 'MT'
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+
+    /**
+     * 获取API信息
+     * @param array $config
+     * @return boolean
+     * @throws Exception
+     */
+    public function getApiInfo($config)
+    {
+        if (!param($config, 'client_id') || !param($config, 'client_secret') ) {
+            throw new Exception('缺少必要授权信息');
+        }
+        $this->config['client_secret'] = $config['client_secret'];
+        $this->config['client_id'] = $config['client_id'];
+        if(!$this->refreshToken()){
+            $this->result['error'] = [
+                'error_msg'  => '获取授权是失败，请检查账号是否正确！',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 获取Token
+     * @return bool
+     */
+    private function refreshToken()
+    {
+        try{
+            $cache = Cache::handler();
+            if($cache->exists('wangji:refresh_token:datas')){
+                $rs=$cache->get('wangji:refresh_token:datas');
+                $rs_arr=json_decode($rs,true);
+                if($cache->exists('wangji:refresh_token:'.$rs_arr['access_token'])){
+                    if(isset($rs_arr['access_token'])){
+                        $this->config['access_token'] = $rs_arr['access_token'];
+                    }
+                    return true;
+                }
+                $data['client_secret'] = $this->config['client_secret'];
+                $data['client_id'] = $this->config['client_id'];
+                $data['grant_type'] ='refresh_token';
+                $data['refresh_token'] =$rs_arr['refresh_token'];
+                $header=  [
+                    'Content-type:application/x-www-form-urlencoded'
+                ];
+                $parameters=http_build_query($data, '', '&', PHP_QUERY_RFC3986);
+                $url="http://wms.007ex.com/oauth/token?".$parameters;//线上
+//                $url="http://wmstest.007ex.com/oauth/token?".$parameters;//测试
+                $response = Curl::curlPost($url,'',$header);
+                $result = json_decode($response,true);
+                if(isset($result['access_token']) && $result['access_token']){
+                    $this->config['access_token'] = $result['access_token'];
+                    $cache->setex('wangji:refresh_token:'.$this->config['access_token'], $result['expires_in'], $result['access_token']);
+                    Cache::handler()->set('wangji:refresh_token:datas', $response);
+                }else{
+                    $this->result['error'] = [
+                        'error_msg'=>'获取授权是失败，请检查账号是否正确！',
+                        'error_code'=>1
+                    ];
+                    return false;
+                }
+            }else{
+                $this->result['error'] = [
+                    'error_msg'=>'账号未授权 请重新授权！',
+                    'error_code'=>1
+                ];
+                return false;
+            }
+        }catch (Exception $ex){
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+            return false;
+        }
+        return true;
+    }
+    /**
+     * @title 获取授权码
+     * @method post
+     */
+    public function authorcode()
+    {
+        $request = Request::instance();
+        $client_id = $request->post('client_id', 0);
+        if (empty($client_id)) {
+            return json(['message' => '应用ID不能为空'], 400);
+        }
+        $url='http://wmstest.007ex.com/oauth/authorize?response_type=code&redirect_uri=https://www.zrzsoft.com&scope=read%20write&state=1212&client_id='.$client_id;
+        return json(['url' => $url], 200);
+    }
+    /**
+     * @desc 获取token
+     */
+    public function getToken($config)
+    {
+        /* $request = Request::instance();
+         $data['client_id'] = $request->post('client_id', 0);
+         $data['client_secret'] = $request->post('client_secret', 0);
+         $data['code'] = $request->post('authorization_code', 0);
+         $data['code'] = 'b6eb4be9b0bbf14b641005d3aa28fd72';
+
+         $data['redirect_uri'] = 'https://www.zrzsoft.com';
+         if (empty($data['client_secret']) ||  empty($data['authorization_code'])) {
+             return json(['message' => '参数信息错误'], 400);
+         }*/
+        $data=[
+            'grant_type'=>'authorization_code',
+            'client_id'=>'lddgj',
+            'client_secret'=>'ea4cd8899ee147338916570452c0f482',
+            'redirect_uri'=>'https://www.zrzsoft.com',
+            'code'=>'0138216b79cc66b75b8101ab87cfb4ba',
+        ];
+        $parameters=http_build_query($data, '', '&', PHP_QUERY_RFC3986);
+        $header=  [
+            'Content-type:application/x-www-form-urlencoded'
+        ];
+        //$url="http://wmstest.007ex.com/oauth/token?".$parameters;
+        $url="http://api.007ex.com/oauth/token?".$parameters;//线上
+        $response = Curl::curlPost($url,'',$header);
+        $result = json_decode($response, true);
+
+        if (isset($result['access_token'])){
+            return $result['access_token'];
+        }else{
+            $this->result['success'] = false;
+            $this->result['error']=$result['error_description'];
+            return  $this->result;
+        }
+    }
+
+    /**
+     * 发送请求
+     *
+     * @param array $data 发送数据
+     * @param string 请求方法名
+     * @return object json decode.
+     */
+    private function callOperation($data, $action)
+    {
+        $url = $this->config['url'].'/'. $action.'?access_token='.$this->config['access_token'];
+        $headers =$this->config['header'];
+        $response  = Curl::curlPost($url,$data, $headers);
+        $result    = json_decode($response, true);
+        return $result;
+
+
+    }
+
+
+    /**
+     * @desc 查询所有货品分类
+     * @param int $category
+     * @param int $level
+     * @throws Exception
+     * @return array
+     */
+    public function cycleGetCategory($parentId=0)
+    {
+        $data['parentIds'] = $parentId;
+        $action = '/itemGroup/getAllList';
+        $result= $this->callOperation(json_encode($data,true), $action);
+        $categories = $result['data'] ?? [];
+        $item=[];
+        foreach ($categories as  $data) {
+            $item[$data['id']] = [
+                'category_id'=>$data['id'],
+                'category_name'=>$data['name'],
+                'category_name_en'=>$data['enname'],
+                'parent_category_id'=>$data['parentId'],
+                'category_level'=>count(explode(',',$data['parentIds']))-2,
+            ];
+
+        }
+
+        return $item;
+    }
+
+    /**
+     * 更新或加载产品分类
+     * @param array $config
+     * @return array (categoroyCode, categoryName, categoryEnname, parentId)
+     */
+    public function getCategory($config)
+    {
+        try {
+            if($this->getApiInfo($config)) {
+                $info = $this->cycleGetCategory();
+                $this->result['success'] = true;
+                $this->result['data'] = $info;
+            }
+
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 递归获取数据
+     * @param string $func
+     * @param array $other_params
+     * @param int $page
+     * @param int $pageSize
+     * @param array $params 请求参数
+     * @throws Exception
+     * @return array
+     */
+
+    private function getResponseData($data, $action, $page=1, $pageSize = 100)
+    {
+        set_time_limit(0);
+        $share_params['page'] = array(
+            'pageSize' => $pageSize,
+            'pageNo' => $page
+        );
+        $params = json_encode(array_merge($share_params, $data));
+        $url = $this->config['url'].'/'. $action.'?access_token='.$this->config['access_token'];
+        $headers =$this->config['header'];
+        $response  = Curl::curlPost($url,$params, $headers);
+        $result    = json_decode($response, true);
+        if (isset($result['meta']) &&  $result['meta']['code']==0) {
+            $response_data = $result['data']['list'];
+            if($result['data']['pageSize']*$result['data']['pageNo']<$result['data']['count']){
+                $page++;
+                $next = $this->getResponseData($data, $action, $page);
+                $response_data = array_merge($response_data,($next) );
+            }
+
+        }else{
+            return $this->result['error']=isset($result['meta']['message'])?$result['meta']['message']:'获取数据失败';
+        }
+        return $response_data;
+    }
+    /**
+     * 获取产品列表
+     * @param int $warehouse_id
+     * @param array $skus
+     * @return array
+     * imBmNo, imBarCode, supplierCode, uomCode )
+     */
+    public function getProductList($config)
+    {
+        $action = '/item/getAllList';
+        $data=[];
+        try {
+            $this->getApiInfo($config);
+            $result =$this->getResponseData($data, $action);
+            $data=[];
+            if (isset($result) && !empty($result) ) {
+                foreach($result as $item){
+                    if($item['itemAttribute']['status']=='R'){
+                        $temp['third_sku'] = $item['code'];
+                        $temp['status'] =$item['itemAttribute']['status'];
+                        $temp['title'] = $item['itemAttribute']['cnname'];
+                        $temp['weight'] = $item['itemAttribute']['grossweight'];
+                        $temp['length'] = $item['itemAttribute']['length'];
+                        $temp['width'] = $item['itemAttribute']['width'];
+                        $temp['height'] = $item['itemAttribute']['height'];
+                        $temp['declared_value'] = param($item['itemAttribute'],'declarevalueUsd');//海关申报价值(美元)
+                        $temp['third_category_id'] = $item['itemAttribute']['itemGroup']['id'];//
+                        $temp['declared_name'] = param($item['itemAttribute'],'cndeclaredescription');//海关申报品名
+                        $data[] = $temp;
+                    }
+
+                }
+                $this->result['success'] = true;
+                $this->result['data'] = $data;
+
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['meta']['message'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 获取货品三级分类
+     * @param int $warehouse_id
+     * @param array $info ($config)
+     * @return array (code, name)
+     */
+    public function getLastList($config){
+        $action = '/itemGroup/getLastList';
+        try {
+            $this->getApiInfo($config);
+            $info =$this->callOperation('{}', $action);
+            $data = [];
+            foreach ($info['data'] as $key=>$item) {
+                $data[$key]['id'] = $item['itemGroup']['id'];
+                $data[$key]['name'] = $item['name'];
+                $data[$key]['enname'] = $item['enname'];
+            }
+            $this->result['success'] = true;
+            $this->result['data'] = $data;
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取销售平台列表
+     * @param int $warehouse_id
+     * @param array $info ($config)
+     * @return array (code, name)
+     */
+    public function salePlatform($config){
+        $action = '/dict/getList';
+        $param['type']='sale_platform';
+        try {
+            $this->getApiInfo($config);
+            $info =$this->callOperation(json_encode($param,true), $action);
+            $data = [];
+            foreach ($info['data']['list'] as $key=>$item) {
+                $data[$key]['id'] = $item['id'];
+                $data[$key]['label'] = $item['label'];
+            }
+            $this->result['success'] = true;
+            $this->result['data'] = $data;
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 获取入库单类型
+     * @param int $warehouse_id
+     * @param array $info ($config)
+     * @return array (code, name)
+     */
+    public function receivingtype($config){
+        $action = '/dict/getList';
+        $param['type']='bd_receivingtype';
+        try {
+            $this->getApiInfo($config);
+            $info =$this->callOperation(json_encode($param,true), $action);
+            $data = [];
+            foreach ($info['data'] as $key=>$item) {
+                $data[$key]['id'] = $item['id'];
+                $data[$key]['value'] = $item['value'];
+                $data[$key]['label'] = $item['label'];
+                $data[$key]['description'] = $item['description'];
+            }
+            $this->result['success'] = true;
+            $this->result['data'] = $data;
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取关税
+     * @param int $warehouse_id
+     * @param array $info ($config)
+     * @return array (code, name)
+     */
+    public function declaration($config){
+        $action = '/dict/getList';
+        $param['type']='bas_declaration';
+        try {
+            $this->getApiInfo($config);
+            $info =$this->callOperation(json_encode($param,true), $action);
+            $data = [];
+            foreach ($info['data'] as $key=>$item) {
+                $data[$key]['id'] = $item['id'];
+                $data[$key]['value'] = $item['value'];
+                $data[$key]['label'] = $item['label'];
+                $data[$key]['description'] = $item['description'];
+            }
+            $this->result['success'] = true;
+            $this->result['data'] = $data;
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取货品状态
+     * @param int $warehouse_id
+     * @param array $info ($config)
+     * @return array (code, name)
+     */
+    public function itemStatus($config){
+        $action = '/dict/getList';
+        $param['type']='bd_itemstatus';
+        $this->getApiInfo($config);
+        $result=$this->callOperation(json_encode($param,true), $action);
+        $data=[];
+        if($result['meta']['code']==0 && is_array($result['data'])){
+            foreach ($result['data'] as $key=>$item) {
+                $data[$item['value']] = $item['label'];
+            }
+            return $data;
+        }else{
+            $this->result['error'] = [
+                'error_msg'  =>'数据获取失败',
+                'error_code' => 1
+            ];
+            return $this->result;
+        }
+
+
+
+    }
+
+    /**
+     * 获取仓库列表
+     * @param int $warehouse_id
+     * @param array $info ($config)
+     * @return array (code, name)
+     */
+    public function getWarehouse($config){
+        $action = '/bussiness/getWarehouseList';
+        $param=[];
+        try {
+            $this->getApiInfo($config);
+            $info =$this->getResponseData($param, $action);
+            $data = [];
+            if($info){
+                foreach ($info as $key=>$item) {
+                    $data[$key]['code'] = $item['whCode'];
+                    $data[$key]['name'] = $item['cnname'];
+                }
+            }else{
+                $this->result['error'] = [
+                    'error_msg'  => $info['meta']['message'],
+                    'error_code' => 1
+                ];
+            }
+            $this->result['success'] = true;
+            $this->result['data'] = $data;
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取所有物流渠道
+     * @param array $config
+     * @return array
+     */
+    public function getExpress(array $config)
+    {
+        try{
+            $this->getApiInfo($config);
+            $action = 'bussiness/getProductKindList';
+            $param=[];
+            $result =$this->getResponseData($param, $action);
+            if($result) {
+                $data = [];
+                foreach ($result as $key=>$item) {
+                    $data[$key]['code'] = $item['pkCode'];
+                    $data[$key]['name'] = $item['shortname'];
+                    $this->result['success'] = true;
+                    $this->result['data'] = $data;
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['meta']['message'] ?? '未知错误',
+                    'error_code' => 1
+                ];
+
+            }
+
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 组装库存返回格式
+     * @param array $lists
+     * @return array
+     */
+    private function buildReturnInventory($lists)
+    {
+        $data = [];
+        foreach($lists as $item){
+            $temp['thirdparty_goods_sku'] = $item['itemCode'];
+            $temp['warehouse_code'] = $item['whCode'];
+            $temp['third_avaliable_quantity'] = $item['useAbleQuantity']; //可用=可售
+            $temp['third_defects_quantity'] = $item['invalidateQuantity']; //故障品=不合格
+            $temp['third_quantity'] = $item['inventoryQuantity']-$item['invalidateQuantity']; //
+            $data[] = $temp;
+        }
+        return $data;
+    }
+    /**
+    /**
+     * @desc 获取库存
+     * @param array $config
+     * @param array $params
+     * @return array
+     */
+
+    public function getProductInventory(array $config, $params = [])
+    {
+        $data['whCode'] = $params['code'];
+        $action = '/inv/getAllList';
+        try {
+            $this->getApiInfo($config);
+            $result =$this->getResponseData($data, $action);
+            if (isset($result) && !empty($result) && is_array($result)) {
+                $this->result['success'] = true;
+                $this->result['data'] = $this->buildReturnInventory($result);
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['errorMsg'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 获取卖家id
+     * @param int $warehouse_id
+     * @param array $info ($config)
+     * @return array (code, name)
+     */
+    public function getSupplierId(){
+        try {
+            $action =$this->config['url']=='http://api.007ex.com/api'? '/user/getUserByLoginName/lilangda':'/user/getUserByLoginName/aliba';//获取卖家id 测试账号是aliba 线上账号是lilangda
+            $url = $this->config['url'].'/'. $action.'?access_token='.$this->config['access_token'];
+            $headers =$this->config['header'];
+            $response  = Curl::curlGet($url, $headers);
+            $result    = json_decode($response, true);
+            $supplierId='';
+            if(isset($result['data']['supplierId'])){
+                $supplierId=$result['data']['supplierId'];
+            }
+            return $supplierId;
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 建立货品
+     * @param int $warehouse_id
+     * @param array $goods
+     * @return array
+     */
+    public function createProduct(array $config, $params)
+    {
+        $action = '/item/create';
+        try {
+            $this->getApiInfo($config);
+            $data = $this->formatGoodsInfo($params);
+            $result = $this->callOperation(json_encode($data,true), $action);
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=>$data,
+                'response'=>$result
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($result['data']['code'], $arr_log);
+            if ($result['meta']['code'] == 0) {
+                $this->result['success'] = true;
+                $this->result['data']['skuId'] = $result['data']['code'];
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['meta']['message'],
+                    'error_code' => 1
+                ];
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * 处理产品详情
+     *
+     */
+    private function formatGoodsInfo($data)
+    {
+        $request['code'] = $data['third_sku'];
+        $request['supplierId'] = $this->config['customerId'];
+        $request['brandId'] =  '';
+        $request['itemGroup'] =  [
+            'id'=>$data['cat_id_level2']   //三级分类
+        ];
+        $request['itemAttribute'] = [
+            'cnname'=>$data['title'],
+            'enname'=>$data['title'],
+            'grossweight'=>$data['weight'],
+            /*'length'=>$data['length'],
+            'width'=>$data['width'],
+            'height'=>$data['height'], */
+            'length'=>0,
+            'width'=>0,
+            'height'=>0,
+            'declarevalueUsd'=>$data['declared_value'],//海关申报价值(美元)
+            'endeclaredescription'=>$data['declared_name'],//海关申报英文品名
+            'cndeclaredescription'=>$data['declared_name_zh'],//海关申报品名
+            'hsCode'=>$data['hs_code'],//海关品类编码
+        ];
+
+        return $request;
+    }
+
+    /**
+     * 获取订单信息
+     * @param array $order
+     * @param int warehouse_id
+     * @return array order info
+     */
+    private function formatPackageInfo($order)
+    {
+        $items = [];
+        $warehouseGoods = new WarehouseGoods();
+        foreach($order['product'] as $sku_id=>$list) {
+            $items[]= [
+                'itemCode'          =>$warehouseGoods->getThirdSku($order['warehouse_id'], $sku_id) , //第三方sku
+                'orderQuantity'     => $list['qty'],
+                'orderWeight' => ''  //货品预估重量
+            ];
+        }
+        $result = [
+            "warehouseCode"=>Cache::store('warehouse')->getWarehouseCodeById($order['warehouse_id']),              //仓库代码
+            "pkCode"=>$order['shipping_method_code'],       //派送方式代码
+            "supplierId"=>$this->config['customerId'],      //卖家ID
+            "referenceCode"=>$order['number'],              // 订单参考号
+            "insuranceType"=> "NI",                         //保险类型
+            "salePlatform"=>"",                             //销售平台
+            "country"=> $order['country_code'],             //国家
+            "state"=>  $order['province'],                  //州或省
+            "city"=>  $order['city'],                       //城市
+            "postalcode"=>  $order['zip'],                  //邮编
+            "address"=> $order['street'].' '.$order['street2'],                   //地址
+            "contactperson"=> $order['name'],               //联系人
+            "phone"=> $order['phone'],                      //联系电话
+            "email"=>$order['email'],                       //eMail
+            "cashOnDelivery"=> "0",                         //货到付款默认0
+            "odOrderlineList"=> $items
+
+        ];
+        return $result;
+    }
+
+
+    /**
+     * 获取订单状态
+     * @param int $warehouse_id
+     * @param array $info ($config)
+     * @return array (code, name)
+     */
+    public function orderStatus(){
+        $arr=[
+            'O'=>'新建',
+            'R'=>'已发布',
+            'P'=>'预下架',
+            'A'=>'已下架',
+            'S'=>'已出货',
+            'U'=>'缺货',
+            'X'=>'取消',
+            'T'=>'已转运',
+            'D'=>'已完成',
+
+        ];
+        return $arr;
+    }
+    /***
+     * @desc 获取是否已经发货
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function getPackageStatus($config, $order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            $this->getApiInfo($config);
+            $process_code=$order['process_code'];
+            $url = $this->config['url'].'/order/get/'.$process_code.'?access_token='.$this->config['access_token'];
+            $response  = Curl::curlGet($url);
+            $result    = json_decode($response, true);
+            if ($result['meta']['success'] == true) {
+                $this->result['success'] = true;
+                // 'O'=>'新建','R'=>'已发布','P'=>'预下架','A'=>'已下架','S'=>'已出货','U'=>'缺货','X'=>'取消','T'=>'已转运','D'=>'已完成',
+                switch($result['data']['status']){
+                    case 'O':
+                    case 'R':
+                    case 'P':
+                    case 'A':
+                    case 'U':
+                    case 'X':
+                        $shipping_status = 0;
+                        break;
+                    case 'S':
+                    case 'T':
+                    case 'D':
+                        $shipping_status = 1;
+                        break;
+                }
+                $this->result['data']['weight'] = 0;
+                $this->result['data']['is_send'] = $shipping_status==$shipping_status ? true:false;
+            } else {
+                $this->result['success'] = false;
+                $this->result['error'] = [
+                    'error_msg' => param($response, 'errorMsg', '未知错误'),
+                    'error_code' => 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+
+        return $this->result;
+    }
+    /**
+     * 创建出库单 -- 下单
+     * createDevlieryOrder
+     * @param array $token 授权信息
+     * @param array $orders 包裹详情
+     * @return array
+     */
+    public function createOrder($config, $order, $confirm = true)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            $this->getApiInfo($config);
+
+            //组装请求数据
+            $info        = $this->formatPackageInfo($order);
+            $param=json_encode($info,true);
+            $action='order/create';
+            $response = $this->callOperation($param, $action);
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=>$info,
+                'response'=>$response
+            ];
+            if(isset($response['meta']) && $response['meta']['success']==true  && $response['meta']['code']==0) {
+                $this->result['data']['number']             = $order['number'];   // 客户订单号
+                $this->result['data']['package_code']       =$response['data']['orderCode'];          //
+                $this->result['data']['trackingNumber']     =$response['data']['orderCode'];                           // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'] ; // 是否有跟踪号
+                $this->result['data']['confirm']            = true;                        // 是否交运
+                $this->result['data']['label']              = false;                       // 是否有pdf
+                $this->result['data']['label_url']          = '';                          // 是否有pdf
+                $this->result['data']['is_weight']          = true;                       // 是否能查询实际重量
+                $this->result['data']['is_fee']             = true;                       // 是否能查询实际费用
+                $this->result['data']['send']               = true;                       // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+            }else {
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log,true);
+
+                $this->result['error'] = [
+                    'error_msg'  => $response['meta']['message'] ?? '未知错误',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = ['error_msg' => $ex->getMessage(), 'error_code' => 1];
+        }
+        return $this->result;
+    }
+
+
+
+    /**
+     * 交运包裹
+     * @param unknown $name
+     */
+    public function confirmOrder($config, $package)
+    {
+
+    }
+
+    /**
+     * 删除包裹信息
+     */
+    public function deleteOrder($config, $package)
+    {
+
+    }
+
+    /**
+     * 获取跟踪号
+     * @param array $info
+     * @param int  $warehouse_id
+     */
+    public function getTrackingNumber($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $process_code=$order['process_code'];
+            $this->getApiInfo($config);
+            $url = $this->config['url'].'/public/getServerProvider/'.$process_code.'?access_token='.$this->config['access_token'];
+            $response  = Curl::curlGet($url);
+            $result    = json_decode($response, true);
+            cache::handler()->set('trackingNumber:'.$order['number'], $response);
+            if ($result['meta']['success']) {
+                $this->result['data']['trackingNumber'] = $result['data']['trackCode'];
+                $this->result['success'] = true;
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => param($response, 'errorMsg', '未知错误'),
+                    'error_code' => 1
+                ];
+            }
+        }catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        var_dump($this->result);
+        return $this->result;
+
+    }
+
+    /**
+     * 获取真实重量和运费
+     * @param array $info
+     * @param int  $warehouse_id
+     */
+    public function getWeightFee($config,$order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $this->getApiInfo($config);
+            $action="/order/get/".$order['process_code'];
+            $url = $this->config['url'].'/'. $action.'?access_token='.$this->config['access_token'];
+            $headers =$this->config['header'];
+            $response_json  = Curl::curlGet($url, $headers);
+            $response    = json_decode($response_json, true);
+            if(isset($response['meta']['code']) && $response['meta']['code']==0){
+                if(in_array($response['data']['status'], array('S', 'T','D')) && $response['data']['deliveryCost'] &&   $response['data']['odOrderlineList'][0]['itemAttribute']['grossweight']){
+                    $this->result['data'] = [
+                        'real_weight'=>$response['data']['odOrderlineList'][0]['itemAttribute']['grossweight'],
+                        'real_fee'=>$response['data']['deliveryCost'],
+                        'currency'=>''
+                    ];
+                    $this->result['success']                = true;
+                } else {
+                    $abnormal_problem_reason = param($response['data'],'status');
+                    $this->result['error'] = [
+                        'error_msg' => $abnormal_problem_reason ? $this->orderStatus()[$abnormal_problem_reason]: param($this->status, $response['data']['status'], '未知错误'),
+                        'error_code' => 1
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => param($response['Error'], 'errMessage', '未知错误'),
+                    'error_code' => 1
+                ];
+            }
+        }catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     *取消订单的类型
+     * @return array
+     */
+    public function orderCancelType(){
+        $arr=[
+            '1'=>'仓库缺货',
+            '2'=>'供货商取消',
+            '9'=>'其它',
+        ];
+        return $arr;
+    }
+    /**
+     * 取消订单
+     * @param int $warehouse_id
+     * @param array $info (order_code, reference_code)
+     * @return array
+     */
+    public function cancel($config, $order)
+    {
+
+        $data = [];
+        if (isset($order['process_code']) && $order['process_code']) {
+            $data['idOrCode'][] = $order['process_code'];
+        }
+        $data['cancelType'] = 2;
+        try {
+            $this->getApiInfo($config);
+            $url = $this->config['url'].'/order/cancel?access_token='.$this->config['access_token'];
+            $headers =$this->config['header'];
+            $response  = Curl::curlPost($url,json_encode($data), $headers);
+            $result    = json_decode($response, true);
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=>$data,
+                'response'=>$result
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['process_code'], $arr_log);
+            if (isset($result['data'][0]['code']) ) {
+                $this->result['error'] = [
+                    'error_msg' => $result['meta']['message'],
+                    'error_code' => 2
+                ];
+            }  else {
+                $this->result['success'] = true;
+
+            }
+        } catch(Exception $e) {
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 2
+            ];
+        }
+        return $this->result;
+    }
+
+
+    /**
+     * 获取出库单信息
+     * @param array $info(order_code, reference_code)
+     * @return array (data['weight], shippingNumber)
+     */
+    public function getDeliveryOrder($warehouse_id, array $info)
+    {
+
+    }
+    public function getLogisticsServiceList($config)
+    {
+
+    }
+
+    /**
+     * 确认是否已发货
+     * @param array $token
+     * @param array $info
+     * @return array
+     */
+    public function isSend($token, $info)
+    {
+
+    }
+
+
+    /**
+     * 获取数据字典
+     * @param array $config
+     * @return array
+     */
+    public function getList(array $config)
+    {
+        try{
+            $this->getApiInfo($config);
+            $action = '/dict/getList';
+            $param['type']='od_cancel_type';
+            $result =$this->callOperation(json_encode($param,true), $action);
+            if($result['meta']['success']==true  && $result['meta']['code']==0) {
+                $data = [];
+                foreach ($result['data'] as $key=>$item) {
+                    $data[$key]['code'] = $item['value'];
+                    $data[$key]['name'] = $item['label'];
+                    $this->result['success'] = true;
+                    $this->result['data'] = $data;
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => $result['meta']['message'] ?? '未知错误',
+                    'error_code' => 1
+                ];
+
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        $this->result['success'] = false;
+        return $this->result;
+    }
+    public function getLabel(array $config)
+    {
+
+        $this->result['success'] = true;
+        return $this->result;
+    }
+
+
+}

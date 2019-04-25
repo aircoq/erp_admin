@@ -1,0 +1,21 @@
+<?php
+
+
+namespace service\brandslink\operation;
+
+
+class Goods extends Common
+{
+    //品连推送
+    public function push($data){
+        $url = '/common/commodity/add';
+        return $this->post($url,$data);
+    }
+
+    //上下架同步
+    public function onOffLineSync($data)
+    {
+        $url = '/common/updateCommodityState';
+        return $this->post($url, $data);
+    }
+}

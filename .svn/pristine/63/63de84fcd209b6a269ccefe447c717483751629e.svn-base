@@ -1,0 +1,476 @@
+<?php
+
+namespace app\index\service;
+
+use app\common\cache\Cache;
+use app\common\model\Account;
+use app\common\model\AccountSite;
+use app\common\model\AccountUserMap;
+use app\common\model\ebay;
+use app\common\service\ChannelAccountConst;
+use app\common\service\Common;
+use app\common\service\Filter;
+use app\common\service\UniqueQueuer;
+use app\common\traits\User;
+use app\index\queue\AccountUserMapNewQueue;
+use app\order\filter\OrderByAccountFilter;
+use erp\AbsServer;
+use think\Db;
+use think\Exception;
+
+/**
+ * Created by PhpStorm.
+ * User: PHILL
+ * Date: 2017/3/15
+ * Time: 15:48
+ */
+class AccountService extends AbsServer
+{
+    use User;
+
+    /**
+     * 获取已启用，已授权账号信息   通过渠道或者站点，内容为下拉框模式
+     * @param $channel_id
+     * @param int $account_id
+     * @return mixed
+     * @param null $model
+     * @throws \think\Exception
+     */
+    public function shopInfo($channel_id, $account_id = 0, $model = NULL)
+    {
+        $result = [];
+        $user = Common::getUserInfo();
+        switch ($channel_id) {
+            case ChannelAccountConst::channel_Joom:
+                $result = Cache::store('JoomShop')->getAllShopByAccountId($account_id, 'id,code,shop_name');
+                $this->checkUserRole($result, $user, ChannelAccountConst::channel_Joom, true, $model);
+                break;
+        }
+        $new_list = [];
+        foreach ($result as $k => $v) {
+            $temp['label'] = $v['code'];
+            $temp['value'] = intval($v['id']);
+            $temp['account_name'] = $v['account_name'] ?? $v['shop_name'] ?? $v['name'] ?? '';
+            $new_list[] = $temp;
+        }
+        return $new_list;
+    }
+
+    /**
+     * 获取已启用，已授权账号信息   通过渠道或者站点，内容为下拉框模式
+     * @param $channel_id
+     * @param int $site_code
+     * @param null $model
+     * @param bool|true $is_filter
+     * @return mixed
+     * @throws \think\Exception
+     */
+    public function accountInfo($channel_id, $site_code = 0, $model = NULL, $is_filter = true)
+    {
+        $result = Cache::store('account')->getAccountByChannel($channel_id);
+        $currentUser = Common::getUserInfo();
+        //获取站点信息
+        $channel_name = Cache::store('channel')->getChannelName($channel_id);
+        $site = Cache::store('channel')->getSite($channel_name, false);
+        $new_list['account'] = [];
+        foreach ($result as $k => $v) {
+            $temp['id'] = $v['id'];
+            $temp['label'] = $v['code'];
+            $temp['value'] = intval($v['id']);
+            $temp['account_name'] = $v['account_name'] ?? $v['shop_name'] ?? $v['name'] ?? '';
+            if (!empty($site_code)) {
+                if (isset($v['site_id'])) {
+                    if (is_array($v['site_id'])) {
+                        $siteArray = $v['site_id'];
+                    } else if (is_string($v['site_id'])) {
+                        $siteArray = json_decode($v['site_id'], true);
+                    } else {
+                        $siteArray = [];
+                    }
+                    if (is_array($siteArray)) {
+                        if (in_array($site_code, $siteArray)) {
+                            array_push($new_list['account'], $temp);
+                        }
+                    }
+                }
+                if (isset($v['site'])) {
+                    if (strstr($v['site'], $site_code)) {
+                        array_push($new_list['account'], $temp);
+                    }
+                }
+            } else {
+                array_push($new_list['account'], $temp);
+            }
+        }
+        $this->checkUserRole($new_list['account'], $currentUser, $channel_id, $is_filter, $model);
+        $new_site = [];
+        foreach ($site as $k => $v) {
+            $temp = [];
+            $temp['label'] = $v['code'];
+            $temp['value'] = $k;
+            array_push($new_site, $temp);
+        }
+        $new_list['site'] = $new_site;
+
+        return $new_list;
+    }
+
+    /**
+     * 权限过滤
+     * @param $new_list
+     * @param $currentUser
+     * @param $channel_id
+     * @param $is_filter
+     * @param $model
+     * @throws Exception
+     */
+    private function checkUserRole(&$new_list, $currentUser, $channel_id, $is_filter, $model)
+    {
+        if (!(new Role())->isAdmin($currentUser['user_id']) && $is_filter) {
+            $filterData = [];
+            $account_ids = [];
+            $is_filter = (new \app\index\service\User())->isFilterAccount($currentUser['user_id']);
+            if ($is_filter) {
+                $account_ids = $this->userManageAccount($currentUser['user_id'], $channel_id);
+                if ($channel_id == ChannelAccountConst::channel_Joom && $model != 'shop') {
+                    $accounts = [];
+                    foreach ($account_ids as $k => $acc) {
+                        $joom_account_id = Cache::store('joomShop')->getAccountId($acc);
+                        array_push($accounts, $joom_account_id);
+                    }
+                    $account_ids = array_unique($accounts);
+                }
+            }
+            if (!is_null($model)) {
+                $object = new Filter(OrderByAccountFilter::class);
+                if ($object->filterIsEffective()) {
+                    $account_ids = array_merge($account_ids, $object->getFilterContent());
+                }
+            }
+            if ($account_ids) {
+                foreach ($new_list as $key => $value) {
+                    if (in_array($value['id'], $account_ids)) {
+                        array_push($filterData, $value);
+                    }
+                }
+                $new_list = $filterData;
+            }
+        }
+    }
+
+    /**
+     * 用户所拥有的账号
+     * @param $user_id
+     * @param $channel_id
+     * @return array
+     */
+    private function userManageAccount($user_id, $channel_id)
+    {
+        $userList = $this->getUnderlingInfo($user_id);
+        $memberShipService = new MemberShipService();
+        $account_ids = [];
+        foreach ($userList as $key => $value) {
+            $account = $memberShipService->getAccountIDByUserId($value, $channel_id);
+            foreach ($account as $k => $v) {
+                array_push($account_ids, $v);
+            }
+        }
+        return $account_ids;
+    }
+
+    /**
+     * 根据频道id和简称获取对应的账户id
+     * @param $channel_id
+     * @param $code
+     * @return int
+     * @throws \think\Exception
+     */
+    public function getAccountId($channel_id, $code)
+    {
+        $result = Cache::store('account')->getAccountByChannel($channel_id);
+        foreach ($result as $v) {
+            if ($v['code'] == $code) {
+                return $v['id'];
+            }
+        }
+        return 0;
+    }
+
+    /** 获取站点的名称
+     * @param $channel_name 【渠道】
+     * @param int $site_code 【站点】
+     * @return string
+     * @throws \think\Exception
+     */
+    public static function siteName($channel_name, $site_code)
+    {
+        //获取站点信息
+        $siteList = Cache::store('channel')->getSite($channel_name, false);
+        if (!empty($siteList)) {
+            if (isset($siteList[$site_code])) {
+                return $siteList[$site_code]['code'];
+            }
+        }
+        return $site_code;
+    }
+
+    /**
+     * 过滤ebay错误站点
+     * @param array $site_id
+     * @return array
+     * @throws \think\Exception
+     */
+    function checkEbaySite($site_id = [])
+    {
+        $result = Cache::store('channel')->getSite('ebay');
+        $site = [];
+        foreach ($result as $vo) {
+            $site[] = $vo['code'];
+        }
+        $site_check = [];
+        if (!empty($site_id)) {
+            foreach ($site_id as $sid) {
+                if (in_array($sid, $site)) {
+                    $site_check[] = $sid;
+                }
+            }
+        }
+        return $site_check;
+    }
+
+    /**
+     * 重新更新账号基础资料的成员
+     * @return bool
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function updateUserMapByAmazon()
+    {
+        $user = Common::getUserInfo();
+        $channelId = ChannelAccountConst::channel_amazon;
+        $accountIds = (new Account())->where('channel_id', $channelId)->column('id');
+        $userMaps = (new \app\common\model\ChannelUserAccountMap())
+            ->field('channel_id,account_id,seller_id,customer_id')
+            ->where('channel_id', $channelId)
+            ->select();
+        Db::startTrans();
+        try {
+            //1.先删除之前的绑定
+            (new AccountUserMap())->where('account_id', 'in', $accountIds)->delete();
+            //2.重新跑关系表
+            $user['realname'] = '[重跑关系]' . $user['realname'];
+            foreach ($userMaps as $data) {
+                $addIds[] = $data['seller_id'];
+                $addIds[] = $data['customer_id'];
+                $info = [
+                    'channel_id' => $data['channel_id'],
+                    'account_id' => $data['account_id'],
+                    'addIds' => $addIds,
+                    'delIds' => [],
+                    'user' => $user,
+                ];
+                (new AccountUserMapService())->writeBackNew($info);
+//                (new UniqueQueuer(AccountUserMapNewQueue::class))->push($info);
+            }
+            Db::commit();
+        } catch (Exception $e) {
+            Db::rollback();
+            throw new Exception($e->getMessage() . $e->getFile() . $e->getLine());
+        }
+        return true;
+    }
+
+
+    /**
+     * 获取已启用，已授权账号信息   通过渠道或者站点，内容为下拉框模式
+     * @param $channel_id
+     * @param int $site_code
+     * @param null $model
+     * @param bool|true $is_filter
+     * @return mixed
+     * @throws \think\Exception
+     */
+    public function accountInfos($channel_id, $site_code = 0, $model = 'order', $is_filter = true, $page = 1, $pageSize = 50, $code = '')
+    {
+        $new_list = [
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'count' => 0,
+            'data' => [],
+        ];
+
+        if (empty($channel_id) || !is_numeric($channel_id)) {
+            return $new_list;
+        }
+        $result = Cache::store('account')->getAccountByChannel($channel_id, $page, $pageSize, $code, $site_code);
+        $currentUser = Common::getUserInfo();
+        //获取站点信息
+        $reAccounts = $result['data'];
+        $new_list['count'] = $result['count'];
+        $this->checkUserRole($reAccounts, $currentUser, $channel_id, $is_filter, $model);
+
+        $new_list['data'] = array_values($reAccounts);
+        return $new_list;
+    }
+
+    /**
+     * 获取平台站点信息
+     * @param $channel_id
+     * @param int $page
+     * @param int $pageSize
+     * @return array
+     * @throws Exception
+     */
+    public function sites($channel_id, $page = 1, $pageSize = 50)
+    {
+        $new_list = [
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'count' => 0,
+            'data' => [],
+        ];
+        //获取站点信息
+        $channel_name = Cache::store('channel')->getChannelName($channel_id);
+        $site = Cache::store('channel')->getSite($channel_name, false);
+        $new_site = [];
+        foreach ($site as $k => $v) {
+            $temp['label'] = $v['code'];
+            $temp['value'] = $k;
+            array_push($new_site, $temp);
+        }
+        $new_list['data'] = $new_site;
+        $new_list['count'] = count($new_site);
+
+        return $new_site;
+    }
+
+    /**
+     * @title 显示信用卡下的账号列表
+     * @param $creditCardId
+     * @return false|\PDOStatement|string|\think\Collection
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function accountCredit($creditCardId)
+    {
+        $model = new Account();
+        $account = $model->alias('a')
+            ->join('account_company b','a.company_id=b.id','left')
+            ->field('a.id,a.channel_id,a.site_code,a.account_name,b.company')
+            ->where(['a.credit_card_id' => $creditCardId])
+            ->select();
+        if(!$account) {
+            return $account;
+        }
+        foreach ($account as $key => $item) {
+            $account[$key]['channel'] = Cache::store('channel')->getChannelName($item['channel_id']);
+        }
+        return $account;
+    }
+
+    /**
+     * 获取站点状态
+     * @author lingjiawen
+     * @param int $base_account_id,string $account_code
+     * @return $site_status[null int]
+     */
+    public static function getSiteStatus(int $base_account_id = 0, string $account_code = '')
+    {
+        return AccountSite::where([
+            'base_account_id' => $base_account_id,
+            'account_code' => $account_code,
+        ])
+        ->value('site_status');
+    }
+
+    /**
+     * 设置site状态
+     * @author lingjiawen
+     * @param int $channel_id,int $base_account_id,string $account_code,int $user_id,int $site_status
+     * @return $old_site_status
+     * @throws \think\Exception
+     */
+    public static function setSite(int $channel_id = 0, int $base_account_id = 0, string $account_code = '', int $user_id = 0, int $site_status = 0)
+    {
+        $old_site_status = self::getSiteStatus($base_account_id, $account_code);
+        if (is_null($old_site_status)) {
+            throw new Exception('基础账号[' . $account_code . ']无信息');
+        }
+        /**
+         * 判断是否绑定的信息
+         */
+        if ($site_status == 1) {
+            if (!\app\common\model\ChannelUserAccountMap::where(['channel_id' => $channel_id, 'account_id' => $base_account_id, 'seller_id' => ['>', 0]])->find()) {
+                throw new Exception('基础账号[' . $account_code . ']未配置销售');
+            }
+        }
+        /**
+         * 如果传入状态与数据库状态一致直接返回
+         */
+        if ($old_site_status == $site_status) {
+            return $site_status;
+        }
+        return (new BasicAccountService())->changeSiteStatus($base_account_id, $account_code, $site_status, $user_id) 
+        ? $old_site_status 
+        : false;
+    }
+
+    /**
+     * 获取已启用，已授权账号信息
+     * @param $channel_id
+     * @param null $model
+     * @param bool|true $is_filter
+     * @return mixed
+     * @throws \think\Exception
+     */
+    public function accountList($channel_id, $model = 'order', $is_filter = true)
+    {
+        $new_list = [];
+
+        if (empty($channel_id) || !is_numeric($channel_id)) {
+            return $new_list;
+        }
+
+        return Cache::store('account')->getAccountByChannel($channel_id);
+    }
+
+
+    /**
+     * 根据平台账号， 查询该账号是否存在基础账号表中
+     * @param  array $ids 基础账号表id
+     * @return array
+     * @throws \think\Exception
+     */
+    public function accountIsExists($ids)
+    {
+        $where = ['id' => ['in', $ids]];
+        return (new Account())->where($where)->column('id');
+    }
+
+    /**
+     * @title 账号运营分析查询
+     * @param $id
+     * @return array|bool|false|\PDOStatement|string|\think\Model
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function accountOperationAnalysis($id)
+    {
+        if (!$id) {
+            return false;
+        }
+
+        $model = new account();
+        $result = $model->alias('a')
+            ->join('account_company b','a.company_id=b.id','left')
+            ->field('a.status,a.site_code,fulfill_time,account_create_time,source,vat_data')
+            ->where(['a.id' => $id])
+            ->find();
+        return $result;
+    }
+}

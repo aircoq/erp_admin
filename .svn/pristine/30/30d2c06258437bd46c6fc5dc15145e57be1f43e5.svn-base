@@ -1,0 +1,40 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: dhb5861
+ * Date: 2018/12/29
+ * Time: 18:39
+ */
+
+namespace PaypalClient\Inventory;
+
+
+use PaypalClient\PayPalRestBase;
+
+class PaypalSync extends PayPalRestBase
+{
+     public function __construct($account_id)
+     {
+        parent::__construct($account_id);
+     }
+
+    /**
+     * @param $params
+     * transaction_id
+     *
+     * @return array|mixed|string
+     * @throws \think\Exception
+     */
+     public function transactions($params)
+     {
+         $url = "/v1/reporting/transactions";
+         $params["location"] = "query";
+         $params['fields'] = "all";
+         isset($params['start_date']) && $params['start_date'] = $this->convertTime($params['start_date']);
+         isset($params['end_date']) && $params['end_date'] = $this->convertTime($params['end_date']);
+         !isset($params['page']) && $params['page'] = 1;
+         //不需要额外的参数；
+         $data = $this->authCall($url, $params);
+         return $data;
+     }
+}

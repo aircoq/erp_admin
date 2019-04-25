@@ -1,0 +1,168 @@
+<?php
+namespace aliy1688;
+
+use aliy1688\exception\RefreshTokenException;
+use app\common\model\PurchaseOrder;
+use app\common\cache\driver\Ali1688Account;
+use think\Db;
+use Exception;
+use app\common\cache\Cache;
+
+class TradeGetBuyerView extends  AbsBase
+{
+    protected $apiPath = 'param2/1/com.alibaba.trade/alibaba.trade.get.buyerView/';
+    protected $params = ['webSite' => '1688'];
+    protected $requestType = 'POST';
+
+    public function __construct($orderId = '',$appKey='',$secretKey='',$refreshToken='',$accessToken='')
+    {
+        $this->params['orderId'] = $orderId;
+        $this->appKey = $appKey ? $appKey : $this->appKey;
+        $this->secretKey = $secretKey ? $secretKey : $this->secretKey;
+        $this->refreshToken = $refreshToken ? $refreshToken : $this->refreshToken;
+        $this->accessToken = $accessToken ? $accessToken :$this->accessToken;
+    }
+
+    /**
+     * @param string $orderId
+     * @return array
+     * @throws \Exception
+     */
+    public function request($orderId = '')
+    {
+        if($orderId) {
+            $this->params['orderId'] = $orderId;
+        }
+        if(empty($this->params['orderId'])) {
+            throw new \Exception('外部流水号不能为空');
+        }else{
+            return parent::request();
+        }
+    }
+
+
+    /**
+     *  获取1688上订单物流信息
+     * @param string $id
+     * @param string $callback
+     * @return array;
+     */
+    public function getTraceInformation($id = '' ,$callback = null)
+    {
+        if (is_string($id) && $id != '') {
+            $this->params['orderId'] = $id;
+        }
+        if(empty($this->params['orderId'])) {
+            $this->setResult(500,'外部流水号不能为空');
+            return $this->result;
+        }
+        if($callback && !is_callable($callback)){
+            $this->setResult(500,'查询回调不是一个可调用的函数');
+            return $this->result;
+        }
+        try{
+            $resp = parent::request();
+            //添加日志
+            //Cache::store('Ali1688Account')->addShippmentLog($id,$resp);
+        }catch (RefreshTokenException $ex) {
+            $this->setResult(500,$ex->getMessage());
+            return $this->result;
+        }
+
+        if (isset($resp['request_success']) && $resp['request_success'] && !isset($resp['errorCode'])) {
+            if(empty($resp['result']['nativeLogistics']['logisticsItems'])) {
+                $this->setResult(404,'未能获取到物流信息，可能卖家尚未发货');
+            }else{
+                $logistics= array();
+                foreach($resp['result']['nativeLogistics']['logisticsItems'] as $item){
+                    $item['deliveredTime'] = $this->timeFomat($item['deliveredTime']);
+                    $logistics[$item['logisticsCode']] = $item;
+                };
+                $logisticApi = new GetLogisticsInfos($this->params['orderId'], $this->appKey, $this->secretKey, $this->refreshToken, $this->accessToken);
+                $logisticInfo = $logisticApi->request();
+                //添加日志
+                //Cache::store('Ali1688Account')->addShippmentLog($id,$resp);
+                if($logisticInfo['request_success'] && !isset($logisticInfo['error_code'])) {
+                    if(empty($logisticInfo['result'])) {
+                        $this->setResult(404,'未能获取到物流信息，可能卖家尚未发货');
+                    }else{
+                        foreach ($logisticInfo['result'] as $logistic) {
+                            $sendQty = 0;
+                            foreach ($logistic['sendGoods'] as $goods){
+                                $sendQty += $goods['quantity'];
+                            }
+                            if(!param($logistic,'logisticsBillNo')){
+                                continue;
+                            }
+                            $logistics[$logistic['logisticsId']] = array_merge(
+                                $logistics[$logistic['logisticsId']], [
+                                    'external_number' => $this->params['orderId'],
+                                    'logisticsBillNo' => param($logistic,'logisticsBillNo','test'),
+                                    'status' => $logistic['status'],
+                                    'logisticsCompanyId' => $logistic['logisticsCompanyId'],
+                                    'logisticsCompanyName' => $logistic['logisticsCompanyName'],
+                                    'quantity' => $sendQty,
+                                    'is_from_input' => 0]
+                            );
+                        }
+                        if($callback){
+                            call_user_func($callback,$this->params['orderId'],$logistics);
+                        }
+                        $this->setResult(200,'', array_values($logistics));
+                    }
+                }else{
+                    $this->setResult(500,$resp['error_message']);
+                }
+            }
+        } else {
+            $this->setResult(500,$resp['error_message']);
+        }
+        return $this->result;
+    }
+
+    /**
+     * 批量获取采购单物流信息
+     * @param $purchaseOrderIds
+     * @param $callback
+     * @return array
+     */
+    public function getTraceInformationBatch($purchaseOrderIds, $callback = null)
+    {
+        if(empty($purchaseOrderIds)){
+            return $this->setReturnResult(500,'采购单id未设置');
+        }
+        $ids = [];
+        foreach (explode(',', $purchaseOrderIds) as $id) {
+            $ids[] = $id;
+        }
+        $record = Db::table('purchase_order')->field('id,external_number')->where('id','in',$ids)->select();
+
+        $result = [];
+        foreach ($record as $r) {
+            //获取账号授权
+            if(!$r['external_number']){
+                //没有外部流水号的不抓
+                continue;
+            }
+            $ali1688 = (new Ali1688Account())->getData(substr($r['external_number'], -4));
+            if (!$ali1688) {
+                continue;
+                //批量抓取的，没有授权就执行下一个
+                //return $this->setReturnResult(400,"请先建立采购单:{$r['id']}对应的账号信息并授权!");
+            }
+            $this->appKey = $ali1688['client_id'];
+            $this->secretKey = $ali1688['client_secret'];
+            $this->refreshToken = $ali1688['refresh_token'];
+            $this->accessToken = $ali1688['access_token'];
+            //抓取物流信息
+            $result[$r['id']] = $this->getTraceInformation($r['external_number'] , $callback);
+            $this->resetResult();
+        }
+        if ($result) {
+            return $this->setReturnResult(200,'',$result);
+        }
+        return $this->setReturnResult(404,'未获取到任何物流信息');
+    }
+    
+}
+

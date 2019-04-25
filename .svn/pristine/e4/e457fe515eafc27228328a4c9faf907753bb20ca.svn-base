@@ -1,0 +1,182 @@
+<?php
+
+namespace service\wish\operation;
+
+use think\Cache;
+use app\common\service\WishService;
+use think\Exception;
+
+/**
+ *  wish 订单管理
+ */
+class Order extends Common
+{
+    /**
+     * @var null
+     */
+    public $access_token;
+
+    /** 构造函数
+     * Order constructor.
+     * @param $config
+     */
+    public function __construct($config)
+    {
+        $this->access_token = $config['access_token'];
+        parent::__construct($this->access_token);
+    }
+
+    /** 获取订单
+     * @param array $data
+     * @return array
+     */
+    public function getOrder($data = [])
+    {
+        $url = "https://merchant.wish.com/api/v2/order/create-download-job?access_token=" . urlencode($this->access_token) . '&format=json';
+        if (!empty($data)) {
+            foreach ($data as $key => $value) {
+                $url .= "&" . $key . "=" . $value;
+            }
+        }
+        $response = $this->curlPost($url, []);
+        if ($response['code'] == 0) {
+            $job_id = $response['data']['job_id'];
+            return ['state' => true, 'data' => $job_id];
+        }
+        return ['state' => false];
+    }
+
+    /** 检索订单
+     * @param array $data
+     * @return array
+     */
+    public function retrieveOrder(array $data)
+    {
+        $url = 'https://merchant.wish.com/api/v2/order?access_token=' . urlencode($this->access_token);
+        //拼接
+        foreach ($data as $key => $value) {
+            $url .= '&' . $key . '=' . $value;
+        }
+        $context = stream_context_create(array(
+            'http' => array(
+                'method' => 'GET',
+                'ignore_errors' => true,
+            ),
+        ));
+        $response = file_get_contents($url, true, $context);
+        $response = json_decode($response, true);
+        if ($response['code'] == 0) {
+            return ['state' => true, 'data' => $response['data']];
+        }
+        return ['state' => false];
+    }
+
+    /**
+     * 获取订单下载的状态，用来下载文件
+     * @param array $data
+     * @return array
+     * @throws Exception
+     */
+    public function downloadOrder(array $data)
+    {
+        try {
+            $job_id = $data['job_id'];  //下载启动的标识
+            $id = $data['id'];
+            $url = "https://merchant.wish.com/api/v2/order/get-download-job-status?access_token=" . urlencode($this->access_token) . "&job_id=" . urlencode($job_id);
+            $goods = $this->curlPost($url, []);
+            if ($goods['code'] == 0 && isset($goods['data']['download_link'])) {
+                $filename = $job_id . '_' . $id . ".csv";
+                $result = $this->curl($goods['data']['download_link'], WishService::path, $filename);
+                if ($result) {
+                    //文件下载完开始存入数据库中
+                    return ['state' => true, 'data' => $job_id];
+                }
+            } else if (isset($goods['data']['total_count']) && $goods['data']['total_count'] == 0) {
+                return ['state' => true, 'data' => 0];
+            } else {
+                if ($goods['code'] == 1016) {
+                    $wish = new WishService();
+                    $wish->updateToken($this->access_token);
+                }
+            }
+            return ['state' => false, 'data' => $goods['data']['status'] ?? false];
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage() . $e->getFile() . $e->getLine());
+        }
+
+    }
+
+    /** 完成订单（上传跟踪号，平台标记为发货）
+     * @param array $data
+     * @return bool
+     */
+    public function fulfill(array $data)
+    {
+        $url = sprintf(
+            "https://merchant.wish.com/api/v2/order/fulfill-one?access_token=%s&tracking_provider=%s&tracking_number=%s&id=%s&origin_country_code=%s",
+            urlencode($this->access_token), urlencode($data['tracking_provider']), urlencode($data['tracking_number']), urlencode($data['order_number']), urlencode($data['origin_country_code']));
+        $response = $this->curlPost($url, []);
+        if ($response['code'] == 0 && $response['data']['success'] == 'True') {
+            return true;
+        } else {
+            return $response['message'];
+        }
+    }
+
+    /** 订单退款
+     * @param array $data
+     * @return bool
+     */
+    public function refund(array $data)
+    {
+        if ($data['reason_code'] == -1) {
+            $url = sprintf(
+                "https://sandbox.merchant.wish.com/api/v2/order/refund?access_token=%s&reason_code=%s&id=%s&reason_note=%s",
+                $this->access_token, urlencode($data['reason_code']), urlencode($data['id']), urlencode($data['reason_note']));
+        } else {
+            $url = sprintf(
+                "https://sandbox.merchant.wish.com/api/v2/order/refund?access_token=%s&reason_code=%s&id=%s",
+                $this->access_token, urlencode($data['reason_code']), urlencode($data['id']));
+        }
+        $response = $this->curlPost($url, []);
+        if ($response['code'] == 0 && $response['data']['success'] == 'True') {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 批量抓取订单
+     * @param int $limit
+     * @param int $start
+     * @return array
+     */
+    public function fulFillOrder($since = 0, $limit = 500, $start = 0)
+    {
+        $access_token = urlencode($this->access_token);
+        $start = urlencode($start);
+        $limit = urlencode($limit);
+        if (!empty($since)) {
+            $url = sprintf(
+                "https://merchant.wish.com/api/v2/order/get-fulfill?access_token=%s&start=%s&limit=%s&since=%s",
+                $access_token, $start, $limit, $since);
+        } else {
+            $url = sprintf(
+                "https://merchant.wish.com/api/v2/order/get-fulfill?access_token=%s&start=%s&limit=%s",
+                $access_token, $start, $limit);
+        }
+        $context = stream_context_create(array(
+            'http' => array(
+                'method' => 'GET',
+                'ignore_errors' => true,
+            ),
+        ));
+        $response = file_get_contents($url, TRUE, $context);
+        $response = json_decode($response, true);
+        if ($response['code'] == 0) {
+            return $response;
+        }
+        return [];
+    }
+}

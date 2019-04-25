@@ -1,0 +1,443 @@
+<?php
+namespace think\cache\driver;
+
+use think\cache\Driver;
+
+///defined('THINK_PATH') or exit();
+/**
+ * Redis读写分离类
+ * @author sky
+ * @Date: 3/01/19
+ * 使用方法：
+ * $redis = Redisrw::getInstance();
+ * $predis = Redisrw::getPersistInstance();
+ */
+class Redisrw extends Driver{
+    
+    /** */
+    protected $handler = null;
+    private static $cacheInstance = [];
+    private static $persistInstance = [];
+    private $instance  = [];
+    private $redisParams = [];
+    private $readOp = [
+        'bitCount', 'getBit', 'getRange', 'mGet', 'getMultiple', 'strlen',
+        'dump', 'exists', 'keys', 'getKeys', 'object', 'randomKey', 'ttl', 'pttl', 'type', 'sort', 'ttl', 'pttl',
+        'hExists', 'hGet', 'hGetAll', 'hKeys', 'hLen', 'hMGet', 'hVals', 'hStrLen',
+        //'lIndex', 'lGet', 'lLen', 'lSize',
+        'sCard', 'sSize', 'sDiff', 'sInter', 'sIsMember', 'sContains', 'sMembers', 'sGetMembers', 'sRandMember', 'sUnion',
+        'zCard', 'zSize', 'zCount', 'zInter', 'zRange', 'zRangeByLex', 'zRank', 'zRevRank', 'zRevRange', 'zScore'
+    ];
+    protected $options = [
+        'host'       => '127.0.0.1',
+        'port'       => 6379,
+        'password'   => '',
+        'select'     => 0,
+        'timeout'    => 5,
+        'expire'     => 0,
+        'persistent' => false,
+        'prefix'     => '',
+        'inner'      => true,
+    	'ismaster'   => null,
+    ];
+    
+    /**
+     * 
+     */
+    public function __construct($redisParams = [])
+    {
+        if(! empty($redisParams['inner'])){
+            if(! $this->handler) {
+                $this->handler = new \Redis;
+            }
+            if($this->options['persistent']){
+                $this->handler->pconnect($redisParams['host'], $redisParams['port'], $this->options['timeout']);
+            }else{
+                $this->handler->connect($redisParams['host'], $redisParams['port'], $this->options['timeout']);
+            }
+            // 认证
+            if(!empty($redisParams['password'])){
+                $this->handler->auth($redisParams['password']);
+            }
+            if (!empty($redisParams['select'])) {
+                $this->handler->select($redisParams['select']);
+            }
+        }elseif(count($redisParams)){
+            // 从外部实例化该类
+            $this->options['inner'] = false;
+            $this->addServer($redisParams);
+        }
+    }
+    
+    public function addServer($servername, $db = null)
+    {
+        if(!extension_loaded('redis')) {
+            throw new \BadFunctionCallException('No redis extension installed');
+        }
+        $config = is_string($servername) ? \think\Config::get($servername) : $servername;
+        if (!empty($config)) {
+            $this->options = array_merge($this->options, $config);
+        }else{
+            throw new \Exception($servername .': the configuration does not exist');
+        }
+        // 此处进行分布式配置
+        $params = [
+            'hosts'    => explode(',', $this->options['host']),
+            'ports'    => explode(',', $this->options['port']),
+            'password' => explode(',', $this->options['password']),
+            'select'   => explode(',', isset($db) ? $db : $this->options['select']),
+        ];
+        $hostsNum = count($params['hosts']);
+        for($i = 0; $i < $hostsNum; $i++){
+            $host     = $params['hosts'][$i];
+            $port     = $params['ports'][$i] ? $params['ports'][$i] : $params['ports'][0];
+            $password = isset($params['password'][$i]) ? $params['password'][$i] : $params['password'][0];
+            $select   = isset($params['select'][$i]) ? $params['select'][$i] : $params['select'][0];
+            $this->redisParams[$i] = ['host' => $host, 'port' => intval($port), 'password' => $password, 'select' => $select, 'inner' => true];
+        }
+    }
+    
+    /**
+     * 返回非持久化数据存储连接
+     */
+    public static function getInstance($servername = 'cache.default', $db = null)
+    {
+        $n = isset($db) ? '_'. $db : 'common';
+        if(!isset(self::$cacheInstance[$n])){
+            self::$cacheInstance[$n] = new self();
+        }
+        self::$cacheInstance[$n]->addServer($servername, $db);
+        return self::$cacheInstance[$n];
+    }
+    
+    /**
+     * 持久化
+     */
+    public static function getPersistInstance($servername = 'cache.redisPersist', $db = null)
+    {
+        $n = isset($db) ? '_'. $db : 'common';
+        if(!isset(self::$persistInstance[$n])){
+            self::$persistInstance[$n] = new self();
+        }
+        self::$persistInstance[$n]->addServer($servername, $db);
+        return self::$persistInstance[$n];
+    }
+    
+    /**
+     * 判断是否master/slave,调用不同的master或者slave实例
+     *
+     */
+    protected function is_master($master = true)
+    {
+        $count = count($this->redisParams);
+        if($this->options['ismaster']){
+        	$master = true;
+        	$this->options['ismaster'] = null;
+        }
+        $i = ($master || 1 == $count) ? 0 : mt_rand(1, $count - 1);
+        if(isset($this->instance[$i]) && ! empty($this->instance[$i]->handler)){
+            try {
+                if ($this->instance[$i]->handler->ping() != '+PONG') {
+                    throw new \Exception('redis server is gone');
+                }
+            }catch(\Throwable $e){
+                if ($this->instance[$i]->handler->isConnected()) {
+                    $this->instance[$i]->handler->close();
+                }
+                $this->instance[$i] = new self($this->redisParams[$i]);
+            }
+        }else{
+            $this->instance[$i] = new self($this->redisParams[$i]);
+        }
+        return $this->instance[$i]->handler;
+    }
+    
+    /**
+     * 获取实际的缓存标识
+     * @access public
+     * @param string $name 缓存名
+     * @return string
+     */
+    protected function getCacheKey($name)
+    {
+        return $this->options['prefix'] . $name;
+    }
+    
+    /**
+     * @param Long $it 迭代的游标
+     * @return mixed
+     */
+    public function scan(&$it)
+    {
+        $redis = $this->is_master(false);
+        return $redis->scan($it);
+    }
+    
+    /**
+     * @param String $key hash键
+     * @param Long $it 迭代的游标
+     * @return mixed
+     */
+    public function hScan($key, &$it)
+    {
+        $redis = $this->is_master(false);
+        $key   = $this->getCacheKey($key);
+        return $redis->hScan($key, $it);
+    }
+    
+    /**
+     * @param String $key hash键
+     * @param Long $it 迭代的游标
+     * @return mixed
+     */
+    public function sScan($key, &$it, $pattern = null, $count = null)
+    {
+        $redis = $this->is_master(false);
+        $key   = $this->getCacheKey($key);
+        return $redis->sScan($key, $it, $pattern, $count);
+    }
+    
+    /**
+     * @param String $key hash键
+     * @param Long $it 迭代的游标
+     * @return mixed
+     */
+    public function zScan($key, &$it, $pattern = null, $count = null){
+        $redis = $this->is_master(false);
+        $key   = $this->getCacheKey($key);
+        return $redis->zScan($key, $it, $pattern, $count);
+    }
+    
+    /**
+     * 
+     */
+    public function lPushRemove($key, $value, $max = null)
+    {
+        $redis = $this->is_master();
+        if($max){
+            if($redis->lLen($key) > $max){
+                $redis->rPop($key);
+            }
+        }
+        $redis->lPush($key, $value);
+    }
+    
+    public function rPushRemove($key, $value, $max = null)
+    {
+        $redis = $this->is_master();
+        if($max){
+            if($redis->lLen($key) > $max){
+                $redis->lPop($key);
+            }
+        }
+        $redis->rPush($key, $value);
+    }
+    
+    /**
+     * 读取缓存
+     * @access public
+     * @param string $name 缓存变量名
+     * @param mixed  $default 默认值
+     * @return mixed
+     */
+    public function get($name, $default = false)
+    {
+        $redis = $this->is_master(false);
+        $value = $redis->get($this->getCacheKey($name));
+        if($this->options['inner']){
+            return $value;
+        }else{
+            if (is_null($value)) {
+                return $default;
+            }
+            $jsonData = json_decode($value, true);
+            // 检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
+            return (null === $jsonData) ? $value : $jsonData;
+        }
+    }
+    
+    /**
+     * 写入缓存
+     * @access public
+     * @param string    $name 缓存变量名
+     * @param mixed     $value  存储数据
+     * @param integer   $expire  有效时间（秒）
+     * @return boolean
+     */
+    public function set($name, $value, $expire = null)
+    {
+        $redis = $this->is_master();
+        $key = $this->getCacheKey($name);
+        if($this->options['inner']){
+            return $redis->set($key, $value, $expire);
+        }else{
+            if (is_null($expire)) {
+                $expire = $this->options['expire'];
+            }
+            if ($this->tag && !$this->has($name)) {
+                $first = true;
+            }
+            
+            //对数组/对象数据进行缓存处理，保证数据完整性
+            $value = (is_object($value) || is_array($value)) ? json_encode($value) : $value;
+            if (is_int($expire) && $expire) {
+                $result = $redis->setex($key, $expire, $value);
+            } else {
+                $result = $redis->set($key, $value);
+            }
+            isset($first) && $this->setTagItem($key);
+            return $result;
+        }
+    }
+    
+    /**
+     * 判断缓存
+     * @param string $name 缓存变量名
+     * @return bool
+     */
+    public function has($name)
+    {
+        $redis = $this->is_master(false);
+        return $redis->exists($this->getCacheKey($name)) ? true : false;
+    }
+    
+    /**
+     * 自增缓存（针对数值缓存）
+     * @param string    $name 缓存变量名
+     * @param int       $step 步长
+     * @return false|int
+     */
+    public function inc($name, $step = 1)
+    {
+        $redis = $this->is_master();
+        return $redis->incrby($this->getCacheKey($name), $step);
+    }
+    
+    /**
+     * 自减缓存（针对数值缓存）
+     * @param string    $name 缓存变量名
+     * @param int       $step 步长
+     * @return false|int
+     */
+    public function dec($name, $step = 1)
+    {
+        $redis = $this->is_master();
+        return $redis->decrby($this->getCacheKey($name), $step);
+    }
+    
+    /**
+     * 删除缓存
+     * @param string $name 缓存变量名
+     * @return boolean
+     */
+    public function rm($name)
+    {
+        $redis = $this->is_master();
+        return $redis->delete($this->getCacheKey($name));
+    }
+    
+    /**
+     * 清除缓存
+     * @access public
+     * @param string $tag 标签名
+     * @return boolean
+     */
+    public function clear($tag = null)
+    {
+        if($this->options['inner']){
+            throw new \Exception('Do not use clear');
+        }
+        $redis = $this->is_master();
+        if ($tag) {
+            // 指定标签清除
+            $keys = $this->getTagItem($tag);
+            foreach ($keys as $key) {
+                $redis->delete($key);
+            }
+            $this->rm('tag_' . md5($tag));
+            return true;
+        }
+        ///return $redis->flushDB();
+    }
+    
+    public function select()
+    {
+        throw new \Exception('Do not switch DB using select');
+    }
+    
+    public function flushAll()
+    {
+    	throw new \Exception('Not allowed to using flushAll');
+    }
+    
+    public function flushDB()
+    {
+    	throw new \Exception('Not allowed to using flushDB');
+    }
+    
+    /**
+     * 设置读主库
+     **/
+    public function master()
+    {
+    	$this->options['ismaster'] = true;
+    	return $this;
+    }
+    
+    /**
+     * Redis的统一调用,但保证$arguments[0]为KEY
+     */
+    public function __call($name, $arguments)
+    {
+        $result = false;
+        if(empty($name) && empty($arguments[0])){
+            return $result;
+        }
+        //
+        try{
+            $redis  = in_array($name, $this->readOp) ? $this->is_master(false) : $this->is_master();
+            isset($arguments[0]) && ($arguments[0] = $this->getCacheKey($arguments[0]));
+            switch (count($arguments)){
+            	case 0:
+            	    $result = $redis->{$name}();
+            	    break;
+                case 1:
+                    $result = $redis->{$name}($arguments[0]);
+                    break;
+                case 2:
+                    $result = $redis->{$name}($arguments[0], $arguments[1]);
+                    break;
+                case 3:
+                    $result = $redis->{$name}($arguments[0], $arguments[1], $arguments[2]);
+                    break;
+                case 4:
+                    $result = $redis->{$name}($arguments[0], $arguments[1], $arguments[2], $arguments[3]);
+                    break;
+            }
+        }catch(\Throwable $e){
+            \think\Log::write("redisrw Exception:" . var_export($e, 1), 'redisrw', true);
+        }
+        return $result;
+    }
+    
+    /**
+     * 禁止外部克隆对象
+     */
+    private function __clone()
+    {
+        
+    }
+    
+    /**
+     * 关闭长连接
+     * @access public
+     */
+    public function __destruct()
+    {
+        if ($this->options['persistent']) {
+            // 关闭master的长连接，不可以写，但slave任然可以读
+            $redis = $this->is_master(true);
+            $redis->close();
+        }
+    }
+}

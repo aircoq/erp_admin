@@ -1,0 +1,40 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+use app\carrier\service\ShippingMethod;
+
+class CydExpress extends Base
+{
+    protected $is_open_water = 1;
+
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            $strFun = 'label_default';
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 1) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 1);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+    private function label_default($order)
+    {
+        $ShippingMethod = new ShippingMethod();
+        $order['shipping_name'] = $ShippingMethod->getFullName($order['shipping_id']);
+        return $this->display('default', $order);
+    }
+
+
+}

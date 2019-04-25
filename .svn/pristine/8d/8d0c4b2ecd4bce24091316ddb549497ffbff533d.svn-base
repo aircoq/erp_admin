@@ -1,0 +1,308 @@
+<?php
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use app\common\model\Order;
+use app\common\service\ChannelAccountConst;
+use joom\JoomOrdersApi;
+use app\order\service\PackageService;
+
+
+/**
+ * JoomOnLine物流
+ * @package app\carrier\controller
+ */
+class JoomOnLine
+{
+    // 配置信息
+    private $joomApi = '';
+    private $orderId = '';
+
+    private $result = [
+        'data' => [],
+        'error' => [],
+        'success' => false
+    ];
+
+    /**
+     * 检查API是否正常
+     * @param array $config
+     * @return array | void
+     */
+    private function checkApi(array $pack)
+    {
+        $order = (new Order())->field('channel_order_number,channel_id,channel_account_id')->where(['id' => $pack['order_id']])->find();
+
+        if (!$this->joomApi) {
+            if ($order['channel_id'] != ChannelAccountConst::channel_Joom) {
+                $this->result['error'] = [
+                    'error_msg' => '该物流仅供Joom订单使用',
+                    'error_code' => 1
+                ];
+                return false;
+            }
+
+            $shop = Cache::store('JoomShop')->getTableRecord($order['channel_account_id']);
+
+            if (!$shop || !$shop['access_token']){
+                $this->result['error'] = [
+                    'error_msg' => 'Joom账号信息不全',
+                    'error_code' => 1
+                ];
+                return false;
+            }
+            $orderMode= new Order();
+            $order_ids = $order['channel_order_number'];
+            if(!$order_ids){
+                $this->result['error'] = [
+                    'error_msg' => 'Joom订单号不全',
+                    'error_code' => 1
+                ];
+                return false;
+            }
+            $this->orderId = $order_ids;
+            $this->joomApi = new JoomOrdersApi($shop);
+        }
+        return true;
+    }
+
+    /**
+     * 上传订单到物流商
+     * @param $config $order
+     * @param $pack $product
+     * @return unknown[]|string[]
+     */
+    public function createOrder($config, $pack)
+    {
+        if (!isset($pack['number'])) {
+            $pack = $pack[0];
+        }
+        $this->result['number'] = $pack['number'];
+        if ($this->checkApi($pack)) {
+            $referenceID = isset($pack['customer_number']) && $pack['customer_number'] ? $pack['customer_number'] : $pack['number'];
+            $packageService = new PackageService();
+            $order_ids = $packageService->getOrderIdsByPackageId($pack['package_id']);
+            $joomOrderIds = (new Order())->where(['id' => ['in',$order_ids]])->column('channel_order_number');
+            $order_ids = $this->orderId; //joom平台订单号
+            $tracking_provider='Joom Logistics';
+            if(isset($pack['shipping_method_code']) && $pack['shipping_method_code'] != ''){
+                $tracking_provider =  $pack['shipping_method_code'];
+            }
+            $param=[
+                'joomOrderIds'=>$joomOrderIds,
+                'ship_note'=>'We have delivered the goods. Please check',
+                'tracking_provider'=>$tracking_provider,
+            ];
+            //金华仓中邮揽收是南京
+            if($pack['shipping_method_code']=='China Post Online'){
+                $param['warehouse_id']=$pack['warehouse_id']==2?'5c2f2f3a28fc710001032e8a':($pack['warehouse_id']==6?'5c2f2fd86ecda800013310af':'');
+                $param['pickup']='true';
+            }
+            $result = $this->joomApi->fulfillOnline($param);
+            //日志记录
+            $arr_log = [
+                'pack' => $pack,
+                'request' => $order_ids.''.json_encode($param),
+                'response' => is_array($result) ? json_encode($result) : $result
+            ];
+            if(in_array($pack['number'],['154725456503','154725454176','154716198054','154721002221','154720996088'])){
+                Cache::store('LogisticsLog')->setLogisticsLog($pack['number'], $arr_log,true);
+            }
+            if (!isset($result['data']['trackingNumber'])) {
+
+
+                $this->result['error'] = [
+                    'error_msg' => $result['message'],
+                    'error_code' => 1
+                ];
+                return $this->result;
+            }
+
+            //pdf 内容
+            $lableData =  $this->joomApi->shippingLabel($order_ids);
+            $service = new PackageLabelFileService();
+            $label_url = $service->uploadLabelFile($referenceID, base64_encode($lableData), 'pdf');
+            $this->result['data']['number'] = $referenceID;      // 客户订单号
+            $this->result['data']['package_code'] = $result['data']['shippingOrderNumber'] ?? '';      // One World包裹处理号
+            $this->result['data']['trackingNumber'] = $result['data']['trackingNumber'];  // 跟踪号
+            $this->result['data']['confirm'] = true;                              // 是否交运
+            $this->result['data']['label'] = true;                              // 是否有pdf
+            $this->result['data']['label_url'] = $label_url;       // 是否有pdf
+            $this->result['data']['is_weight'] = true;                              // 是否能查询实际重量
+            $this->result['data']['is_fee'] = true;                              // 是否能查询实际费用
+            $this->result['data']['send'] = true;                              // 是否能查询物流订单状态
+            $this->result['success'] = true;
+
+        }
+        return $this->result;
+    }
+
+    public function phoneToArray($phone)
+    {
+        $array = [
+            'Area' => '',
+            'Tel' => $phone,
+            'Ext' => '',
+        ];
+        return $array;
+    }
+
+
+    /**
+     * 获取运输方式详细信息
+     */
+    public function getExpress($config)
+    {
+        $response = [
+            ['name'=>'Joom Logistics','code'=>'Joom Logistics'],
+            ['name'=>'Yun Express','code'=>'Yun Express'],
+            ['name'=>'Yun Express Economic Air Mail','code'=>'Yun Express AM'],
+        ];
+        foreach ($response as $k => $v) {
+            $datas[$k]['code'] = $v['code'];
+            $datas[$k]['name'] = $v['name'];
+        }
+
+        $this->result['success'] = true;
+        $this->result['data'] = $datas;
+
+
+        return $this->result;
+    }
+
+
+    /**
+     * 获取跟踪号
+     */
+    public function getTrackingNumber($config, $order)
+    {
+        $this->result['number'] = $order['number'];
+        if ($this->checkApi($order)) {
+
+            $trackNumber = $this->orderId;//订单号
+            $response = $this->joomApi->getOrdersById($trackNumber);
+            // 处理响应内容
+            if (is_array($response)) {
+                if ($response['code'] == 0 ) {
+                    $this->result['data']['package_code'] = $response['data']['Order']['shipping_order_number'] ?? '';  // 物流商号
+                    $this->result['data']['trackingNumber'] = $response['data']['Order']['tracking_number'] ?? '';  // 跟踪号
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => '订单号错误',
+                        'error_code' => 1
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+        return $this->result;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param array $config
+     * @param array $order
+     * @return type
+     */
+    public function cancel(array $config, array $order)
+    {
+
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = false;
+        $this->result['error'] = [
+            'error_msg'=>'获取失败',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+
+    /**
+     * 获取标签
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function getLabel($config, $order)
+    {
+        set_time_limit(0);
+        $this->result['number'] = $order['number'];
+        if ($this->checkApi($order)) {
+
+            $trackNumber = $this->orderId;//订单号
+            $responseString = $this->joomApi->shippingLabel($trackNumber);
+            if (!$responseString) {
+                $this->result['error'] = [
+                    'error_msg' => '不存在',
+                    'error_code' => 1
+                ];
+                return false;
+            }
+
+            $service = new PackageLabelFileService();
+            $label_url = $service->uploadLabelFile($order['number'], base64_encode($responseString), 'pdf');
+            $this->result['data']['src'] = $label_url;
+            $this->result['data']['type'] = 'pdf';
+            $this->result['success'] = true;
+
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取包裹详细
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageDetails($config, $order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = false;
+        $this->result['error'] = [
+            'error_msg'=>'获取失败',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+
+    /**
+     * 获取包裹实际重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config, $order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['success'] = false;
+        $this->result['error'] = [
+            'error_msg'=>'获取失败',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     */
+    public function getPackageStatus($config, $order)
+    {
+        $result = $this->getPackageDetails($config, $order);
+        if ($result['success']) {
+            $this->result['data'] = [
+                'is_send' => $result['data']['status'] == 9 ? true : false
+            ];
+        }
+    }
+
+
+}

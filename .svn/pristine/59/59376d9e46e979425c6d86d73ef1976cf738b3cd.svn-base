@@ -1,0 +1,283 @@
+<?php namespace Waimao\AmazonMws;
+
+use fbp\FbpAccountApi;
+use Waimao\AmazonMws\AmazonSubscribeCore;
+
+/**
+ * Copyright 2013 CPI Group, LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ *
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * Fetches various information about products from Amazon.
+ *
+ * This Amazon Products Core object retrieves a list of various product info
+ * using the given IDs. The information this object can retrieve includes
+ * competitive pricing, lowest prices, your own price, and product categories.
+ * At least one ID (SKU or ASIN) is required in order to fetch info. A couple of
+ * optional parameters are also available for some of the functions.
+ */
+class AmazonSubscribe extends AmazonSubscribeCore
+{
+
+    /**
+     * @var array
+     * 1.AnyOfferChanged : 对于 您销售的商品，只要条件（新的或已使用的）有任何前20个商品的商家信息更改，就会发送AnyOfferChanged通知。前20名优惠由降价确定，即价格加运费。如果多个卖家收取相同的到岸价格，结果将以随机顺序返回。您只会收到 有活动优惠的商品的AnyOfferChanged通知。您无法订阅您没有有效优惠的商品的通知。
+     *
+     *2.FeedProcessingFinished: 该 FeedProcessingFinished 每当你使用提交的任何饲料通知发送饲料API部分 达到的饲料加工状态DONE 或取消
+     *
+     *3.FeePromotion: 使用亚马逊MWS的卖家可以享受限时费用促销。要接收可用费用促销的通知，卖家必须订阅 FeePromotion通知。当卖家最初注册订阅并且 isEnabled设置为true时，卖家收到所有当前有效的促销活动。每个促销都作为单个消息发送。促销变为活动状态时会发送后续促销通知。
+     *
+     *4.FulfillmentOrderStatus: 该 FulfillmentOrderStatus每当有一个状态的改变通知发送多渠道配送 履行订单。有关可触发状态更改的事件，请参阅FulfillmentOrderStatus。
+
+    此通知仅适用于您使用FBA广告资源完成未在亚马逊上销售的订单的多渠道履行订单。要跟踪在亚马逊上销售的FBA库存，请使用MWS Reports API。
+     *
+     *
+     *5.ReportProcessingFinished: 该 ReportProcessingFinished 每当您已使用要求的任何报告通知发送报告API部分 达到的报表处理状态 DONE， 取消，或 DONE_NO_DATA。
+     *
+     */
+    protected $NotificationType  = [
+        'AnyOfferChanged',
+        'FeedProcessingFinished',
+        'FeePromotion',
+        'FulfillmentOrderStatus',
+        'ReportProcessingFinished'
+    ];
+    /**
+     * AmazonProductInfo fetches a list of info from Amazon.
+     *
+     * The parameters are passed to the parent constructor, which are
+     * in turn passed to the AmazonCore constructor. See it for more information
+     * on these parameters and common methods.
+     * @param string $s <p>Name for the store you want to use.</p>
+     * @param boolean $mock [optional] <p>This is a flag for enabling Mock Mode.
+     * This defaults to <b>FALSE</b>.</p>
+     * @param array|string $m [optional] <p>The files (or file) to use in Mock Mode.</p>
+     * @param string $config [optional] <p>An alternate config file to set. Used for testing.</p>
+     */
+    public function __construct($s, $mock = false, $m = null)
+    {
+        parent::__construct($s, $mock, $m);
+    }
+
+
+
+    /**
+     *Removes an existing destination from the list of registered destinations
+     *从已注册目标列表中删除现有目标
+     */
+    public function DeregisterDestination()
+    {
+        $action = 'DeregisterDestination';
+        return $this->subscriptionSubmit($action);
+    }
+
+
+    /**
+     *Lists all current destinations that you have registered
+     *列出您已注册的所有当前目的地
+     */
+    public function ListRegisteredDestinations()
+    {
+        $action = 'ListRegisteredDestinations';
+        return $this->subscriptionSubmit($action);
+    }
+
+
+    /**
+     *Sends a test notification to an existing destination
+     *列出您已注册的所有当前目的地
+     */
+    public function SendTestNotificationToDestination()
+    {
+        $action = 'SendTestNotificationToDestination';
+        return $this->subscriptionSubmit($action);
+    }
+
+
+    /**
+     *Creates a new subscription for the specified notification type and destination
+     *为指定的通知类型和目标创建新订阅
+     */
+    public function CreateSubscription($notificationType = 'AnyOfferChanged')
+    {
+
+        if(!in_array($notificationType, $this->NotificationType)){
+            $this->log("notification type is missing", 'Urgent');
+        }
+
+        //首选获取指定通知类型和目标的预订
+        $getSub = $this->GetSubscription($notificationType);
+        //有的则返回
+        if($getSub){
+            return false;
+        }
+
+        $this->options['Subscription.NotificationType'] = $notificationType;
+
+        $action = 'CreateSubscription';
+
+        if($this->options){
+            foreach ($this->options as $key => $val){
+
+                if(strpos($key,'Destination') !== false){
+                    $this->options['Subscription.'.$key] = $val;
+                    unset($this->options[$key]);
+                }
+            }
+        }
+
+        $this->options['Subscription.IsEnabled'] = true;
+
+        return $this->subscriptionSubmit($action);
+    }
+
+
+
+    /**
+     *Gets the subscription for the specified notification type and destination
+     *获取指定通知类型和目标的预订
+     */
+    public function GetSubscription($NotificationType = 'AnyOfferChanged')
+    {
+        $action = 'GetSubscription';
+
+        $this->options['NotificationType'] = $NotificationType;
+        return $this->subscriptionSubmit($action);
+    }
+
+
+    /**
+     *Deletes the subscription for the specified notification type and destination
+     *删除指定通知类型和目标的订阅
+     */
+    public function DeleteSubscription($notificationType = 'AnyOfferChanged')
+    {
+
+        if(!in_array($notificationType, $this->NotificationType)){
+            $this->log("notification type is missing", 'Urgent');
+        }
+
+        //首选获取指定通知类型和目标的预订
+        $getSub = $this->GetSubscription($notificationType);
+        //有的则返回
+        if(!$getSub){
+            return false;
+        }
+
+
+        $this->options['NotificationType'] = $notificationType;
+
+        $action = 'DeleteSubscription';
+        return $this->subscriptionSubmit($action);
+    }
+
+
+    /**
+     *Returns a list of all your current subscriptions
+     *列出您已注册的所有当前目的地
+     */
+    public function ListSubscriptions()
+    {
+        $action = 'ListSubscriptions';
+        return $this->subscriptionSubmit($action);
+    }
+
+
+    /**
+     *Updates the subscription for the specified notification type and destination
+     *更新指定通知类型和目标的订阅
+     */
+    public function UpdateSubscription()
+    {
+        $action = 'UpdateSubscription';
+        return $this->subscriptionSubmit($action);
+    }
+
+
+
+    /**
+     *Returns the operational status of the Subscriptions API section
+     *返回Subscriptions API部分的运行状态
+     */
+    public function GetServiceStatus()
+    {
+        $action = 'GetServiceStatus';
+        return $this->subscriptionSubmit($action);
+    }
+
+
+
+    /**
+     *Specifies a new destination where you want to receive notifications
+     *指定要接收通知的新目标
+     */
+    public function RegisterDestination()
+    {
+        $action = 'RegisterDestination';
+        return $this->subscriptionSubmit($action);
+    }
+
+
+
+    /**
+     *提交订阅
+     *
+     */
+    protected function subscriptionSubmit($action)
+    {
+        $this->prepareCompetitive($action);
+        $url = $this->urlbase . $this->urlbranch;
+
+        $query = $this->genQuery();
+
+
+        if ($this->mockMode) {
+            $xml = $this->fetchMockFile();
+        } else {
+            $response = $this->sendRequest($url, array('Post' => $query));
+            if (!$this->checkResponse($response)) {
+                return false;
+            }
+
+            $xml = simplexml_load_string($response['body']);
+        }
+
+        return $this->parseXML($xml);
+    }
+
+
+    /**
+     * Sets up options for using <i>fetchCompetitivePricing</i>.
+     *
+     * This changes key options for using <i>fetchCompetitivePricing</i>.
+     * Please note: because the operation does not use all of the parameters,
+     * some of the parameters will be removed. The following parameters are removed:
+     * ItemCondition and ExcludeMe.
+     */
+    protected function prepareCompetitive($action)
+    {
+        include($this->env);
+        if (isset($THROTTLE_TIME_PRODUCTPRICE)) {
+            $this->throttleTime = $THROTTLE_TIME_PRODUCTPRICE;
+        }
+
+        if (array_key_exists('Destination.AttributeList.member.1.Key', $this->options) || array_key_exists('Subscription.Destination.AttributeList.member.1.Key', $this->options)) {
+            $this->options['Action'] = $action;
+        }
+    }
+}
+
+?>

@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.40723178651561076 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1" style="padding:2pt;font-family:Arial;width:270pt;overflow-x:hidden;">
+        <div style="width:270pt;font-size:12pt;line-height:13pt;font-weight:bold;"> 发货标签</div>
+        <div style="width:270pt;padding:2pt 0;border-bottom:1pt solid #000;font-size:11pt;line-height:12pt;text-align:center;">
+                <span style="display:inline-block;height:40pt;line-height:40pt;overflow-y:hidden"> <img
+                            style="width:230pt;height:50pt;"
+                            src="<?php echo $this->imgSrc($shipping_number); ?>"> </span><br>
+            Intl Tracking No:<?php echo $shipping_number; ?>
+        </div>
+        <div style="width:270pt;border-bottom:1pt solid #000;font-size:10pt;line-height:12pt;">
+            <div style="float:left;width:240pt;"><strong>To:</strong><?php echo $name; ?><br> <strong>Shipping:</strong>AliExpress
+                无忧物流-标准<br> <strong>From:</strong><?php echo $sender['sender_name']; ?><br>
+                <strong>Tel:</strong><?php echo $sender['sender_phone'] ?>
+            </div>
+            <div style="float:left;width:30pt;"><strong><?php echo $country_code; ?></strong></div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:270pt;border-bottom:1pt solid #000;font-size:10pt;line-height:12pt;padding-top:2pt;height:30pt;"></div>
+        <div style="width:270pt;font-size:9pt;line-height:12pt;word-wrap:break-word;">
+            <div style="width:270pt;"><strong>是否带电池:</strong>否<br> <strong>是否带有非液体化妆品:</strong>否<br>
+                <strong>仓库:</strong>浙江省金华市义乌市北苑街道雪峰东路6号(燕文义乌仓-标准)<br> <strong>LP号:</strong></div>
+            <div style="width:270pt;">
+                <div style="width:170pt;float:left;"><strong>渠道编码:</strong></div>
+                <div style="width:100pt;float:left;text-align:right;font-size:14pt;line-height：15pt;font-weight:bold;">
+                    123
+                </div>
+                <div style="clear:both;"></div>
+            </div>
+        </div>
+        <div style="width:270pt; margin-top:1pt;">
+
+
+        </div>
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+
+</body>
+</html>

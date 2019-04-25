@@ -1,0 +1,20 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-17
+ * Time: 上午10:52
+ */
+
+namespace swoole\websocketCmd;
+
+
+use swoole\WebSocketCmd;
+
+class Test extends WebSocketCmd
+{
+    public  function execute()
+    {
+        return "testtest".$this->getData();
+    }
+}

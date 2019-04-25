@@ -1,0 +1,27 @@
+<?php
+
+namespace aliy1688;
+
+use aliy1688\AbsBase;
+
+/**
+ * @desc 获取1688物流跟踪信息
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-04-20 19:54:11
+ */
+class GetLogisticsTraceInfo extends AbsBase
+{
+
+    protected $apiPath = 'param2/1/com.alibaba.logistics/alibaba.trade.getLogisticsTraceInfo.buyerView/';
+    protected $params = ['webSite' => '1688'];
+    protected $requestType = 'POST';
+
+    public function __construct($orderId, $appKey, $secretKey, $refreshToken, $accessToken)
+    {
+        $this->params['orderId'] = $orderId;//外部流水号
+        $this->appKey = $appKey ? $appKey : $this->appKey;
+        $this->secretKey = $secretKey ? $secretKey : $this->secretKey;
+        $this->refreshToken = $refreshToken ? $refreshToken : $this->refreshToken;
+        $this->accessToken = $accessToken ? $accessToken : $this->accessToken;
+    }
+}

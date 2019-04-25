@@ -1,0 +1,11 @@
+{
+  "name": "erp项目",
+  "version": "0.1.0",
+  "description": "",
+  "header": {
+    "title": "ERP文档"
+  },
+  "footer": {
+    "title": "My own footer title"
+  }
+}

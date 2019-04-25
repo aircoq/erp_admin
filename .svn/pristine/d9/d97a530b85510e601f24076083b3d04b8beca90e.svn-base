@@ -1,0 +1,79 @@
+<?php
+namespace app\report\controller;
+
+use app\api\controller\Post;
+use app\common\controller\Base;
+use think\Request;
+use app\report\service\AccountOperationAnalysisService as AnalysisService;
+
+
+/**
+ * /**
+ * @module 账户运营分析
+ * @author ZhouFurong
+ * @title 账户运营分析
+ * @url /report/account-operation-analysis
+ * Class AccountOperationAnalysis
+ * @package app\report\controller
+ */
+class AccountOperationAnalysis extends Base
+{
+	protected $analysisService ;
+
+	/**
+	 * 初始化
+	 */
+	protected function init()
+	{
+		if(is_null($this->analysisService)){
+			$this->analysisService = new AnalysisService();
+		}
+	}
+
+	/**
+	 * @title 账户运营分析
+	 * @param Request $request
+	 * @method get
+	 * @url /report/account-operation-analysis
+	 * @return \think\response\Json
+	 */
+	public function index(Request $request)
+	{
+		try{
+			return json($this->analysisService->search($request->param()));
+		}catch (\Exception $ex){
+			$code = $ex->getCode();
+			$msg  = $ex->getMessage();
+			if(!$code){
+				$code = 500;
+				$msg  = '程序内部错误';
+			}
+			return json(['message'=>$ex->getTrace()],$code);
+		}
+	}
+
+	/**
+	 * @title 导出
+	 * @url /report/account-operation-analysis/export
+	 * @method Post
+	 * @return \think\response\Json
+	 */
+	public function export(Request $request)
+	{
+		try{
+			$this->analysisService->export($request->param());
+			return json(['message'=> '申请成功']);
+		}catch (\Exception $ex){
+			$code = $ex->getCode();
+			$msg  = $ex->getMessage();
+			if(!$code){
+				$code = 500;
+				$msg  = '程序内部错误';
+			}
+			return json(['message'=>$msg],$code);
+		}
+
+	}
+
+
+}

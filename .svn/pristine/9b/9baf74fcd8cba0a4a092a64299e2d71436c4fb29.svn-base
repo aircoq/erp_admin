@@ -1,0 +1,518 @@
+<?php
+
+namespace superbrowser;
+
+use app\common\cache\Cache;
+use phpDocumentor\Reflection\Types\Object_;
+use think\Exception;
+use app\common\model\paytm\PaytmAccount as PaytmAccountModel;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2019/3/5
+ * Time: 14:15
+ */
+class SuperBrowserBaseApi
+{
+//   测试地址
+//    protected $hostUrl = 'https://4e9lj45rn8.execute-api.cn-north-1.amazonaws.com.cn/test/';
+//    protected $postUrl = 'api/v3-test/openapi/';
+
+    protected $hostUrl = 'https://dzpe8knuj5.execute-api.cn-north-1.amazonaws.com.cn/pro/';
+    protected $postUrl = 'api/v3/openapi/';
+    protected $padding = 0;
+
+    protected $company_name = '深圳市利朗达科技有限公司'; // 公司名称
+    protected $username = 'rondaful'; // 老板账号
+    protected $passwd = 'rondaful888'; // 老板账号密码
+    protected $machine_name = 'rondaful-PC'; // 登录软件机器名
+    protected $machine_string = '5441435741'; // 登录软件机器码
+    protected $machine_ip = '113.110.246.217'; // 登录软件机器ip
+    protected $user_id = '1'; // 用户id
+
+    public $secretkey = '8Bo7LySgW4XkVPMh63uw'; // 加密秘钥
+    public $authorizationcode = 'f2BFkU8podxuAv9gZSNc'; //授权ID
+    public $_secret_key = ''; //授权ID
+    public $auth_id = '15414996174532'; //授权码
+    public $token = ''; //通讯token
+
+
+    private $message = '';
+
+    public function __construct($params = [])
+    {
+        $this->company_name = $params['company_name'] ?? $this->company_name;
+    }
+
+    public function showPublicKey()
+    {
+        $data = [
+            'secretkey' => $this->secretkey,
+            'authorizationcode' => $this->authorizationcode,
+            'auth_id' => $this->auth_id,
+            'token' => $this->token,
+        ];
+        return $data;
+    }
+
+
+    public function getMessage()
+    {
+        return $this->message;
+    }
+
+    /**
+     * 获取加密秘钥
+     * @return bool
+     * @throws \Exception
+     */
+    public function getSecret()
+    {
+        $data = [
+            'company_name' => $this->company_name,
+        ];
+        $result = $this->authcall('get_secret', $data);
+        if ($result) {
+            $this->secretkey = $result['secretkey'];
+            $this->authorizationcode = $result['secretkey'];
+        }
+        return $result;
+    }
+
+    /**
+     * 获取加密秘钥
+     * @return bool
+     * @throws \Exception
+     */
+    public function getAuthorization()
+    {
+        $this->getSecret();
+        $data = [
+            'company_name' => $this->company_name,
+            'username' => $this->username,
+            'passwd' => $this->passwd,
+            'machine_name' => $this->machine_name,
+            'machine_string' => $this->machine_string,
+            'machine_ip' => $this->machine_ip,
+        ];
+        $result = $this->authcallPost('get_authorization', $data);
+        if ($result) {
+            $this->authorizationcode = $result['authorizationcode'];
+            $this->_secret_key = $result['authorizationcode'];
+            $this->auth_id = $result['auth_id'];
+        }
+        return $result;
+    }
+
+    /**
+     * 容器基础数据获取
+     * @return mixed
+     */
+    public function getContainerBasicData()
+    {
+        $data = [
+            'machine_string' => $this->machine_string,
+        ];
+        $result = $this->authcallPost('container_basic_data', $data);
+        return $result;
+    }
+
+    /**
+     * 已购买IP列表
+     * @return mixed
+     */
+    public function getIpList()
+    {
+        $data = [
+            'company_name' => $this->company_name,
+            'machine_string' => $this->machine_string,
+            'user_id' => $this->user_id,
+            'auth_id' => $this->auth_id,
+        ];
+        $result = $this->authcallPost('ip_list', $data);
+        if ($result) {
+            return $result['data'];
+        }
+        return $result;
+    }
+
+    /**
+     * 重新开业购买IP列表
+     * @return mixed
+     */
+    public function getIpBuyList()
+    {
+        $data = [
+            'company_name' => $this->company_name,
+            'machine_string' => $this->machine_string,
+            'user_id' => $this->user_id,
+        ];
+        $result = $this->authcallPost('ip_buy_list', $data);
+
+        return $result;
+    }
+
+    /**
+     * 购买新IP
+     * @param $package_id
+     * @param $period_id
+     * @param int $num
+     * @return mixed
+     */
+    public function newBuyIp($package_id, $period_id, $num = 1)
+    {
+        $purchase = [
+            'package_id' => $package_id, // 期限id
+            'period_id' => $period_id, //套餐id
+            'num' => $num, //
+        ];
+        return $this->buyIp($purchase);
+    }
+
+    /**
+     * 重新开业购买IP列表
+     * @return mixed
+     */
+    public function buyIp($purchase = [], $renew = [])
+    {
+        $data = [
+            'company_name' => $this->company_name,
+            'machine_string' => $this->machine_string,
+            'user_id' => $this->user_id,
+            'payment_method' => 2, //付款方式 0 支付宝 1 微信2账号钱包
+            'purchase' => [], //新购买
+            'renew' => [], //续费
+        ];
+        if ($purchase) {
+            $data['purchase'] = $purchase;
+            $data['renew'] = (object)[];
+        }
+        if ($renew) {
+            $data['renew'] = $renew;
+        }
+
+        $result = $this->authcallPost('ip_buy', $data);
+
+        return $result;
+    }
+
+
+    /**
+     * 钱包余额查询接口
+     * @return mixed
+     */
+    public function getWalletBalance()
+    {
+        $data = [
+            'company_name' => $this->company_name,
+            'machine_string' => $this->machine_string,
+            'user_id' => $this->user_id,
+        ];
+        $result = $this->authcallPost('wallet_balance', $data);
+
+        return $result;
+    }
+
+    /**
+     * 付款记录查询
+     * @return mixed
+     */
+    public function getWalletPayRecord($start_time = 0, $end_time = 0)
+    {
+        $data = [
+            'company_name' => $this->company_name,
+            'machine_string' => $this->machine_string,
+            'user_id' => $this->user_id,
+        ];
+        if ($start_time) {
+            $data['start_time'] = $start_time;
+        }
+        if ($end_time) {
+            $data['end_time'] = $end_time;
+        }
+        $result = $this->authcallPost('wallet_pay_record', $data);
+
+        return $result;
+    }
+
+
+    /**
+     * @title 基础发起请求
+     * @param $fun 访问地焉
+     * @param $mehod 访问方法'GET'， 'POST'
+     * @param $data 数据；
+     * @return mixed josn
+     */
+    protected function authcallPost($fun, $data = [])
+    {
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+                'token' => $this->authorizationcode
+            ]
+        ];
+        $url = $this->hostUrl . $this->postUrl . $fun;
+        $postData = [
+            'machine_string' => $this->machine_string,
+            'auth_id' => $this->auth_id,
+            'company_name' => $this->company_name,
+            'data' => $this->encode($data)
+        ];
+        $postData = json_encode($postData);
+        $result = $this->httpReader($url, 'POST', $postData, $extra);
+        if(is_json($result)){
+            $result = json_decode($result,true);
+            if(isset($result['data'])){
+                $result = $this->decode($result['data']);
+            }
+        }
+        if ($result['status'] == 'success' && $result['ret'] == 0) {
+            return $result;
+        }
+        return false;
+    }
+
+
+    /**
+     * @title 已经组装好了授权的；
+     * @param $url 访问地焉
+     * @param $mehod 访问方法'GET'， 'POST'
+     * @param $data 数据；
+     * @return mixed josn
+     */
+    protected function authcall($fun, $data = [])
+    {
+        $extra = [
+            'header' => [
+                'Content-Type' => 'application/json',
+            ]
+        ];
+        $url = $this->hostUrl . $this->postUrl . $fun;
+        $postData = json_encode($data);
+        $result = $this->httpReader($url, 'POST', $postData, $extra);
+        $result = json_decode($result, true);
+        if ($result['status'] == 'success' && $result['ret'] == 0) {
+            return $result;
+        }
+        return false;
+    }
+
+    public function setKey($key)
+    {
+        $this->_secret_key = $key;
+    }
+
+    private $block_size = 16;
+
+    //加密
+    public function encode($data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data);
+        }
+        $data = $this->pkcs7_encode($data);
+        $privateKey = substr($this->authorizationcode, 0, $this->block_size);
+        $iv = substr($this->authorizationcode, 4, $this->block_size);
+        $encrypted = openssl_encrypt($data, "AES-128-CBC", $privateKey, OPENSSL_ALGO_MD4, $iv);
+//        var_dump('data:'.$data,'key:'.$privateKey,'iv:'.$iv,base64_encode($encrypted));
+        return base64_encode($encrypted);
+    }
+
+
+    public function pkcs7_encode($str)
+    {
+        $block_size = $this->block_size;
+        $text_length = strlen($str);
+        //计算需要填充的位数
+        $amount_to_pad = $block_size - ($text_length % $block_size);
+        if ($amount_to_pad == 0)
+            $amount_to_pad = $block_size;
+        //获得补位所用的字符
+        $pad_chr = chr($this->padding);
+        $tmp = "";
+        for ($index = 0; $index < $amount_to_pad; $index++) {
+            $tmp .= $pad_chr;
+        }
+        return $str . $tmp;
+    }
+
+
+    public function decode($data = '')
+    {
+        $data = base64_decode($data);
+        $privateKey = substr($this->authorizationcode, 1, $this->block_size);
+        $iv = substr($this->authorizationcode, 3, $this->block_size);
+        $decode = openssl_decrypt($data, "AES-128-CBC", $privateKey, OPENSSL_ALGO_MD4, $iv);
+//        $decode = openssl_decrypt($data, "AES-128-CBC", $privateKey, OPENSSL_RAW_DATA|OPENSSL_ZERO_PADDING, $iv);
+        $decode = str_replace(chr($this->padding), '', $decode);
+        $decode = json_decode($decode, true);
+        return $decode;
+    }
+
+
+    /**
+     * HTTP读取
+     * @param string $url 目标URL
+     * @param string $method 请求方式
+     * @param array|string $bodyData 请求BODY正文
+     * @param array $responseHeader 传变量获取请求回应头
+     * @param int $code 传变量获取请求回应状态码
+     * @param string $protocol 传变量获取请求回应协议文本
+     * @param string $statusText 传变量获取请求回应状态文本
+     * @param array $extra 扩展参数,可传以下值,不传则使用默认值
+     * header array 头
+     * host string 主机名
+     * port int 端口号
+     * timeout int 超时(秒)
+     * proxyType int 代理类型; 0 HTTP, 4 SOCKS4, 5 SOCKS5, 6 SOCK4A, 7 SOCKS5_HOSTNAME
+     * proxyAdd string 代理地址
+     * proxyPort int 代理端口
+     * proxyUser string 代理用户
+     * proxyPass string 代理密码
+     * caFile string 服务器端验证证书文件名
+     * sslCertType string 安全连接证书类型
+     * sslCert string 安全连接证书文件名
+     * sslKeyType string 安全连接证书密匙类型
+     * sslKey string 安全连接证书密匙文件名
+     * @return string|array 请求结果;成功返回请求内容;失败返回错误信息数组
+     * error string 失败原因简单描述
+     * debugInfo array 调试信息
+     */
+    public function httpReader($url, $method = 'GET', $bodyData = [], $extra = [], &$responseHeader = null, &$code = 0, &$protocol = '', &$statusText = '')
+    {
+        $ci = curl_init();
+
+        if (isset($extra['timeout'])) {
+            curl_setopt($ci, CURLOPT_TIMEOUT, $extra['timeout']);
+        }
+        curl_setopt($ci, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ci, CURLOPT_HEADER, true);
+        curl_setopt($ci, CURLOPT_AUTOREFERER, true);
+        curl_setopt($ci, CURLOPT_FOLLOWLOCATION, true);
+
+        if (isset($extra['proxyType'])) {
+            curl_setopt($ci, CURLOPT_PROXYTYPE, $extra['proxyType']);
+
+            if (isset($extra['proxyAdd'])) {
+                curl_setopt($ci, CURLOPT_PROXY, $extra['proxyAdd']);
+            }
+
+            if (isset($extra['proxyPort'])) {
+                curl_setopt($ci, CURLOPT_PROXYPORT, $extra['proxyPort']);
+            }
+
+            if (isset($extra['proxyUser'])) {
+                curl_setopt($ci, CURLOPT_PROXYUSERNAME, $extra['proxyUser']);
+            }
+
+            if (isset($extra['proxyPass'])) {
+                curl_setopt($ci, CURLOPT_PROXYPASSWORD, $extra['proxyPass']);
+            }
+        }
+
+        if (isset($extra['caFile'])) {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, 2); //SSL证书认证
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, true); //严格认证
+            curl_setopt($ci, CURLOPT_CAINFO, $extra['caFile']); //证书
+        } else {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, false);
+        }
+
+        if (isset($extra['sslCertType']) && isset($extra['sslCert'])) {
+            curl_setopt($ci, CURLOPT_SSLCERTTYPE, $extra['sslCertType']);
+            curl_setopt($ci, CURLOPT_SSLCERT, $extra['sslCert']);
+        }
+
+        if (isset($extra['sslKeyType']) && isset($extra['sslKey'])) {
+            curl_setopt($ci, CURLOPT_SSLKEYTYPE, $extra['sslKeyType']);
+            curl_setopt($ci, CURLOPT_SSLKEY, $extra['sslKey']);
+        }
+
+        $method = strtoupper($method);
+        switch ($method) {
+            case 'GET':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'GET');
+                if (!empty($bodyData)) {
+                    if (is_array($bodyData)) {
+                        $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($bodyData);
+                    } else {
+                        curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                    }
+                }
+                break;
+            case 'POST':
+                curl_setopt($ci, CURLOPT_POST, true);
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'PUT':
+                //                 curl_setopt ( $ci, CURLOPT_PUT, true );
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'PUT');
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'DELETE':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
+            case 'HEAD':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'HEAD');
+                break;
+            default:
+                throw new \Exception(json_encode(['error' => '未定义的HTTP方式']));
+                return ['error' => '未定义的HTTP方式'];
+        }
+
+        if (!isset($extra['header']) || !isset($extra['header']['Host'])) {
+            $urldata = parse_url($url);
+            $extra['header']['Host'] = $urldata['host'];
+            unset($urldata);
+        }
+
+        $header_array = array();
+        foreach ($extra['header'] as $k => $v) {
+            $header_array[] = $k . ': ' . $v;
+        }
+
+        curl_setopt($ci, CURLOPT_HTTPHEADER, $header_array);
+        curl_setopt($ci, CURLINFO_HEADER_OUT, true);
+
+        curl_setopt($ci, CURLOPT_URL, $url);
+
+        $response = curl_exec($ci);
+
+        if (false === $response) {
+            $http_info = curl_getinfo($ci);
+            throw new \Exception(json_encode(['error' => curl_error($ci), 'debugInfo' => $http_info]));
+            return ['error' => curl_error($ci), 'debugInfo' => $http_info];
+        }
+
+        $responseHeader = [];
+        $headerSize = curl_getinfo($ci, CURLINFO_HEADER_SIZE);
+        $headerData = substr($response, 0, $headerSize);
+        $body = substr($response, $headerSize);
+
+        $responseHeaderList = explode("\r\n", $headerData);
+
+        if (!empty($responseHeaderList)) {
+            foreach ($responseHeaderList as $v) {
+                if (false !== strpos($v, ':')) {
+                    list($key, $value) = explode(':', $v, 2);
+                    $responseHeader[$key] = ltrim($value);
+                } else if (preg_match('/(.+?)\s(\d+)\s(.*)/', $v, $matches) > 0) {
+                    $protocol = $matches[1];
+                    $code = $matches[2];
+                    $statusText = $matches[3];
+                }
+            }
+        }
+
+        curl_close($ci);
+        return $body;
+    }
+
+
+}

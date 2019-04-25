@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.45092694875537176 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<!--2 美国-->
+<!--1 开始-->
+<div id="page1" style="width:270pt;padding:2pt;font-size:9pt;line-height:10pt;font-family:Arial;margin:0 auto;background:white;page-break-after:always;">
+    <table cellpadding="0" cellspacing="0" style=" width:260pt;height:200pt;table-layout:fixed;word-wrap:break-word;border-collapse:collapse;margin: 0 auto;">
+        <tbody>
+        <tr style="border: solid 2pt #000;border-bottom: none">
+            <td colspan="12" style="height: 40pt">
+                <div style="text-align: left;font-size: 12pt;margin-left: 10pt">
+                    <?php foreach ($list as $k=>$v):?>
+                    <?php echo $v['declared_name_cn'];?>*<?php echo $v['qty'];?>;<br>
+                    <?php endforeach;?>
+                </div>
+
+            </td>
+        </tr>
+        <tr style="border: solid 2pt #000;border-bottom: none;border-top: none" >
+            <td colspan="12" style="height: 40pt">
+                <div style="font-size: 12pt;margin-left: 10pt">
+                    <?php foreach ($list as $k=>$v):?>
+                        <?php echo $v['declared_name_en'];?>*<?php echo $v['qty'];?>;<br>
+                    <?php endforeach;?>
+                </div>
+
+            </td>
+        </tr>
+        <tr  style="border: solid 2pt #000;border-top: none">
+            <td colspan="6" style="text-align: left;">
+                <div style="text-align: left;font-size:8pt; margin-left:10pt;font-weight: bold">
+                    <?php echo $name ?><br>
+                    <?php echo $street.' '.$street2;?><br>
+                    <?php echo $province ?>,<?php echo $city ?><br>
+                    <?php echo  $country_en_name ?><br>
+                    <?php echo  $zip?><br>
+                    <?php echo  $phone ?><br>
+                </div>
+
+            </td>
+            <td colspan="6" style="text-align: left;">
+                <div style="text-align: left;font-size: 8pt;height: 40pt;font-weight: bold">
+                    客户单号 P<?php echo $number;?>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    打印时间 <?php echo date('Y-m-d',time())?>
+                </div>
+
+            </td>
+        </tr>
+
+        <tr >
+            <td colspan="12" >
+                <div style="text-align: center;font-size:8pt; margin-left:10pt;font-weight: bold;margin-top: 5pt">
+                    <img style="width:160pt;height:40pt;" src="<?php echo $this->imgSrc($shipping_number);?>"><br>
+                    <span style="line-height: 20pt"><?php echo $shipping_number;?></span>
+                </div>
+
+            </td>
+
+        </tr>
+
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

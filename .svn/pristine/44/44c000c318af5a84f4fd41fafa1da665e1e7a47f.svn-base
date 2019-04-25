@@ -1,0 +1,119 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: huangweijie
+ * Date: 2018/12/24
+ * Time: 11:28
+ */
+
+namespace Logistics;
+
+
+use Logistics\Exceptions\Exception;
+use Logistics\Exceptions\InvalidArgumentException;
+use Logistics\Query\Query;
+
+class QueryFactory
+{
+    /**
+     * 查询接口数组
+     *
+     * @var array
+     */
+    protected $getQueryList = [];
+
+    /**
+     * 默认接口
+     *
+     * @var string
+     */
+    protected $defaultQuery;
+
+    /**
+     * Logistics constructor.
+     *
+     */
+    public function __construct()
+    {
+        $this->defaultQuery = 'baidu';
+    }
+
+
+    /**
+     * 获取默认查询接口名称
+     *
+     * @return mixed
+     * @throws Exception
+     */
+    public function getDefaultQueryName()
+    {
+        if (empty($this->defaultQuery)) {
+            throw new Exception('No default query name configured');
+        }
+        return $this->defaultQuery;
+    }
+
+    /**
+     * 创建查询接口对象
+     *
+     * @param $name
+     * @return mixed
+     * @throws InvalidArgumentException
+     */
+    protected function createQueryClass($name)
+    {
+        $className = $this->formatQueryClassName($name);
+        $getQueryClass = $this->makeQueryClass($className);
+        if (!($getQueryClass instanceof Query)) {
+            throw new InvalidArgumentException(sprintf('QueryClass "%s" not inherited from %s.', $name, Query::class));
+        }
+        return $getQueryClass;
+    }
+
+    /**
+     * 实例化对象
+     *
+     * @param $name
+     * @return mixed
+     * @throws InvalidArgumentException
+     */
+    protected function makeQueryClass($name)
+    {
+        if (!class_exists($name)) {
+            throw new InvalidArgumentException(sprintf('Query Class "%s" not exists', $name));
+        }
+        return new $name();
+    }
+
+    /**
+     * 格式查询类名称
+     *
+     * @param $name
+     * @return string
+     */
+    protected function formatQueryClassName($name)
+    {
+        if (class_exists($name)) {
+            return $name;
+        }
+        $name = ucfirst(str_replace(['-', '_', ' '], '', $name));
+        return __NAMESPACE__ . "\\Query\\{$name}Query";
+    }
+
+    /**
+     * 创建接口查询对象
+     *
+     * @param null $name
+     * @return mixed
+     * @throws Exception
+     * @throws InvalidArgumentException
+     */
+    public function query($name = null)
+    {
+        $name = $name ?: $this->getDefaultQueryName();
+        if (!isset($this->getQueryList[$name])) {
+            $this->getQueryList[$name] = $this->createQueryClass($name);
+        }
+        return $this->getQueryList[$name];
+    }
+}

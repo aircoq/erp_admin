@@ -1,0 +1,28 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-20
+ * Time: 下午4:15
+ */
+
+namespace erp;
+
+
+use think\Validate;
+
+class AutoValidate extends Validate
+{
+    const METHOD_POST = 'POST';
+    const METHOD_PUT = 'PUT';
+    const METHOD_GET = 'GET';
+    const DEFAULT_AUTO_METHODS = [
+        self::METHOD_POST,
+        self::METHOD_PUT
+    ];
+    protected $auto_methods = self::DEFAULT_AUTO_METHODS;
+    public function getAuthoMethods()
+    {
+        return $this->auto_methods;
+    }
+}

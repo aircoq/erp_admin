@@ -1,0 +1,165 @@
+<?php
+/**
+ * Created by tanbin.
+ * User: tanbin
+ * Date: 17-06-23
+ * Time: 19:39
+ */
+class BarcodeApi {
+    
+    private  $file_type         =   'PNG';
+    private  $font_family       =   'Arial.ttf';
+    private  $code              =   'BCGcode128'; //--BCGcode11、BCGcode39、BCGcode93
+    private  $start             =   'A';
+    private  $checksum          =   '';
+    private  $thickness         =   40; //条形码高度
+    private  $font_size         =   10; //sku code 字体大小
+    private  $scale             =   1; //条形码放大倍数
+    private  $rotation          =   0; //调倾斜度
+    private  $dpi               =   72;   
+    
+    function __construct($config = [])
+    {
+        $this->file_type        =   param($config, 'file_type' ,'PNG');
+        $this->code             =   param($config, 'code_type' , 'BCGcode128');
+        $this->start            =   param($config, 'start' , 'A');
+        $this->checksum         =   param($config, 'checksum' , '');
+        $this->thickness        =   param($config, 'thickness' , '40');
+        $this->font_size        =   param($config, 'font_size' , '10');
+        $this->scale            =   param($config, 'scale' , '1');
+ 
+    }
+    
+    /**
+     * barcode
+     * @param string $sku_code  条形码号码
+     * @return boolean
+     */
+    function drawBarcode($sku_code = ''){   
+        
+        if(empty($sku_code)){
+            return false;
+        }
+        
+        if (!preg_match('/^[A-Za-z0-9]+$/',$this->code)) {
+            $this->showError();
+        }
+       
+        $BasePath = ROOT_PATH.'/extend/barcode/class';
+        require_once($BasePath . DIRECTORY_SEPARATOR . 'BCGColor.php');
+        require_once($BasePath . DIRECTORY_SEPARATOR . 'BCGBarcode.php');
+        require_once($BasePath . DIRECTORY_SEPARATOR . 'BCGDrawing.php');
+        require_once($BasePath . DIRECTORY_SEPARATOR . 'BCGFontFile.php');
+        
+        if (!include_once($BasePath . DIRECTORY_SEPARATOR . $this->code.'.barcode.php')) {
+            $this->showError();
+        }
+
+        $filetypes = array('PNG' => BCGDrawing::IMG_FORMAT_PNG, 'JPEG' => BCGDrawing::IMG_FORMAT_JPEG, 'GIF' => BCGDrawing::IMG_FORMAT_GIF);
+       
+        $drawException = null;
+        try {
+            $color_black = new BCGColor(0, 0, 0);
+            $color_white = new BCGColor(255, 255, 255);
+        
+            $className = 'BCGcode128';
+            $code_generated = new $className();
+     
+            $this->baseCustomSetup($code_generated);
+            
+        
+            if (in_array($this->code, ['BCGcode128','BCGcode39'])) {
+                $this->customSetup($code_generated);
+            }
+        
+            $code_generated->setScale(max(1, min(4, $this->scale)));
+            $code_generated->setBackgroundColor($color_white);
+            $code_generated->setForegroundColor($color_black);
+        
+            if ($sku_code !== '') {
+                $text = $this->convertText($sku_code);
+                $code_generated->parse($text);
+            }
+        } catch(Exception $exception) {
+            $drawException = $exception;
+        }
+        
+        $drawing = new BCGDrawing('', $color_white);
+        if($drawException) {
+            $drawing->drawException($drawException);
+        } else {
+            $drawing->setBarcode($code_generated);
+            $drawing->setRotationAngle($this->rotation);
+            $drawing->setDPI($this->dpi === 'NULL' ? null : max(72, min(300, intval($this->dpi ))));
+            $drawing->draw();
+        }
+        
+        switch ($this->file_type) {
+            case 'PNG':
+                header('Content-Type: image/png');
+                break;
+            case 'JPEG':
+                header('Content-Type: image/jpeg');
+                break;
+            case 'GIF':
+                header('Content-Type: image/gif');
+                break;
+        }
+        
+        $drawing->finish($filetypes[$this->file_type]);
+    }
+    
+    /**
+     * 设置字体大小
+     * @param unknown $barcode
+     */
+    function baseCustomSetup($barcode) {
+        $font_dir = ROOT_PATH.'/extend/barcode/font/';
+    
+        if (isset($this->thickness)) {
+            $barcode->setThickness(max(9, min(90, intval($this->thickness))));
+        }
+    
+        $font = 0;
+        if ($this->font_family !== '0' && intval($this->font_size) >= 1) {
+            $font = new BCGFontFile($font_dir . '/' . $this->font_family, intval($this->font_size));
+        }
+    
+        $barcode->setFont($font);
+    }
+    
+    
+    function customSetup($barcode) {
+        if($this->code == 'BCGcode128'){
+            if (isset($this->start)) {
+                $barcode->setStart($this->start === 'NULL' ? null : $this->start);
+            }
+        }elseif($this->code == 'BCGcode39'){
+            if (isset($get['checksum'])) {
+                $barcode->setChecksum($this->checksum === '1' ? true : false);
+            }
+        }
+        
+    }
+    
+    function convertText($text) {
+        $text = stripslashes($text);
+        if (function_exists('mb_convert_encoding')) {
+            $text = mb_convert_encoding($text, 'ISO-8859-1', 'UTF-8');
+        }
+            return $text;
+    }
+    
+    
+    function showError() {
+        header('Content-Type: image/png');
+        readfile(ROOT_PATH.'/extend/barcode/error.png');
+        exit;
+    }
+    
+}
+
+
+
+
+?>

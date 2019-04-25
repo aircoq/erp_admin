@@ -1,0 +1,33 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 18-2-27
+ * Time: 下午7:53
+ */
+
+namespace erp;
+
+
+class Redis extends \Redis
+{
+    public function lPushRemove($key, $value, $max = null)
+    {
+        if($max){
+            if($this->lLen($key) > $max){
+                $this->rPop($key);
+            }
+        }
+        $this->lPush($key, $value);
+    }
+
+    public function rPushRemove($key, $value, $max = null)
+    {
+        if($max){
+            if($this->lLen($key) > $max){
+                $this->lPop($key);
+            }
+        }
+        $this->rPush($key, $value);
+    }
+}

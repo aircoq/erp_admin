@@ -1,0 +1,112 @@
+<?php
+namespace service\aliexpress\operation;
+
+use org\Curl;
+use service\aliexpress\operation\Common;
+
+/**
+ *  aliexpress 物流方式管理
+ */
+class ShippingMethod extends Common
+{
+    /**
+     * api 拉取平台物流方式
+     * @return $result : 所有物流方式列表
+     */
+    public function getShippingMethod()
+    {
+        //$urlPath = 'param2/1/aliexpress.open/api.listLogisticsService/'.$this->client_id;
+        $data['access_token'] = $this->accessToken;
+        //$signature = $this->apiSign($data, $urlPath, $this->client_secret);
+        $url       = "http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.listLogisticsService/".$this->client_id;
+        //$data['_aop_signature'] = $signature;
+        $result = $this->requestAliexpress($url,$data);
+        //$result = $this->curlPost($url, $data);
+        //$result = json_decode($result, true);
+        return $result;
+    }
+
+    /**
+     * 获取卖家地址信息
+     * @return mixed
+     */
+    public function getLogisticsSellerAddresses()
+    {
+        //$urlPath   = 'param2/1/aliexpress.open/alibaba.ae.api.getLogisticsSellerAddresses/'.$this->client_id;
+        $requestData['request'] = json_encode(['sender','pickup','refund']);
+        $requestData['access_token'] = $this->accessToken;
+        //$signature = $this->apiSign($requestData, $urlPath, $this->client_secret);
+        $url       = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/alibaba.ae.api.getLogisticsSellerAddresses/'.$this->client_id;
+        //$requestData['_aop_signature'] = $signature;
+        //$response    = Curl::curlPost($url, $requestData);
+        $result = $this->requestAliexpress($url,$requestData);
+        //$result = json_decode($response, true);
+        return $result;
+    }
+
+    /**
+     * 创建线发货上物流订单
+     * @return array|mixed
+     */
+    public function createWarehouseOrder($data)
+    {
+        $requestData = $data;
+        //$urlPath   = 'param2/1/aliexpress.open/api.createWarehouseOrder/'. $this->client_id;
+        $requestData['access_token'] = $this->accessToken;
+        //$signature = $this->apiSign($requestData, $urlPath, $this->client_secret);
+        $url       = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.createWarehouseOrder/'.$this->client_id;
+        //$requestData['_aop_signature'] = $signature;
+        //$response    = Curl::curlPost($url, $requestData);
+        //$result = json_decode($response, true);
+        $result = $this->requestAliexpress($url,$requestData);
+        return $result;
+    }
+
+    /**
+     * 获取线上发货物流订单信息
+     * @param $data
+     * @return mixed
+     */
+    public function getOnlineLogisticsInfo($data)
+    {
+        $requestData = $data;
+        //$urlPath   = 'param2/1/aliexpress.open/api.getOnlineLogisticsInfo/'. $this->client_id;
+        $requestData['access_token'] = $this->accessToken;
+        //$signature = $this->apiSign($requestData, $urlPath, $this->client_secret);
+        $url       = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.getOnlineLogisticsInfo/'.$this->client_id;
+        //$requestData['_aop_signature'] = $signature;
+        //$response    = Curl::curlPost($url, $requestData);
+        //$result = json_decode($response, true);
+        $result = $this->requestAliexpress($url,$requestData);
+        return $result;
+    }
+
+    /**
+     * 获取打印标签
+     * @param $data
+     * @return array
+     */
+    public function getPrintInfo($data)
+    {
+        $requestData = $data;
+        //$urlPath   = 'param2/1/aliexpress.open/api.getOnlineLogisticsInfo/'. $this->client_id;
+        $requestData['access_token'] = $this->accessToken;
+        //$signature = $this->apiSign($requestData, $urlPath, $this->client_secret);
+        $url       = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.getPrintInfo/'.$this->client_id;
+        //$requestData['_aop_signature'] = $signature;
+        //$response    = Curl::curlPost($url, $requestData);
+        //$result = json_decode($response, true);
+        $result = $this->requestAliexpress($url,$requestData);
+        return $result;
+    }
+
+    public function getOnlineLogisticsServiceListByOrderId($data)
+    {
+        $requestData = $data;
+        $requestData['access_token'] = $this->accessToken;
+        $url       = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/api.getOnlineLogisticsServiceListByOrderId/'.$this->client_id;
+        $result = $this->requestAliexpress($url,$requestData);
+        return $result;
+    }
+    
+}

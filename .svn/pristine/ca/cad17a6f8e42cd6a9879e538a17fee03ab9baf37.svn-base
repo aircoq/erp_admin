@@ -1,0 +1,148 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2017/7/18
+ * Time: 10:55
+ */
+
+namespace imap\provider;
+use imap\EmailAccount;
+use imap\interfaces\ILandable;
+use \Exception as Exception;
+use PhpImap\IncomingMail;
+
+abstract class Provider implements ILandable
+{
+    const PROVIDER_CLASS_MAP = array(
+        '163' => '\\imap\\provider\\Provider163'
+    );
+
+    protected $user        = null;
+    protected $server      = '';      //邮箱服务器地址
+    protected $imapPort    = '';
+    protected $imapSsLPort = '';
+    protected $pop3Port    = '';
+    protected $pop3SsLPort = '';
+    protected $isSSL       = true;
+    protected $isImap      = true;
+
+    protected $attachmentsRootDir  = '';
+    protected $serverEncoding = 'UTF-8';
+
+    protected $box = 'INBOX';
+
+    protected $mailFilters = [];
+
+
+    /**
+     * Base constructor.
+     * @param EmailAccount $account
+     * @param $attachmentsRootDir
+     * @throws Exception
+     */
+    public function __construct(EmailAccount $account , $attachmentsRootDir)
+    {
+        $this->user = $account;
+        if(!is_string($attachmentsRootDir) || !preg_match('/^\/(\w+\.?\/?)+$/',$attachmentsRootDir)){
+            throw new Exception('附件存储根目录不是一个有效路径格式');
+        }
+        $this->attachmentsRootDir = $attachmentsRootDir. DIRECTORY_SEPARATOR . $account->getUser();
+        if(method_exists($this , 'initialize')){
+            call_user_func([$this,"initialize"]);
+        }
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getImapPath()
+    {
+        if($this->isImap) {
+            $port = $this->isSSL ? $this->imapSsLPort : $this->imapPort;
+        }else{
+            $port = $this->isSSL ? $this->pop3SsLPort : $this->pop3Port;
+        }
+        return
+            '{'.
+                $this->server .':'.$port.
+                ($this->isImap? '/imap' : '/pop3' ).
+                ($this->isSSL? '/ssl' : '' ).
+            '}';
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getLoginPwd()
+    {
+        return '';
+    }
+
+    /**
+     * @return EmailAccount|null
+     */
+    public function getUser()
+    {
+        return $this->user;
+    }
+
+    /**
+     * @return string
+     */
+    public function getAttachmentsRootDir()
+    {
+        return $this->attachmentsRootDir;
+    }
+
+    /**
+     * @return string
+     */
+    public function getServerEncoding()
+    {
+        return strtoupper($this->serverEncoding);
+    }
+
+    /**
+     * @return string
+     */
+    public function getBox()
+    {
+        return $this->box;
+    }
+
+    /**
+     * @param string $box
+     */
+    public function setBox($box)
+    {
+        $this->box = $box;
+    }
+
+    /**
+     * @return string
+     */
+    public function getServer()
+    {
+        return $this->server;
+    }
+
+    /**
+     * @param IncomingMail $mail
+     * @return bool
+     */
+    public function filtering(IncomingMail $mail)
+    {
+        foreach ($this->mailFilters as $filter){
+            if(!$filter->filtering($mail)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+}
+

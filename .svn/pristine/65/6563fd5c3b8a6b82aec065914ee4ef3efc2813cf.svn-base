@@ -1,0 +1,180 @@
+<?php
+
+namespace service\pdd;
+
+use pdd\PddBaseApi;
+use app\index\service\PddAccountService;
+use think\Cache;
+use think\Loader;
+use org\Curl;
+use org\Xml;
+
+class PddOrderApi
+{
+    private $client_id;
+    private $access_token;
+    private $client_secret;
+    private $account_id;
+    protected $error = '';
+    /**
+     *
+     * @param unknown $client_id
+     * @param unknown $access_token
+     * @param unknown $client_secret
+
+     */
+    public function __construct($params =[]) {
+        $this->client_id = $params['client_id'] ??'';
+        $this->access_token = $params['access_token'] ??'';
+        $this->client_secret = $params['client_secret'] ??'';
+        $this->account_id = $params['id'] ??'';
+    }
+
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * 抓取一段时间内的订单的列表(每次查询最多可以查100条  用递归处理)
+     * @param datetime $starttime
+     * @param datetime $endtime
+     * @return array
+     *
+     */
+    public function getOrderLists($start_confirm_at,$endTimes,$page=1,$pageOffset=0, $pageSize = 100) {
+        $data=array(
+            'access_token'=>$this->access_token,
+            'client_id' =>$this->client_id,
+            'data_type' =>'JSON',
+            'end_confirm_at'=>$endTimes,
+            'order_status' =>'5',
+            'page' =>$page,
+            'page_size' =>$pageSize,
+            'refund_status'=>'5',
+            'start_confirm_at'=>$start_confirm_at,
+            'timestamp' => time(),
+            'type' => 'pdd.order.list.get'
+        );
+        $re='';
+        foreach ($data as $key=>$v){
+            $re.=$key.$v;
+        }
+        $sign=strtoupper(MD5($this->client_secret.$re.$this->client_secret));
+        $data['sign'] = $sign;
+        $headers = array(
+            "content-type" => "application/json"
+        );
+        $response = Curl::curlPOST("http://gw-api.pinduoduo.com/api/router" ,$data,$headers);
+        $result=json_decode($response,true);
+        if(isset($result['error_response']['error_code']) && ($result['error_response']['error_code']==10019 || $result['error_response']['error_code']==10035)){
+            $sdk = new PddAccountService();
+            $sdk->refresh_token($this->account_id);
+        }
+        $response_data=isset($result['order_list_get_response']['order_list'])?$result['order_list_get_response']['order_list']:array();
+        if(isset($result['order_list_get_response']) && $result['order_list_get_response']['total_count']>$pageSize){
+            $pageOffset++;
+            $next = $this->getOrderLists($start_confirm_at, $endTimes,$pageOffset*$pageSize,$pageOffset);
+            $response_data = array_merge($response_data,($next) );
+        }
+        return $response_data;
+
+    }
+
+    /**
+     * 对象转为数组
+     * @param object $array
+     * @return array
+     * @author czq
+     */
+    function object_array($array) {
+
+        if (is_object($array)) {
+            $array = (array) $array;
+        }
+        if (is_array($array)) {
+            foreach ($array as $key => $value) {
+                $array[$key] = $this->object_array($value);
+            }
+        }
+        return $array;
+
+    }
+
+    /**
+     * 取订单列表
+     * @param unknown $accountId
+     * @param unknown $startTime
+     * @param unknown $endtime
+     */
+    public function getPddOrderList($accountId) {
+        $simplelists = $this->getOrderLists($accountId);
+        $orders = $this->spiderOrderListsCommon( $accountId,$simplelists);
+        return $orders;
+    }
+
+    /**
+     * 取物流公司列表
+     * @param unknown $accountId
+     * @param unknown $startTime
+     * @param unknown $endtime
+     */
+    public function getOrderShipper($order_id) {
+        $headers = array(
+            "content-type" => "application/json"
+        );
+        $response = Curl::curlPOST('http://gw-api.pinduoduo.com/api/router?type=pdd.logistics.companies.get',  $headers);
+        $rs= json_decode($response, true);
+        foreach ($rs['logistics_companies_get_response']['logistics_companies'] as $carrier){
+            $data[]=[
+                'carrier_id'=>$carrier['id'],
+                'shipping_carrier'=>$carrier['logistics_company'],
+                'description'=>$carrier['available'],
+                'created_time'=>time(),
+            ];
+        }
+        return $data;
+    }
+    /** 发货订单
+     * @param $order_id 订单ID
+     * @param $items 订单商品总数量
+     * @param $trackingInfo 跟踪提供商信息【shipDateTime-发货时间,carrier：快递商,methodCode：运输方法，trackingNumber：追踪号，trackingURL：查快递的链接】
+     * @param $isOtherCarrier 是否为pdd平台快递商
+     * @return bool
+     */
+    public function fulfillOne($order_sn, $trackingNumber, $carrier = '')
+    {
+        error_reporting(-1);
+        $parm=array (
+            'access_token' =>$this->access_token,
+            'client_id' =>$this->client_id,
+            'data_type' => 'JSON',
+            'logistics_id'=>$trackingNumber['carrier'],
+            'order_sn'=>$order_sn,
+            'timestamp' =>time(),
+            'tracking_number'=>$trackingNumber['trackingNumber'],
+            'type' =>'pdd.logistics.online.send',
+        );
+        $re='';
+        foreach ($parm as $key=>$v){
+            $re.=$key.$v;
+        }
+        $sign=strtoupper(MD5($this->client_secret.$re.$this->client_secret));
+        $parm['sign'] = $sign;
+        $headers = array(
+            "content-type" => "application/json"
+        );
+        $response = Curl::curlPOST("http://gw-api.pinduoduo.com/api/router" ,$parm ,$headers);
+        $rs=json_decode($response,true);
+        if($rs && isset($rs['logistics_online_send_response']) && $rs['logistics_online_send_response']['is_success']==true){
+            if (isset($rs['error_response']['error_msg'])) {
+                $this->error = $rs['error_response']['error_msg']??'标记发货失败';
+                return false;
+            }
+            return true; //成功
+        }
+
+
+    }
+
+}

@@ -1,0 +1,360 @@
+<?php
+namespace PaypalClient;
+use think\Exception;
+
+/**
+ * PayPal 请求服务类
+ * @author Jacky 2017-9-24 22:15:39
+ */
+class RequestService{
+	
+    /**
+     * @var 授权信息
+     */
+	public $_accountConfig = array();//授权信息
+	
+	/**
+	 * @var 基础信息
+	 */
+	protected $_method = '';//接口方法名
+	protected $_params = array();//请求参数
+	protected $_request_url = '';//接口地址
+	protected $_version = '';//接口版本号	
+	
+	
+	protected $_post_data = '';//POST过去的数据
+	
+	/**
+	 * @var 异常信息
+	 */
+	protected $errorInfo = array(
+	    'Message'=>'',
+	    'HttpStatu'=>'',
+	    'Ack'=>'',
+	    'Version'=>'',
+	    'CorrelationId'=>'',
+	    'TimesTamp'=>'',
+	    'Build'=>'',
+	    'Errors'=>array(
+// 	        0=>array(
+// 	            'ErrorCode'=>'',
+// 	            'ShortMessage'=>'',
+// 	            'LongMessage'=>'',
+// 	            'SeverityCode'=>'',
+// 	        ),
+	    ),
+	    'ORG'=>'',
+	);
+	
+	/**
+	 * 构造方法
+	 * @param string $user  api_account.varchar_1
+	 * @param string $pwd  api_account.varchar_2
+	 * @param string $signature  api_account.text_1
+	 */
+	public function __construct($user,$pwd,$signature) {
+		$this->_accountConfig['user'] = $user;
+		$this->_accountConfig['pwd'] = $pwd;
+		$this->_accountConfig['signature'] = $signature;
+		
+		//错误日志文件夹
+//		if(!is_dir(APPLICATION_PATH . '/../data/log/PayPal')){
+//			mkdir(APPLICATION_PATH . '/../data/log/PayPal', 0777,true);
+//			chmod(APPLICATION_PATH . '/../data/log/PayPal', 0777);
+//		}
+	}
+	
+	/**
+	 * 执行请求
+	 * @param array $option 可选参数
+	 * @throws PayPal_Exception
+	 * @return multitype:number string multitype
+	 */
+	public function executeRequest($option=array()){
+		$return = array('ask'=>0,'message'=>'','ack'=>'','http_statu'=>'','data'=>array(),'errors'=>array(),'org_data'=>'');
+		//检查请求参数
+		$this->check();
+		//设置请求数据
+		$this->setPostData();
+		//调用curl请求
+		$curlRe = $this->curl($option);
+		$return['http_statu'] = $curlRe['http_statu'];
+		$return['org_data'] = $curlRe['data'];
+		if($curlRe['ask']){//请求成功
+			$nvpArr = self::decodeNvp($curlRe['data']);//Nvp值对解析
+			if(!isset($nvpArr['ack'])){
+				$this->errorInfo['Message'] = 'Parse Nvp error,not ack';
+				throw new Exception($this->errorInfo);
+			}
+			$return['ack'] = $nvpArr['ack'];
+			$return['errors'] = $nvpArr['errors'];
+			//解析错误异常抛出
+			if(!empty($curlRe['data']) && empty($nvpArr)){
+			    $this->errorInfo['Message'] = 'Parse Nvp error';
+			    throw new Exception($this->errorInfo);
+			}
+			//常规错误
+			if($curlRe['http_statu']!=200){
+			    $this->errorInfo['Message'] = 'PayPalResponseError:[' .$curlRe['http_statu'].'],'. $curlRe['message'];
+			    throw new Exception($this->errorInfo);
+			}
+			//Success - 成功运作
+			//SuccessWithWarning - 成功运作 但是，您应该检查回复中返回的消息。
+			//Failure - 操作失败; 响应还包含一个或多个解释故障的错误消息。
+			//FailureWithWarning - 操作失败，回应中返回的消息应该检查。
+			if($nvpArr['ack']!='Success' && $nvpArr['ack']!='SuccessWithWarning'){
+			    $this->errorInfo['Message'] = $nvpArr['errors'][0]['LongMessage'];
+			    $this->errorInfo['Errors'] = $nvpArr['errors'];
+			    $this->errorInfo['Ack'] = isset($nvpArr['ack']) ? $nvpArr['ack'] : '';
+			    $this->errorInfo['Version'] = isset($nvpArr['version']) ? $nvpArr['version'] : '';
+			    $this->errorInfo['CorrelationId'] = isset($nvpArr['correlationid']) ? $nvpArr['correlationid'] : '';
+			    $this->errorInfo['TimesTamp'] = isset($nvpArr['timestamp']) ? $nvpArr['timestamp'] : '';
+			    $this->errorInfo['Build'] = isset($nvpArr['build']) ? $nvpArr['build'] : '';
+			    throw new Exception($this->errorInfo);
+			}
+			$return['ask'] = 1;
+			$return['message'] = 'success';
+			$return['data'] = $nvpArr['data'];
+			//清空异常信息
+			$this->errorInfo['Message'] = 'success';
+		}else{
+			$return['message'] = $curlRe['message'];
+		}
+		
+		return $return;
+	}
+	
+	/**
+	 * 设置请求
+	 * @param string $method
+	 * @param array $params 请求参数
+	 */
+	public function setRequest($method, $params = array()){
+		//设置请求接口名
+		$this->_method = $method;
+		//设置请求参数(键名大写)
+		$this->_params = array_change_key_case($params,CASE_UPPER);
+		//设置请求地址
+		$this->_request_url = PayPalLib::API_HOST;
+		//接口版本号
+		$this->_version = PayPalLib::API_VERSION;
+	}
+	
+	/**
+	 * 检查请求参数
+	 * @throws PayPal_Exception
+	 */
+	protected function check(){
+	    /**
+	     * 授权信息
+	     */
+	    //user
+	    if(empty($this->_accountConfig['user'])){
+	        $this->errorInfo['Message'] = 'account:user Not Empty';
+	        throw new Exception($this->errorInfo);
+	    }
+	    //pwd
+	    if(empty($this->_accountConfig['pwd'])){
+	        $this->errorInfo['Message'] = 'account:pwd Not Empty';
+	        throw new Exception($this->errorInfo);
+	    }
+	    //signature
+	    if(empty($this->_accountConfig['signature'])){
+	        $this->errorInfo['Message'] = 'account:signature Not Empty';
+	        throw new Exception($this->errorInfo);
+	    }
+	    
+	    /**
+	     * 请求的基本信息
+	     */
+	    //method
+	    if(empty($this->_method)){
+	        $this->errorInfo['Message'] = 'request:method Not Empty';
+	        throw new Exception($this->errorInfo);
+	    }
+	    //request_url
+	    if(empty($this->_request_url)){
+	        $this->errorInfo['Message'] = 'request:request_url Not Empty';
+	        throw new Exception($this->errorInfo);
+	    }
+	    //version
+	    if(empty($this->_version)){
+	        $this->errorInfo['Message'] = 'request:version Not Empty';
+	        throw new Exception($this->errorInfo);
+	    }
+	}
+
+	/**
+	 * 设置请求POST数据
+	 */
+	 protected function setPostData(){
+	     //授权信息
+	     $this->_params['USER'] = $this->_accountConfig['user'];
+	     $this->_params['PWD'] = $this->_accountConfig['pwd'];
+	     $this->_params['SIGNATURE'] = $this->_accountConfig['signature'];
+	     //请求方法
+	     $this->_params['METHOD'] = $this->_method;
+	     //版本号
+	     $this->_params['VERSION'] = $this->_version;
+	     //设置POST过去的数据
+	     $this->_post_data = http_build_query($this->_params);
+	     
+// 	     Common_Common::log('发送过去的数据:'.$this->_post_data);
+	}
+	
+	/**
+	 * curl请求
+	 * @param array $option
+	 * @example $option=array(
+	 * 						'TimeOut'=>80  //超时时间
+	 * 					   );
+	 * @return mixed
+	 */
+	protected function curl($option=array()){
+		$return = array('ask'=>0,'message'=>'','http_statu'=>'','data'=>array());
+		
+		$TimeOut = isset($option['TimeOut']) ? $option['TimeOut'] : 120 ;
+		
+		$ch = curl_init() ;//初始化资源句柄
+		
+		//Common_Common::log("PayPalApiCurl 请求地址:{$this->_request_url}");
+		
+		curl_setopt($ch, CURLOPT_URL, $this->_request_url);//设置请求地址
+			
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');//设置http操作类型
+			
+		curl_setopt ( $ch, CURLOPT_VERBOSE, false);//启用时会汇报所有的信息，存放在STDERR或指定的CURLOPT_STDERR中
+			
+		curl_setopt($ch, CURLOPT_HEADER, false);//请求头是否包含在响应中
+			
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION,true);//是否跟随重定向
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);//将curl_exec()获取的信息以文件流的形式返回，而不是直接输出。
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);//https请求不验证证书
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);//https请求不验证hosts
+			
+// 		curl_setopt($ch,CURLOPT_HEADER,true);//显示请求头
+			
+		if(!empty($this->_post_data)){
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $this->_post_data);//设置请求数据
+		}
+		
+		curl_setopt($ch, CURLOPT_TIMEOUT,$TimeOut);//设置超时时间
+		
+		//最多循环三次
+		$request_count  = 1;
+		while ( $request_count <= 3 ) {
+			//执行请求
+			//Common_Common::log ( "PayPalApiCurl进行第 {$request_count} 次请求开始..." );
+			$data = curl_exec($ch);
+			
+			//获取curl请求信息
+			$curlInfo = curl_getinfo($ch);
+			
+			$return["http_statu"] = $curlInfo['http_code'];
+			$this->errorInfo['HttpStatu'] = $curlInfo['http_code'];
+			
+			//curl是否发生错误
+			if($errNo = curl_errno($ch)){
+				$errMsg = curl_error($ch);
+				//Common_Common::log ( "PayPalApiCurl第 {$request_count} 次请求失败,ErrNo:{$errNo},Error:{$errMsg}" );
+				$return['message'] = 'PayPalApiCurlRequestError,ErrNo:'.$errNo.',Error:'.$errMsg;
+			}else{
+				//Common_Common::log ( "PayPalApiCurl第 {$request_count} 次请求成功!" );
+				$return['message'] = '';
+				break;
+			}
+			
+			//请求次数累加
+			$request_count ++;
+		}
+
+// 		var_dump($data);
+// 		var_dump($curlInfo);
+		
+		//关闭资源curl句柄
+		curl_close($ch);
+		//没有错误，curl请求成功
+		if($return["message"]==''){
+			$return["ask"] = 1;
+			$return["message"] = 'success';
+		}
+		$return["data"] = $data;
+		$this->errorInfo['ORG'] = $data;
+		
+		return $return;
+	}
+	
+	/**
+	 * 解析NVP值对字符串
+	 * @param string $nvp
+	 */
+	public static function decodeNvp($nvp){
+	    $return = array();
+	    if(!empty($nvp) && is_string($nvp)){
+	        //错误信息集映射
+	        $error_map = array(
+	            'l_errorcode'=>'ErrorCode',
+	            'l_shortmessage'=>'ShortMessage',
+	            'l_longmessage'=>'LongMessage',
+	            'l_severitycode'=>'SeverityCode',
+	        );
+	        $error_keys = array_keys($error_map);
+	        //基础信息字段
+	        $info_keys = array(
+	            'ack',
+	            'version',
+	            'build',
+	            'timestamp',
+	            'correlationid'
+	        );
+	        $errors = array();//错误信息集
+	        $list = array();//数据列表
+	        $info = array();//非列表型数据
+	        $field = null;//上一个字段的地址引用
+	        $nvp = urldecode($nvp);
+	        $arrs = explode('&', $nvp);
+	        foreach ($arrs as $k=>$str){
+	            if(!empty($str)){
+	                $item = explode('=', $str);
+	                $kk = strtolower($item[0]);//键名转小写
+	                if(isset($item[1])){
+	                    $vv = $item[1];//键值
+	                }else{
+	                    //值里带有&符号导致拆分错误,值追加到上一个
+	                    if($field){
+	                        $field = $field . '&' .$kk;
+	                        continue;
+	                    }else{
+	                        $vv = '';
+	                    }
+	                }
+	                //匹配键名
+	                if(preg_match('/(.*?)([0-9]+)/i', $kk,$m)){
+	                    $fn = $m[1];//字段名
+	                    $sn = $m[2];//序号
+	                    if(in_array($fn, $error_keys)){
+	                        $errors[$sn][$error_map[$fn]] = $vv;
+	                        $field = &$errors[$sn][$error_map[$fn]];
+	                    }else{
+	                        $list[$sn][$fn] = $vv;
+	                        $field = &$list[$sn][$fn];
+	                    }
+	                }elseif(!in_array($kk, $info_keys)){
+	                    $info[$kk] = $vv;
+	                    $field = &$info[$kk];
+	                }else{
+	                    $return[$kk] = $vv;
+	                    $field = &$return[$kk];
+	                }
+	            }
+	        }
+	        $return['errors'] = $errors;
+	        $return['data'] = array(
+	            'info'=>$info,
+	            'list'=>$list
+	        );
+	    }
+	    return $return;
+	}
+	
+}

@@ -1,0 +1,643 @@
+<?php
+namespace service\daraz\Order;
+
+use service\daraz\RequestService;
+use service\daraz\DarazException;
+
+/**
+ * 订单接口服务类
+ * @author WangWei 2019-2-20 17:18:15
+ */
+class OrderService extends RequestService{
+    
+    /**
+     * 批量获取订单
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 			'CreatedAfter'=>'',//订单创建开始时间(北京时间,下同)
+     * 			'CreatedBefore'=>'',//订单创建结束时间
+     * 			'UpdatedAfter'=>'',//订单更新开始时间
+     * 			'UpdatedBefore'=>'',//订单更新结束时间
+     * 			'Status'=>'',//订单状态,pending(待处理),canceled(取消),ready_to_ship(已出货),delivered(已签收),returned(退回),shipped(货物已送达当地),failed(妥投失败)
+     * 			'Limit'=>'',//返回数据条数
+     * 			'Offset'=>'',//返回数据从第几条开始
+     * 			'Format'=>'',//返回的数据格式(默认JSON),JSON,XML
+     * 			'SortBy'=>'',//选择排序,created_at,updated_at
+     * 			'SortDirection'=>''//排序方式,ASC,DESC
+     * );
+     * @return array
+     */
+    public function GetOrders($params){
+        $return = [
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'orders'=>[],
+            'org_data'=>'',
+            'head'=>''
+        ];
+        
+        /**
+         * 1、设置请求参数(时间格式统一)
+         */
+        $params = is_array($params) ? $params : array();
+        $dateArr = array('CreatedAfter','CreatedBefore','UpdatedAfter','UpdatedBefore');
+        if(!empty($params)){
+            foreach ($dateArr as $key){
+                if(isset($params[$key]) && $params[$key] != ""){
+                    $dateTime = new \DateTime($params[$key]);
+                    $params[$key] = $dateTime->format(\DateTime::ISO8601);
+                }
+            }
+        }
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('GetOrders');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $Orders = $re['data']['Orders'];
+                $return['orders'] = isNumericArray($Orders) ? $Orders : $Orders['Order'];
+                $return['org_data'] = $re['org_data'];
+                $return['head'] = $re['head'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 获取单个订单
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 			'Format'=>'',//返回的数据格式(默认JSON),JSON,XML
+     * 			'OrderId'=>'',//订单ID
+     * );
+     * @return array
+     */
+    public function GetOrder($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'order'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('GetOrder');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $Order = $re['data']['Orders'];
+                $return['order'] = isNumericArray($Order) ? $Order[0] : param($Order, 'Order',[]);
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 获取属于一个订单的所有意见
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 			'Format'=>'',//返回的数据格式(默认JSON),JSON,XML
+     * 			'OrderId'=>'',//订单ID
+     * );
+     * @return array
+     */
+    public function GetOrderItems($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('GetOrderItems');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $return['data'] = $re['data'];
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 获取一个或更多的订单中的产品
+     * Returns the items for one or more orders
+     * @param array $params 请求参数数组
+     * @example
+     * $params=array(
+     * 				'Format'=>'',//字符串，返回的数据格式(默认JSON),JSON,XML
+     * 				'OrderIdList'=>array(),//数组，必填，订单明细ID数组
+     * );
+     * @return array
+     */
+    public function GetMultipleOrderItems($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        if(isset($params['OrderIdList']) && is_array($params['OrderIdList']) && !empty($params['OrderIdList'])){
+            $params['OrderIdList'] = '[' . join(',', $params['OrderIdList']) . ']';
+        }
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('GetMultipleOrderItems');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $return['data'] = $re['data'];
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * SetInvoiceAccessKey.
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 			'Format'=>'',//字符串，返回的数据格式(默认JSON),JSON,XML
+     * 			'OrderItemId'=>'',//OrderItemId
+     * 			'InvoiceNumber'=>'',//OrderItemId数组
+     * );
+     * @return array
+     */
+    public function SetInvoiceNumber($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('SetInvoiceNumber');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $return['data'] = $re['data'];
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 标记的订单产品已被包装(获取跟踪号)
+     * Mark an order item as being packed
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 				'Format'=>'',//字符串，返回的数据格式(默认JSON),JSON,XML
+     * 				'OrderItemIds'=>array(),//数组，必填，订单明细ID
+     * 				'DeliveryType'=>'',//字符串，必填，dropship,pickup,send_to_warehouse
+     * 				'ShippingProvider'=>'',//字符串，必填，承运商名称
+     * );
+     * @return array
+     */
+    public function SetStatusToPackedByMarketplace($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        if(isset($params['OrderItemIds']) && is_array($params['OrderItemIds']) && !empty($params['OrderItemIds'])){
+            $params['OrderItemIds'] = '[' . join(',', $params['OrderItemIds']) . ']';
+        }
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('SetStatusToPackedByMarketplace');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $return['data'] = $re['data'];
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 标志着订单项目作为是准备出货(平台标记发货)
+     * Mark an order item as being ready to ship.
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 			'Format'=>'',//字符串，返回的数据格式(默认JSON),JSON,XML
+     * 			'OrderItemIds'=>'',//数组，必填，订单明细ID
+     * 			'DeliveryType'=>'',//字符串，必填，运输类型，dropship,pickup,send_to_warehouse
+     * 			'ShippingProvider'=>'',//字符串，必填，承运商名称
+     * 			'TrackingNumber'=>'',//字符串，跟踪号
+     * 			'SerialNumber'=>'',//序列号
+     * );
+     * @return array
+     */
+    public function SetStatusToReadyToShip($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        if(isset($params['OrderItemIds']) && is_array($params['OrderItemIds']) && !empty($params['OrderItemIds'])){
+            $params['OrderItemIds'] = '[' . join(',', $params['OrderItemIds']) . ']';
+        }
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('SetStatusToReadyToShip');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $return['data'] = $re['data'];
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 获取相关的文件：发票，货运标签和运输包裹
+     * Retrieve order-related documents: Invoices, Shipping Labels and Shipping Parcels.
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 			'Format'=>'',//字符串，返回的数据格式(默认JSON),JSON,XML
+     * 			'DocumentType'=>'',//标签类型:invoice,shippingLabel,shippingParcel,carrierManifest,serialNumber
+     * 			'OrderItemIds'=>array(),//OrderItemId数组
+     * );
+     * @return array
+     */
+    public function GetDocument($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        if(isset($params['OrderItemIds']) && is_array($params['OrderItemIds']) && !empty($params['OrderItemIds'])){
+            $params['OrderItemIds'] = '[' . join(',', $params['OrderItemIds']) . ']';
+        }
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('GetDocument');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $return['data'] = $re['data'];
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * Returns additional error context for SetToCancelled and SetToFailedDelivery.
+     * @param array $orderItemIds
+     */
+    public function GetFailureReasons($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        
+        return $return;
+    }
+    
+    /**
+     *  取消订单中的单个产品
+     * Cancel a single item.
+     * @param array $params  请求参数数组
+     * @example
+     * $params=array(
+     * 				'Format'=>'',//字符串，返回的数据格式(默认JSON),JSON,XML
+     * 				'OrderItemId'=>'',//必填，订单明细ID
+     * 				'Reason'=>'',//原因
+     * 				'ReasonDetail'=>'',//原因详情
+     * );
+     * @return array
+     */
+    public function SetStatusToCanceled($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'request_id'=>'',
+            'request_action'=>'',
+            'error_code'=>'',
+            'error_type'=>'',
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求参数
+         */
+        $params = is_array($params) ? $params : array();
+        
+        /**
+         * 2、设置请求接口名
+         */
+        $this->setRequestAction('SetStatusToCanceled');
+        
+        /**
+         * 3、调用公共请求方法
+         */
+        try {
+            //为了提高效率，默认采用json格式返回数据
+            if(!isset($params['Format']) || $params['Format'] != 'XML'){
+                $params['Format'] = 'JSON';
+            }
+            $re = $this->executeRequest($params);
+            $return['request_action'] = $this->_requestAction;
+            if($re['ask']){
+                $return['ask'] = 1;
+                $return['message'] = 'success';
+                $return['request_id'] = $re['head']['RequestId'];
+                $return['data'] = $re['data'];
+                $return['org_data'] = $re['org_data'];
+            }else{
+                $return['message'] = $re['message'];
+            }
+        } catch (DarazException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['error_type'] = $e->getErrorType();
+            $return['error_code'] = $e->getErrorCode();
+            $return['request_id'] = $e->getRequestId();
+            $return['request_action'] = $e->getRequestAction();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+}

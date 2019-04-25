@@ -1,0 +1,36 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-4-25
+ * Time: 上午11:57
+ */
+
+namespace swoole;
+
+
+use org\bovigo\vfs\vfsStreamResolveIncludePathTestCase;
+
+class Log
+{
+    private static $file = LOG_PATH."task/";
+    private static $logs = [];
+
+    public static function record($msg, $file, $line)
+    {
+        $now = now();
+        static::$logs[] = "$line; $file; time:$now; msg:$msg\n";
+    }
+
+    public static function save($file = "log.log")
+    {
+        $file = preg_replace("/\\\\/","_",$file);
+        $filename = static::$file.$file.".log";
+        make_sure_file($filename);
+        $file = fopen($filename, 'w+');
+        foreach (static::$logs as $log) {
+            fwrite($file, $log);
+        }
+        fclose($file);
+    }
+}

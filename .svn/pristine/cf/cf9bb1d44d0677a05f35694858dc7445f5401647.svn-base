@@ -1,0 +1,59 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: rondaful-min
+ * Date: 2018/7/19
+ * Time: 20:45
+ */
+
+namespace recognition\operation;
+
+
+use think\Exception;
+use think\Loader;
+
+
+
+
+/**
+ *  百度图像识别 接口
+ */
+class BaiduImage extends RecognitionBase
+{
+
+    private $api = null;
+
+    /**
+     * 设置接口参数
+     * @param  string $APP_ID
+     * @param  string $API_KEY
+     * @param  string $SECRET_KEY secret
+     * @param  string $class
+     * @return boolean
+     */
+    public function setApi($APP_ID,$API_KEY,$SECRET_KEY,$class='AipOcr'){
+        // 你的 APPID AK SK
+        Loader::import($class,EXTEND_PATH.'/recognition/lib/BaiDuImage');
+        $this->api = new $class($APP_ID, $API_KEY, $SECRET_KEY);
+        return true;
+    }
+
+    /**
+     * 进行识别
+     * @param  string $images
+     * @param  string $func 默认 basicGeneral普通全文识别  basicAccurate高清全文识别
+     * @return array
+     */
+    public function advanced($images,$func='basicGeneral'){
+        try{
+            $image = file_get_contents($images);
+            // 调用通用物体识别
+            $this->result['success'] = true;
+            $this->result['data'] = $this->api->$func($image);
+        }catch (\Exception $e){
+            $this->result['error'] = $e->getMessage();
+        }
+
+        return $this->result;
+    }
+}

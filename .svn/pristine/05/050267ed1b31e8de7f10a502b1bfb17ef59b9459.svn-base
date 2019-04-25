@@ -1,0 +1,82 @@
+<?php
+namespace PaypalClient\Refunds;
+
+use PaypalClient\RequestService;
+/**
+ * 退款接口服务类
+ * @author Jacky 2017-9-24 23:27:27
+ */
+class RefundsService extends RequestService{
+    
+    /**
+     * 向与交易相关联的PayPal帐户持有人退款。
+     * 该API操作可用于在收到付款后的180天的默认期间内为任何交易发放全额或部分退款。
+     * 退货期结束后，商家将无法再使用RefundTransactionAPI操作来退款。
+     * 相反，商家可以通过登录他们的PayPal帐户手动向买方发出信用卡; 
+     * 对于PayPal付款，可以通过单击发送金额发出抵免额。
+     * 或者，商家可以使用MassPay API来信用PayPal帐户，或者使用DoNonReferencedCredit API操作向卡发放信用卡，而不引用原始交易
+     * @example $params = array(
+     *                      'transactionId'=>'',//Y 交易ID
+     *                      'payerId'=>'',//N 加密PayPal客户帐户识别号码。仅支持销售点交易
+     *                      'invoiceId'=>'',//N 您自己的发票或跟踪ID号。
+     *                      'refundType'=>'',//N 你正在做的退款类型 价值是：Full - 全额退款（默认）。Partial - 退还部分款项。
+     *                      'amt'=>'',//N 退款金额,全额退款无需设置金额
+     *                      'currencyCode'=>'',//N 退款交易的货币代码
+     *                      'note'=>'',//N 于退款的自订备忘录
+     *                      'refundSource'=>'',//N 可用于自动退款的PayPal资金来源（余额或eCheck ）类型:any - 商人没有偏好,instant - 商户余额,eCheck - eCheck资金来源
+     *                      'refundAdvice'=>'',//N 标志表示买方接收到给定交易的商店信用:true -  买方已经获得了给定交易的信用,false:买方没有给定交易的商店信用
+     *                      'shippingAmt'=>'',//N 支付的运费金额
+     *                      'taxAmt'=>'',//N 缴纳的税额
+     *                      'msgsubId'=>'',//N 唯一标识请求的消息ID
+     * );
+     */
+    public function RefundTransaction($params){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'ack'=>'',//paypal状态标识
+            'http_statu'=>'',
+            'errors'=>array(),
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、整理参数
+        */
+        if(!isset($params['transactionId'])){
+            $return['message'] = 'transactionId Not Empty';
+            return $return;
+        }
+        
+        /**
+         * 2、设置请求
+         */
+        $this->setRequest('RefundTransaction',$params);
+        
+        /**
+         * 3、调用公共请求方法
+        */
+        try {
+            //执行请求
+            $re = $this->executeRequest();
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['ack'] = $re['ack'];
+            $return['http_statu'] = $re['http_statu'];
+            $return['data'] = $re['data'];
+            $return['errors'] = $re['errors'];
+            $return['org_data'] = $re['org_data'];
+        } catch (PayPal_Exception $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['ack'] = $e->getAck();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['errors'] = $e->getErrors();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+}

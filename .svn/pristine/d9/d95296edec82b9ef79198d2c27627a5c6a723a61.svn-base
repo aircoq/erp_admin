@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr>
+                <td colspan="8" style="border:1pt solid #000;border-bottom-width: 0;border-right-width: 0;line-height: 8pt;">
+                    <div style="padding-left: 1pt;font-size: 9pt;margin-top: 1pt;">
+                        If undeliverable return to:<br>
+                        Tonga post Ltd.<br>
+                        Private Bag 2010 , General office<br>
+                        Nukualofa, Tonga.
+                    </div>
+                </td>
+                <td colspan="4" style="border:1pt solid #000;line-height: 10pt;font-size: 10pt;text-align: center;border-left-width: 0;">
+                    POSTAGE <br>
+                    PAID
+                </td>
+            </tr>
+            <tr style="font-size:10pt;line-height: 10pt;font-weight: bold;line-height: 8.5pt;">
+                <td colspan="12" style="border:1pt solid #000;text-align: left;">
+                    <div style="padding: 1pt;">
+                        <?php echo $name;?><br>
+                        <?php echo $street.' '.$street2?><br>
+                        <?php echo $city;?> ,<?php echo $province;?>   <?php echo $zip;?><br>
+                        <?php echo $country_en_name;?> (<?php echo $country_name;?>) TEL: <?php echo $phone;?> / <?php echo $tel;?>
+                    </div>
+                    <div style="text-align: right;">
+                        <img style="height: 30pt" src="<?php echo $this->imgSrc($shipping_number);?>">
+                        <img style="height: 30pt;margin-right: 5pt;margin-left: 10pt;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGYAAABNCAYAAABUtBGXAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAhpJREFUeF7tnG1ugzAQBempfCPuw2m4DHdxC1IlqLqEx+ezmUj5FZMQj+ftGqJ8NU2Tf548DGdgBMPTbw6AYrowAQMYv7hwjnCMwRiMUQzFGIzBGIwxtQAwgCGeFAuUsRR/U7sAAxhijygztQAwgCGeFAuUsRR/U7sAAxhijygztQAwgCGeFAuUsT7FP3VDPv0xdDmVuXgqBzMn3bfKin16rA+YZV1ocx/q0+d2xYI2PnB6x751/c6L8/I9ySjahi5tW80rhDa/x3MxWDGYcVJTl6PKZW5O5WBGOKE565H4cMv9AjBNylHDZxxpbwDT5LAV922n3wEmrjVD7pLlHFie1NR1He7KFh1V1H4DZluLO5vMe8DY7mveYkzcAJi2zW8BE19JAIy4iz41ysKNJjXm2RpT3ibzHVHGPkaMq7XLHudFWXH1ZfrvBTli7jrmLDBhivnu+usHE98VtS36v6LUaky8bynkZlltYNbufI5I7E0p15i9P9gwvsT/X50vzxgNjPXNsLXGqzwwha38vV0vYO5q/8XPAYw4YXsNUI8DDGDEqwxn7fxNJ/6TQRhjCg4wgCHKPsXX/HWMwRiMwRhTCwADGDGelAljH3Ph5Cog/o4FDGCU7L9rLO3yEasvPNYXzIVf+q5Vf+RzAGO6AAADGNMmAzCAUWoOUYYxGIMxphYABjDEk2KBMpbib2oXYABD7BFlphZsBvMNWKwirf/PBbEAAAAASUVORK5CYII=">
+                    </div>
+                </td>
+            </tr>
+            <tr style="line-height: 8.5pt;font-size: 9pt;">
+                <td colspan="4" style="border:1pt solid #000;text-align: left">
+                    CUSTOMS DECLARATION CN23<br>
+                    May be opened officially
+                </td>
+                <td colspan="6" style="border:1pt solid rgb(122, 68, 68);text-align: left">
+                    <div>Contents:</div>
+                    <div>
+                        <div style="display: inline-block;">
+                            <span ><img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAPCAIAAACN07NGAAAAgUlEQVQoFWP8//8/A4mABa6+panp9KnTcC5WhqmZaU1dHULPo4cP5eTkPL29sKoGCm7fug2oBshA6AFyVNVUvby9cem5c/v2lcuXgbJMuFTgER/V8+cSvcIAJU5v37q9betWXDEDlIVIIfTIycsD09vM6TNw6QGKA9MbkGQkI10DAO7FKVF/qojDAAAAAElFTkSuQmCC"> </span> Gift
+                            <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAPCAIAAACN07NGAAAAgUlEQVQoFWP8//8/A4mABa6+panp9KnTcC5WhqmZaU1dHULPo4cP5eTkPL29sKoGCm7fug2oBshA6AFyVNVUvby9cem5c/v2lcuXgbJMuFTgER/V8+cSvcIAJU5v37q9betWXDEDlIVIIfTIycsD09vM6TNw6QGKA9MbkGQkI10DAO7FKVF/qojDAAAAAElFTkSuQmCC">Commercial sample<br>
+                            <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAPCAIAAACN07NGAAAAgUlEQVQoFWP8//8/A4mABa6+panp9KnTcC5WhqmZaU1dHULPo4cP5eTkPL29sKoGCm7fug2oBshA6AFyVNVUvby9cem5c/v2lcuXgbJMuFTgER/V8+cSvcIAJU5v37q9betWXDEDlIVIIfTIycsD09vM6TNw6QGKA9MbkGQkI10DAO7FKVF/qojDAAAAAElFTkSuQmCC">Document
+                            <img style="width: 10pt;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAASCAIAAAA2bnI+AAABjElEQVQ4EWP8//8/AwPD/n37DuzfD2QQAxwcHR2dnFggSi9furRh3XodXV0eHh48mr98+XLl8mVhYWGETqBqSSmphqZGVTU1PDpv37qVm50DUcCERx1+Kahr8SuCyB4+fHjzpk1vXr+GcInS+f379/v37+/du3fnrl3fP3+B6CTKtQ8fPkxLSwNqmDVzppy8PLF2rlu3bteuXdHR0VZWVlycnCwsUGci7Pzw4cPmzZsvXrwIMRJIQkQuXbrEz8/v6+urr68PlwIyEDpfvnjR2dW1fv36d+/e/fnz5+vXr9euXWtra+Pi4urs7JSRkUHWhqIT6AGgN4BCQC8BPbZ48WKgtqqqqtjYWDQ9EC4ibDk5ObW0tISEhYE+mTdvHisrq7+/v4WFhaioKFadCNdCpG1tbYGB8fTpUwUFhdTUVFzaGP69QtgJN1ge6OxZs5iY0A2FKwAxfl9D6Hz+7FlDXT3BFA9UBtLJyArVqaunFxAUCBIiBFRUVYCKGdgMGSH5k5B6LPJ4PYNFPUIIANcDjJyKWPMFAAAAAElFTkSuQmCC"> Other
+                        </div>
+                        <div style="display: inline-block;vertical-align: top;">
+                            Total<br>
+                            Wt(kg)<br>
+                            <?php echo number_format($total_weight/1000,3);?>
+                        </div>
+                    </div>
+                </td>
+                <td colspan="2" style="border:1pt solid #000;text-align: left">
+                    Total<br>
+                    Value($)<br>
+                    <?php echo number_format($total_value,3,'.','');?>
+                </td>
+            </tr>
+            <tr style="line-height: 8.5pt;font-size: 5pt;">
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+                    Description of Contents HDD Enclosure
+                </td>
+                <td colspan="2" style="border:1pt solid #000;text-align: left;">Qty</td>
+                <td colspan="2" style="border:1pt solid #000;text-align: left;">Weight(kg)</td>
+                <td colspan="2" style="border:1pt solid #000;text-align: left">Value($)</td>
+            </tr>
+            <?php foreach ($list as $k=>$v): if ($k>0) return;?>
+            <tr style="line-height: 8.5pt;font-size: 5pt;">
+                <td colspan="6" style="border:1pt solid #000;text-align: left;"></td>
+                <td colspan="2" style="border:1pt solid #000;text-align: left;"><?php echo $v['qty']?></td>
+                <td colspan="2" style="border:1pt solid #000;text-align: left;"><?php echo number_format($v['declared_weight']/1000,3);?></td>
+                <td colspan="2" style="border:1pt solid #000;text-align: left"><?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?></td>
+            </tr>
+            <?php endforeach;?>
+            <tr style="line-height: 9pt;font-size: 5pt;">
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+                    For commercial items only
+                </td>
+                <td colspan="6" style="border:1pt solid rgb(122, 68, 68);text-align: left;">
+                    For commercial items only
+                </td>
+            </tr>
+            <tr style="border-left:1pt solid #000;vertical-align: top;line-height: 9pt;font-size: 5pt;">
+                <td colspan="3" style="text-align: left;;">
+                    HS Tariff No:
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;border-left:none;">
+                        Country of origin:
+                </td>
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+                   Certificate No:
+
+                </td>
+            </tr>
+            <tr style="border-left:1pt solid #000;vertical-align: top;line-height: 9pt;font-size: 5pt;">
+                <td colspan="3" style="text-align: left;;">
+
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;border-left:none;">
+                    Tonga
+                </td>
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+                    Invoice No:
+
+
+                </td>
+            </tr>
+            <tr style="border-left:1pt solid #000;border-bottom:1pt solid #000;vertical-align: top;line-height: 9pt;font-size: 5pt;">
+                <td colspan="3" style="text-align: left;;">
+                    Importer's ref (tax code/VAT
+                    no) if any:
+                </td>
+                <td colspan="3" style="border:1pt solid #000;text-align: left;border-left:none;">
+                    Postage Fees:
+                </td>
+                <td colspan="6" style="border:1pt solid #000;text-align: left;">
+                    Office of origin/ Date of posting:
+
+                </td>
+            </tr>
+            <tr style="line-height: 8pt;font-size: 9pt;">
+                <td colspan="12" style="border:1pt solid #000;border-top-width: 0;">
+                    <?php foreach ($list as $k=>$v):?>
+                        <?php echo $v['sku']?>*<?php echo $v['qty']?>
+                    <?php endforeach;?>
+                </td>
+            </tr>
+            <tr style="line-height: 6pt;font-size: 9pt;">
+                <td colspan="12" style="border:1pt solid #000;font-size: 6pt">
+                    Comments:(eq:goods subject to quarantine sanitary/phytosanitary inspection or other restrictions)
+                    I certify that the particulars given in this customs declaration are correct and that this items does not
+                    contain any dangerous article prohibited by legislation or by postal or customs regulations.<br>
+                    Signature of sender: szrdf &nbsp; &nbsp;&nbsp;&nbsp;Date: <?php echo date('Y-m-d',time())?>
+                </td>
+            </tr>
+            <tr style="line-height: 7pt;font-size: 9pt;">
+                <td colspan="4" style="text-align: left;border-bottom-width: 0;border-right-width: 0;border-left-width: 0;">&nbsp;P<?php echo $number?></td>
+                <td colspan="4" style="text-align: left;border-bottom-width: 0;border-right-width: 0;border-left-width: 0;">&nbsp;&nbsp;&nbsp;&nbsp; <?php echo $process_code?></td>
+                <td colspan="4" style="text-align: right;border-bottom-width: 0;border-right-width: 0;border-left-width: 0;"><?php echo $shipping_number?> &nbsp;&nbsp;&nbsp;</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

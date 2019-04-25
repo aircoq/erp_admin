@@ -1,0 +1,792 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use service\shipping\operation\Common;
+use think\Exception;
+use org\Curl;
+use org\Xml;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+use app\common\model\OrderDetail;
+use app\common\service\ChannelAccountConst;
+/**
+ * Cloudway 
+ * 云途物流方式
+ */
+class Cloudway
+{    
+    // 配置信息   
+    private $_config = [
+        'url'    => 'http://api.yunexpress.com/LMS.API/api/',     //正式地址
+        //'url'    => 'http://121.201.67.89:8034/LMS.API/api/',   //测试地址
+        'url_label'=> 'http://api.yunexpress.com/LMS.API.Lable/api/PrintUrl',//正式地址
+        //'url_label'=> 'http://121.201.67.89:8034/LMS.API.Lable/api/PrintUrl',//测试地址
+        'header' => [
+            "Accept: text/json", 
+            "Accept-Language: zh-cn", 
+            "Content-Type: application/json"
+        ]
+    ];
+    
+    private $result        = [
+            'data'    => [],
+            'error'   => [],
+            'success' => false
+        ];
+    
+    private $backup = ['client_id'=>'C64350','client_secret'=>'OJ7Vs3QBCPw='];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return array | void
+     */
+    private function formatHeader(array $config)
+    {
+//        $config = ['client_id'=>'C88888','client_secret'=>'JCJaDQ68amA='];
+        if (empty($config['client_id'])  || empty($config['client_secret'])) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        count($this->_config['header']) == 4 && array_pop($this->_config['header']);
+        $this->_config['header'][] = "Authorization: Basic " . $this->getToken($config);
+        return true;
+    }
+
+    /*
+     * @desc 邮编格式转化
+     * @params $country_code 国家编码
+     * @params $zip 邮编
+     * @return string
+     */
+    public function getZipFormat($country_code, $zip)
+    {
+        if(!$zip){
+           return '';
+        }
+        $zip_format = $zip;
+        $zip_0 = str_replace(' ', '', $zip);
+        switch($country_code){
+            case 'GB': //2-4位数字或字母+空格+3位数字或字母
+            case 'UK':
+                if(strlen($zip_0)>=5 && strlen($zip_0)<=7){
+                    $zip_2 = substr($zip_0, -3);
+                    $zip_1 = strstr($zip_0, $zip_2,true);
+                    $zip_format = $zip_1.' '.$zip_2;
+                }
+                break;
+            case 'NL': //4位数字+空格+2位数字或字母
+                if(preg_match('/[\d]{4}[a-zA-Z0-9]{2}/',$zip_0, $zip_arr)){
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 4);
+                    $zip_2 = substr($zip_0, 4);
+                    $zip_format = $zip_1.' '.$zip_2;
+                }
+                break;
+            case 'SE': //位数字,或'I-'+5位数字,或'IT-'+5位数字
+                if(preg_match('/^[\d]{5}&/',$zip_0, $zip_arr)){
+                    $zip_format = $zip_arr[0];
+                }
+                break;
+            case 'IT': //位数字,或'I-'+5位数字,或'IT-'+5位数字
+                if(preg_match('/(^[\d]{5}$)|(^I-|IT-\1)/',$zip_0, $zip_arr)){
+                    $zip_format = $zip_arr[0];
+                }
+                break;
+            case 'BR': //BR的邮编是5位数字+短横线+3位数字，如：12345-123】
+                if(preg_match('/^[\d]{8}$/',$zip_0, $zip_arr)){
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 5);
+                    $zip_2 = substr($zip_0, 5);
+                    $zip_format = $zip_1.'-'.$zip_2;
+                }elseif(preg_match('/[\d]{5}[-][\d]{3}/',$zip_0, $zip_arr)){
+                    $zip_format = $zip_arr[0];
+                }
+                break;
+            case 'PL': //PL的邮编是2位数字+短横线+3位数字，如：12-345
+                if(preg_match('/^[\d]{5}$/',$zip_0, $zip_arr)){
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 2);
+                    $zip_2 = substr($zip_0, 2);
+                    $zip_format = $zip_1.'-'.$zip_2;
+                }elseif(preg_match('/[\d]{2}[-][\d]{3}/',$zip_0, $zip_arr)){
+                    $zip_format = $zip_arr[0];
+                }
+                break;
+            case 'CA': //CA的邮编是字母+数字+字母+空格+数字+字母+数字，如：a1B 2C3】
+                if(preg_match('/[a-zA-Z][\d][a-zA-Z][\d][a-zA-Z][\d]/',$zip_0, $zip_arr)){
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 3);
+                    $zip_2 = substr($zip_0, 3);
+                    $zip_format = $zip_1.' '.$zip_2;
+                }
+                break;
+            case 'US': //US的邮编是5数字，如：12345；或5数字+短横线+4数字，如：12345-1234】
+                if(preg_match('/[\d]{5}[-][\d]{4}/',$zip_0, $zip_arr)){
+                    $zip_format = $zip_arr[0];
+                }elseif(preg_match('/[\d]{5}[\d]{4}/',$zip_0, $zip_arr)) {
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 5);
+                    $zip_2 = substr($zip_0, 5);
+                    $zip_format = $zip_1 . '-' . $zip_2;
+                }elseif(preg_match('/^[\d]{5}$/',$zip_0, $zip_arr)){
+                    $zip_format = $zip_arr[0];
+                }
+                break;
+            case 'GR': //希腊的邮编是3位数字+空格+2位数字，如：123 45
+                if(preg_match('/^[\d]{5}$/',$zip_0, $zip_arr)) {
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 3);
+                    $zip_2 = substr($zip_0, 3);
+                    $zip_format = $zip_1 . ' ' . $zip_2;
+                }
+                break;
+            case 'DK': //该目的国家邮编必须为4位数字
+                if(preg_match('/^[\d]{4}$/',$zip_0, $zip_arr)) {
+                    $zip_format = $zip_arr[0];
+                }
+                break;
+            case 'FR': //FR的邮编是5位数字，如：12345】
+                if(preg_match('/^[\d]{5}$/',$zip_0, $zip_arr)) {
+                    $zip_format = $zip_0;
+                }
+                break;
+            case 'SK': //3位数字+空格+2位数字
+                if(preg_match('/^[\d]{5}$/',$zip_0, $zip_arr)) {
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 3);
+                    $zip_2 = substr($zip_0, 3);
+                    $zip_format = $zip_1 . ' ' . $zip_2;
+                }
+                break;
+            case 'CZ': //3位数字+空格+2位数字
+                if(preg_match('/^[\d]{5}$/',$zip_0, $zip_arr)) {
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 3);
+                    $zip_2 = substr($zip_0, 3);
+                    $zip_format = $zip_1 . ' ' . $zip_2;
+                }
+                break;
+            case 'JP': //JP的邮编是3位数字+短横线+4位数字
+                if(preg_match('/[\d]{3}[-][\d]{4}/',$zip_0, $zip_arr)){
+                    $zip_format = $zip_arr[0];
+                }elseif(preg_match('/[\d]{7}/',$zip_0, $zip_arr)) {
+                    $zip_0 = $zip_arr[0];
+                    $zip_1 = substr($zip_0, 0, 3);
+                    $zip_2 = substr($zip_0, 3);
+                    $zip_format = $zip_1 . '-' . $zip_2;
+                }
+                break;
+        }
+        return $zip_format;
+    }
+    
+    /**
+     * Cloudway 提交订单到云途
+     * @param unknown $data ：包裹信息数组
+     * @return $result : 结果状态数组
+     */
+    public function createOrder($config,$order,$confirm = true,$changeCarrier=false)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if($this->formatHeader($config)){
+                $postData = [];
+                $postData[] = $this->buildData($order,$changeCarrier);
+                $header = $this->_config['header'];
+                $url = $this->_config['url'] .'WayBill/BatchAdd';
+                $responseJson = Curl::curlPost($url, json_encode($postData),$header);
+                //日志记录
+                $arr_log = [
+                    'url'=>$url,
+                    'header'=>$header,
+                    'request'=>json_encode($postData),
+                    'response'=>$responseJson
+                ];
+                if(in_array($order['number'],['154701836223','154703985282','154739238321'])){
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log,true);
+                }
+                $response = json_decode($responseJson,true);
+                if (is_array($response) && $response['ResultCode'] == '0000') {
+                    $result = $response['Item'];
+                    if ($result[0]['Status'] == 1) {
+                        $this->result['data']['number'] = $result[0]['CustomerOrderId'];                            // 客户订单号
+                        $this->result['data']['package_code'] = $result[0]['WayBillNumber'];                              // One World包裹处理号
+                        $this->result['data']['trackingNumber'] = $result[0]['TrackStatus'] == 1 ? $result[0]['OrderId'] : '';   // 跟踪号
+                        $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];                           // 是否有跟踪号
+                        $this->result['data']['confirm'] = true;                                                 // 是否交运
+                        $this->result['data']['label'] = true;                              // 是否有pdf
+                        $this->result['data']['label_url'] = '';                              // 是否有pdf
+                        $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                        $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                        $this->result['data']['send'] = true;                              // 是否能查询物流订单状态
+                        $this->result['success'] = true;
+                    } else {
+                        Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                        $this->result['error'] = [
+                            'error_msg' => $result[0]['Feedback'],
+                            'error_code' => 1  // 1为错误， 2为包裹已经提交
+                        ];
+                    }
+                } else if (is_array($response)) {
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                    $this->result['error'] = [
+                        'error_msg' => isset($response['Item'][0]['Feedback']) ? $response['Item'][0]['Feedback'] : (isset($response['ResultDesc']) ? $response['ResultDesc'] : $response['Message']),
+                        'error_code' => 1  // 1为错误， 2为包裹已经提交
+                    ];
+                } else {
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                    $this->result['error'] = [
+                        'error_msg' => '网络错误,连接不上服务器',
+                        'error_code' => 1
+                    ];
+                }
+            }
+        } catch(Exception $e){
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+    
+    /**
+     * Cloudway 查询跟踪号
+     * @param unknown $data : 订单号数组
+     * @return $result : 跟踪号数组
+     */
+    public function getTrackingNumber($config,$order, $repeat = true)
+    {
+        $this->result['number'] = $order['number'];
+        if($this->formatHeader($config)){
+            $orderId = $order['process_code'];
+            $url = $this->_config['url'] .'WayBill/GetTrackNumber?orderId='. $orderId;
+            $responseJson = Curl::curlGet($url,  $this->_config['header']);
+            //日志记录
+            $arr_log = [
+                'action'=>'getTrackingNumber',
+                'url'=>$url,
+                'header'=>$this->_config['header'],
+                'request'=>'',
+                'response'=>$responseJson
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            $response = json_decode($responseJson, true);
+            // 处理响应内容
+            if (is_array($response)) {
+                if (isset($response['ResultCode'])&&$response['ResultCode']=="0000") {
+                    $result = $response['Item'][0];
+                    if ($result) {
+                        //成功，且有跟踪号
+                        $this->result['data']['trackingNumber'] = $result['TrackingNumber'];
+                        $this->result['success'] = true;
+                    } else {
+                        //成功，但无跟踪号
+                        $this->result['error'] = [
+                            'error_code' => 1,
+                            'error_msg' =>'请求成功，但是没有抓取到跟踪号，请稍后重试！'
+                        ];
+                    }
+                } elseif(isset($response['ResultCode'])&&$response['ResultCode']=="1006" && $repeat) {
+                    return $this->getTrackingNumber($config, $order, false);
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg'  => isset($response['ResultDesc'])?$response['ResultDesc']:(isset($response['Message'])?$response['Message']:'未知错误')
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+
+        return $this->result;
+    }
+    
+    /**
+     * 获取运输方式
+     * @param  $config
+     * @return
+     */
+    public function getExpress($config){
+        try{
+            $data = [];
+            $url = $this->_config['url'] .'lms/Get';
+            if($this->formatHeader($config)){
+                $header = $this->_config['header'];
+                $responseJson = Curl::curlGet($url,$header);
+                $response = json_decode($responseJson, true);
+                if(isset($response['ResultCode'])&&$response['ResultCode']=='0000'){
+                    foreach($response['Item'] as $k=>$item){
+                        $data[$k] = [
+                            'name'=>$item['FullName'],
+                            'code'=>$item['Code']
+                        ];
+                    }
+                    $this->result['success'] = true;
+                    $this->result['data'] = $data;
+                }
+            }
+        }catch(Exception $exception){
+            $this->result['error'] = [
+                'error_msg'=>$exception->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+        
+    }
+    
+    /**
+     * 获取国家代码
+     * @return $result ：所有国家简码列表
+     */
+    public function getCountry($config)
+    {
+        $result = [];
+        $url = $this->_config['url'] .'lms/GetCountry';
+        $this->formatHeader($config);
+        $header = $this->_config['header'];
+        $response = Curl::curlGet($url,$header);
+        $result = json_decode($response, true);
+        return $result;
+    }
+    
+    /**
+     * 删除订单
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        if($this->formatHeader($config)){
+            $postData['Type'] = 1;
+            $postData['OrderNumber'] = $order['process_code'];
+            $url = $this->_config['url'] .'WayBill/DeleteCoustomerOrderInfo';
+            $responseJson = Curl::curlPost($url, json_encode($postData) ,$this->_config['header']);
+            //日志记录
+            $arr_log = [
+                'action'=>'cancel',
+                'url'=>$url,
+                'header'=>$this->_config['header'],
+                'request'=>$postData,
+                'response'=>$responseJson
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            $response = json_decode($responseJson, true);
+            // 处理响应内容
+            if (is_array($response)) {
+                if ($response['ResultCode']==5001) {
+                    $result = $response['Item'];
+                    if($result['Rueslt']==5012){
+                        $this->result['success'] = true;
+                    }else{
+                        $this->result['error'] = [
+                            'error_code' => 1,
+                            'error_msg'  => $result['ErrorMeesage']
+                        ];
+                    }
+
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg'  => $response['ResultDesc']
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+        return $this->result;
+    }
+    
+    /**
+     * 拦截订单
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function intercept($config,$order)
+    {
+        if($this->formatHeader($config)){
+            $postData['Type'] = 1;
+            $postData['OrderNumber'] = $order['process_code'];
+            $postData['HoldOnRemark'] = '拦截';//$order['remark'];
+            $url = $this->_config['url'] .'WayBill/HoldOnCoustomerOrderInfo';
+            $responseJson = Curl::curlPost($url, json_encode($postData) ,$this->_config['header']);
+            //日志记录
+            $arr_log = [
+                'action'=>'intercept',
+                'url'=>$url,
+                'header'=>$this->_config['header'],
+                'request'=>$postData,
+                'response'=>$responseJson
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            $response = json_decode($responseJson, true);
+            // 处理响应内容
+            if (is_array($response)) {
+                if ($response['ResultCode']==5001) {
+                    $result = $response['Item'];
+                    if($result['Rueslt']==5011){
+                        $this->result['success'] = true;
+                    }else{
+                        $this->result['error'] = [
+                            'error_code' => 1,
+                            'error_msg'  => $result['ErrorMeesage']
+                        ];
+                    }
+
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg'  => $response['ResultDesc']
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+        return $this->result;
+    }
+    
+    /**
+     * 获取订单费用明细
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function expense($config,$order)
+    {
+        //$config = ['client_id'=>'C64350','client_secret'=>'OJ7Vs3QBCPw='];
+        if($this->formatHeader($config)){
+            $url = $this->_config['url'] .'WayBill/GetReceivingExpense?orderNumber='.$order['process_code'];
+            $responseJson = Curl::curlGet($url, $this->_config['header']);
+            $response = json_decode($responseJson, true);
+            // 处理响应内容
+            if (is_array($response)) {
+                if ($response['ResultCode']==5001) {
+                    $result = $response['Item'];
+                    if($result['Rueslt']==5011){
+                        $this->result['success'] = true;
+                    }else{
+                        $this->result['error'] = [
+                            'error_code' => 1,
+                            'error_msg'  => $result['ErrorMeesage']
+                        ];
+                    }
+
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg'  => $response['ResultDesc']
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order, $repeat = true)
+    {
+
+        $this->result['number'] = $order['number'];
+        if(empty($order['process_code'])){
+            throw new Exception('物流商单号为空，不能获取面单');
+        }
+        if($order['label_source_type']=='1'  && isset($order['package_id'])){
+            (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+            ];
+            return $this->result;
+        }
+        if($this->formatHeader($config)){
+            $postData = [$order['process_code']];
+            $url = $this->_config['url_label'];
+            $responseJson = Curl::curlPost($url, json_encode($postData) ,$this->_config['header']);
+            $response = json_decode($responseJson, true);
+            // 处理响应内容
+            if (is_array($response)) {
+                if ($response['ResultCode']=="0000") {
+                    if((empty($response['Item']) || empty($response['Item'][0]['Url'])) && $repeat){
+                        return $this->getLabel($this->backup, $order, false);                        
+                    } else if(empty($response['Item']) || empty($response['Item'][0]['Url'])) {
+                        $this->result['error'] = [
+                            'error_code' => 1,
+                            'error_msg'  => $response['ResultDesc']
+                        ];
+                    }else{
+                        $result = $response['Item'][0];
+                        $responseString  = Curl::curlGet($result['Url']);
+                        if(strpos($responseString,'%PDF')===false){
+                            throw new Exception('面单下载失败');
+                        }
+//                        if (!is_dir($order['path'])){
+//                            mkdir($order['path'],0777);  // 创建文件夹test,并给777的权限（所有权限）
+//                        }
+//                        $filename = $order['path'] . '/'.$order['process_code']. '.pdf';
+//                        file_put_contents($filename, $responseString);
+
+                        $service = new PackageLabelFileService();
+                        $label_url = $service->uploadLabelFile($order['number'],base64_encode($responseString),'pdf');
+                        //$this->result['data']['body'] = base64_encode($responseString);
+                        $this->result['data']['src'] = $label_url;
+                        $this->result['data']['type'] = 'pdf';
+                        $this->result['success']     = true;
+                    }
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg'  => $response['ResultDesc']
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取包裹运单信息
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageDetail($config, $order)
+    {
+        $this->result['number'] = $order['number'];
+        if($this->formatHeader($config)){
+            $orderId = $order['process_code'];
+            $url = $this->_config['url'] .'WayBill/GetWayBill?wayBillNumber='. $orderId;
+            $responseJson = Curl::getCurl($url,  $this->_config['header']);
+            //日志记录
+            $arr_log = [
+                'url'=>$url,
+                'header'=>$this->_config['header'],
+                'request'=>[],
+                'response'=>$responseJson
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            $response = json_decode($responseJson, true);
+            // 处理响应内容
+            if (is_array($response)) {
+                if (isset($response['ResultCode'])&&$response['ResultCode']==0000) {
+                    $result = $response['Item'];
+                    $this->result['data'] = $result;
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg'  => isset($response['ResultDesc'])?$response['ResultDesc']:(isset($response['Message'])?$response['Message']:'未知错误')
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageStatus($config, $order)
+    {
+        $result = $this->getPackageDetail($config,$order);
+        if($result['success']){
+            $this->result['data'] = [
+                'is_send'=>$result['data']['Status']==5?true:false
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取真实重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        if($this->formatHeader($config)){
+            $orderId = $order['number'];
+            $url = $this->_config['url'] .'WayBill/GetReceivingExpense?orderNumber='. $orderId;
+            $responseJson = Curl::getCurl($url,  $this->_config['header']);
+            $response = json_decode($responseJson, true);
+            // 处理响应内容
+            if (is_array($response)) {
+                if (isset($response['ResultCode']) && isset($response['Item']) ) {
+                    $result = $response['Item'];
+                    $this->result['data'] = [
+                        'real_weight'=>$result['SettleWeight'],
+                        'real_fee'=>$result['TotalFee'],
+                        'currency'=>''
+                    ];
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg'  => isset($response['ResultDesc'])?$response['ResultDesc']:(isset($response['Message'])?$response['Message']:'未知错误')
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取token
+     */
+    public function getToken($config)
+    {
+        //测试
+        //$config = ['client_id'=>'C88888','client_secret'=>'JCJaDQ68amA='];
+        //正式
+        //$config = ['client_id'=>'C85935','client_secret'=>'zix/h/dhVNI='];
+        $strToken = $config['client_id'].'&'.$config['client_secret'];
+        return base64_encode($strToken);
+    }
+    /**
+     * 
+     * @param array $data 包裹数据信息
+     * @param array $changeCarrier 是否需要改变物流方式shipping_id 默认为false
+     * @return type 接口请求的数据信息
+     */
+    private function buildData($data,$changeCarrier=false)
+    {
+        $result = [];
+        //根据订单ID获取订单信息
+        $result['OrderNumber']    = isset($data['customer_number']) && $data['customer_number'] ?  $data['customer_number'] : $data['number'];
+        $result['ShippingMethodCode'] = $data['shipping_method_code'];
+        if($changeCarrier){
+            $result['TrackingNumber'] = $data['shipping_number'];
+        }
+        $result['PackageNumber'] = 1;
+        $result['Weight'] = number_format($data['estimated_weight']/1000,3);
+        $result['IsReturn'] = intval($data['is_need_return']);
+        //ebay平台 德国洲为空把国家写进去
+        if(in_array($data['channel_id'],[ChannelAccountConst::channel_ebay])  && empty($data['province']) && in_array($data['country_code'],['DE'])){
+            $data['province'] =  $data['country_name'];
+        }
+        //ebay没有电话特殊处理
+        if(!$data['phone'] && !$data['tel'] && $data['channel_id'] == ChannelAccountConst::channel_ebay && in_array($data['country_code'],['DE'])){
+            $data['phone'] = '000000';
+        }
+        $data['country_code'] = $this->convertCountry($data['country_code']);
+        //收件人
+        $result['ShippingInfo']  = [
+                    'ShippingTaxId'   => '',
+                    'CountryCode'     => $data['country_code'],
+                    'ShippingFirstName' => $data['name'],
+                    'ShippingLastName' => '',
+                    'ShippingCompany' => '',
+                    'ShippingAddress' => str_replace(PHP_EOL, ' ', $data['street']),
+                    'ShippingAddress1' => str_replace(PHP_EOL, ' ', $data['street2']),
+                    'ShippingCity'    => $data['city'],
+                    'ShippingState'   => $data['province'],
+                    'ShippingZip'     => $this->getZipFormat($data['country_code'], $data['zip']),
+                    'ShippingPhone'   => $data['phone']?str_replace(' ','',$data['phone']):str_replace(' ','',$data['tel']),
+            ];
+        //发送人信息
+        $result['SenderInfo'] = [
+                    'CountryCode'       => $data['sender']['sender_country'],
+                    'SenderFirstName'   => $data['sender']['sender_name'],
+                    'SenderLastName'    => '',
+                    'SenderCompany'     => $data['sender']['sender_company'],
+                    'SenderAddress'     => $data['sender']['sender_street'],
+                    'SenderCity'        => $data['sender']['sender_city'],
+                    'SenderState'       => $data['sender']['sender_state'],
+                    'SenderZip'         => $data['sender']['sender_zipcode'],
+                    'SenderPhone'       => $data['sender']['sender_phone'],
+            ];
+        $products = [];
+        foreach($data['declared_info'] as $declared){
+            $products[] = [
+                    'ApplicationName' => $declared['declared_name_en'],
+                    'HSCode'          => $declared['hs_code'],
+                    'Qty'             => $declared['qty'],
+                    'UnitPrice'       => number_format($declared['declared_value'],2),
+                    'UnitWeight'      => number_format($declared['declared_weight']/1000,3),
+                    'PickingName'     => $declared['declared_name_cn'],
+                    'Remark'          => $declared['declared_name_en'],
+                    'SKU'             => $declared['sku'],
+            ];
+        }
+        //产品信息
+        $result['ApplicationInfos'] = $products;
+        return $result;
+    }
+    
+    private function convertCountry($code)
+    {
+        $arr = [
+            'UK' => 'GB',
+            'GGY' => 'GG'
+        ];
+        
+        return isset($arr[$code]) ? $arr[$code] : $code;
+    }
+}

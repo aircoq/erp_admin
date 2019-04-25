@@ -1,0 +1,202 @@
+<?php
+namespace service\oberlo;
+
+/**
+ * Oberlo 请求服务类
+ * @author wangwei 2019-3-1 11:34:23
+ */
+class RequestService{
+	protected $_accountConfig = array();//授权信息
+	
+	protected $_httpType = 'GET';//http操作类型
+	protected $_requestUrl = '';//请求地址
+	protected $_requestParams = array();//请求参数
+	
+	protected $_request_headers = array();//请求头部
+	
+	/**
+	 * 构造方法
+	 * @param string $token_key 秘钥 oberlo_account.token_key
+	 */
+	public function __construct($token_key) {
+		$this->_accountConfig['token_key'] = $token_key;
+	}
+	
+	/**
+	 * 执行请求
+	 * @param array $option 可选参数
+	 * @throws OberloException
+	 * @return multitype:number string multitype
+	 */
+	public function executeRequest($option=array()){
+		$return = array('ask'=>0,'message'=>'','http_statu'=>'','request_url'=>'','data'=>array(),'org_data'=>'');
+		
+		//授权检查
+		$this->checkAccount();
+		
+		//设置请求头部
+		$this->setHeaders();
+		
+		//调用curl请求
+		$curlRe = $this->curl($option);
+		if($curlRe['ask']){//请求成功
+			$return['http_statu'] = $curlRe['http_statu'];
+			$return['request_url'] = $this->_requestUrl;
+			$return['org_data'] = $curlRe['data'];
+			if(empty($curlRe['data'])){
+				$return['message'] = 'OberloApiCurlRequestError, Returns Empty Data';
+			}else{
+				$data = json_decode($curlRe['data'],true);//Json解析
+				if(empty($data)){
+					$return['message'] = 'OberloApiCurlRequestError, Parsing Json Failed';
+				}else{
+					//为错误时抛异常
+				    if(!$data['success']){
+						$errorInfo = array(
+								'Message'=>$data['error']['message'],
+								'Reason'=>$data['error']['reason'],
+								'RequestUrl'=>$this->_requestUrl,
+								'HttpStatu'=>$curlRe['http_statu'],
+								'ORG'=>$curlRe['data']
+						);
+						throw new OberloException($errorInfo);
+					}
+					$return['ask'] = 1;
+					$return['message'] = 'success';
+					$return['data'] = $data['data'];
+				}
+			}
+		}else{
+			$return['message'] = $curlRe['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 设置请求头
+	 */
+	protected function setHeaders(){
+		$errorInfo = array(
+				'Message'=>'setHeaders Error',
+				'RequestUrl'=>$this->_requestUrl,
+		);
+		if(empty($this->_accountConfig['token_key'])){
+			$errorInfo['Message'] = 'setHeaders Error,authorization Not Empty';
+			throw new OberloException($errorInfo);
+		}
+		$this->_request_headers = array();
+		$this->_request_headers[] = 'Content-Type: application/json';
+		$this->_request_headers[] = 'Accept: application/json';
+		$this->_request_headers[] = 'Authorization: Bearer ' . $this->_accountConfig['token_key'];
+	}
+	
+	/**
+	 * curl请求
+	 * @param array $option  可选设置项
+	 * @example $option=array(
+	 * 						'TimeOut'=>120  //超时时间
+	 * 					   );
+	 * @return mixed
+	 */
+	protected function curl($option=array()){
+		$return = array('ask'=>0,'message'=>'','http_statu'=>'','data'=>array());
+		
+		$TimeOut = isset($option['TimeOut']) ? $option['TimeOut'] : 120 ;
+
+		$ch = curl_init() ;//初始化资源句柄
+		curl_setopt($ch, CURLOPT_URL, $this->_requestUrl);//设置请求地址
+		
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this->_httpType);//设置http操作类型
+		
+// 		curl_setopt ( $ch, CURLOPT_VERBOSE, 1 );//启用时会汇报所有的信息，存放在STDERR或指定的CURLOPT_STDERR中
+
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);//是否抓取重定向页面
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);//将curl_exec()获取的信息以文件流的形式返回，而不是直接输出。
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);//https请求不验证证书
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);//https请求不验证hosts
+		
+// 		curl_setopt($ch,CURLOPT_HEADER,true);//显示请求头
+
+		if($this->_requestParams){
+		    curl_setopt($ch, CURLOPT_POSTFIELDS, $this->httpBuildToStr($this->_requestParams));//设置请求数据
+		}
+		
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $this->_request_headers);//设置http头
+				
+		curl_setopt($ch, CURLOPT_TIMEOUT,$TimeOut);//设置超时时间
+		
+		//最多循环三次
+		$request_count  = 1;
+		while ( $request_count <= 3 ) {
+		    //执行请求
+		    $data = curl_exec($ch);
+		    //获取curl请求信息
+		    $curlInfo=curl_getinfo($ch);
+		    	       
+// 		    var_dump($data);
+// 		    var_dump($curlInfo);
+		    	        
+		    //curl是否发生错误
+		    if($errNo = curl_errno($ch)){
+		        $return['message']='OberloApiCurlRequestError,ErrNo:'.$errNo.',Error:'.curl_error($ch);
+		    }else{
+		        $return['message'] = '';
+		        $return["http_statu"] = $curlInfo['http_code'];
+		        break;
+		    }
+		    //请求次数累加
+		    $request_count ++;
+		}
+		
+		curl_close($ch);
+		
+		$return["ask"] = 1;
+		$return["message"] = 'success';
+		$return["data"] = $data;
+		return $return;
+	}
+	
+	/**
+	 * 设置请求
+	 * @param string $http_type http操作类型
+	 * @param string $path 请求地址的中间部分
+	 * @param array $params  请求参数
+	 */
+	protected function setRequest($http_type, $path, $params = array()){
+	    $this->_httpType = $http_type;
+	    if(strtolower($http_type) == 'get')
+        {
+            $this->_requestUrl = OberloLib::API_BASE . $path . (empty($params) ? '' : "?" .$this->httpBuildToStr($params));
+        }else{
+            $this->_requestUrl = OberloLib::API_BASE . $path;
+            $this->_requestParams = $params;
+        }
+	}
+	
+	/**
+	 * 检查授权信息
+	 */
+	protected function checkAccount(){
+		$errorInfo = array(
+				'Message'=>'CheckAccount Error',
+				'RequestUrl'=>$this->_requestUrl,
+		);
+		//检查token_key
+		if(empty($this->_accountConfig['token_key'])){
+			$errorInfo['Message'] = 'CheckAccount Error, token_key Not Empty';
+			throw new OberloException($errorInfo);
+		}
+	}
+	
+	/**
+	 * 兼容低版本PHP的http_build_query方法，生成URL-encode 之后的请求字符串
+	 * @param array $arr
+	 * @return string
+	 */
+	public function httpBuildToStr($arr){
+	    //兼容低版本php的http_build_query不支持PHP_QUERY_RFC3986，单独替换“+”
+	    //		return str_replace('+', '%20', http_build_query($arr));
+	    return http_build_query($arr);
+	}
+	
+}

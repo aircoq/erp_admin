@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+<body style="padding:0;margin:0;">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+    <!--挪威-->
+    <!--地址标签-->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr>
+                <td style="width:80pt;border-left:solid 1pt #000;border-top:solid 1pt #000;">
+                    <img width="100%" src="<?php echo $icon;?>" /> </td>
+                <td style="width:100pt;border-top:solid 1pt #000;border-right:1pt solid #000;font-size: 8pt; line-height: 10pt;text-align:center;"> Tracked Packet BY AIR </td>
+                <td style="width:40pt;border-top:solid 1pt #000;font-size:10pt;line-height:12pt;text-align:center;font-weight:bold;"> NO 35 </td>
+                <td style="border:solid 1pt #000;border-bottom:none;text-align:center;">
+                    <img alt="USP" width="50%" src="<?php echo $country_thumb;?>" />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:10pt">
+            <tbody>
+            <tr>
+                <td style="width:100pt;height: 50pt;vertical-align:top;padding:0 1pt;font-size:8pt;line-height:10pt;word-wrap:break-word;border:1pt solid #000;border-top:none;">
+                    YISHITONGDAERBU(YISHITOGNDAERBU)
+                    <br /><?php echo $sender['sender_street'];?>, <?php echo $sender['sender_district'];?>,<?php echo $sender['sender_city'];?>,<?php echo $sender['sender_state'];?>
+                    <br /> China
+                    <br /> Phone: <?php echo $sender['sender_mobile'];?>
+                </td>
+                <td style="padding-left:2pt;vertical-align:top;font-size:9pt;line-height:11pt;word-wrap:break-word;border:solid 1pt #000;border-bottom:none;"> SHIP TO:
+                    <strong><?php echo $name;?></strong>
+                    <br /> <?php echo $street.$street2;?>
+                    <br /> <?php echo $city?> <?php echo $province?>
+                    <br />
+                    <span style="text-transform:uppercase">Norway</span>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-size:7pt;line-height:11pt;height:11pt;border:solid 1pt #000;"> untracked自编号： </td>
+                <td style="padding:0 2pt;font-size:8pt;line-height:10pt;border:solid 1pt #000;border-top:none;border-bottom:none;"> ZIP:<?php echo $zip;?> </td>
+            </tr>
+            <tr>
+                <td style="font-size:7pt;line-height:11pt;height:11pt;border:solid 1pt #000;"> 退件单位：longgang </td>
+                <td style="padding:0 2pt;vertical-align:top;font-size:8pt;line-height:10pt;word-wrap:break-word;border:solid 1pt #000;border-top:none;">
+                    <div style="width:110pt;float:left;">
+                        Phone: / <?php echo $phone?>
+                    </div>
+                    <div style="width:50pt;float:left;">
+                        挪威
+                    </div>
+                    <div style="clear:both;"></div> </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align:center;border-left: 1pt solid #000;border-right:1pt solid #000;"> <span style="display:inline-block;height:30pt;line-height:25pt;padding-top: 5pt">
+                        <img style="margin-bottom:5pt" width="80%" src="<?php echo $this->imgSrc($shipping_number);?> " /> </span>
+                    <br>
+                    <font style="font-weight:bold;"> <?php echo $shipping_number;?> </font>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:7pt;line-height:9pt;">
+            <tbody>
+            <tr>
+                <td style="width:15pt;border:solid 1pt #000;text-align:center;"> No </td>
+                <td style="width:18pt;border:solid 1pt #000;text-align:center;"> Qty </td>
+                <td style="width:104pt;border:solid 1pt #000;word-wrap:break-word;padding:0 2pt"> description of contents </td>
+                <td style="width:30pt;border:solid 1pt #000;text-align:center;"> Kg </td>
+                <td style="width:36pt;border:solid 1pt #000;text-align:center;"> Val(US $) </td>
+                <td style="border:solid 1pt #000;text-align:center;"> Goods Origin </td>
+            </tr>
+            <?php foreach ($list as $k=>$v):?>
+            <tr>
+                <td style="border:solid 1pt #000;text-align:center;"> <?php echo ($k+1);?> </td>
+                <td style="border:solid 1pt #000;text-align:center;"> <?php echo $v['qty'];?> </td>
+                <td style="border:solid 1pt #000;word-wrap:break-word;padding:0 2pt;vertical-align:middle"> <?php echo $v['declared_name_en'];?>* <?php echo $v['declared_name_cn'];?> </td>
+                <td style="border:solid 1pt #000;text-align:center;"> <?php echo number_format($v['declared_weight']/1000,3,".",'');?> </td>
+                <td style="border:solid 1pt #000;text-align:center;"> <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?> </td>
+                <td style="border:solid 1pt #000;text-align:center;"> China </td>
+            </tr>
+            <?php endforeach;?>
+
+            <tr>
+                <td style="border:solid 1pt #000;text-align:center;"> </td>
+                <td style="width:30pt;border:solid 1pt #000;text-align:center;"> </td>
+                <td style="border:solid 1pt #000;word-wrap:break-word;padding:0 2pt;"> Total Gross Weight(Kg) </td>
+                <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"> <?php echo number_format($total_weight/1000,3,'.','');?> </td>
+                <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"> <?php echo number_format($total_value,2,'.','');?> </td>
+                <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"> </td>
+            </tr>
+            <tr>
+                <td colspan="6" style="border:solid 1pt #000;border-bottom:0;word-wrap:break-word;padding:0 2pt;font-size:6pt;line-height:7pt;"> I certify that the particulars given in this declaration are correct and this item dose not contain any dangerous articles prohibited by legislation or by postal or customs regulations. </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="border:solid 1pt #000;border-top:0;border-right:0;padding:0 2pt;font-weight: bold;"> Sender&quot;s signature: YISHITONGDAERBU </td>
+                <td colspan="" style="border:solid 1pt #000;border-top:0;padding:0 2pt;border-left:0;text-align:center;font-size: 12pt;font-weight: bold;line-height: 12pt;"> CN22 </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

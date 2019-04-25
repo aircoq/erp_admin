@@ -1,0 +1,64 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-28
+ * Time: 下午2:10
+ */
+
+namespace erp;
+
+
+use think\Validate;
+
+abstract class AbsFilterRule extends AbsAccessRule
+{
+    protected $type = self::TYPE_FILTER;
+    protected $paramsRule = [];
+    abstract public function filter();
+
+    abstract public function paramsConfig(FilterConfig $config);
+
+    public function jsonSerialize()
+    {
+        return [
+            'tag' =>get_class($this),
+            'type' =>$this->type,
+            'title'=>$this->title ?: $this->getTitle(),
+        ];
+    }
+    /**
+     * @param $param
+     */
+    public final function setParam($param)
+    {
+        $this->ruleParam = $param;
+    }
+
+
+    /**
+     * @param string $key
+     * @param null $def
+     * @return array|mixed|null
+     */
+    protected final function getParam($key = '', $def = null)
+    {
+        if(empty($key)){
+            return $this->ruleParam;
+        }
+        if(isset($this->ruleParam->$key)){
+            return $this->ruleParam->$key;
+        }
+        return $def;
+    }
+
+    public function checkParamRules()
+    {
+        $config = new FilterConfig();
+        $this->paramsConfig($config);
+        Validate::extend('default',function($value,$rule,$data){
+
+        });
+    }
+
+}

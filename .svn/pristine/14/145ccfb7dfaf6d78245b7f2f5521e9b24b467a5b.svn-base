@@ -1,0 +1,30 @@
+{
+    "name": "barcode-bakery/barcode-common",
+    "version": "6.0.0",
+    "license": [
+        "Commercial",
+        "CC-BY-NC-ND-4.0"
+    ],
+    "support": {
+        "email": "contact@barcodebakery.com",
+        "docs": "http://www.barcodebakery.com"
+    },
+    "type": "library",
+    "homepage": "http://www.barcodebakery.com",
+    "authors": [
+        {
+            "name": "Jean-Sébastien Goupil",
+            "email": "contact@barcodebakery.com"
+        }
+    ],
+    "description": "Base code for generating barcode with the Barcode Bakery library. See barcode-bakery/barcode-1d.",
+    "autoload": {
+        "psr-4": {
+            "BarcodeBakery\\Common\\": "src"
+        }
+    },
+    "require": {
+        "php": ">=5.6",
+        "ext-gd": "*"
+    }
+}

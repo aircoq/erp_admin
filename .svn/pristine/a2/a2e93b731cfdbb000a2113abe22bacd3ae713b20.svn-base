@@ -1,0 +1,41 @@
+<?php
+
+
+namespace service\baidu\operation;
+
+use service\baidu\operation\image\AipImageSearch;
+
+class ImageSearch extends Common
+{
+    private $AipImageSearch = null;
+
+    public function __construct($config)
+    {
+        parent::__construct($config);
+        $this->AipImageSearch = new AipImageSearch(self::$_config['app_id'], self::$_config['api_key'], self::$_config['secret_key']);
+
+    }
+
+    /**
+     * @title 入库
+     * @param $imageContent
+     * @param $goods_id
+     * @return array
+     * @author starzhan <397041849@qq.com>
+     */
+    public function entry($goods_id, $goods_gallery_id, $imageContent)
+    {
+        $brief = ['goods_id' => $goods_id, 'id' => $goods_gallery_id];
+        $data = ['brief' => json_encode($brief)];
+        return $this->AipImageSearch->productAdd($imageContent, $data);
+    }
+
+    public function search($imageContent)
+    {
+        $opt = [
+            'pn'=>1,
+            'rn'=>100
+        ];
+        return $this->AipImageSearch->productSearch($imageContent,$opt);
+    }
+}

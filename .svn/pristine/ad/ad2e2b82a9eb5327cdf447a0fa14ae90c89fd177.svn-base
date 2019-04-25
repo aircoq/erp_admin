@@ -1,0 +1,546 @@
+<?php
+
+namespace paypal;
+
+use app\common\cache\Cache;
+use app\common\model\paypal\PaypalOrder as PaypalOrderModel;
+use app\common\service\UniqueQueuer;
+use app\order\queue\DownPaypalOrderByTxnId;
+use think\Exception;
+
+class PayPalApi
+{
+
+    private $user;
+    private $password;
+    private $signature;
+
+    const Endpoint = 'https://api-3t.paypal.com/nvp';
+    const EndpointSandbox = 'https://api-3t.sandbox.paypal.com/nvp';
+    const USE_PROXY = false;
+    const PROXY_HOST = '127.0.0.1';
+    const PROXY_PORT = 8080;
+    const PAYPAL_URL = 'https://www.paypal.com/webscr&cmd=_express-checkout&token=';
+    const VERSION = 65.1;
+
+    function __construct($user, $password, $signature)
+    {
+        $this->user = $user;
+        $this->password = $password;
+        $this->signature = $signature;
+
+    }
+
+
+    /**
+     * 获取paypal交易记录, 此流程最大的问题,不可以分页抓取页码,订单抓不全,如果一次抓取一个分页内数据到达100条就没有办法继续再抓第101条的数据,
+     *     所以后期如果时间到了100条,应该把时间分递归二分查找,直到 一次返回的数据小于100条为止;
+     * @param string $date ['from' => 开始时间， 'to' => '结束时间']
+     * @param array $transactionType
+     * @param number $account_id
+     */
+    function getPaypalV2($dates, $account_id = 0, $transactionType = 'All')
+    {
+        //标记时间；
+        try {
+            $datas = [];
+            $time = time();
+
+            $from = $dates['from'];
+            $to = $dates['to'];
+            while (true) {
+                if ($from >= $to) {
+                    break;
+                }
+                //转换时间
+                $createTimeFrom = gmdate("Y-m-d\TH:i:s.000\Z", $from);
+                $createTimeTo = gmdate("Y-m-d\TH:i:s.000\Z", $to);
+
+                $nvpStrDate = '&STARTDATE=' . $createTimeFrom . '&ENDDATE=' . $createTimeTo;
+                //声明数组用来装交易ID,方便抓交易详情
+                $ids = [];
+                $nvpStr = $nvpStrDate . '&TRANSACTIONCLASS=' . $transactionType;
+                $resArray = $this->hash_call("TransactionSearch", $nvpStr);
+
+                //没有ACK字段证明访问地址信息出错了；
+                if (!isset($resArray['ACK'])) {
+                    throw new Exception('paypal访问出错');
+                }
+                //返回状态是失败；
+                if ($resArray['ACK'] == 'Failure') {
+                    throw new Exception(json_encode($resArray));
+                }
+
+                //交易订单号下标从L_TRANSACTIONID0开始,
+                $num = 0;
+                while (isset($resArray["L_TRANSACTIONID{$num}"])) {
+
+                    $tmp['txn_id'] = trim(param($resArray, "L_TRANSACTIONID{$num}"));
+                    $tmp['amt'] = trim(param($resArray, "L_AMT{$num}"));
+                    $tmp['mc_currency'] = trim(param($resArray, "L_CURRENCYCODE{$num}"));
+                    $tmp['mc_fee'] = trim(param($resArray, "FEEAMT{$num}"));
+                    $tmp['account_id'] = $account_id;
+                    $tmp['created_on'] = $time;
+                    $tmp['item_name'] = '';
+
+                    //因为单号是倒序的，所以最后一个时间是最小的，但是要加宽范围，所以要把时间放大一点，所以加60秒；
+                    $to = strtotime(param($resArray, "L_TIMESTAMP{$num}")) + 60;
+                    $datas[$tmp['txn_id']] = $tmp;
+                    $num++;
+                }
+                if ($num < 100) {
+                    break;
+                }
+            }
+
+            return $this->handelGetPaypalOrderV2($datas);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            throw new Exception($message);
+        }
+    }
+
+    public function handelGetPaypalOrderV2($datas)
+    {
+        $paypalOrder = new PaypalorderModel();
+        $queue = new UniqueQueuer(DownPaypalOrderByTxnId::class);
+        $lock = Cache::store('Lock');
+        foreach ($datas as $val) {
+            //加锁处理；
+            $lockParam = ['account_id' => $val['account_id'], 'txn_id' => $val['txn_id']];
+            if ($lock->lockParams($lockParam)) {
+                try {
+                    $count = $paypalOrder->where($lockParam)->field('id')->count('id');
+                    //不存在记录时插入；
+                    if ($count == 0) {
+                        $paypalOrder->insert($val);
+                    }
+                    $lock->unlockParams($lockParam);
+                }catch (Exception $e) {
+                    $lock->unlockParams($lockParam);
+                    throw new Exception($e->getMessage());
+                }
+            }
+            $queue->push(['account' => $val['account_id'], 'txn_id' => $val['txn_id']]);
+            //(new DownPaypalOrderByTxnId(['account' => $val['account_id'], 'txn_id' => $val['txn_id']]))->execute();
+        }
+        return count($datas);
+    }
+
+
+    /**
+     * 获取paypal交易记录, 此流程最大的问题,不可以分页抓取页码,订单抓不全,如果一次抓取一个分页内数据到达100条就没有办法继续再抓第101条的数据,
+     *     所以后期如果时间到了100条,应该把时间分递归二分查找,直到 一次返回的数据小于100条为止;
+     * @param string $date ['from' => 开始时间， 'to' => '结束时间']
+     * @param array $transactionType
+     * @param number $account_id
+     */
+    function getPaypal($dates, $account_id, $transactionType = 'All')
+    {
+        //标记时间；
+        try {
+            $paypalIds = $this->getPaypalRecursion($dates, $transactionType = 'All');
+            if ($paypalIds === false) {
+                return 0;
+            }
+
+            $res = $this->formatDetail($account_id, $paypalIds);
+            $paypalModel = new PaypalOrderModel();
+            $paypalModel->addAll($res);
+            return count($res);
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            Cache::handler()->set('Exception:DownPaypalOrder:' . $account_id, $message);
+            throw new Exception($message);
+        }
+    }
+
+    /**
+     * 递归抓取paypal一段时间内的订单号；
+     * @param $dates 开始结束时间；
+     * @param string $transactionType 抓取的订单类型；
+     * @param array $lists 订单的前100条ID；
+     */
+    public function getPaypalRecursion($dates, $transactionType, $lists = [])
+    {
+        $llist = []; //前半段数据；
+        $rlist = []; //后半段数据；
+        //如果$lists不为空，则开始抓数据
+        $rlist = !empty($lists) ? $lists : $this->getIdlist($dates, $transactionType);
+
+        //判断状态,如果是false,抓取错误，直接返回；
+        if ($rlist === false) {
+            return false;
+        }
+
+        //抓到的单数小于100，证明这个时间段没有了，直接返回；
+        if (count($rlist) < 100) {
+            return $rlist;
+        }
+
+        //转化时间；
+        $from = $dates['from'];
+        $to = $dates['to'];
+        $ldates = [
+            'from' => $dates['from'],
+            'to' => $from + floor(($to - $from) / 2),
+        ];
+
+        //$rlist长度== 100，则需要继续抓前半段时间的列表；
+        $llist = $this->getIdlist($ldates, $transactionType);
+        if ($llist === false) {
+            return false;
+        }
+
+        //比较总时间段和后半段有无交集，两种情况1.有交集，2，无交集；
+        $intersect = array_intersect($llist, $rlist);
+        //有交集,则后段列表$rlist不需要再动了；//无交集,则证明后段$rlist,也还需要继续抓，前段$llist也需要判断需不需档断续；
+        if (count($intersect) == 0) {
+            $rdates = [
+                'from' => $to - ceil(($to - $from) / 2),
+                'to' => $dates['to'],
+            ];
+            $rlist = $this->getPaypalRecursion($rdates, $transactionType, $rlist);
+        }
+
+        //判断后半段还需不需要继续抓
+        if (count($llist) == 100) {
+            $llist = $this->getPaypalRecursion($ldates, $transactionType, $llist);
+        }
+
+        if ($llist === false || $rlist === false) {
+            return false;
+        }
+        return array_unique(array_merge($llist, $rlist));
+    }
+
+    /**
+     * 注意，取的列表是按时间倒序的，优先拿取的最近的时间的订单；
+     * @param $dates 时间 ['from' => '', 'to' => '']
+     * @param string $transactionType
+     * @return array|bool
+     */
+    public function getIdlist($dates, $transactionType = 'All')
+    {
+        //转换时间
+        $createTimeFrom = gmdate("Y-m-d\TH:i:s.000\Z", $dates['from']);
+        $createTimeTo = gmdate("Y-m-d\TH:i:s.000\Z", $dates['to']);
+
+        $nvpStrDate = '&STARTDATE=' . $createTimeFrom . '&ENDDATE=' . $createTimeTo;
+        //声明数组用来装交易ID,方便抓交易详情
+        $ids = [];
+        $nvpStr = $nvpStrDate . '&TRANSACTIONCLASS=' . $transactionType;
+        $resArray = $this->hash_call("TransactionSearch", $nvpStr);
+
+        //没有ACK字段证明访问地址信息出错了；
+        if (!isset($resArray['ACK'])) {
+            throw new Exception('paypal访问出错');
+        }
+        //返回状态是失败；
+        if ($resArray['ACK'] == 'Failure') {
+            throw new Exception(json_encode($resArray));
+        }
+        //交易订单号下标从L_TRANSACTIONID0开始,
+        $id = 0;
+        while (isset($resArray["L_TRANSACTIONID{$id}"])) {
+            $ids[] = trim(param($resArray, "L_TRANSACTIONID{$id}"));
+            ++$id;
+        }
+        return $ids;
+    }
+
+    /**
+     * paypal 订单详情
+     * @param number $account_id
+     * @param array $tids
+     */
+    function formatDetail($account_id = 0, $tids = [])
+    {
+        $response_data = [];
+        //没有ID数据直接返回
+        if (!$tids) {
+            return [];
+        }
+
+        $time = time();
+        foreach ($tids as $txnId) {
+
+            $nvpDetailStr = "&TRANSACTIONID=" . urlencode($txnId);
+            $resDetailArray = $this->hash_call("gettransactionDetails", $nvpDetailStr);
+
+            //抓取状态数据为Success才会有数据,如否则直接跳过;
+            if (empty($resDetailArray["ACK"])) {
+                continue;
+            }
+            if ($resDetailArray["ACK"] != "Success") {
+                //有些类型的ID是无法取得详情的，这时要跳过
+                if ($resDetailArray['L_SHORTMESSAGE0'] == 'Invalid transaction type') {
+                    continue;
+                }
+                continue;
+                //throw new Exception(json_encode($resDetailArray, JSON_UNESCAPED_UNICODE));
+            }
+            if (empty($resDetailArray['TRANSACTIONID'])) {
+                continue;
+            }
+            $paypalModel = new PaypalOrderModel();
+
+            $item = [];
+            //先查看同一交易订单下面,有几个产品,然后串起同一交易订单内的多个产品编号,名称和数量;
+            $itemNumber = '';    //产品编号
+            $quantity = 0;
+            $moreBol = true;
+            for ($i = 1; $moreBol; $i++) {
+                $dec = $i - 1;
+                $item[$dec]['namber'] = trim(param($resDetailArray, "L_NUMBER$dec"));
+                $item[$dec]['name'] = trim(param($resDetailArray, "L_NAME$dec"));
+                $item[$dec]['quantity'] = intval(param($resDetailArray, "L_QTY$dec"));
+                $item[$dec]['amt'] = param($resDetailArray, "L_AMT$dec");
+                $itemNumber .= trim(param($resDetailArray, "L_NUMBER$dec"));
+                $quantity += $item[$dec]['quantity'];
+                $moreBol = isset($resDetailArray['L_NUMBER' . $i]);
+                if ($moreBol) {
+                    $itemNumber .= ',';
+                }
+            }
+            //查看是缓存是否已经有这条数据,没有则去数据库找,找出来后比较状况,如果状态一样,则不用更新了;
+            $cache_info = $paypalModel->where(['txn_id' => $resDetailArray['TRANSACTIONID'], 'account_id' => $account_id])
+                ->field('id,payment_status')
+                ->find();
+
+            //针对ID抓取，无论如何都更新；
+            //if (!empty($cache_info) && isset($cache_info['payment_status']) && $cache_info['payment_status'] == $resDetailArray['PAYMENTSTATUS']) {
+            //    continue;
+            //}
+
+
+            $paypalData = array(
+                'id' => empty($cache_info['id'])? 0 : $cache_info['id'],
+                'txn_id' => $resDetailArray['TRANSACTIONID'],
+                'payment_status' => $resDetailArray['PAYMENTSTATUS'],
+                'account_id' => $account_id,
+                'business' => $resDetailArray['RECEIVERBUSINESS'] ?? '',
+                'payment_date' => strtotime(param($resDetailArray, 'ORDERTIME')),
+                'pending_reason' => $resDetailArray['PENDINGREASON'] ?? '',
+                'reason_code' => param($resDetailArray, 'REASONCODE'),
+                'txn_type' => param($resDetailArray, 'TRANSACTIONTYPE'),
+                'payment_type' => param($resDetailArray, 'PAYMENTTYPE'),
+                'receiver_email' => param($resDetailArray, 'RECEIVEREMAIL'),
+                'payer_email' => param($resDetailArray, 'EMAIL'),
+                'payer_status' => param($resDetailArray, 'PAYERSTATUS'),
+                'address_name' => isset($resDetailArray['SHIPTONAME']) ? $resDetailArray['SHIPTONAME'] : '',
+                'address_street' => isset($resDetailArray['SHIPTOSTREET']) ? $resDetailArray['SHIPTOSTREET'] : '',
+                'address_street2' => isset($resDetailArray['SHIPTOSTREET2']) ? $resDetailArray['SHIPTOSTREET2'] : '',
+                'address_state' => isset($resDetailArray['SHIPTOSTATE']) ? $resDetailArray['SHIPTOSTATE'] : '',
+                'address_city' => isset($resDetailArray['SHIPTOCITY']) ? $resDetailArray['SHIPTOCITY'] : '',
+                'address_zip' => isset($resDetailArray['SHIPTOZIP']) ? $resDetailArray['SHIPTOZIP'] : '',
+                'shipping_fee' => $resDetailArray['SHIPPINGAMT'] ?? 0,
+                'address_country' => isset($resDetailArray['SHIPTOCOUNTRYNAME']) ? $resDetailArray['SHIPTOCOUNTRYNAME'] : '',
+                'address_country_code' => isset($resDetailArray['SHIPTOCOUNTRYCODE']) ? $resDetailArray['SHIPTOCOUNTRYCODE'] : '',
+                'phone' => isset($resDetailArray['SHIPTOPHONENUM']) ? $resDetailArray['SHIPTOPHONENUM'] : '',
+                'address_status' => param($resDetailArray, 'ADDRESSSTATUS'),
+                'first_name' => param($resDetailArray, 'FIRSTNAME'), //暂时保留
+                'last_name' => param($resDetailArray, 'LASTNAME'), //暂时保留
+                'payer_name' => param($resDetailArray, 'FIRSTNAME') . ' ' . param($resDetailArray, 'MIDDLENAME') . ' ' . param($resDetailArray, 'LASTNAME'),
+                'item_number' => $itemNumber,
+                'item_name' => $resDetailArray["L_NAME0"] ?? '',
+                'quantity' => $quantity,
+                'mc_gross' => $resDetailArray["L_AMT0"] ?? 0.0000,
+                'item' => $item,
+                'mc_currency' => param($resDetailArray, 'CURRENCYCODE'),
+                'amt' => param($resDetailArray, 'AMT'),
+                'mc_fee' => isset($resDetailArray['FEEAMT']) ? $resDetailArray['FEEAMT'] : '',
+                'auction_closing_date' => isset($resDetailArray['CLOSINGDATE']) ? strtotime($resDetailArray['CLOSINGDATE']) : 0,
+                //'auction_closing_date'     => date('H:i:s M d, Y T',strtotime($resDetailArray['CLOSINGDATE'])),//$resDetailArray['CLOSINGDATE'],
+                'auction_buyer_id' => isset($resDetailArray['BUYERID']) ? $resDetailArray['BUYERID'] : '',
+                'custom' => param($resDetailArray, 'CUSTOM'),
+                'memo' => isset($resDetailArray['NOTE']) ? utf8_encode(str_replace('"', "", $resDetailArray['NOTE'])) : '',
+                'parent_txn_id' => isset($resDetailArray['PARENTTRANSACTIONID']) ? $resDetailArray['PARENTTRANSACTIONID'] : '',
+                'modified_on' => $time,
+            );
+
+            if (empty($cache_info['id'])) {
+                $paypalData['created_on'] = $time;
+            }
+
+            $response_data[] = $paypalData;
+        }
+
+        return $response_data;
+    }
+
+
+    /**
+     * 获取paypal交易详细信息
+     * @param string $txnId
+     */
+    function getPaypalById($txnId = '')
+    {
+        $txnId = urlencode($txnId);
+        $nvpDetailStr = "&TRANSACTIONID=$txnId";
+        $resDetailArray = $this->hash_call("gettransactionDetails", $nvpDetailStr);
+        return $resDetailArray;
+    }
+
+
+    /**
+     * paypal退款
+     * @param string $transaction_id paypal交易号
+     * @param array $refund_part 部分退款（全额退款此参数为空值）
+     * @return boolean
+     */
+    function paypalRefund($transaction_id = '', $refund_part = [])
+    {
+        $nvpStr = '&TRANSACTIONID=' . $transaction_id;
+        if (empty($refund_part['amount'])) {
+            //全额退款
+            $nvpStr .= '&REFUNDTYPE=Full';
+        } else {
+            //部分退款
+            $nvpStr .= '&REFUNDTYPE=Partial&AMT=' . $refund_part['amount'] . '&CURRENCYCODE=' . $refund_part['currency'];
+        }
+
+        if (!empty($refund_part['note'])) {
+            $nvpStr .= '&NOTE=' . $refund_part['note'];
+        }
+
+        $resArray = $this->hash_call("RefundTransaction", $nvpStr);
+
+        $response = [
+            'state' => 0,
+            'error_msg' => ''
+        ];
+
+        //退款成功；
+        if (isset($resArray['ACK']) && $resArray['ACK'] == 'Success') {
+            $response['state'] = 1;
+            $response['refund_transaction_id'] = $resArray['REFUNDTRANSACTIONID'] ?? '';
+            return $response;
+        }
+
+        //已经全额退款或部分退款；
+        //if (!empty($resArray['L_LONGMESSAGE0'])) {//This transaction has already been fully refunded
+        //    if ($resArray['L_LONGMESSAGE0'] === 'This transaction has already been fully refunded') {
+        //        $response = [
+        //            'state' => 2,
+        //            'error_msg' => 'This transaction has already been fully refunded'
+        //        ];
+        //        return $response;
+        //    }
+        //    if ($resArray['L_LONGMESSAGE0'] === 'Can not do a full refund after a partial refund') {
+        //        $response = [
+        //            'state' => 3,
+        //            'error_msg' => 'Can not do a full refund after a partial refund'
+        //        ];
+        //        return $response;
+        //    }
+        //}
+
+        $response = [
+            'state' => 0,
+            'error_msg' => param($resArray, 'L_LONGMESSAGE0')
+        ];
+
+        return $response;
+    }
+
+    /**
+     * paypal账号余额
+     * @return unknown[][]|mixed[][]
+     */
+    function getBalance()
+    {
+        $nvpStr = '&RETURNALLCURRENCIES=1';
+        $nvpStr = '';
+        $resArray = $this->hash_call("GetBalance", $nvpStr);
+        $response = [];
+        if (isset($resArray['ACK']) && $resArray['ACK'] == 'Success') {
+            for ($i = 0; isset($resArray["L_AMT$i"]); $i++) {
+                $response[] = [
+                    'amount' => $resArray["L_AMT$i"],
+                    'currency' => $resArray["L_CURRENCYCODE$i"]
+                ];
+            }
+        }
+        return $response;
+    }
+
+
+    /**
+     * @param $methodName
+     * @param $nvpStr
+     * @return array
+     */
+    function hash_call($methodName, $nvpStr)
+    {
+        //paypal的服务器有时会失去响应，会永远卡在那，因此设置了超时时间，并重试3次，保证能正常下载下来；
+        $response = $this->curl_retry($methodName, $nvpStr);
+        //convrting NVPResponse to an Associative Array
+        $nvpResArray = $this->deformatNVP($response);
+
+        return $nvpResArray;
+    }
+
+    public function curl_retry($methodName, $nvpStr, $retry = 0)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, self::Endpoint);
+        //curl_setopt($ch, CURLOPT_VERBOSE, 1);
+
+        //turning off the server and peer verification(TrustManager Concept).
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        //if USE_PROXY constant set to TRUE in Constants.php, then only proxy will be enabled.
+        //Set proxy name to PROXY_HOST and port number to PROXY_PORT in constants.php
+        if (self::USE_PROXY) {
+            curl_setopt($ch, CURLOPT_PROXY, self::PROXY_HOST . ":" . self::PROXY_PORT);
+        }
+        //NVPRequest for submitting to server
+        $nvpreq = "METHOD=" . urlencode($methodName) . "&VERSION=" . urlencode(self::VERSION) . "&PWD=" . urlencode($this->password) . "&USER=" . urlencode($this->user) . "&SIGNATURE=" . urlencode($this->signature) . $nvpStr;
+
+        //setting the nvpreq as POST FIELD to curl
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $nvpreq);
+
+        //getting response from server
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $retry++;
+        if (empty($response) && $retry < 3) {
+            $response = $this->curl_retry($methodName, $nvpStr, $retry);
+        }
+
+        return $response;
+
+    }
+
+    /** This function will take NVPString and convert it to an Associative Array and it will decode the response.
+     * It is usefull to search for a particular key and displaying arrays.
+     * @nvpstr is NVPString.
+     * @nvpArray is Associative Array.
+     */
+    function deformatNVP($nvpstr)
+    {
+        $intial = 0;
+        $nvpArray = array();
+        while (strlen($nvpstr)) {
+            //postion of Key
+            $keypos = strpos($nvpstr, '=');
+            //position of value
+            $valuepos = strpos($nvpstr, '&') ? strpos($nvpstr, '&') : strlen($nvpstr);
+            /* getting the Key and Value values and storing in a Associative Array */
+            $keyval = substr($nvpstr, $intial, $keypos);
+            $valval = substr($nvpstr, $keypos + 1, $valuepos - $keypos - 1);
+            //decoding the respose
+            $nvpArray[urldecode($keyval)] = urldecode($valval);
+            $nvpstr = substr($nvpstr, $valuepos + 1, strlen($nvpstr));
+        }
+        return $nvpArray;
+    }
+
+}

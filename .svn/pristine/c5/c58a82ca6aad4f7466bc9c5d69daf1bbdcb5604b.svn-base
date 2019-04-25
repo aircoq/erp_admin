@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.7430001708656195 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;font-size:10pt;page-break-after:always;">
+        <div style="width:268pt;border:1pt solid #000;border-bottom:0;text-align:center;font-size:10pt;line-height:11pt;font-weight:bold;">
+            ShippingMethod :YT_AUSP
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-bottom:0;font-size:10pt;line-height:11pt;font-weight:bold;">
+            <div style="width:80pt;float:left;text-align:center;margin-top:8pt;"> Item : 1/1</div>
+            <div style="width:183pt;border-left:1pt solid #000;float:left;padding:0 2pt;"> <?php echo $country_en_name; ?> :<br><?php echo $country_name; ?></div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt;border:1pt solid;border-bottom:0pt;text-align:center;font-size:9pt;line-height:10pt;">
+            <span style="display:inline-block;height:30pt;line-height:30pt;overflow-y:hidden;">  <img  style="margin-bottom:5pt" width="80%" src="<?php echo $this->imgSrc($shipping_number);?> " /> </span>
+            <br>
+            <strong><?php echo $shipping_number; ?>
+            </strong>
+        </div>
+        <div style="width:268pt;border:1pt solid;border-bottom:0pt;font-size:10pt;line-height:12pt;">
+            <div style="width:70pt;float:left;text-align:right;"> SHIP TO:</div>
+            <div style="width:198pt;float:left;word-wrap:break-word;">
+                <strong><?php echo $name;?></strong>
+                    <br> <?php echo $street.$street2;?>
+                <br> <?php echo $city?> <?php echo $province?>  ,<?php echo $zip?>
+                <br> <strong><?php echo $country_en_name; ?></strong> <br></div>
+            <div style="clear:both"></div>
+            <div style="width:70pt;float:left;text-align:right;"> Tel:</div>
+            <div style="width:198pt;float:left;"> <?php echo $phone?><br><?php echo $phone?></div>
+            <div style="clear:both"></div>
+        </div>
+        <div style="width:268pt;border:1pt solid;border-bottom:0pt;text-align:center;font-size:9pt;line-height:10pt;">
+            <strong>P<?php echo $number; ?></strong></div>
+        <div style="width:268pt;border:1pt solid;text-align:right;font-size:9pt;line-height:10pt;"> <?php echo date('Y-m-d');?></div>
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

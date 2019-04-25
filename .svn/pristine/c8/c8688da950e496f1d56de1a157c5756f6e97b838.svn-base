@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="border:2pt solid #000;width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr style="text-align: center;line-height: 14pt;height: 18pt;">
+                <td colspan="4" style="border:2pt solid #000;font-size: 12pt;font-weight: bold;">
+                    SE
+                </td>
+                <td colspan="3" style="font-size: 14pt;">
+                    &nbsp;
+                </td>
+                <td colspan="5" style="line-height: 14pt;font-size: 12pt;text-align: left;">
+                    &nbsp;SESLR
+                </td>
+            </tr>
+            <tr style="line-height: 10pt;">
+                <td colspan="12" style="border:2pt solid #000;text-align: left">
+                    <div style="padding: 3pt">
+                        <div style="display: inline-block;font-size: 35pt;padding: 0 5pt;">①</div>
+                        <div style="width: 80%;text-align: center;display: inline-block;">
+                            <img style="width: 200pt" src="<?php echo $this->imgSrc($shipping_number);?>">
+                        </div>
+                        <div style="width: 100%;text-align: center;font-size: 9pt;">
+                            TrackingNo: <strong><?php echo $shipping_number;?></strong>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr style="line-height: 14pt">
+                <td colspan="7">
+                    Customer No: OW00706
+                </td>
+                <td colspan="5">
+                    Weight (kg): <?php echo number_format($total_weight/1000,3);?>
+                </td>
+            </tr>
+            <tr style="font-size:9pt;line-height: 16pt;">
+                <td colspan="12" style="border:2pt solid #000;text-align: left;border-bottom-width: 0;">
+                    <div style="padding: 3pt;width: 100%">
+                        <strong style="font-size: 12pt"><?php echo $name;?></strong><br>
+                        <?php echo $street.$street2;?><br>
+                        <?php echo $city;?>, <?php echo $province;?> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        TEL:<?php echo $phone;?><br>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="10" style="border-top-width: 0;">
+                    <div style="display:inline-block;padding-left: 3pt;">
+                        , <span style="font-size: 13pt"><?php echo $zip;?></span><br>
+                    </div>
+                </td>
+                <td colspan="2" style="border-top: 2pt solid #000;border-left: 2pt solid #000;">
+                    &nbsp;EU
+                </td>
+            </tr>
+            <tr>
+                <td colspan="10" style="border-top-width: 0;">
+                    <div style="display:inline-block;padding-left: 3pt;">
+                        <strong style="font-size: 13pt;font-weight: bold;"><?php echo $country_en_name;?></strong>
+                    </div>
+                </td>
+                <td colspan="2" style="border-top: 2pt solid #000;border-left: 2pt solid #000;">
+                    &nbsp;L
+                </td>
+            </tr>
+            <tr>
+                <td colspan="12" style="border:2pt solid #000;border-bottom-width: 0; text-align: left;">
+                    <div style="padding-left: 5pt;"><img src="<?php echo $this->imgSrc($number);?>"></div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="8" style="border:2pt solid #000;border-top-width: 0;border-right-width: 0;text-align: left;">
+                    <div style="padding-left: 5pt">HAWB: P<?php echo $number;?></div>
+                </td>
+                <td colspan="4" style="border:2pt solid #000;border-top-width: 0;border-left-width: 0;">
+                    <?php echo date('Y-m-d H:i:s');?>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

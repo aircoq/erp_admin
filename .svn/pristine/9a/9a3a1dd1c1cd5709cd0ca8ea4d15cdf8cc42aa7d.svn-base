@@ -1,0 +1,40 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 18-3-3
+ * Time: 上午9:51
+ */
+
+namespace erp;
+
+
+use app\common\service\CommonQueuer;
+use app\common\service\UniqueQueuer;
+
+class QueuerManager
+{
+    private static $uniqueQueuers = [];
+
+    /**
+     * @param $queuer
+     * @return UniqueQueuer
+     */
+    public static function uniqueQueuer($queuer)
+    {
+        self::$uniqueQueuers[$queuer] = self::$uniqueQueuers[$queuer] ?? new UniqueQueuer($queuer);
+        return self::$uniqueQueuers[$queuer];
+    }
+
+    private static $commonQueuers = [];
+
+    /**
+     * @param $queuer
+     * @return CommonQueuer
+     */
+    public static function commonQueuer($queuer)
+    {
+        self::$commonQueuers[$queuer] = self::$commonQueuers[$queuer] ?? new CommonQueuer($queuer);
+        return self::$commonQueuers[$queuer];
+    }
+}

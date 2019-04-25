@@ -1,0 +1,200 @@
+<?php
+/**
+ * 无用代码，和谐掉
+ * wangwei 2018-9-20 15:09:07
+ */
+// namespace service\alinew\operation;
+
+// use service\alinew\operation\Common;
+/**
+ * Created by PhpStorm.
+ * User: johnny <1589556545@qq.com>
+ * Date: 2018/4/28
+ * Time: 17:39
+ */
+
+// class AliMessage extends Common{
+
+
+//     /**
+//      * 站内信/订单留言查询详情列表*
+//      * @param string $channelId
+//      * @param string $msgSources
+//      * @param int $page
+//      * @param int $pageSize
+//      * @return array
+//      */
+//     public function queryMsgDetailList($extern_id='',$channel_id, $page_size = 20,$current_page=1)
+//     {
+//         $data = [];
+//         //方法参数
+//         $data['extern_id'] = $extern_id;
+//         $data['channel_id'] = $channel_id;
+//         $data['page_size'] = $page_size;
+//         $data['current_page'] = $current_page;
+//         var_dump($data);
+//         //功能参数
+//         $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+//         $request = new \LiliangdaErpOrderproductDataRequest();
+//         $request->setAction('queryMsgDetailList');
+//         $request->setClassName('Alimsg');
+//         $request->setModule('alimsg');
+//         $request->setClientId($this->config['client_id']);
+//         $request->setClientSecret($this->config['client_secret']);
+//         $request->setToken($this->config['token']);
+//         $request->setRequestParams(json_encode($data));
+//         return $client->execute($request);
+//     }
+//     /**
+//      * 站内信/订单留言获取关系列表*
+//      * @param string $channelId
+//      * @param string $msgSources
+//      * @param int $page
+//      * @param int $pageSize
+//      * @return array
+//      */
+//     public function querymsgrelationlist($page_size = 10,$current_page=1,$start_time=null,$only_un_dealed=null,$only_un_readed=null,$rank=null,$seller_id=null,$end_time=null)
+//     {
+//         $data = [];
+//         //方法参数
+//         $data['start_time='] = $start_time;
+//         $data['only_un_dealed'] = $only_un_dealed;
+//         $data['only_un_readed'] = $only_un_readed;
+//         $data['rank'] = $rank;
+//         $data['seller_id'] = $seller_id;
+//         $data['page_size'] = $page_size;
+//         $data['current_page'] = $current_page;
+//         $data['end_time'] = $end_time;
+//         //功能参数
+//         $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+//         $request = new \LiliangdaErpOrderproductDataRequest();
+//         $request->setAction('querymsgrelationlist');
+//         $request->setClassName('Alimsg');
+//         $request->setModule('alimsg');
+//         $request->setClientId($this->config['client_id']);
+//         $request->setClientSecret($this->config['client_secret']);
+//         $request->setToken($this->config['token']);
+//         $request->setRequestParams(json_encode($data));
+//         return $client->execute($request);
+//     }
+//     /**
+//      * 站内信/订单留言更新处理状态
+//      * @param string $channelId 通道ID(即关系ID)
+//      * @param int $dealStat 处理状态(0未处理,1已处理)
+//      * @return array
+//      */
+//     public function updateMsgProcessed($channelId,$dealStat=1)
+//     {
+
+//         $data = [];
+//         //方法参数
+//         $data['channel_id'] = $channelId;
+//         $data['deal_stat'] = $dealStat;
+//         //功能参数
+//         $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+//         $request = new \LiliangdaErpOrderproductDataRequest();
+//         $request->setAction('updateMsgProcessed');
+//         $request->setClassName('Alimsg');
+//         $request->setModule('alimsg');
+//         $request->setClientId($this->config['client_id']);
+//         $request->setClientSecret($this->config['client_secret']);
+//         //$request->setToken($this->config['token']);
+//         $request->setToken($this->config['accessToken']);
+//         $request->setRequestParams(json_encode($data));
+
+//         $res=$client->execute($request);
+//         \think\log::write($res,"coming_yes5");
+//         return $res;
+
+//     }
+
+//     /**
+//      * 站内信/订单留言打标签
+//      * @param string $channelId 通道ID(即关系ID)
+//      * @param string $rank 标签(rank0,rank1,rank2,rank3,rank4,rank5)
+//      * @return array
+//      */
+//     public function updateMsgRank($channelId,$rank)
+//     {
+//         $url = $this->baseUrl."api.updateMsgRank/".$this->client_id;
+//         $data = [
+//             'rank'=>$rank,
+//             'channelId'=>$channelId,
+//             'access_token'=>$this->accessToken,
+//         ];
+
+//         $newResult = $this->requestAliexpress($url, $data);
+//         if(isset($newResult['result']['isSuccess'])&&$newResult['result']['isSuccess']){
+//             return ['msg'=>'','response'=>'','status'=>1];
+//         }
+//         return ['msg'=>  isset($newResult['result']['errorMsg'])?$newResult['result']['errorMsg']:'','response'=>'','status'=>0];
+//     }
+
+//     /**
+//      * 站内信/订单留言更新已读
+//      * @param string $channelId 通道ID，即关系ID
+//      * @param string $msgSources 查询类型(message_center/order_msg)
+//      * @return array
+//      */
+//     public function updateMsgRead($channelId,$msgSources)
+//     {
+//         $url = $this->baseUrl."api.updateMsgRead/".$this->client_id;
+//         $data = [
+//             'msgSources'=>$msgSources,
+//             'channelId'=>$channelId,
+//             'access_token'=>$this->accessToken,
+//         ];
+
+//         $newResult = $this->requestAliexpress($url, $data);
+//         if(isset($newResult['result']['isSuccess'])&&$newResult['result']['isSuccess']){
+//             return ['msg'=>'','response'=>'','status'=>1];
+//         }
+//         return ['msg'=>  isset($newResult['result']['errorMsg'])?$newResult['result']['errorMsg']:'','response'=>'','status'=>0];
+//     }
+
+//     /**
+//      * 回复站内信
+//      * @param $channelId
+//      * @param $msgSources
+//      * @param $buyerId
+//      * @param $content
+//      * @param $imgPath
+//      * @return array
+//      */
+//     public function addMsg($channelId,$msgSources='message_center',$buyerId,$content,$imgPath)
+//     {
+//         $url = $this->baseUrl."api.addMsg/".$this->client_id;
+//         $data = [
+//             'channelId'     =>  $channelId,
+//             'buyerId'       =>  $buyerId,
+//             'content'       =>  $content,
+//             'msgSources'    =>  $msgSources,
+//             'imgPath'       =>  $imgPath,
+//             'access_token'  =>  $this->accessToken,
+//         ];
+//         $newResult = $this->requestAliexpress($url, $data);
+//         if(isset($newResult['result']['isSuccess'])&&$newResult['result']['isSuccess']){
+//             return ['msg'=>'','response'=>'','status'=>1];
+//         }
+//         return ['msg'=>  isset($newResult['result']['errorMsg'])?$newResult['result']['errorMsg']:$newResult['error_message'],'response'=>'','status'=>0];
+//     }
+
+//     public function getAllDetails($channelId, $msgSources = 'message_center')
+//     {
+//         $page = 1;
+//         $pageSize = 20;
+//         $result = [];
+//         $data = [];
+//         do {
+//             $res = $this->queryMsgDetailList($channelId,$msgSources,$page,$pageSize);
+//             $data = $res['response'];
+//             if(!empty($data)){
+//                 $result = array_merge($result,$data);
+//                 $page++;
+//             }
+
+//         } while (count($data)==$pageSize);
+//         return $result;
+//     }
+
+// }

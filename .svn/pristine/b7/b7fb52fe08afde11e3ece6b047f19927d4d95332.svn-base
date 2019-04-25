@@ -1,0 +1,108 @@
+<?php
+namespace service\aliexpress\operation;
+
+use service\aliexpress\operation\Common;
+use org\Curl;
+
+/**
+ * Created by ZenStudio.
+ * User: Hot-Zr
+ * Date: 2017年3月20日
+ * Time: 09：25
+ * Info: 用来处理 aliexpress 运费模板的接口。
+ */
+class Freight extends Common
+{
+
+    protected $client_id;
+    protected $client_secret;
+    protected $access_token;
+    protected $refresh_token ;
+    protected $server_host = 'http://gw.api.alibaba.com/openapi/';
+    protected $namespace = '';
+    protected $name = '';
+    
+    /**
+     * 构造函数
+     */
+    public function __construct($config)
+    {
+        parent::__construct($config);
+    }
+
+    
+    /**
+     * @author hot-zr
+     * @info 设置基础属性
+     * @param unknown $arrConfig
+     * @return \service\aliexpress\operation\Postproduct
+     */
+    
+    public function setConfig($arrConfig=[])
+    {
+    	foreach ($arrConfig as $k=>$v)
+    	{
+    		$this->$k= $v;
+    	}
+    	return $this;
+    }
+    
+    /**
+     * @info 发送数据
+     * @param unknown $arrConfig
+     */
+    private function buildSend($arrData=[])
+    {
+         $urlPath = implode('/',['param2',1,$this->namespace,$this->name,$this->client_id]);
+        foreach ($arrData as &$val)
+        {
+            $val = is_array($val)?json_encode($val):$val;
+        }
+        $arrData['access_token'] = $this->accessToken;
+        //$arrData['_aop_signature'] = $this->apiSign($arrData, $urlPath,$this->client_secret);
+        $strUrl = $this->server_host.$urlPath;
+        $result = $this->requestAliexpress($strUrl,$arrData);
+        //$result = $this->curlPost($strUrl, $arrData);
+        return $result;
+    }
+    
+    /**
+     * @author hot-zr
+     * @info 用户运费模板列表信息
+     * @return array
+     */
+    public function listFreightTemplate()
+    {
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'api.listFreightTemplate';
+        return self::buildSend();
+    }
+    
+    /**
+     * @author hot-zr
+     * @info 运费计算
+     * @param 参数  $arrData
+     * @return array
+     */
+    public function calculateFreight($arrData)
+    {
+        $this->namespace = 'aliexpress.open';
+        $this->name = 'api.calculateFreight';
+        return self::buildSend($arrData);
+    }
+    
+    /**
+     * @author hot-zr
+     * @info 通过模板ID获取单个运费模板内容
+     * @param 参数  模板ID :$templateId
+     * @return array
+     */
+    public function getFreightSettingByTemplateQuery($templateId)
+    {
+    	$arrData['templateId'] = $templateId;
+    	$this->namespace = 'aliexpress.open';
+    	$this->name = 'api.getFreightSettingByTemplateQuery';
+    	return self::buildSend($arrData);
+    }
+    
+}

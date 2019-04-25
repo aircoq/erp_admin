@@ -1,0 +1,7 @@
+<?php
+namespace service\baidu\operation;
+
+class Voice extends Common
+{
+
+}

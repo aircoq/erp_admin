@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * Description of Wish
+ * @datetime 2017-5-19  15:26:24
+ * @author joy
+ */
+
+namespace command;
+use think\console\Command;
+use think\console\Input;
+use think\console\input\Option;
+use think\console\Output;
+
+
+class Ebay extends Command{
+    
+    protected function configure()
+    {
+        // 指令配置
+        $this
+        ->setName('ebay')
+        ->addOption('listing', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->addOption('item', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+			->addOption('map', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->setDescription('command entrance');
+    }
+   
+    protected function execute(Input $input, Output $output)
+    {
+
+        if ($input->getOption('listing')) 
+        {
+            $task = new \app\listing\task\EbayGetSellerList;
+        }
+
+		if ($input->getOption('item')) 
+        {
+            $task = new \app\publish\task\EbayGetListings;
+        }
+
+		if ($input->getOption('map')) {
+            $task = new \app\publish\task\GoodsPublishMapEbay;
+        } 
+        
+        if($task)
+        {
+            $task->execute();
+        }else{
+            echo 'please input start command'.PHP_EOL;
+        }
+        
+    }
+}

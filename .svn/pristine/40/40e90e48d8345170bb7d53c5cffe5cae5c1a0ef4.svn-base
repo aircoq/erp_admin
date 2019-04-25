@@ -1,0 +1,206 @@
+<?php
+namespace service\pdd;
+
+use app\common\service\PddService;
+use think\Exception;
+use think\Loader;
+use org\Curl;
+/**
+ * pdd 平台api
+ */
+class PddApi
+{
+    /**
+     * @var null
+     */
+    public $access_token;
+
+    public function __construct($access_token = '')
+    {
+        $this->access_token = $access_token;
+    }
+
+    /** 获取token
+     * @param $data
+     * @return array
+     */
+    public function getToken($data)
+    {
+        $share_params = array(
+
+            'client_id'=> $data['client_id'],
+            'client_secret'=>$data['client_secret'],
+            'code'=> $data['authorization_code'] ,
+            'grant_type'=>'authorization_code',
+            'redirect_uri'=>'https://47.90.53.65/test.php',
+            'state'=>'1212',
+        );
+        $response = Curl::curlPOST("http://open-api.pinduoduo.com/oauth/token" ,json_encode($share_params,true),$headers=['Content-Type:application/json']);
+        $result=json_decode($response,true);
+        $re['access_token']=$result['access_token']??'';
+        $re['expires_in']=$result['expires_in']??'';
+        $re['refresh_token']=$result['refresh_token']??'';
+        $re['owner_id']=$result['owner_id']??'';
+        $re['owner_name']=$result['owner_name']??'';
+        return $re;
+    }
+
+    /** 更新token
+     * @param array $data
+     * @return array
+     */
+    public function refreshToken( array$data)
+    {
+        $share_params1 = array(
+            'client_id' => $data['client_id'],
+            'client_secret' =>$data['client_secret'],
+            'grant_type'=>'refresh_token',
+            'refresh_token'=>$data['refresh_token'],
+            'state'=>'1212',
+        );
+        $response = Curl::curlPOST("https://open-api.pinduoduo.com/oauth/token" ,json_encode($share_params1,true),$headers=['Content-Type:application/json']);
+        $result=json_decode($response,true);
+        $res['access_token']=$result['access_token']??'';
+        $res['expires_in']=$result['expires_in']??'';
+        $res['refresh_token']=$result['refresh_token']??'';
+        $res['owner_id']=$result['owner_id']??'';
+        return $res;
+
+
+    }
+
+    /** 检查token是否已过期
+     * @param $data
+     * @return array|bool
+     */
+    public function checkToken($data)
+    {
+
+        if (!isset($data['token_expire_time']) && !isset($data['refresh_token'])) {
+            return false;
+        }
+        if ($data['token_expire_time'] < (time() + 24*3600)) {
+            return $this->refreshToken($data);
+        }
+        return ['state' => true];
+        //var_dump($data);die;
+    }
+
+
+
+
+    /** 请求头部信息
+     * @return resource
+     */
+    private function context()
+    {
+        $context = stream_context_create(array(
+            'http' => array(
+                'method' => 'POST',
+                'ignore_errors' => true,
+            ),
+        ));
+
+        return $context;
+    }
+
+
+    /** 获取数据
+     * @param $url
+     * @return mixed
+     */
+    public function getdata($url)
+    {
+        $result = file_get_contents($url, true, $this->context());
+        //$result = Curl::curlGet($url);
+        return json_decode($result, true);
+    }
+
+    /**
+     * 公用的请求方法
+     * @param $url
+     * @param $dir
+     * @param $filename
+     * @return bool
+     * @throws Exception
+     */
+    public function curl($url, $dir, $filename)
+    {
+        set_time_limit(0);
+        try {
+            if (!empty($dir) && !is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_URL, $url);
+            ob_start();
+            curl_exec($ch);
+            $return_content = ob_get_contents();
+            ob_end_clean();
+            curl_setopt($ch, CURLOPT_SSLVERSION, 3);
+            $return_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($return_code == 200) {
+                $fp = fopen($dir . $filename, "a"); //将文件绑定到流
+                if ($fp) {
+                    fwrite($fp, $return_content); //写入文件
+                    fclose($fp);
+                }
+            } else {
+                throw new Exception($return_code);
+            }
+            curl_close($ch);
+            //判断文件
+            if (!file_exists($dir . $filename)) {
+                throw new Exception('download files save fail,the path is '.dirname(__FILE__).',the code is' . $return_code);
+            }
+            return true;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage() . $e->getFile() . $e->getLine());
+        }
+    }
+
+    /** 请求数据
+     * @param $url
+     * @param $data
+     * @return mixed
+     */
+    public function curlPost($url, $data)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_POST, true);
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($ch);
+        $response = json_decode($response, true);
+        curl_close($ch);
+        if($response['code'] == 1016 || $response['code'] == 1015){
+            $wish = new WishService();
+            if($wish->updateToken($this->access_token)){
+                return $this->curlPost($url,$data);
+            }
+        }
+        return $response;
+    }
+
+    /**
+     * 获取标签
+     * @return [type] [description]
+     */
+    public function getTag($param)
+    {
+        $url = 'https://merchant.wish.com/api/contest-tag/search?q=' . $param;
+        $result = $this->getdata($url);
+        if ($result['code'] == 0) {
+            return $result['data'];
+        }
+    }
+
+
+}

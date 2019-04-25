@@ -1,0 +1,58 @@
+<?php
+
+namespace service\warehouse;
+
+use think\Exception;
+use app\warehouse\service\Warehouse;
+
+/**
+ * 海外仓 平台api
+ */
+class WarehouseApi
+{
+    private static $instance = null;
+
+    /**
+     * 开放接口
+     */
+    public static function instance()
+    {
+        if (is_null(self::$instance)) {
+            self::$instance = new WarehouseApi();
+        }
+
+        return self::$instance;
+    }
+
+    /**
+     * 实例化
+     * @param int $type 仓库类型
+     * @return mixed
+     * @throws Exception
+     */
+    public function loader($type)
+    {
+        try {
+            switch($type){
+                case Warehouse::TYPE_GUCANG://谷仓
+                    $api_type  = 'Gucang';
+                    break;
+                case Warehouse::TYPE_YKD://易可达
+                    $api_type  = 'YKD';
+                    break;
+                default:
+                    throw new Exception("Type parameter error", 1);
+
+            }
+            $class = __NAMESPACE__ . '\\operation\\' . ucwords($api_type);
+            if (class_exists($class)) {
+                return new $class();
+            } else {
+                throw new Exception("The api type file is not found", 1);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error Processing Request " . $e->getMessage(), 1);
+        }
+    }
+
+}

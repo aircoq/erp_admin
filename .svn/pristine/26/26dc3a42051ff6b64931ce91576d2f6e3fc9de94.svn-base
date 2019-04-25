@@ -1,0 +1,472 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use service\shipping\operation\Common;
+use org\Curl;
+use think\Exception;
+use org\Xml;
+
+/**
+ *  API Rondaful
+ */
+class Rondaful
+{
+    // 配置信息
+    private $_config = [
+        'url' => 'https://www.jatujakmall.com/api/apiservices',    //正式地址
+        'header' => [
+            'Content-type:application/json'
+        ],
+        'appToken' => '',
+        'appKey' => ''
+    ];
+
+    private $result = [
+        'data' => [],
+        'error' => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return array | void
+     */
+    private function formatHeader(array $config)
+    {
+
+        if (empty($config['client_secret']) || empty($config['accessToken'])) {
+            $this->result['error'] = [
+                'error_msg' => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['appToken'] = $config['accessToken'];
+        $this->_config['appKey'] = $config['client_secret'];
+        return true;
+    }
+
+
+    /**
+     * 渠道列表
+     * @param string $orderNumber
+     * @return $newResult : 返回所有渠道列表
+     */
+    public function getExpress($config)
+    {
+        if ($this->formatHeader($config)) {
+            $data['service'] = 'getShippingMethodInfo';
+            $data['paramsJson'] = '';//可选参数country_code国家简码 （不填代码查询所有） group_code 产品组代码
+            $data['appToken'] = $this->_config['appToken'];
+            $data['appKey'] = $this->_config['appKey'];
+            libxml_disable_entity_loader(false);
+            $client = new \SoapClient($this->_config['url']);
+            $response = $client->callService($data);
+            $response_json = json_decode($response->response, true);
+            $data = [];
+            foreach ($response_json['data'] as $k => $item) {
+                $data[$k] = [
+                    'code' => $item['code'],
+                    'name' => $item['cn_name'],
+                ];
+            }
+            $this->result['data'] = $data;
+            $this->result['success'] = true;
+        }
+        return $this->result;
+
+    }
+
+    /**
+     * SimonBelieve 提交订单到淼信
+     * @param unknown $data : 订单信息数组
+     * @return $newResult : 结果信息数组
+     */
+    public function createOrder($config, $order, $confirm = true)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $data = $order[0];
+            }
+            $this->result['number'] = $data['number'];
+            $data['number']='154186956230';
+//            $data= $this->buildData($order);
+            $channel = Cache::store('channel')->getChannelName($data['channel_id']);
+            $total=0;
+            $temp = [];
+            foreach ($data['declared_info'] as $k => $declared) {
+                $total+=number_format($declared['qty']*$declared['declared_value'], 1);
+            }
+            foreach ($data['declared_info'] as $k => $declared) {
+                $temp['functionName']='Order';
+                $referenceID = isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number'] : $data['number'];
+                $temp['JsonRequest']=json_encode([
+                    "OrderId"=>$referenceID,
+                    "CustomerFistName"=>$data['name'],
+                    "CustomerLastName"=>$data['name'],
+                    "OrderDate"=> gmdate("Y-m-d\TH:i:s",time()),
+                    "ChanelName"=>$channel,
+                    "ShippingChannelName"=>$data['shipping_name'],
+                    "ShippingCost"=>$data['shipping_fee'],
+                    "SubChanelName"=>'GiftShop',
+                    "ProductSKU"=>$declared['sku'],
+                    "ProductName"=>$declared['declared_name_en'],
+                    "ProductPrice"=>number_format($declared['declared_value'], 1),
+                    "ProductQuantity"=>$declared['qty'],
+                    "TotalProductItemCost"=>number_format($declared['declared_value'], 1)*$declared['qty'],
+                    "OrderTotal"=>$total,
+                    "BillingFistName"=> $data['name'],
+                    "BillingLastName"=> $data['name'],
+                    "BillingAddress"=>$data['street']. $data['street2'],
+                    "BillingCity"=>$data['city'],
+                    "BillingStateProvince"=>$data['province'],
+                    "BillingCountry"=> $data['country_name'],
+                    "BillingZipPostalCode"=>$data['zip'],
+                    "BillingPhoneNo"=>!empty($data['phone'])?$data['phone']:$data['tel'],
+                    "ShippingFistName"=> $data['sender']['sender_name'],
+                    "ShippingLastName"=> $data['sender']['sender_name'],
+                    "ShippingAddress"=>$data['sender']['sender_state'],
+                    "ShippingCity"=> $data['sender']['sender_city'],
+                    "ShippingStateProvince"=>$data['sender']['sender_state'],
+                    "ShippingCountry"=> $data['sender']['sender_country'],
+                    "ShippingZipPostalCode"=> $data['sender']['sender_zipcode'],
+                    "ShippingPhoneNo"=>$data['sender']['sender_phone']
+                ]);
+                var_dump($temp);die;
+                $result=json_encode($temp);
+
+                $responseXml = Curl::curlPost($this->_config['url'], $result,$this->_config['header']);
+
+            }
+            var_dump($responseXml);die;
+
+            die;
+//            $response_data = json_decode($responseXml, true);
+            $responseXml = Curl::curlPost($this->_config['url'], $param,$this->_config['header']);
+            var_dump($responseXml);die;
+            //日志记录
+            $arr_log = [
+                'url' => $this->_config['url'],
+                'header' => '',
+                'request' => $data,
+                'response' => $responseXml
+            ];
+
+            $track_status = ['1' => '已产生跟踪号', '2' => '等待后续更新跟踪号', '3' => '不需要跟踪号'];
+            if (is_array($response_data) && $response_data['ask'] == 'Success') {
+                $this->result['data']['number'] = $response_data['reference_no'];                            // 客户参考号
+                $this->result['data']['package_code'] = $response_data['order_code'];                              // 运单号
+                $this->result['data']['trackingNumber'] = '';   // 跟踪号
+                $this->result['data']['has_trackingNumber'] = (isset($response_data['track_status']) && !empty($response_data['track_status'])) ? $track_status[$response_data['track_status']] : '';                           // 是否有跟踪号
+                $this->result['data']['confirm'] = true;                               // 是否交运
+                $this->result['data']['label'] = true;                              // 是否有pdf
+                $this->result['data']['label_url'] = '';                              // 是否有pdf
+                $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                $this->result['success'] = true;
+                Cache::store('LogisticsLog')->setLogisticsData($this->result['number'], $order['shipping_id'], $this->result['data']);
+            } else {
+                if (isset($response_data['Error']) && strstr(param($response_data['Error'], 'errMessage'), '参考单号已存在')) {
+                    $repeat_data = Cache::store('LogisticsLog')->getLogisticsData($this->result['number'], $order['shipping_id']);
+                    if ($repeat_data && param($repeat_data, 'package_code')) {
+                        $this->result['data']['number'] = $repeat_data['number'];                            // 客户参考号
+                        $this->result['data']['package_code'] = $repeat_data['package_code'];                              // 运单号
+                        $this->result['data']['trackingNumber'] = '';   // 跟踪号
+                        $this->result['data']['has_trackingNumber'] = param($repeat_data, 'track_status');                           // 是否有跟踪号
+                        $this->result['data']['confirm'] = true;                               // 是否交运
+                        $this->result['data']['label'] = true;                              // 是否有pdf
+                        $this->result['data']['label_url'] = '';                              // 是否有pdf
+                        $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                        $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                        $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                        $this->result['success'] = true;
+                        return $this->result;
+                    }
+                }
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log, true);
+                $this->result['error'] = [
+                    'error_msg' => isset($response_data['Error']['errMessage']) ? urldecode($response_data['Error']['errMessage']) : '未知错误',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 删除订单(目前无效)
+     * @param number $orderId
+     * @param string $customerId
+     */
+    public function cancel($config, $order)
+    {
+        if ($this->formatHeader($config)) {
+            $params = ['reference_no' => [$order['number']]];
+            $data['paramsJson'] = json_encode($params);
+            $data['appToken'] = $this->_config['appToken'];
+            $data['appKey'] = $this->_config['appKey'];
+            $data['service'] = 'cancelOrder';
+            libxml_disable_entity_loader(false);
+            $client = new \SoapClient($this->_config['url']);
+            $responseJson = $client->callService($data);
+            $response_json = obj2Array($responseJson);
+            $response = json_decode($response_json['response'], true);
+            // 处理响应内容
+            if (is_array($response)) {
+                if ($response['ask'] == 'Success') {
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_code' => 1,
+                        'error_msg' => $response['message']
+                    ];
+                }
+            } else {
+                $this->result['error'] = [
+                    'error_msg' => '网络错误,连接不上服务器',
+                    'error_code' => 1
+                ];
+            }
+        }
+
+        return $this->result;
+    }
+
+
+    /**
+     * 获取跟踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getTrackingNumber($config, $order)
+    {
+        $this->result['number'] = $order['number'];
+        try {
+            if ($order['package_upload_status'] <= 0) {
+                $this->result['error'] = [
+                    'error_msg' => '包裹未下单!',
+                    'error_code' => 1
+                ];
+                return $this->result;
+            }
+            if ($this->formatHeader($config)) {
+                $params = ['reference_no' => ["{$order['number']}"]];
+                $data['paramsJson'] = json_encode($params);
+                $data['appToken'] = $this->_config['appToken'];
+                $data['appKey'] = $this->_config['appKey'];
+                $data['service'] = 'getTrackNumber';
+                libxml_disable_entity_loader(false);
+                $client = new \SoapClient($this->_config['url']);
+                $responseJson = $client->callService($data);
+                //日志记录
+                $arr_log = [
+                    'url' => $this->_config['url'],
+                    'header' => '',
+                    'request' => $data,
+                    'response' => $responseJson
+                ];
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log, true);
+                $response_json = obj2Array($responseJson);
+                $response = json_decode($response_json['response'], true);
+                if (isset($response['ask']) && !empty($response['data']) && $response['ask'] == 'Success') {
+                    $this->result['data']['trackingNumber'] = $response['data'][0]['TrackingNumber'];
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => isset($response['Error']['message']) ? $response['Error']['message'] : '未知错误',
+                        'error_code' => 1
+                    ];
+                }
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        try {
+            $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number'] : $order['number'];
+            if ($this->formatHeader($config)) {
+                $params = [
+                    'reference_no' => "$referenceID",
+                    'label_type' => '1',
+                    'label_content_type' => '4'
+                ];
+                $commitData['paramsJson'] = json_encode($params);
+                $commitData['appToken'] = $this->_config['appToken'];
+                $commitData['appKey'] = $this->_config['appKey'];
+                $commitData['service'] = 'getLabelUrl';
+                libxml_disable_entity_loader(false);
+                $client = new \SoapClient($this->_config['url']);
+                $responseJson = $client->callService($commitData);
+                $response_json = obj2Array($responseJson);
+                $response = json_decode($response_json['response'], true);
+                // 处理响应内容
+                if (is_array($response)) {
+                    if (isset($response['ask']) && $response['ask'] == 'Success') {
+                        $responseString = Curl::curlGet($response['url']);
+                        if (strpos($responseString, '%PDF') === false) {
+                            throw new Exception('面单下载失败');
+                        }
+                        $service = new PackageLabelFileService();
+                        $label_url = $service->uploadLabelFile($order['number'], base64_encode($responseString), 'pdf');
+                        $this->result['data']['src'] = $label_url;
+                        $this->result['data']['type'] = 'pdf';
+                        $this->result['success'] = true;
+                    } else {
+                        $this->result['error'] = [
+                            'error_code' => 1,
+                            'error_msg' => $response['errMessage']
+                        ];
+                    }
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => '网络错误,连接不上服务器',
+                        'error_code' => 1
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+    public function buildData($data)
+    {
+        $channel = Cache::store('channel')->getChannelName($data['channel_id']);
+        $total=0;
+        $temp = [];
+        foreach ($data['declared_info'] as $k => $declared) {
+            $temp['functionName']='Order';
+            $total+=number_format($declared['qty']*$declared['declared_value'], 1);
+            $referenceID = isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number'] : $data['number'];
+            $temp['JsonRequest']=json_encode([
+                    "OrderId"=>$referenceID,
+                    "CustomerFistName"=>$data['name'],
+                    "CustomerLastName"=>$data['name'],
+                    "OrderDate"=> gmdate("Y-m-d\TH:i:s",time()),
+                    "ChanelName"=>$channel,
+                    "SubChanelName"=>'GiftShop',
+                    "ProductSKU"=>$declared['sku'],
+                    "ProductName"=>$declared['declared_name_en'],
+                    "ProductPrice"=>number_format($declared['declared_value'], 1),
+                    "ProductQuantity"=>$declared['qty'],
+                    "TotalProductItemCost"=>number_format($declared['declared_value'], 1)*$declared['qty'],
+                    "OrderTotal"=>$total,
+                    "BillingFistName"=> $data['name'],
+                    "BillingLastName"=> $data['name'],
+                    "BillingAddress"=>$data['street']. $data['street2'],
+                    "BillingCity"=>$data['city'],
+                    "BillingStateProvince"=>$data['province'],
+                    "BillingCountry"=> $data['country_name'],
+                    "BillingZipPostalCode"=>$data['zip'],
+                    "BillingPhoneNo"=>!empty($data['phone'])?$data['phone']:$data['tel'],
+                    "ShippingFistName"=> $data['sender']['sender_name'],
+                    "ShippingLastName"=> $data['sender']['sender_name'],
+                    "ShippingAddress"=>$data['sender']['sender_state'],
+                    "ShippingCity"=> $data['sender']['sender_city'],
+                    "ShippingStateProvince"=>$data['sender']['sender_state'],
+                    "ShippingCountry"=> $data['sender']['sender_country'],
+                    "ShippingZipPostalCode"=> $data['sender']['sender_zipcode'],
+                    "ShippingPhoneNo"=>$data['sender']['sender_phone']
+            ]);
+        }
+        $result=json_encode($temp);
+        return $result;
+    }
+
+    public function getCargoTrack($config, $order)
+    {
+        try {
+
+            if ($this->formatHeader($config)) {
+                $params = ['codes' => [$order['shipping_number']]];
+                $data['paramsJson'] = json_encode($params);
+                $data['appToken'] = $this->_config['appToken'];
+                $data['appKey'] = $this->_config['appKey'];
+                $data['service'] = 'getCargoTrack';
+                libxml_disable_entity_loader(false);
+                $client = new \SoapClient($this->_config['url']);
+                $responseJson = $client->callService($data);
+                $response_json = obj2Array($responseJson);
+                $response = json_decode($response_json['response'], true);
+                if (isset($response['ask']) && !empty($response['Data']) && $response['ask'] == 'Success') {
+                    $this->result['data'] = $response['Data'][0]['Status'];
+                    $this->result['success'] = true;
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => isset($response['Error']) ? $response['Error'] : '未知错误',
+                    ];
+                }
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+
+    }
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageStatus($config, $order)
+    {
+        /*$config = [
+            'accessToken' => '9d1f4e77080b31ce430f8d9ff7b05466',
+            'client_secret' => '9d1f4e77080b31ce430f8d9ff7b054660e86b79b347a14a47661858778802888'
+        ];*/
+        $this->result['number'] = $order['number'];
+        $result = $this->getCargoTrack($config, $order);
+        $status = ['DF', 'ND', 'CC'];
+        if ($result['success']) {
+            $this->result['data'] = [
+                'is_send' => in_array($result['data'],$status) ? true : false
+            ];
+        }
+        return $this->result;
+    }
+
+}

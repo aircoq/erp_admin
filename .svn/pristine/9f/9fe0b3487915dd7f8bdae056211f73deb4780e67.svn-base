@@ -1,0 +1,33 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-20
+ * Time: 下午7:11
+ */
+namespace rpc;
+
+use Hprose\Filter;
+use stdClass;
+
+class CallCount implements Filter
+{
+    private $module;
+    public function __construct($module)
+    {
+        $this->module = $module;
+    }
+    public function inputFilter($data, stdClass $context)
+    {
+//        error_log("inputFilter");
+//        error_log(var_export(json_decode($data), true));
+//        error_log(var_export($context->name, true));
+        return $data;
+    }
+
+    public function outputFilter($data, stdClass $context)
+    {
+        return $data;
+    }
+
+}

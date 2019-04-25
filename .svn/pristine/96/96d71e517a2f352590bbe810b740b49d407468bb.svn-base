@@ -1,0 +1,32 @@
+<?php
+// +----------------------------------------------------------------------
+// | 163邮箱
+// +----------------------------------------------------------------------
+// | File  : Provider163.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-19
+// +----------------------------------------------------------------------
+
+namespace imap\provider;
+
+use imap\EmailAccount;
+
+class Provider163 extends  AbsProvider
+{
+
+    protected $server = 'imap.163.com';
+    protected $imapSsLPort = 993;
+    protected $smtpPort = 25;
+    protected $smtpServer = 'smtp.163.com';
+
+    /**
+     * @see AbsProvider::getLoginPwd()
+     */
+    public function getLoginPwd()
+    {
+        return $this->account->getAuthorizationCode();
+    }
+}
+

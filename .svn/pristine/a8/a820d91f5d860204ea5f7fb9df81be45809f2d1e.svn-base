@@ -1,0 +1,215 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-26
+ * Time: 下午9:40
+ */
+
+namespace app\common\service;
+
+
+use app\common\cache\Cache;
+use app\common\cache\driver\Queuer;
+use app\common\cache\driver\QueuerLog;
+use app\common\exception\QueueException;
+use app\common\interfaces\QueueJob;
+//use think\exception\ClassNotFoundException;
+use app\common\model\Queue as QueueModel;
+
+abstract class SwooleQueueJob implements QueueJob
+{
+    /**
+     * @doc 优先级-高
+     */
+    const PRIORITY_HEIGHT = 10;
+
+    /**
+     * @doc 优先级-中
+     */
+    const PRIORITY_MIDDLE = 5;
+
+    /**
+     * @doc 优先级-低
+     */
+    const PRIORITY_LOW = 0;
+    /**
+     * @doc 失败最大重新处理次数
+     * @var int
+     */
+    protected $maxFailPushCount = 10;
+
+    /**
+     * @doc 每次task执行队列消费最大次数
+     * @var int
+     */
+    protected static $maxRunnerCount = 100;
+
+    /**
+     * @doc 队列优先级
+     * @var int
+     */
+    protected static $priority = self::PRIORITY_MIDDLE;
+
+    
+    public function getMaxFailPush()
+    {
+    	return $this->maxFailPushCount;
+    }
+    
+    public static function getMaxRunner()
+    {
+    	return static::$maxRunnerCount;
+    }
+    
+    /**
+     * @doc 获取优先级，越大越高！
+     * @return int
+     */
+    public static function getPriority()
+    {
+        return static::$priority;
+    }
+
+    /**
+     * @var int 每次消费最大时长s, 0为无限
+     */
+    protected static $timeout = 3600;//默认1小时
+
+    public static function getTimeout()
+    {
+        return static::$timeout;
+    }
+
+    /**
+     * @doc 失败时下次处理秒数
+     * @var int
+     */
+    protected $failExpire = 10;
+
+    protected $params;
+    public final function __construct($params)
+    {
+        $this->params = $params;
+        $this->init();
+    }
+
+    //同进程，只调用一次
+    protected function init()
+    {
+
+    }
+
+    protected function getKey()
+    {
+        return static::class;
+    }
+
+    public final static function jobInfo($boolean = true, $tableData = null):array
+    {
+        $jober = new static(null);
+        $queue = $jober->getKey();
+        /**
+         * @var $cache Queuer
+         */
+        $cache = Cache::store('queuer');
+        if ($boolean) {
+            $elements = $cache->members($queue);
+            $tasks = $cache->doQueue($queue);
+            $elements = array_map(function($element)use($cache, $queue) {
+                $element = unserialize($element);
+                $count = $cache->failCount($queue, $element);
+                return ['element' => $element, 'count' => $count];
+            }, $elements);
+        } else {
+            $elements = [];
+            $tasks = [];
+        }
+        return [
+            'key'	=> $queue,
+            'name'	=> $jober->getName(),
+            'desc'	=> $jober->getDesc(),
+            'author'=> $jober->getAuthor(),
+            'type'	=> 'swoole',
+            'hosttype'	=> $tableData['host_type'] ?? QueueModel::get(['queue_class' => class2path($queue)])->host_type,
+            'elements'	=> $elements,
+            'length'	=> $cache->membersLength($queue),
+            'timers'	=> $cache->timers($queue),
+            'priority'	=> $jober->getPriority(),
+            'maxTask'	=> static::swooleTaskMaxNumber(),
+            'tasks'		=> $tasks,
+            'status'	=> !$cache->isStopSwooleQueue($queue)
+        ];
+    }
+
+    /**
+     * 队列消费task进程数
+     */
+    const SWOOLE_TASK_MAX_NUMBER = "swooleTaskMaxNumber";
+    public static function swooleTaskMaxNumber():int
+    {
+        return 1;
+    }
+
+    public abstract function execute();
+
+    //每次消费都会提前调用这个函数
+    public function beforeExec(){
+        return true;
+    }
+
+    //每次消费后都会调用这个函数
+    public function afterExec(){
+        return true;
+    }
+
+    public function getFailExpire()
+    {
+        return $this->failExpire;
+    }
+
+    public function setParams($params)
+    {
+        $this->params = $params;
+    }
+    /**
+     * @param $queuer
+     * @param $params
+     * @return $this
+     * @throws QueueException
+     */
+    public static function createQueuer($queuer, $params)
+    {
+        return new $queuer($params);
+    }
+
+    /**
+     * @doc 队列处理失败的回调
+     * @param $failCount
+     * @param $exception
+     * @return bool true 为重新压入队列下次再处理,false
+     */
+    public function catchException($failCount, $exception) :bool
+    {
+        //
+        if($failCount <= $this->maxFailPushCount){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public static function canNext($curCount, $maxCount = false)
+    {
+        return  $curCount <= ($maxCount ?: static::$maxRunnerCount);
+    }
+
+    protected function recordLog($element, $type, $result)
+    {
+        /**
+         * @var $log QueuerLog
+         */
+        $log = Cache::store('queuerLog');
+        $log->recordLog($this->getKey(), $element, $type, $result);
+    }
+}

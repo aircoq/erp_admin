@@ -1,0 +1,265 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-2
+ * Time: 下午4:14
+ */
+
+namespace app\common\service;
+
+
+use app\common\cache\Cache;
+use app\common\cache\driver\QueuerLog;
+use app\common\exception\QueueAfterDoException;
+use app\common\exception\QueueException;
+use app\common\interfaces\QueueJob;
+//use app\listing\queue\WishListingJobStatus;
+use think\Config;
+use think\Db;
+use think\Error;
+use think\exception\ClassNotFoundException;
+use think\exception\ErrorException;
+use think\exception\PDOException;
+
+class SwooleQueueWorker
+{
+    /**
+     * @var \app\common\cache\driver\Queuer
+     */
+    private $cache;
+
+    private $catchOther = null;
+
+    /**
+     * @var QueuerLog
+     */
+    private $cacheLog;
+
+    /**
+     * @var SwooleQueueJob
+     */
+    private $jober;
+    public $currentParams;
+    public $currentQueuer;
+    public $queueAttr;
+    public function __construct($queueAttr = null)
+    {
+        $this->cache = Cache::store('queuer');
+        $this->cacheLog = Cache::store('queuerLog');
+        $this->currentQueuer = null;
+        $this->currentParams = null;
+        $this->catchOther = false;
+        $this->queueAttr = $queueAttr;
+    }
+
+    public function reset()
+    {
+        //$this->cache->clearTasks();
+        //$this->cache->clearDoQueues();
+        //$this->cache->restWaitQueue();
+    }
+
+    public function failReset($hosttype)
+    {
+    	$this->cache->resetFailToQueues($hosttype);
+    }
+
+    public function queueTimer($hosttype)
+    {
+    	$this->cache->allTimerTick($hosttype);
+    }
+
+    public function getWorkers()
+    {
+        return $this->cache->getSwooleWorkers();
+    }
+
+    public function getWorkersByPriority($hostType)
+    {
+    	return $this->cache->getQueueByHostType($hostType, false);
+        //$workers = $this->getWorkers();
+        //array_multisort($workers, SORT_DESC);
+        //return $workers;
+    }
+
+    public function isStopWorker($queue)
+    {
+        return $this->cache->isStopSwooleQueue($queue);
+    }
+    
+    public function getQueueAttribute($queue)
+    {
+    	return $this->cache->getQueueAttribute($queue);
+    }
+
+    public function getQueuerLength($queue)
+    {
+    	return $this->cache->queueLength($queue);
+    }
+    
+    public function getHashLength($queue)
+    {
+    	return $this->cache->membersLength($queue);
+    }
+
+    public function queueTaskUsedCount($queuer, $used = 0)
+    {
+        return $this->cache->doQueue($queuer, $used);
+    }
+    
+    public function getQueueTimeout($queuer)
+    {
+        return $queuer::getTimeout();///$this->cache->getTimeout($queuer) ?? 
+    }
+    
+    public function getQueuerConsuming($taskId, $hosttype)
+    {
+    	return $this->cache->taskGets($taskId, $hosttype);
+    }
+
+    public function pop($queuer)
+    {
+        if ($type = $this->getQueueType($queuer)) {
+            $queue = new $type($queuer);
+            return $queue->pop();
+        } else {
+            return false;
+        }
+    }
+
+    private $tempQueueTypes = [];
+    private function getQueueType($queuer)
+    {
+        $this->tempQueueTypes[$queuer] = $this->tempQueueTypes[$queuer] ?? $this->cache->getQueue($queuer);
+        return $this->tempQueueTypes[$queuer];
+    }
+
+
+    /**
+     * @param $taskId integer
+     * @param $queuer
+     * @return bool
+     */
+    public function execQueuer($taskId, $queuer, $hosttype)
+    {
+        $params = $this->pop($queuer);
+        $this->currentQueuer = $queuer;
+        $this->currentParams = $params;
+        if ($params) {
+            //globalEarse("queueRunLog");
+            $time = microtime(true);
+            $isDelayed = false;
+            try {
+                //$timeout = $this->getQueueTimeout($queuer);
+                //$waitClear = set_swoole_timeout($timeout, [$queuer, $params]);
+                if (!$this->catchOther) {
+                    $this->catchOther = true;
+                    set_error_handler(function ($errNo, $errStr, $errFile, $errLine){
+                        if(!empty($this->currentQueuer) && !empty($this->currentParams) && $errLine){
+                            //echo "error: $errFile $errLine $errStr \n";
+                            //$errorMsg = $this->processCatch(new ErrorException(1, $errStr, $errFile, $errLine), $queuer, $params);
+                            $errorMsg = "execQueuer();file:$errFile;line:$errLine;no:$errNo;str:$errStr";
+                            $log = \app\common\cache\Cache::store('queuerLog');
+                            $log->recordLog($this->currentQueuer, $this->currentParams, QueueJob::LOG_TYPE_EXCEPTION, $errorMsg);
+                        }
+                    });
+                }
+                $this->cache->taskSet($taskId, $queuer, $params, $hosttype);
+                $this->jober = $this->jober ?? new $queuer(null);
+                $this->jober->setParams($params);
+                $this->jober->beforeExec();
+                $this->jober->execute();
+                $this->jober->afterExec();
+                $this->cache->removeFailCount($queuer, $params);
+                $now = microtime(true);
+                $result = 'ok:消费耗时：'. round($now - $time, 3) .'s';
+                //$globalLogs = globalGet("queueRunLog");
+                //$logs = join('; ', $globalLogs);
+                //$result .="\n$logs";
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_OK, $result);
+            } catch (ClassNotFoundException $exception) {
+                $result = "exp:{$exception->getMessage()};file:{$exception->getFile()};line:{$exception->getLine()}";
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_ERROR, $result);
+            }catch (QueueAfterDoException $exception){
+                $isDelayed = true;
+                $result = $this->processAfter($queuer, $params, $exception->getAfterDo(), $exception->getMessage(), $hosttype);
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_EXCEPTION, $result);
+            } catch (QueueException $exception) {
+            	$result = $this->processCatch($exception, $queuer, $params, $hosttype);
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_EXCEPTION, $result);
+            } catch (\PDOException $exception) {
+            	$result = $this->processCatch($exception, $queuer, $params, $hosttype);
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_EXCEPTION, $result);
+            } catch (PDOException $exception) {
+                Db::setGlobalForce(getmypid());
+                $result = $this->processCatch($exception, $queuer, $params, $hosttype);
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_EXCEPTION, $result);
+            } catch (ErrorException $exception) {
+            	$result = $this->processCatch($exception, $queuer, $params, $hosttype);
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_EXCEPTION, $result);
+            } catch (\Error $error) {
+            	$result = $this->processCatch($error, $queuer, $params, $hosttype);
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_ERROR, $result);
+            } catch (\Throwable $error) {
+            	$result = $this->processCatch($error, $queuer, $params, $hosttype);
+                $this->cacheLog->recordLog($queuer, $params, QueueJob::LOG_TYPE_ERROR, $result);
+            } finally {
+                //$waitClear();
+                $this->cache->remWaitQueue($queuer, $params, $isDelayed);
+                $this->cache->taskDel($taskId, $queuer, $hosttype);
+                static::log($taskId, $queuer, $params, $result);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public static function log($taskId, $queuer, $params, $result, $ForceLog = false)
+    {
+        if ($ForceLog || Config::get('swoole.queue_log')) {
+            $path = Config::get('swoole.queue_log_path') ?: LOG_PATH . 'swoole';
+            $ymd = now('Y-m-d');
+            $logFileHandle = fopen($path . "/queue-$ymd.log", 'a');
+            $params = var_export($params, true);
+            $now = now();
+            fwrite($logFileHandle, "time:$now; taskId:$taskId; queuer:$queuer; params:$params; result:$result\n");
+        }
+    }
+
+    private function processAfter($queuer, $params, $after, $afterReason, $hosttype)
+    {
+    	$this->waitNextPush($queuer, $after, $params, $hosttype);
+        return $afterReason."; 延迟时长：{$after}ms";
+    }
+
+    private function processCatch(\Throwable $exception, $queuer, $params, $hosttype)
+    {
+        $result = "exp:{$exception->getMessage()};file:{$exception->getFile()};line:{$exception->getLine()}";
+        $failCount = $this->cache->failCount($queuer, $params, 1);
+        $retry = isset($this->queueAttr['fail_times']) ? $failCount <= $this->queueAttr['fail_times'] : $this->jober->catchException($failCount, $exception);
+        if ($retry) {
+            $expire = $this->jober->getFailExpire();
+            $this->waitNextPush($queuer, $expire, $params, $hosttype);
+            $result .= ";等待后续再次处理";
+        } else {
+            $this->cache->removeFailCount($queuer, $params);
+            $result .= ";失败，不会再处理";
+        }
+        return $result;
+    }
+
+    /**
+     * @doc 压入等待队列
+     * @param $queuer
+     * @param $expire
+     * @param $element
+     */
+    private function waitNextPush($queuer, $expire, $element, $hosttype)
+    {
+        $element = serialize($element);
+        $this->cache->addFailZset($queuer, $expire + time(), $element, $hosttype);
+    }
+
+}

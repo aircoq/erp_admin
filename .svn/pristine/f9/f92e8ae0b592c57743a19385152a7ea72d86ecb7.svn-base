@@ -1,0 +1,36 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: 
+ * Date: 18-12-17
+ * Time: 下午16:26
+ */
+
+namespace swoole\cmd;
+
+
+use swoole\SwooleCmd;
+use swoole\SwooleCmdResult;
+
+class SetTableQueue extends SwooleCmd
+{
+    public  function execute(\swoole_websocket_server $server): SwooleCmdResult
+    {
+        $result = new SwooleCmdResult($this);
+        if(isset($this->data['queuer']) && isset($this->data['count'])){
+            $queuer = $this->data['queuer'];
+            if($server->tableQueue->exist($queuer)){
+                $opRes = $server->tableQueue->set($queuer, ['count' => $this->data['count']]);
+                $currentCount = $server->tableQueue->get($queuer, 'count');
+                $result->setResult('count:'. $currentCount);
+            }else{
+                $result->setCode('fail');
+                $result->setResult('Queue does not exist');
+            }
+        }else{
+            $result->setCode('fail');
+            $result->setResult('missing parameters');
+        }
+        return $result;
+    }
+}

@@ -1,0 +1,62 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-4-24
+ * Time: 下午5:02
+ */
+
+namespace command;
+
+
+use app\cli\serve\TaskExecuter;
+use app\common\exception\TaskException;
+use app\common\service\DataToObjArr;
+use app\index\service\TaskScheduler;
+use think\console\Command;
+use think\console\Input;
+use think\console\input\Option;
+use think\console\Output;
+use think\exception\ErrorException;
+
+class Task extends Command
+{
+    /**
+     * 配置cmd 命令参数
+     * @see \think\console\Command::configure()
+     */
+    protected function configure()
+    {
+        // 指令配置
+        $this
+            ->setName('task')
+            ->addOption('workerid', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+            ->addOption('taskinfo', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+            ->setDescription('command entrance');
+    }
+
+    /**
+     * 根据传值执行相应类下的方法（计划任务使用）
+     * @see \think\console\Command::execute()
+     */
+    protected function execute(Input $input, Output $output)
+    {
+        if($workerid   = $input->getOption('workerid')){
+            TaskScheduler::runWorker($workerid);
+        }
+        if($taskinfo = $input->getOption('taskinfo')){
+            $taskinfo = json_decode($taskinfo);
+            $params = new DataToObjArr($taskinfo->params);
+            $task = $taskinfo->task;
+            $before = millisecond();
+            TaskExecuter::executeTask(new $task, $params);
+            $mill = millisecond() - $before;
+            $output->writeln("执行时长：{$mill} ms");
+        }
+
+    }
+
+    protected function execute2(Input $input, Output $output){
+        $workerId = $input->getOption('worker');
+    }
+}

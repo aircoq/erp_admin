@@ -1,0 +1,408 @@
+<?php
+
+namespace PaypalClient;
+
+use app\common\cache\Cache;
+use app\common\model\paypal\PaypalAccount as PaypalAccountModel;
+use app\common\model\paypal\PaypalAccount;
+use think\Exception;
+
+class PayPalRestBase
+{
+
+    /** @var string 取授权的用户名 */
+    protected $client_id = '';
+
+    /** @var string 取授权的密友 */
+    protected $secret = '';
+
+    /** @var string 授权token直接可以和来访问 */
+    protected $access_token = '';
+
+    /** @var int 过期时间 */
+    protected $token_expires = 0;
+
+    /** @var string paypalApi域名 */
+    protected $paypal_url = 'https://api.paypal.com';
+
+    protected $account = [];
+
+    protected $account_id = 0;
+
+    protected $account_name = '';
+
+    protected $lock = null;
+
+    function __construct($account_id)
+    {
+        $account = PaypalAccount::get($account_id);
+        if(!$account)
+        {
+            throw new Exception("payal账号不存在");
+        }
+        $account = $account->toArray();
+        if (empty($account['rest_client_id']) || empty($account['rest_secret'])) {
+            throw new Exception('Paypal帐号RESTFULL授权信息不完整，缺少client_id或secret');
+        }
+        if (empty($account['id'])) {
+            throw new Exception('Paypal帐号信息不完整，调用接口时缺少自增ID，无法更新数据缓存信息');
+        }
+        $this->account = $account;
+        $this->account_id = $account['id'];
+        $this->account_name = $account['account_name'];
+
+        $this->client_id = $account['rest_client_id'];
+        $this->secret = $account['rest_secret'];
+
+        $this->access_token = $account['access_token'];
+        $this->token_expires = $account['token_expires'];
+
+        $this->lock = Cache::store('lock');
+    }
+
+    public function getClientId()
+    {
+        return $this->account_id;
+    }
+
+    public function getAccessToken($refresh = false)
+    {
+        //有限期时间小于当前时间20分种，则需要重新获取
+        if (empty($this->access_token) || $this->token_expires < time() - 20 * 60 || $refresh) {
+            $this->_getAccessToken();
+        }
+        return $this->access_token;
+    }
+
+
+    public function authCall($url, $data, $method = 'GET', &$code = 0, $timeout = 480, $recursion = 1, $content_type = '')
+    {
+        $access_token = $this->getAccessToken();
+        $header['Content-Type'] = 'application/json';
+        if (!empty($content_type)) {
+            $header['Content-Type'] = $content_type;
+        }
+        $header['Authorization'] = 'Bearer ' . $access_token;
+        $extra['header'] = $header;
+        $extra['timeout'] = $timeout;
+
+        $newurl = $url;
+        if (strpos($url, $this->paypal_url) === false) {
+            $newurl = $this->paypal_url. $url;
+        }
+
+        $method = strtoupper($method);
+        if ($method == 'POST' && is_array($data)) {
+            $newdata = http_build_query($data);
+        } else {
+            $newdata = $data;
+        }
+
+        $result = $this->httpReader($newurl, $method, $newdata, $extra, $responseHeader, $code);
+        $result = is_string($result) && $result?json_decode($result, true):[];
+        if(isset($result['debug_id']))
+        {
+            return $result;
+        }
+        if (!empty($result['name']) && $result['name'] === 'AUTHENTICATION_FAILURE') {
+            if ($recursion <= 0) {
+                throw new Exception('授权访问错误：AUTHENTICATION_FAILURE');
+            } else {
+                $recursion--;
+                //token报错，强制刷新一下token
+                $this->getAccessToken(true);
+                $result = $this->authCall($url, $data, $method, $code, $timeout, $recursion, $content_type);
+            }
+        } else if (!empty($result['error']) && $result['error'] === 'invalid_token') {
+            if ($recursion <= 0) {
+                throw new Exception('授权访问错误：invalid_token');
+            } else {
+                $recursion--;
+                //token报错，强制刷新一下token
+                $this->getAccessToken(true);
+                $result = $this->authCall($url, $data, $code, $method, $timeout, $recursion, $content_type);
+            }
+        } else if (!empty($result['error'])) {
+            throw new Exception($result['error']);
+        } else if (!empty($result['name'])) {
+            throw new Exception($result['name']);
+        }
+        return $result;
+    }
+
+
+    private function _getAccessToken($max_request = 3)
+    {
+        //记录当前请求时间
+        $request_time = time();
+
+        //每一个PAYPAL的这两参数是唯一的，所以用来加锁可以区分是哪一个帐号；
+        $lockparams['userpwd'] = $this->client_id. ':'. $this->secret;
+        if ($this->lock->lockParams($lockparams, true, 60)) {
+
+            //进锁后先查询一下缓存里，看是否是别人解锁后，这里再进去的；
+            $accountCache = Cache::store('PaypalAccount');
+            $newAccount = $accountCache->getAccountById($this->account_id);
+
+            //经过这五个判断，可以证明进锁是别的进程刚授权并解锁的，可以直接拿出去用；
+            if (
+                !empty($newAccount['access_token']) &&
+                $newAccount['access_token'] != $this->access_token &&
+                !empty($newAccount['token_expires']) &&
+                $newAccount['token_expires'] > $this->token_expires &&
+                $newAccount['token_expires'] > $request_time
+            ) {
+                //从新数据附值；
+                $this->access_token = $newAccount['access_token'];
+                $this->token_expires = $newAccount['token_expires'];
+
+                //更新完了解锁；
+                $this->lock->unlockParams($lockparams);
+                return true;
+            }
+
+
+            //授权地址；
+            $url = $this->paypal_url . '/v1/oauth2/token';
+
+            $data['grant_type'] = 'client_credentials';
+            $postData = http_build_query($data);
+
+            //头部，请求格式和语言；
+            $header['Accept'] = 'application/json';
+            $header['Accept-Language'] = 'en_US';
+
+            $extra['header'] = $header;
+            $extra['timeout'] = 60;
+            $extra['userpwd'] = $lockparams['userpwd'];
+
+            try {
+                $result = $this->httpReader($url, 'POST', $postData, $extra);
+            } catch (\Exception $e) {
+                $this->lock->unlockParams($lockparams);
+                throw new Exception($e->getMessage());
+            }
+            $data = json_decode($result, true);
+            if (empty($data['access_token'])) {
+                $this->lock->unlockParams($lockparams);
+                $msg = 'Paypal帐号ID:'. $this->account_id. '，帐号名:'. $this->account_name. ' 在获取access_token授权失败';
+                if (!empty($data['error']) && is_string($data['error'])) {
+                    $msg = $msg. '|'. $data['error'];
+                } else {
+                    $msg = $msg . '|'. json_encode($data);
+                }
+                $this->lock->unlockParams($lockparams);
+                throw new Exception($msg);
+            }
+            $this->access_token = $data['access_token'];
+            $this->token_expires = $request_time + $data['expires_in'];
+
+            //更新数据库；
+            PaypalAccountModel::update(
+                ['access_token' => $this->access_token, 'token_expires' => $this->token_expires],
+                ['id' => $this->account_id]
+            );
+            //更新缓存；
+            Cache::store('PaypalAccount')->updateTableRecord($this->account_id, 'access_token', $this->access_token);
+            Cache::store('PaypalAccount')->updateTableRecord($this->account_id, 'token_expires', $this->token_expires);
+
+            //更新完了解锁；
+            $this->lock->unlockParams($lockparams);
+            return true;
+        }
+
+        //以上未成功加锁可以重试；
+        $max_request--;
+        if ($max_request === 0) {
+            throw new Exception('Paypal帐号ID:'. $this->account_id. '，帐号名:'. $this->account_name. ' 在获取access_token授权时超过最大等待次数');
+        }
+
+        return $this->_getAccessToken($max_request);
+    }
+
+    /**
+     * HTTP读取
+     * @param string $url 目标URL
+     * @param string $method 请求方式
+     * @param array|string $bodyData 请求BODY正文
+     * @param array $responseHeader 传变量获取请求回应头
+     * @param int $code 传变量获取请求回应状态码
+     * @param string $protocol 传变量获取请求回应协议文本
+     * @param string $statusText 传变量获取请求回应状态文本
+     * @param array $extra 扩展参数,可传以下值,不传则使用默认值
+     * header array 头
+     * host string 主机名
+     * port int 端口号
+     * timeout int 超时(秒)
+     * proxyType int 代理类型; 0 HTTP, 4 SOCKS4, 5 SOCKS5, 6 SOCK4A, 7 SOCKS5_HOSTNAME
+     * proxyAdd string 代理地址
+     * proxyPort int 代理端口
+     * proxyUser string 代理用户
+     * proxyPass string 代理密码
+     * caFile string 服务器端验证证书文件名
+     * sslCertType string 安全连接证书类型
+     * sslCert string 安全连接证书文件名
+     * sslKeyType string 安全连接证书密匙类型
+     * sslKey string 安全连接证书密匙文件名
+     * @return string|array 请求结果;成功返回请求内容;失败返回错误信息数组
+     * error string 失败原因简单描述
+     * debugInfo array 调试信息
+     */
+    public function httpReader($url, $method = 'GET', $bodyData = [], $extra = [], &$responseHeader = null, &$code = 0, &$protocol = '', &$statusText = '')
+    {
+        $ci = curl_init();
+        if (isset($extra['timeout'])) {
+            curl_setopt($ci, CURLOPT_CONNECTTIMEOUT , $extra['timeout']);
+            curl_setopt($ci, CURLOPT_TIMEOUT, $extra['timeout']);
+        }
+        curl_setopt($ci, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ci, CURLOPT_HEADER, true);
+        curl_setopt($ci, CURLOPT_AUTOREFERER, true);
+        curl_setopt($ci, CURLOPT_FOLLOWLOCATION, true);
+
+        if (isset($extra['userpwd'])) {
+            curl_setopt($ci, CURLOPT_USERPWD, $extra['userpwd']);
+        }
+
+        if (isset($extra['proxyType'])) {
+            curl_setopt($ci, CURLOPT_PROXYTYPE, $extra['proxyType']);
+
+            if (isset($extra['proxyAdd'])) {
+                curl_setopt($ci, CURLOPT_PROXY, $extra['proxyAdd']);
+            }
+
+            if (isset($extra['proxyPort'])) {
+                curl_setopt($ci, CURLOPT_PROXYPORT, $extra['proxyPort']);
+            }
+
+            if (isset($extra['proxyUser'])) {
+                curl_setopt($ci, CURLOPT_PROXYUSERNAME, $extra['proxyUser']);
+            }
+
+            if (isset($extra['proxyPass'])) {
+                curl_setopt($ci, CURLOPT_PROXYPASSWORD, $extra['proxyPass']);
+            }
+        }
+
+        if (isset($extra['caFile'])) {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, 2); //SSL证书认证
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, true); //严格认证
+            curl_setopt($ci, CURLOPT_CAINFO, $extra['caFile']); //证书
+        } else {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, false);
+        }
+
+        if (isset($extra['sslCertType']) && isset($extra['sslCert'])) {
+            curl_setopt($ci, CURLOPT_SSLCERTTYPE, $extra['sslCertType']);
+            curl_setopt($ci, CURLOPT_SSLCERT, $extra['sslCert']);
+        }
+
+        if (isset($extra['sslKeyType']) && isset($extra['sslKey'])) {
+            curl_setopt($ci, CURLOPT_SSLKEYTYPE, $extra['sslKeyType']);
+            curl_setopt($ci, CURLOPT_SSLKEY, $extra['sslKey']);
+        }
+
+        $method = strtoupper($method);
+        switch ($method) {
+            case 'GET':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'GET');
+                if (!empty($bodyData)) {
+                    if (is_array($bodyData)) {
+                        $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($bodyData);
+                    } else {
+                        curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                    }
+                }
+                break;
+            case 'POST':
+                curl_setopt($ci, CURLOPT_POST, true);
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'PUT':
+                //                 curl_setopt ( $ci, CURLOPT_PUT, true );
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'PUT');
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'DELETE':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
+            case 'HEAD':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'HEAD');
+                break;
+            default:
+                throw new \Exception(json_encode(['error' => '未定义的HTTP方式']));
+                return ['error' => '未定义的HTTP方式'];
+        }
+
+        if (!isset($extra['header']) || !isset($extra['header']['Host'])) {
+            $urldata = parse_url($url);
+            $extra['header']['Host'] = $urldata['host'];
+            unset($urldata);
+        }
+
+        $header_array = array();
+        foreach ($extra['header'] as $k => $v) {
+            $header_array[] = $k . ': ' . $v;
+        }
+
+        curl_setopt($ci, CURLOPT_HTTPHEADER, $header_array);
+        curl_setopt($ci, CURLINFO_HEADER_OUT, true);
+
+        curl_setopt($ci, CURLOPT_URL, $url);
+
+        $response = curl_exec($ci);
+        if (false === $response) {
+            $http_info = curl_getinfo($ci);
+           // throw new \Exception(json_encode(['error' => curl_error($ci), 'debugInfo' => $http_info]));
+            $error = curl_error($ci);
+            if(preg_match("/.*timed out.*/",$error))
+            {
+                return json_encode(['debug_id'=>"timeout_"]);
+            }
+            return ['error' => curl_error($ci), 'debugInfo' => $http_info];
+        }
+
+        $responseHeader = [];
+        $headerSize = curl_getinfo($ci, CURLINFO_HEADER_SIZE);
+        $headerData = substr($response, 0, $headerSize);
+        $body = substr($response, $headerSize);
+
+        $responseHeaderList = explode("\r\n", $headerData);
+
+        if (!empty($responseHeaderList)) {
+            foreach ($responseHeaderList as $v) {
+                if (false !== strpos($v, ':')) {
+                    list($key, $value) = explode(':', $v, 2);
+                    $responseHeader[$key] = ltrim($value);
+                } else if (preg_match('/(.+?)\s(\d+)\s(.*)/', $v, $matches) > 0) {
+                    $protocol = $matches[1];
+                    $code = $matches[2];
+                    $statusText = $matches[3];
+                }
+            }
+        }
+
+        curl_close($ci);
+        return $body;
+    }
+
+    /**
+     * @param $time
+     * 时间转换
+     */
+    public function convertTime($time)
+    {
+        date_default_timezone_set('Asia/Shanghai');
+        if(!is_numeric($time))
+        {
+            $time = strtotime($time);
+        }
+        return date('Y-m-d\TH:i:s\Z', $time - date('Z',$time));
+    }
+
+}

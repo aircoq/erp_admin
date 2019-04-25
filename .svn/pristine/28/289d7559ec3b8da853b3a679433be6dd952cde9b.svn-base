@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.5526475073239963 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;">
+
+        <div style="width:270pt;margin-top: 20pt">
+
+            <div style="float:left;width:220pt;">
+                <div style="margin-left:10pt;font-size:25pt;line-height:15pt;">LLD</div>
+                <div style="width:200pt;text-align:center;font-size:9pt;line-height:20pt;">
+
+                </div>
+            </div>
+            <div style="float:left;width:40pt;">
+                <div style="font-size:25pt;line-height:26pt;margin-top:3pt;margin-left:3pt;"><?php echo $country_code;?></div>
+            </div>
+            <div style="clear:both"></div>
+        </div>
+
+        <div style="margin-left:10pt;padding:2pt;font-size:10pt;line-height:20pt;">
+            <strong>To: <?php echo $name;?><br/>
+            Add: <?php echo $street.$street2;?>  <br>
+            <?php echo $city;?> , <?php echo $province;?>  <?php echo $zip;?>,<br>
+            <?php echo $country_en_name;?>
+           </strong>
+        </div>
+        <div style="margin-left:10pt;padding:2pt;font-size:10pt;line-height:20pt;">
+            <strong>TEL:<?php echo $phone;?> / <?php echo $tel;?> <br/>
+            </strong>
+        </div>
+        <div style="margin-left:10pt;padding:2pt;font-size:10pt;line-height:20pt;text-align: center">
+          RefNo:<?php echo 'P'.$number?> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            <img style="width:180pt;height:50pt;" src="<?php echo $this->imgSrc($shipping_number); ?>"><br>
+            E邮宝湖南-(普货) &nbsp;&nbsp;  <?php echo $shipping_number; ?>
+           <br>
+        </div>
+
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+
+</body>
+</html>

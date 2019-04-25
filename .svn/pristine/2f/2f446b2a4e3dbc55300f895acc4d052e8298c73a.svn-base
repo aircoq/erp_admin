@@ -1,0 +1,33 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-13
+ * Time: 上午9:54
+ */
+
+namespace swoole\cmd;
+
+
+use swoole\ProcessManager;
+use swoole\SwooleCmd;
+use swoole\SwooleCmdResult;
+
+class Shutdown extends SwooleCmd
+{
+    public function execute(\swoole_websocket_server $server) :SwooleCmdResult
+    {
+        dump_detail("shutdown!!!");
+        if(isset($server->setting['processManager'])){
+            /**
+             * @var $processManager ProcessManager
+             */
+            $processManager = $server->setting['processManager'];
+            $processManager->send(['cmd'=>'shutdown']);
+
+        }
+        $server->shutdown();
+        $result = new SwooleCmdResult($this);
+        return $result;
+    }
+}

@@ -1,0 +1,958 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: laiyongfeng
+ * Date: 2018/04/20
+ * Time: 11:04
+ */
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use DTS\eBaySDK\Trading\Types\VATRateType;
+use org\Curl;
+use think\Exception;
+use think\Loader;
+use app\warehouse\service\ShippingMethod;
+use app\common\model\OrderSourceDetail;
+use app\common\model\Order;
+use Swagger\Client\Api\DefaultEbayClient;
+use Swagger\Client\Model\AddAddressPreferenceRequest;
+use Swagger\Client\Model\AddAddressPreferenceRequestData;
+use Swagger\Client\Model\AddPackageRequest;
+use Swagger\Client\Model\PackageInfoRequest;
+use Swagger\Client\Model\ShipToAddressRequest;
+use Swagger\Client\Model\GetItemPackageIdRequest;
+use Swagger\Client\Model\ItemRequest;
+use Swagger\Client\Model\SkuRequest;
+use Swagger\Client\Model\PickupAddressRequest;
+use Swagger\Client\Model\AddConsignPreferenceRequestData;
+use Swagger\Client\Model\AddConsignPreferenceRequest;
+use Swagger\Client\ApiException;
+use Swagger\Client\Model\FetchTokenResponses;
+use Swagger\Client\Model\GetServiceListRequest;
+use Swagger\Client\Model\GetServiceListRequestRequestData;
+use Swagger\Client\Model\ModelInterface;
+use Swagger\Client\Model\GetLabelRequest;
+use Swagger\Client\Model\GetLabelRequestData;
+use Swagger\Client\Model\ConfirmPackagesRequest;
+use Swagger\Client\Model\ConfirmPackagesRequestData;
+use Swagger\Client\Model\CancelPackagesRequest;
+use Swagger\Client\Model\CancelPackagesRequestData;
+use Swagger\Client\Model\DeletePackagesRequestData;
+use Swagger\Client\Model\GetActualCostRequest;
+use Swagger\Client\Model\GetActualCostRequestData;
+use Swagger\Client\Model\DeletePackagesRequest;
+use Swagger\Client\Model\GetPackageDetailRequest;
+use Swagger\Client\Model\GetPackageDetailRequestData;
+use Swagger\Client\Model\GetAddressPreferenceListRequest;
+use Swagger\Client\Model\GetAddressPreferenceListRequestData;
+use Swagger\Client\Model\GetConsignPreferenceListRequest;
+use Swagger\Client\Model\GetConsignPreferenceListRequestData;
+use Swagger\Client\Model\GetActualCostResponsesData;
+use Swagger\Client\Model\GetItemPackageIdRequestData;
+use app\common\model\OrderPackage;
+
+/**
+ * ebay物流
+ * Class ebay物流
+ * @package service\shipping\operation
+ */
+class Ebay
+{
+    private $client;
+    // 配置信息
+    private $_config = [
+        'url'   => 'https://api.edisebay.com/v1/api',//正式
+//        'url'   => 'https://sandbox.edisebay.com/v1/api', //沙箱环境
+        'header' => [
+            ''
+        ],
+        'token'=>'',
+        'ebayId'=>'',
+        'shipFromAddressId'=>'',
+        'consignPreferenceId'=>'',
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return boolean
+     */
+    private function formatHeader(array $config)
+    {
+       /* $config=[
+            'accessToken'=>'TGT-1183-hyYjumm0nQcTIDBucPiiW0oLimBgD2sazOfHkBgpbaQsdBNXzE-passport.eis.cn',
+            'token'=>'48f6942ed8004b0c99b82e62004b5adb2554',
+            'ebayId'=>'coraswinter',
+            'shipFromAddressId'=>'80000898',
+            'consignPreferenceId'=>'20834',
+        ];*/
+        if (empty($config['accessToken'])) {
+            $this->result['error'] = [
+                'error_msg' => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['token'] = $config['accessToken'];//认证token
+        $this->_config['ebayId'] = strtolower(param($config, 'pickup_account_id')); //ebayId （获取token、邮寄方式、包裹详情固定传 其他从订单信息获取）
+        $this->_config['shipFromAddressId'] =param($config, 'interface_user_password');//发货地址ID
+        $this->_config['consignPreferenceId'] = param($config, 'customer_code');//交运偏好ID
+        return true;
+    }
+
+    /**
+     * 获取授权token
+     * @param array $config
+     * @return array
+     * @throws Exception
+     */
+    public function fetchToken(array $config)
+    {
+        try {
+            if (empty($config['client_id']) || empty($config['client_secret'])) {
+                $this->result['error'] = [
+                    'error_msg' => '账号信息缺失',
+                    'error_code' => 1
+                ];
+                return $this->result;
+            }
+            $client = new DefaultEbayClient();
+            $accessToken = $client->fetchToken($this->_config['url'], $config['client_id'], $config['client_secret']);
+            $authorization = $accessToken->getToken();
+            return $authorization;
+        } catch (ApiException $ex) {
+            throw new Exception($ex->getResponseBody());
+        }catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+
+    /**
+     * 保存发货地址（未用 直接登录改）
+     */
+    /*public function saveAddress($config, $shippingData)
+    {
+        try {
+            if (!$this->formatHeader($config)) {
+                return $this->result;
+            }
+            $address['type'] = 0; //发货地址
+            $address['street1'] = $shippingData['sender_street']; //发货地址
+            $address['province'] = $shippingData['sender_state']; //发货人省份
+            $address['postcode'] = $shippingData['sender_zipcode']; //邮编
+            $address['name'] = $shippingData['sender_name']; //地址名称
+            $address['mobile'] = $shippingData['sender_phone']; //移动电话
+            $address['district'] = $shippingData['sender_district']; //区
+            $address['countryCode'] = $shippingData['sender_country']; //国家代码
+            $address['country_code'] = $shippingData['sender_country']; //国家代码
+            $address['contact'] = $shippingData['sender_name']; //联系人
+            $address['company'] = $shippingData['sender_company']; //公司
+            $address['city'] = $shippingData['sender_city']; //城市
+
+            $requestInfo['timestamp'] = time();
+            $requestInfo['messageId'] = time();
+            $requestInfo['message_id'] = time();
+            $requestInfo['ebayId'] = $this->_config['ebayId']; //???
+            $requestInfo['ebay_id'] = $this->_config['ebayId']; //???
+
+            $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+            if ($this->_config['shipFromAddressId']) { //更新
+                //$address['addressId'] = $this->_config['shipFromAddressId'];
+                $address['address_id'] = $this->_config['shipFromAddressId'];
+                $request = new UpdateAddressPreferenceRequest($requestInfo);
+                $requestData = new UpdateAddressPreferenceRequestData($address);
+                $request->setData($requestData);
+                $response = $client->execute($request);
+                $addressId = $response->getData()->getNewAddressId();
+
+            } else { //添加
+                $request = new AddAddressPreferenceRequest($requestInfo);
+                $requestData = new AddAddressPreferenceRequestData($address);
+                $request->setData($requestData);
+                $response = $client->execute($request);
+                $addressId = $response->getData()->getAddressId();
+            }
+            return $addressId;
+        }catch(ApiException $ex){
+            throw new Exception($ex->getResponseBody());
+        }catch(Exception $ex){
+            throw new Exception($ex->getMessage());
+        }
+    }*/
+
+
+    /*
+     *交运偏好数组数组
+     */
+    /*public function buildConsignPreferenceData($shippingData){
+
+        if($this->_config['consignPreferenceId']){
+            $data = new UpdateConsignPreferenceRequestData();
+            $data->setConsignPreferenceId($this->_config['consignPreferenceId']);
+        } else {
+            $data = new AddConsignPreferenceRequestData();;
+        }
+
+        $data->setType(0);//交运方式，可用值:0 - 上门揽收;1 - 卖家自送
+        $data->setPickupTime(1);//揽收时间段:1 - 14:00-16:00; 2 - 16:00-18:00;当交运方式为上门揽收时必填(时间段) ？
+
+        //$pickupAddress['street3'] = ;//	街道地址3 否
+        //$pickupAddress['street2'] = ;//	街道地址2 否
+        $name = $shippingData['pickup_company'].'-'.$shippingData['pickup_name'];
+        $pickupAddress['street1'] = $shippingData['pickup_street'];//	街道地址1
+        $pickupAddress['province'] = $shippingData['pickup_state'];// 省 编码说明
+        $pickupAddress['postcode'] = $shippingData['pickup_zip_code'];// 邮政编码
+        $pickupAddress['name'] = $name;// 地址名称
+        $pickupAddress['mobile'] = $shippingData['pickup_mobile'];// 	手机号
+        $pickupAddress['district'] = $shippingData['pickup_district'];// 区县 	否
+        $pickupAddress['countryCode'] = $shippingData['pickup_country'];// 国家 #
+        $pickupAddress['country_code'] = $shippingData['pickup_country'];// 国家 #
+        $pickupAddress['contact'] = $shippingData['pickup_name']; //联系人姓名
+        $pickupAddress['company'] = $shippingData['pickup_company'];// 	公司名称 	否
+        $pickupAddress['city'] = $shippingData['pickup_city']; // 市
+        $pickup = new PickupAddressRequest($pickupAddress);
+        $data->setPickupAddress($pickup);
+        $data->setName($name);
+        //$data->setDropoffSiteId('');//自送站点ID,当交运方式为卖家自送时必填
+        return $data;
+    }*/
+
+    /**
+     * 更新交运偏好（未用 直接登录改）
+     */
+    /*public function updateConsignPreference($config, $shippingData)
+    {
+        try{
+            $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+            if(!$this->formatHeader($config)) {
+                return $this->result;
+            }
+            $request = new UpdateConsignPreferenceRequest();
+
+            $data = $this->buildConsignPreferenceData($shippingData);
+
+            $request->setData($data);
+            $response =$client->execute($request);
+
+            $consignPreferenceId = $response->getData()->getConsignPreferenceId();
+
+            return $consignPreferenceId;
+        }catch (ApiException $ex) {
+            throw new Exception($ex->getResponseBody());
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }*/
+
+    /**
+     * 添加交运偏好（未用 直接登录改）
+     */
+   /* public function addConsignPreference($config, $shippingData)
+    {
+        try{
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+            $request = new AddConsignPreferenceRequest();
+            $request->setTimestamp(time());
+            $request->setMessageId(time());
+            $request->setEbayId($this->_config['ebayId']);
+            $data = $this->buildConsignPreferenceData($shippingData);
+
+            $request->setData($data);
+            $response =$client->execute($request);
+
+            $consignPreferenceId=$response->getData()->getConsignPreferenceId();
+
+            return $consignPreferenceId;
+        } catch (ApiException $ex) {
+            throw new Exception($ex->getResponseBody());
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }*/
+
+    /**
+     * 下单数据组装
+     */
+    private function buildData($order)
+    {
+        $data = new PackageInfoRequest();
+        $shipToAddress['street1'] = $order['street']; //发货地址 否
+        $shipToAddress['street2'] = $order['street2']; //发货地址
+        $shipToAddress['province'] = $order['province']; //为德国时可选
+        $shipToAddress['postcode'] = $order['zip']; //邮编
+        //$shipToAddress['postcode'] = 518000;
+        $shipToAddress['mobile'] = $order['phone'] ? $order['phone'] : $order['tel']; //移动电话
+        if($order['country_code']=='DE' && $shipToAddress['mobile'] =='') {
+            $shipToAddress['mobile'] = '00000';
+        }
+        //$shipToAddress['district'] = ''; //区 否
+        $shipToAddress['country_name'] = $order['country_name']; //国家名称
+        $shipToAddress['country_code'] = $order['country_code']; //国家代码
+        $shipToAddress['contact'] = $order['name']; //联系人
+        //$shipToAddress['company'] = ''; //公司 否
+        $shipToAddress['city'] = $order['city']; //城市
+        $ship_to_address=new ShipToAddressRequest($shipToAddress);
+        $data->setShipToAddress($ship_to_address);
+
+        $data->setShipFromAddressId($this->_config['shipFromAddressId']); //发货地址ID
+        $data->setServiceId($order['shipping_method_code']); //物流服务ID ？
+        $data->setPackageWeight($order['estimated_weight']);  //包裹重量（g）
+        /*$data->setPackageWidth(0); //包裹宽度（cm）
+        $data->setPackageLength(0);  //包裹长度（cm）
+        $data->setPackageHeight(0);  //包裹高度（cm）*/
+        $data->setPackageWidth($order['width']/10); //包裹宽度（cm）
+        $data->setPackageLength($order['length']/10);  //包裹长度（cm）
+        $data->setPackageHeight($order['height']/10);  //包裹高度（cm）
+
+        //商品信息
+        $item_info = $order['item_info'];
+        $item = [];
+        foreach($item_info as $key=>$declared) {
+            $item_list=new ItemRequest();
+            $item_list->setTransactionId($declared['transaction_id']);//eBay交易号
+            $item_list->setSoldQty($declared['qty']);//卖出数量 否
+            $item_list->setSoldPrice($declared['qty']*$declared['declared_value']);//卖出总价 否
+            //$item_list->setsoldDate('');//卖出日期 否
+
+            //$sku['width'] = '';//宽度（cm） 否
+            $sku['weight'] = $declared['declared_weight'];//重量（单位：g） declared_weight
+            //$sku['tariffCode'] = '';//关税代码 否
+            $sku['sku_number'] = $declared['sku'];//SKU编号 否
+            //$sku['remark'] = '';//备注 否
+            $sku['price'] = $declared['declared_value'];//申报价格
+            $sku['origin'] = 'CN';//原产地
+            $sku['name_zh'] = $declared['declared_name_cn'];//中文申报名
+            $sku['name_en'] = $declared['declared_name_en'];//英文申报名
+            $sku['li_battery_type'] = 0; //带电类型，0:无锂电池；1:内置电池；2:纯电池；3:配套电池（1.5版本） ?
+            //$sku['length'] = ''; //长度（否）
+            $sku['is_li_battery '] = 0; //是否带锂电池（1.0版本） ？
+            //$sku['height'] = ''; //	高度（cm） 否
+           // $temp['sku'] = $sku;
+            $skuData=new SkuRequest($sku);
+            $item_list->setSku($skuData);
+
+            //$item_list->setSiteId('');;//站点id 否
+            //$item_list->setReceivedAmount('');//实际收到金额 否
+            $item_list->setPostedQty($declared['qty']);//寄货数量
+            //$item_list->setPaymentDate('');//实际付款时间 否
+            //$item_list->setPayPalMessage('');//买家PayPal留言 否
+            //$item_list->setPayPalEmail('');//买家PayPal电邮地址 否
+            $orderLineItem =  $declared['item_id']."-".$declared['transaction_id'];//eBay交易行ID
+            $item_list->setOrderLineItem($orderLineItem);
+            //$item_list->setOrderId('');//eBay合并订单时生成的一个新的Order ID  否
+            //$item_list->setNote('');//备注  否
+            //$item_list->setMessage('');//买家留言  否
+            //$item_list->setItemTitle('');//eBay商品标题  否
+            $item_list->setItemId($declared['item_id']);//eBay物品号
+            //$item_list->setEmail('');//买家eBay电邮 否
+            $item_list->setCurrencyCode($declared['declared_value_currency']);//货币符号 否
+            $item_list->setBuyerId($order['buyer_id']);//eBay买家ID
+
+            $item[] = $item_list;
+        }
+        $data->setItemList($item);
+
+        $data->setIncoterms(1);//国贸条规，可用值:0 - DDP(卖家承担关税) 1 - DDU(买家承担关税) 为空时默认值为DDU ？ 否
+        $data->setConsignPreferenceId($this->_config['consignPreferenceId']);//// 交运偏好ID
+
+        return $data;
+    }
+    /**
+     * 新增物流订单
+     * @param $config
+     * @param $order
+     * @param bool $confirm
+     * @return array
+     */
+    public function createOrder($config,$order,$confirm=true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+
+            //获取买家id ebay账号
+            $orderInfo = $this->getOrderInfo($order['order_id']);
+            $order['ebay_id'] = $orderInfo['ebay_id'];
+            $order['buyer_id'] = $orderInfo['buyer_id'];
+
+            //获取交易号/物品好
+            $OrderSourceDetail = new OrderSourceDetail();
+            $order['item_info']= [];
+            foreach($order['declared_info'] as $key=> &$declared) {
+                $order_source_detail_id = $order['product'][$key]['order_source_detail_id'];
+                $orderSource = $OrderSourceDetail->where('id', $order_source_detail_id)->field('transaction_id,channel_item_id')->find();
+                if($orderSource->transaction_id===''){
+                    $this->result['error'] = [
+                        'error_msg'=> $declared['sku'].'获取交易单号transaction_id失败',
+                        'error_code'=>1
+                    ];
+                    return $this->result;
+                }
+                if(!$orderSource->channel_item_id){
+                    $this->result['error'] = [
+                        'error_msg'=> $declared['sku'].'获取物品单号item_id失败',
+                        'error_code'=>1
+                    ];
+                    return $this->result;
+                }
+                $declared['transaction_id'] = $orderSource->transaction_id;
+                $declared['item_id'] = $orderSource->channel_item_id;
+                $order_line_item=  $declared['item_id']."-".$declared['transaction_id'];//eBay交易行ID;
+                if(isset($order['item_info'][$order_line_item])){
+                    $order['item_info'][$order_line_item]['qty'] = $order['item_info'][$order_line_item]['qty']+$declared['qty'];
+                } else {
+                    $order['item_info'][$order_line_item] = $declared;
+                }
+            }
+            $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+            $request= new AddPackageRequest();
+            $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+            $request->setMessageId($referenceID);
+            $request->setTimestamp(time());
+            $request->setEbayId($order['ebay_id']);
+
+            $data = $this->buildData($order);
+            $request->setData($data);
+
+            //日志记录
+            $arr_log = [
+                'url'=>$this->_config['url'],
+                'header'=>'',
+                'request'=>json_encode(json_decode($request, true)),
+            ];
+            $response =$client->execute($request);
+            $response_arr = (json_decode($response, true));
+            $arr_log['response'] = json_encode($response_arr);
+
+            $result = $response->getData();
+            if(isset($result['package_id']) && isset($result['tracking_number'])){
+                $this->result['data']['number']             = $order['number'];      // 参考号
+                $this->result['data']['package_code']       = $result['package_id'];  // 内单号
+                $this->result['data']['trackingNumber']     = $result['tracking_number'];  // 跟踪号
+                $this->result['data']['has_trackingNumber'] = true;
+                $this->result['data']['confirm']            = false;                              // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+            }else{
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                $this->result['error'] = [
+                    'error_msg'  => isset($response_arr['status']) ? param($response_arr['status'], 'message', '未知错误'): '未知错误',
+                    'error_code' => 1
+                ];
+            }
+            //号码重复问题
+            /*if($this->result['success']==false && strstr(param($this->result['error'], 'error_msg'), 'has been in other package')){
+                if(!cache::handler()->get('eDIS:cancel:'.$order['number'])){//避免取消改地址下单
+                    $where['package_upload_status'] = ['>', 0];
+                    $where['shipping_id'] = ['=', $order['shipping_id']];
+                    $where['order_id'] = ['=', $order['order_id']];
+                    $order_count = (new OrderPackage())->where($where)->count();
+                    if(!$order_count){ //避免拆包情况
+                        $request= new GetItemPackageIdRequest();
+                        $request->setTimestamp(time());
+                        $request->setEbayId($orderInfo['ebay_id']);
+                        $request->setMessageId($referenceID);
+                        $repeat_item = reset($order['declared_info']);
+                        $data=new GetItemPackageIdRequestData();
+                        $data->setTransactionId($repeat_item['transaction_id']);
+                        $data->setItemId($repeat_item['item_id']);
+                        $request->setData($data);
+                        $repeat_response =$client->execute($request);
+                        $repeat_result=$repeat_response->getData();
+                        if(isset($repeat_result[0]) && isset($repeat_result[0]['package_id']) && isset($repeat_result[0]['tracking_number'])){
+                            $this->result['data']['number']             = $order['number'];      // 参考号
+                            $this->result['data']['package_code']       = $repeat_result[0]['package_id'];  // 内单号
+                            $this->result['data']['trackingNumber']     = $repeat_result[0]['tracking_number'];  // 跟踪号
+                            $this->result['data']['has_trackingNumber'] = true;
+                            $this->result['data']['confirm']            = false;                              // 是否交运
+                            $this->result['data']['label']              = true;                              // 是否有pdf
+                            $this->result['data']['label_url']          = '';                              // 是否有pdf
+                            $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                            $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                            $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                            $this->result['success']                    = true;
+                        }
+                    }
+                }
+            }*/
+            if($this->result['success'] == false && strstr(param($this->result['error'], 'error_msg'), 'Invalid value for contact')){
+                $this->result['error']['error_msg'] .= '(注：收货人信息最长30个字符)';
+            }
+            if($this->result['success'] == false && strstr(param($this->result['error'], 'error_msg'), 'Invalid value for province')){
+                $this->result['error']['error_msg'] .= '(注：省/州错误，请检查是否正确)';
+            }
+        } catch (ApiException $e) {
+            $arr_log['response'] = $e->getResponseBody();
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            $error = json_decode($e->getResponseBody(),true);
+            $this->result['error'] = [
+                'error_msg'=>$error['status']['message'] ?? '下单失败',
+                'error_code'=>1
+            ];
+            //号码重复问题
+            if($this->result['success']==false && strstr(param($this->result['error'], 'error_msg'), 'has been in other package')){
+                $repeat_data = Cache::store('LogisticsLog')->getLogisticsData($this->result['number'], $order['shipping_id']);
+                if(param($repeat_data, 'package_code')){
+                    $this->result['data'] = $repeat_data;
+                    $this->result['success'] = true;
+                }
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 提交交运
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function confirm(array $config, array $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+
+            $orderInfo = $this->getOrderInfo($order['order_id']);
+            $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+
+            $request= new confirmPackagesRequest();
+            $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+            $request->setMessageId($referenceID);
+            $request->setTimestamp(time());
+            $request->setEbayId($orderInfo['ebay_id']);
+
+            $packageData['package_ids'][]= $order['process_code'];
+            $data=new ConfirmPackagesRequestData($packageData);
+            $request->setData($data);
+
+
+            //日志记录
+            $arr_log = [
+                'url'=>$this->_config['url'],
+                'header'=>$this->_config['header'],
+                'request'=>json_encode(json_decode($request, true)),
+            ];
+            $response = $client->execute($request);
+            
+            $arr_log['response'] = json_encode(json_decode($response, true));
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+
+            $this->result['success'] = true;
+            $this->result['data']['confirm'] = true;
+            $this->result['data']['trackingNumber'] = '';
+            $this->result['data']['label'] = false;
+            $this->result['data']['package_code'] = '';                              //包裹处理号
+            $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];  // 是否有跟踪号
+            $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+            $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+            $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+            $this->result['data']['warehouse_id'] = $order['warehouse_id'];
+            $this->result['success'] = true;
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }catch (ApiException $e) {
+            $arr_log['response'] = $e->getResponseBody();
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            $this->result['error'] = [
+                'error_msg'=>$e->getResponseBody(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 删除包裹
+     * @param array $order
+     * @param string $ebay_id
+     * @return array
+     *
+     */
+    private function delete($order, $ebay_id)
+    {
+       /* $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+        $request= new DeletePackagesRequest();
+        $request->setTimestamp(time());
+        $request->setEbayId($ebay_id);
+        $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+        $request->setMessageId($referenceID);
+        $packageData['package_ids']= [$order['process_code']];
+        $data=new DeletePackagesRequestData($packageData);
+        $request->setData($data);
+        $a=$client->execute($request);
+        var_dump($a);die;*/
+        $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+        $request= new CancelPackagesRequest();
+        $request->setTimestamp(time());
+        $request->setEbayId($ebay_id);
+        $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+        $request->setMessageId($referenceID);
+        $packageData['package_ids']= [$order['process_code']];
+        $data=new CancelPackagesRequestData($packageData);
+        $request->setData($data);
+        $resJson=$client->execute($request);
+        $resArr=json_decode($resJson);
+
+
+    }
+
+    /**
+     * 取消删除包裹（先取消后删除）
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config,$order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $orderInfo = $this->getOrderInfo($order['order_id']);
+            $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+            $request= new DeletePackagesRequest();
+            $request->setTimestamp(time());
+            $request->setEbayId($orderInfo['ebay_id']);
+            $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+            $request->setMessageId($referenceID);
+            $packageData['package_ids']= [$order['process_code']];
+            $data=new DeletePackagesRequestData($packageData);
+            $request->setData($data);
+            $resJson=$client->execute($request);
+            $resArr=json_decode($resJson,true);
+            if(isset($resArr['status']) && $resArr['status']['message']=='success' && $resArr['status']['resultCode']==200){
+                $this->result['success'] = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'  => $resArr['data'][0]['message']??'取消失败',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取物流订单信息
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageDetails($config,$order)
+    {
+        try{
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $orderInfo = $this->getOrderInfo($order['order_id']);
+            $client = new DefaultEbayClient($this->_config['url'], $this->_config['token']);
+            $request= new GetPackageDetailRequest();
+            $request->setTimestamp(time());
+            $request->setEbayId($orderInfo['ebay_id']);
+            $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+            $request->setMessageId($referenceID);
+
+            $data=new GetPackageDetailRequestData();
+            $data->setPackageId($order['process_code']);
+
+            $request->setData($data);
+            $response =$client->execute($request);
+            $result=$response->getData();
+            $this->result['data'] = json_decode($result, true);
+            $this->result['success'] = true;
+
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        } catch (ApiException $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getResponseBody(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取运输方式详细信息
+     */
+    public function getExpress($config)
+    {
+        try {
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $client = new DefaultEbayClient($this->_config['url'],$this->_config['token']);
+            $req= new GetServiceListRequest();
+            $req->setMessageId(time());
+            $req->setEbayId($this->_config['ebayId']);
+            $req->setTimestamp(time());
+            $data=new GetServiceListRequestRequestData();
+            $req->setData($data);
+            $rep =$client->execute($req);
+            $result=$rep->getData()->getServiceList();
+            if (!empty($result)) {
+                foreach($result as $item){
+                    $this->result['data'][] = [
+                        'name'=>$item['name_en'],
+                        'code'=>$item['service_id'],
+                    ];
+                }
+                $this->result['success'] = true;
+            }
+        } catch (ApiException $e) {
+            $error = json_decode($e->getResponseBody(),true);
+            $this->result['error'] = [
+                'error_msg'=>$error['status']['message'],
+                'error_code'=>1
+            ];
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+
+    private function getOrderInfo($order_id)
+    {
+        $orderInfo = (new Order())->field('buyer_id,buyer,channel_id,channel_account_id')->find($order_id);
+        $ebayAcount = Cache::store('EbayAccount')->getAccountById($orderInfo['channel_account_id']);
+        $order['ebay_id'] = strtolower(param($ebayAcount, 'account_name'));
+        $order['buyer_id'] = $orderInfo['buyer_id'] ? $orderInfo['buyer_id'] :$orderInfo['buyer'];
+        return $order;
+    }
+
+    /**
+     * 获取物流订单真实重量和费用
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config,$order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $orderInfo = $this->getOrderInfo($order['order_id']);
+            $client = new DefaultEbayClient($this->_config['url'],$this->_config['token']);
+            $req= new GetActualCostRequest();
+            $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+            $req->setMessageId($referenceID);
+            $req->setTimestamp(time());
+            $req->setEbayId($orderInfo['ebay_id']);
+
+            $data=new GetActualCostRequestData();
+            $trackingNumbers[] = $order['shipping_number'];
+            $data->setTrackingNumbers($trackingNumbers);
+            $req->setData($data);
+
+            $rep =$client->execute($req);
+            $result = $rep->getData();
+            if(is_array($result)){
+                $result = $result[0];
+            }
+            $this->result['success']     = true;
+            $this->result['data'] = [
+                'real_weight'=>'',
+                'real_fee'=>$result['amount'] ? $result['amount'] : '',
+                'currency'=>$result['currencyCode'] ? $result['currencyCode'] : ''
+            ];
+
+        } catch (ApiException $e) {
+            $error = json_decode($e->getResponseBody(),true);
+            $this->result['error'] = [
+                'error_msg'=>$error['status']['message'],
+                'error_code'=>1
+            ];
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取标签
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $ordrInfo = $this->getOrderInfo($order['order_id']);
+            $client = new DefaultEbayClient($this->_config['url'],$this->_config['token']);
+            $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+            $requestData = [
+                'timestamp'=>time(),
+                'message_id' => $referenceID,
+                'ebay_id'=>$ordrInfo['ebay_id'],
+            ];
+            $request = new GetLabelRequest($requestData);
+
+            $RequestData['tracking_number'] = $order['shipping_number'];
+            $RequestData['print_preference'] = 'itemId,skuNo,nameZh,nameEn,property,quantity,sellerId,buyerId';
+            $RequestData['page_size'] = 1;
+            $data=new GetLabelRequestData($RequestData);
+
+            $request->setData($data);
+            $reponse =$client->execute($request);
+            $base64Str = $reponse->getData()->getBase64Str();
+
+            $service = new PackageLabelFileService();
+            $label_url = $service->uploadLabelFile($order['number'],$base64Str,'pdf');
+            $this->result['data']['src'] = $label_url;
+            $this->result['data']['type'] = 'pdf';
+            $this->result['success']     = true;
+
+        } catch(ApiException $ex){
+            $error = json_decode($ex->getResponseBody(),true);
+            $this->result['error'] = [
+                'error_msg'=>$error['status']['message'],
+                'error_code'=>1
+            ];
+        } catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+
+    /*
+     *获取发货地址列表
+     */
+    public function getAddressPreferenceList ($config){
+        try{
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $client = new DefaultEbayClient($this->_config['url'],$this->_config['token']);
+            $requestData = [
+                'timestamp'=>time(),
+                'message_id' => time(),
+                'ebay_id' => 'lisasaslight',
+            ];
+            $request = new GetAddressPreferenceListRequest($requestData);
+            $request->setTimestamp(time());
+            $request->setMessageId(time());
+            $request->setEbayId('lisasaslight');
+
+            $data=new GetAddressPreferenceListRequestData();
+            $data->setPageSize(50);
+            $data->setPageNumber(1);
+            $request->setData($data);;
+            $reponse =$client->execute($request);
+            $data = $reponse->getData();
+            \think\log::write($data);
+
+        } catch(ApiException $ex){
+            //var_dump($ex->getResponseBody());exit;
+            $error = json_decode($ex->getResponseBody(),true);
+        } catch(Exception $ex){
+            //var_dump($ex->getMessage());exit;
+        }
+    }
+
+
+    /*
+     *获取交运偏好
+     */
+    public function getConsignPreferenceList($config){
+        try{
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $client = new DefaultEbayClient($this->_config['url'],$this->_config['token']);
+            $requestData = [
+                'timestamp'=>time(),
+                'message_id' => time(),
+                'ebay_id' => 'lisasaslight',
+            ];
+            $request = new GetConsignPreferenceListRequest();
+            $request->setTimestamp(time());
+            $request->setMessageId(time());
+            $request->setEbayId('lisasaslight');
+
+            $data=new GetConsignPreferenceListRequestData();
+            $data->setPageSize(50);
+            $data->setPageNumber(1);
+            $request->setData($data);;
+            $reponse =$client->execute($request);
+            $data = $reponse->getData();
+            \think\log::write($data);
+
+        } catch(ApiException $ex){
+            //var_dump($ex->getResponseBody());exit;
+            $error = json_decode($ex->getResponseBody(),true);
+
+        } catch(Exception $ex){
+            //var_dump($ex->getMessage());exit;
+        }
+    }
+
+}

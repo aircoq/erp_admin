@@ -1,0 +1,23 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2017/7/18
+ * Time: 11:01
+ */
+namespace imap\interfaces;
+interface ILandable
+{
+    /**
+     * 获取imap_open的连接字符串
+     * @return string
+     */
+    public function getImapPath();
+
+    /**
+     * 获取登录时使用的密码
+     * 用于按不同邮箱供应商需要提供的账号密码或授权码
+     * @return string
+     */
+    public function getLoginPwd();
+}

@@ -1,0 +1,71 @@
+<?php
+namespace service\aliexpress;
+
+use think\Exception;
+
+/**
+ * aliexpress 平台api
+ */
+class AliexpressApi
+{
+    private static $config = [];
+    private static $instance = null;
+    private static $object = [];
+    private static $flag = true;
+    const ACCESS_TOKEN_TIME = 36000;         //accessToken过期时间10小时，这里提前10分钟更新
+    const REFRESH_TOKEN_TIME = 1728000;     //距过期还有20天更新refreshToken
+
+    /**
+     * 开放接口
+     * @param  array $config [description]
+     * @return [type]         [description]
+     */
+    public static function instance($config = [])
+    {
+        if (is_null(self::$instance)) {
+            self::$instance = new AliexpressApi;
+        }
+        /*if(self::$config!=$config){
+            self::$config = $config;
+            self::$flag = false;
+        }*/
+        self::$config = $config;
+        self::$flag = false;
+
+        return self::$instance;
+    }
+
+    /** 实例化
+     * @param $type
+     * @return mixed
+     * @throws Exception
+     */
+    public function loader($type)
+    {
+        try {
+            $class = false !== strpos($type, '\\') ? $type : '\\service\\aliexpress\\operation\\' . ucwords($type);
+            if ($class) {
+                if (!isset(self::$object[$type]) || is_null(self::$object[$type]) || !self::$flag) {
+                    self::$object[$type] = new $class(self::$config);
+                }
+                self::$flag = true;
+                return self::$object[$type];
+            } else {
+                throw new Exception("The api type file is not found", 1);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error Processing Request", 1);
+        }
+    }
+    
+    /**
+     * 资源配置
+     * @param  array $config [description]
+     * @return [type]         [description]
+     */
+    public function config(array $config)
+    {
+        array_merge(self::$config, $config);
+    }
+
+}

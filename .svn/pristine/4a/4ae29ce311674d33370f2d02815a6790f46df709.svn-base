@@ -1,0 +1,195 @@
+<?php
+namespace service\lazada\operation;
+
+use app\common\service\LazadaService;
+use think\Exception;
+use think\Loader;
+use org\Curl;
+Loader::import('lazada.LazopSdk');
+/**
+ * wish 平台api
+ */
+class Common
+{
+    /**
+     * @var null
+     */
+    public $access_token;
+
+    public function __construct($access_token = '')
+    {
+        $this->access_token = $access_token;
+    }
+
+    /** 获取token
+     * @param $data
+     * @return array
+     */
+    public function getToken($data)
+    {
+        $c = new \LazopClient("https://auth.lazada.com/rest", $data['app_key'], $data['app_secret']);
+        $request= new \LazopRequest("/auth/token/create");
+        $request->addApiParam('code',$data['authorization_code']);
+        $response=$c->execute($request);
+        $access_token = json_decode($response, true);
+        if ($access_token['code'] == 0 && isset($access_token['access_token'])) {
+             $result=['state' => true, 'data' => $access_token];
+        }else{
+             $result=['state' => false, 'message' => $access_token['message']];
+
+        }
+        return $result;
+
+    }
+
+    /** 更新token
+     * @param array $data
+     * @return array
+     */
+    public function refreshToken(array $data)
+    {
+        $c = new \LazopClient("https://auth.lazada.com/rest", $data['app_key'], $data['app_secret']);
+        $request= new \LazopRequest("/auth/token/refresh");
+        $request->addApiParam('refresh_token',$data['refresh_token']);
+
+        $response_json=$c->execute($request);
+        $response = json_decode($response_json, true);
+        if ($response['code'] == 0) {
+            $this->access_token = $response['access_token'];
+            return ['state' => true, 'data' => $response];
+        } else {
+            return ['state' => false, 'message' => $response['message']];
+        }
+    }
+
+    /** 检查token是否已过期
+     * @param $data
+     * @return array|bool
+     */
+    public function checkToken($data, $constraint = false)
+    {
+        if (!isset($data['refresh_expire_time']) && !isset($data['refresh_token'])) {
+            return false;
+        }
+        if ($data['refresh_expire_time'] < (time() + 30 * 60) || $constraint) {
+            //已过期了
+            return $this->refreshToken($data);
+        }
+        return ['state' => true];
+    }
+
+    /** 请求头部信息
+     * @return resource
+     */
+    private function context()
+    {
+        $context = stream_context_create(array(
+            'http' => array(
+                'method' => 'POST',
+                'ignore_errors' => true,
+            ),
+        ));
+
+        return $context;
+    }
+
+
+    /** 获取数据
+     * @param $url
+     * @return mixed
+     */
+    public function getdata($url)
+    {
+        $result = file_get_contents($url, true, $this->context());
+        //$result = Curl::curlGet($url);
+        return json_decode($result, true);
+    }
+
+    /**
+     * 公用的请求方法
+     * @param $url
+     * @param $dir
+     * @param $filename
+     * @return bool
+     * @throws Exception
+     */
+    public function curl($url, $dir, $filename)
+    {
+        set_time_limit(0);
+        try {
+            if (!empty($dir) && !is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_URL, $url);
+            ob_start();
+            curl_exec($ch);
+            $return_content = ob_get_contents();
+            ob_end_clean();
+            curl_setopt($ch, CURLOPT_SSLVERSION, 3);
+            $return_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($return_code == 200) {
+                $fp = fopen($dir . $filename, "a"); //将文件绑定到流
+                if ($fp) {
+                    fwrite($fp, $return_content); //写入文件
+                    fclose($fp);
+                }
+            } else {
+                throw new Exception($return_code);
+            }
+            curl_close($ch);
+            //判断文件
+            if (!file_exists($dir . $filename)) {
+                throw new Exception('download files save fail,the path is '.dirname(__FILE__).',the code is' . $return_code);
+            }
+            return true;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage() . $e->getFile() . $e->getLine());
+        }
+    }
+
+    /** 请求数据
+     * @param $url
+     * @param $data
+     * @return mixed
+     */
+    public function curlPost($url, $data)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_POST, true);
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($ch);
+        $response = json_decode($response, true);
+        curl_close($ch);
+        if($response['code'] == 1016 || $response['code'] == 1015){
+            $wish = new WishService();
+            if($wish->updateToken($this->access_token)){
+                return $this->curlPost($url,$data);
+            }
+        }
+        return $response;
+    }
+
+    /**
+     * 获取标签
+     * @return [type] [description]
+     */
+    public function getTag($param)
+    {
+        $url = 'https://merchant.wish.com/api/contest-tag/search?q=' . $param;
+        $result = $this->getdata($url);
+        if ($result['code'] == 0) {
+            return $result['data'];
+        }
+    }
+
+
+}

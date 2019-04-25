@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.9566734680476681 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;font-size:10pt;overflow-x:hidden;page-break-after:always;">
+        <div style="width:268pt;border:1pt #000 solid;font-size:12pt;line-height:14pt;">
+            <div style="width:50pt;float:left;font-weight:bold;text-align:center;border-right:1pt solid #000;"> <?php echo $country_code;?></div>
+            <div style="width:70pt;float:left;font-weight:bold;border-right:1pt solid #000;"></div>
+            <div style="float: right;font-weight: bold;text-align: left;width: 100pt;border-left: 1pt solid #000;">
+                WBSD-UKEXUT
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt;border:1pt #000 solid;border-top:0;font-size:9pt;line-height:10pt;text-align:center;padding:2pt 0">
+            <div style="width:30pt;float:left;font-size:26pt;text-align:center;font-weight:bold;line-height: 40pt;"> ①
+            </div>
+            <div style="float:left;width:230pt;"><span
+                        style="display:inline-block;height:35pt;line-height:35pt;overflow-y:hidden"> <img
+                            style="width:220pt;height:40pt;"
+                            src="<?php echo $this->imgSrc($shipping_number);?>"> </span><br>
+                <?php echo $shipping_number;?>
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:264pt;padding:2pt;border:1pt solid #000;border-top:0;font-size:8pt;line-height:9pt;">
+            <div style="width:120pt;float:left;">Customer No:000017</div>
+            <div style="width:120pt;float:left;">Weight(kg):<?php echo number_format($total_weight/1000,3);?></div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:264pt;padding:2pt;font-weight:bold;border:1pt solid #000;border-top:0;font-size:9pt;line-height:12pt;">
+            TO:<?php echo $name;?> <br>
+            <?php echo $street.$street2;?><br>
+            <?php echo $city;?>, <?php echo $province;?> , <?php echo $zip;?>
+            <br> <strong><?php echo $country_en_name;?></strong> <br> TEL: <?php echo $phone;?>
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-top:0;font-size:8pt;line-height:9pt;">
+            <div style="width:110pt;float:left;text-align:center;padding-top:5pt;"><span
+                        style="display:inline-block;height:25pt;line-height:25pt;overflow-y:hidden"> <img
+                            style="width:100pt;height:30pt;"
+                            src="<?php echo $this->imgLittle($number);?>"> </span><br>
+                <b><?php echo $number;?></b></div>
+            <div style="width:158pt;float:left;padding-top: 20pt;text-align: center;"> <?php echo date('m/d H:i:s',time()); ?> </div>
+            <div style="clear:both;"></div>
+        </div>
+
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+
+</body>
+</html>

@@ -1,0 +1,24 @@
+<?php
+
+
+namespace app\common\model;
+
+use think\Model;
+
+class GoodsSkuMapLog extends Model
+{
+    protected $table = 'goods_sku_map_log';
+
+    protected $autoWriteTimestamp = false;
+
+    protected $createTime = null;
+
+    protected $updateTime = null;
+
+    protected $hidden = ['id', 'map_id', 'operator_id'];
+
+    public function getCreateTimeAttr($value)
+    {
+        return date('Y-m-d H:i:s', $value);
+    }
+}

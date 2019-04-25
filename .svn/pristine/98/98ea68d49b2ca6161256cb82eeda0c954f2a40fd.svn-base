@@ -1,0 +1,14 @@
+# GetHandoverSheetRequest
+
+## Properties
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**data** | [**\Swagger\Client\Model\GetHandoverSheetRequestData**](GetHandoverSheetRequestData.md) | è¦æå°äº¤æ¥åçåè£¹è·è¸ªå·åè¡¨ï¼è³å°ä¸ä¸ª | 
+**ebay_id** | **string** | åå®¶eBayè´¦æ· | 
+**message_id** | **string** | æ¶æ¯ID | 
+**method_name** | **string** |  | [optional] 
+**timestamp** | **int** | æ¶é´æ³ | 
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+

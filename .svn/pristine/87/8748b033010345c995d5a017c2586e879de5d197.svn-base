@@ -1,0 +1,50 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: panguofu
+ * Date: 2018/10/27
+ * Time: 上午9:19
+ */
+
+namespace cd;
+
+
+use cd\CdBaseApi;
+use think\Cache;
+use think\Loader;
+
+
+class CdOfferApi extends CdBaseApi
+{
+    public function __construct(array $params = [])
+    {
+        parent::__construct($params);
+        Loader::import('autoload', EXTEND_PATH . '/cd/sdk/vendor');
+        Loader::import('autoload', EXTEND_PATH . '/cd/sdk/sdk');
+    }
+
+    public function submitOfferPackage($offerPackageURL)
+    {
+
+        error_reporting(-1);
+
+        $client = new \Sdk\ApiClient\CDSApiClient($this->client_id, $this->client_secret);
+        $token = $client->init();
+        if ($token == null || !$client->isTokenValid()) {
+            $this->error = "CD token bad";
+            return false;
+        }
+
+
+
+        $offerPoint = $client->getOfferPoint();
+
+        $submitOfferPackageResponse = $offerPoint->submitOfferPackage($token,"");
+
+        echo "PackageId : " . $submitOfferPackageResponse->getPackageId() . "<br/>";
+
+    }
+
+
+
+}

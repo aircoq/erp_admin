@@ -1,0 +1,131 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-24
+ * Time: 下午4:27
+ */
+
+namespace rpc;
+
+
+class Sign
+{
+    /**
+     * 验证签名
+     *
+     * @param array $args 请求参数
+     * @return boolean
+     */
+    public function checkSign($args)
+    {
+        // args 必要下标检查 FIXME: 应该写在 beforeRun 里面的，暂时写在这里。
+        $necessaryKeys = array(
+            'key',
+            'sign',
+            'time'
+        );
+        foreach ($necessaryKeys as $k) {
+            if (!array_key_exists($k, $args)) {
+                return false;
+            }
+        }
+
+        // 请求时间大于当前时间 5 分钟，则返回 false，避免重放攻击。
+        if (($args['time'] - time()) > 60*5) {
+            return false;
+        }
+
+        // 签名验证
+        $sign = $args['sign'];
+        $key = $args['key'];
+
+        $secretKey = $this->getSecretKey($key);
+        if ($secretKey === false) {
+            return false;
+        }
+
+        if ($this->genSign($args, $secretKey) === $sign) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 通过公钥获取密钥
+     * @param string $key 公钥
+     * @return mixed return string on success or false on failure
+     */
+    private function getSecretKey($key)
+    {
+        $secretKey = db('client')
+            ->where('key', $key)
+            ->value('secret_key');
+
+
+        if (empty($secretKey)) {
+            return false;
+        }
+
+        return $secretKey;
+    }
+
+    /**
+     * 获取签名
+     * 签名（`sign`）生成规则：
+     * 每台服务器分配一个公钥（`key`）和密钥（`secret_key`），保存在数据库。
+     * 1. 将除了 `params` 以外的所有参数按 key（字段名称） 以升序排列得到数组 A。
+     * 2. 将 A 数组键值对，按序以 “key1v1key2v2...”的形式连接，得到字符串 B。
+     * 3. 将 `params` 数组按 key（字段名称） 以升序排列得到数组 C。
+     * 4. 将 C 数组键值对，按序以 “key1v1key2v2...”的形式连接，得到字符串 D。
+     * 5. 连接字符串 B 和 C 和 secret_key 得到字符串 E。
+     * 6. 将 E 进行 md5（32位，小写） 加密，得到最终签名（`sign` 参数）。
+     * !! 注意 args 数组的 'mod' 元素不参与签名。
+     *
+     * @param array $args 生成签名的数据
+     * @param string $secretKey 密钥
+     * @return string
+     */
+    public function genSign($args, $secretKey)
+    {
+        if (isset($params)) {
+            $params = $args['params'];
+            unset($args['params']);
+        } else {
+            $params = [];
+        }
+
+        // 容错处理：去掉可能存在的，但是又不需要参与签名的参数
+        if (isset($args['sign'])) {
+            unset($args['sign']);
+        }
+
+        // B, D, E 的解释请参照本函数注释
+        $B = $this->array2String($args);
+
+        $D = $this->array2String($params);
+
+        $E = $B . $D . $secretKey;
+
+        return md5($secretKey);
+
+    }
+
+    /**
+     * 将数组排序后拼接着 kv 字符串
+     * @param array $arr
+     * @return string
+     */
+    private function array2String ($arr)
+    {
+        ksort($arr);
+        $ret = '';
+
+        foreach ($arr as $k => $v) {
+            $ret .= "{$k}";
+        }
+
+        return $ret;
+    }
+}

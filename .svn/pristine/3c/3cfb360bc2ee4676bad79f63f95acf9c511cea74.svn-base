@@ -1,0 +1,15 @@
+<?php
+
+
+namespace service\brandslink\operation;
+
+
+class Attribute extends Common
+{
+
+    public function lists($page, $pageSize = 500)
+    {
+        $url = '/common/attribute/list?page=1&row=500';
+        return $this->get($url);
+    }
+}

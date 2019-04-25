@@ -1,0 +1,7 @@
+<?php
+namespace aliy1688\exception;
+
+class RefreshTokenException extends \Exception
+{
+
+}

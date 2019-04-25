@@ -1,0 +1,447 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class Aliexpress extends Base
+{
+    protected $is_open_water = 1;
+
+    public function createLabel($code, $order)
+    {
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+    private function label_SUNYOU_ECONOMY_YANWENSZ($order)
+    {
+        return $this->display('SUNYOU_ECONOMY_YANWENSZ', $order);
+    }
+
+
+
+    private function label_SINOTRANS_PY_WLB_SZ($order)
+    {
+        return $this->display('SINOTRANS_PY_WLB_SZ', $order);
+    }
+
+    private function label_CAINIAO_ECONOMY_TS_11169435($order)
+    {
+        return $this->display('CAINIAO_ECONOMY_TS_11169435', $order);
+    }
+
+
+
+
+
+    private function label_YANWENJYT_WLB_CPAMSZ($order)
+    {
+        $order['zone_code'] = $this->getZoneCode($order['country_code']);
+        $order['sorting_code'] = $this->getsortingCode($order['country_code']);
+        return $this->display('YANWENJYT_WLB_CPAMSZ', $order);
+    }
+    private function label_YANWENJYT_WLB_CPAMDG($order){
+        $order['zone_code'] = $this->getZoneCode($order['country_code']);
+        $order['sorting_code'] = $this->getsortingCode($order['country_code']);
+        return $this->display('YANWENJYT_WLB_CPAMDG', $order);
+    }
+
+    private function label_SINOTRANS_AM_WLB_SZ($order)
+    {
+        return $this->display('SINOTRANS_AM_WLB_SZ', $order);
+    }
+
+    private function getZoneCode($country_code)
+    {
+        $zoneMap = [];
+        $zoneMap['RU'] = '21';
+        $zoneMap['US'] = '22';
+        $zoneMap['GB'] = '23';
+        $zoneMap['BR'] = '24';
+        $zoneMap['AU'] = '25';
+        $zoneMap['FR'] = '26';
+        $zoneMap['ES'] = '27';
+        $zoneMap['CA'] = '28';
+        $zoneMap['IL'] = '29';
+        $zoneMap['IT'] = '30';
+        $zoneMap['DE'] = '31';
+        $zoneMap['CL'] = '32';
+        $zoneMap['SE'] = '33';
+        $zoneMap['BY'] = '34';
+        $zoneMap['NO'] = '35';
+        $zoneMap['NL'] = '36';
+        $zoneMap['UA'] = '37';
+        $zoneMap['CH'] = '38';
+        $zoneMap['MX'] = '39';
+        $zoneMap['PL'] = '40';
+        if (!$country_code)
+            return '';
+        $zone = $zoneMap[$country_code] ?? '';
+        if (!$zone)
+            return '';
+        return $zone;
+    }
+
+    private function getsortingCode($countryCode)
+    {
+        $sortingCodeMap = [];
+        $sortingCodeMap['RU'] = '7';
+        $sortingCodeMap['US'] = '4';
+        $sortingCodeMap['GB'] = '8';
+        $sortingCodeMap['BR'] = '5';
+        $sortingCodeMap['AU'] = '8';
+        $sortingCodeMap['FR'] = '4';
+        $sortingCodeMap['ES'] = '4';
+        $sortingCodeMap['CA'] = '4';
+        $sortingCodeMap['IL'] = '8';
+        $sortingCodeMap['IT'] = '3';
+        $sortingCodeMap['DE'] = '8';
+        $sortingCodeMap['CL'] = '6';
+        $sortingCodeMap['SE'] = '8';
+        $sortingCodeMap['BY'] = '4';
+        $sortingCodeMap['NO'] = '8';
+        $sortingCodeMap['NL'] = '8';
+        $sortingCodeMap['UA'] = '4';
+        $sortingCodeMap['CH'] = '3';
+        $sortingCodeMap['MX'] = '5';
+        $sortingCodeMap['PL'] = '3';
+        if (!$countryCode)
+            return '';
+        $sorting = $sortingCodeMap[$countryCode]??'';
+        if (!$sorting)
+            return '';
+        return $sorting;
+    }
+    private  function getSignMap($countryCode){
+        $signMap = [];
+        $signMap['US']='1P-US';
+        $signMap['GB']='1P-GB-*';
+        $signMap['FR']='1P-FR-*';
+        $signMap['DE']='1P-DE-*';
+        $signMap['IT']='1P-IT-*';
+        $signMap['ES']='1P-ES-*';
+        $signMap['NL']='1P-NL-*';
+        $signMap['CA']='1P-CA';
+        $signMap['AT']='1P-AT-*';
+        $signMap['BE']='1P-BE-*';
+        $signMap['GR']='1P-GR-*';
+        $signMap['HU']='1P-HU-*';
+        $signMap['CH']='1P-CH';
+        $signMap['CZ']='1P-CZ-*';
+        $signMap['PT']='1P-PT-*';
+        $signMap['SK']='1P-SK-*';
+        $signMap['IE']='1P-IE-*';
+        $signMap['RO']='1P-RO-*';
+        $signMap['DK']='1P-DK-*';
+        $signMap['SI']='1P-SI-*';
+        $signMap['IS']='1P-IS';
+        $signMap['LU']='1P-LU-*';
+        $signMap['TR']='1P-TR';
+        $signMap['BG']='1P-BG-*';
+        $signMap['HR']='1P-HR-*';
+        $signMap['CY']='1P-CY-*';
+        $signMap['CL']='1P-CL';
+        $signMap['MX']='1P-MX';
+        $signMap['AR']='1P-AR';
+        $signMap['EG']='1P-EG';
+        $signMap['IL']='1P-IL';
+        $signMap['JP']='1P-JP';
+        $signMap['KW']='1P-KW';
+        $signMap['QA']='1P-QA';
+        $signMap['SA']='1P-SA';
+        $signMap['SG']='1P-SG';
+        $signMap['ZA']='1P-ZA';
+        $signMap['AE']='1P-AE';
+        $signMap['RU']='5-EE-RU-P ';
+        $signMap['LT']='7-EE-LT-P ';
+        $signMap['LV']='11-EE-LV-P';
+        $signMap['EE']='9-EE-EE-P ';
+        $signMap['FI']='13-EE-FI-P';
+        $signMap['NO']='17-EE-NO-P';
+        $signMap['SE']='15-EE-SE-P';
+        $signMap['BY']='19-EE-BY-P';
+        $signMap['UA']='21-EE-UA-P';
+        $signMap['PL']='23-EE-PL-P';
+        $signMap['BR']='2P-BR';
+        $signMap['BN']='2P-BN';
+        $signMap['KH']='2P-KH';
+        $signMap['FO']='2P-FO';
+        $signMap['GL']='2P-GL';
+        $signMap['IN']='2P-IN';
+        $signMap['ID']='2P-ID';
+        $signMap['MY']='2P-MY';
+        $signMap['MT']='2P-MT-*';
+        $signMap['NZ']='2P-NZ';
+        $signMap['PK']='2P-PK';
+        $signMap['PH']='2P-PH';
+        $signMap['KR']='2P-KR';
+        $signMap['LK']='2P-LK';
+        $signMap['TH']='2P-TH';
+        $signMap['VN']='2P-VN';
+        $signMap['AI']='1P-ROA';
+        $signMap['AG']='1P-ROA';
+        $signMap['AW']='1P-ROA';
+        $signMap['BS']='1P-ROA';
+        $signMap['BB']='1P-ROA';
+        $signMap['BZ']='1P-ROA';
+        $signMap['BM']='1P-ROA';
+        $signMap['BQ']='1P-ROA';
+        $signMap['KY']='1P-ROA';
+        $signMap['CR']='1P-ROA';
+        $signMap['CW']='1P-ROA';
+        $signMap['DM']='1P-ROA';
+        $signMap['DO']='1P-ROA';
+        $signMap['SV']='1P-ROA';
+        $signMap['GD']='1P-ROA';
+        $signMap['GP']='1P-ROA';
+        $signMap['GT']='1P-ROA';
+        $signMap['HT']='1P-ROA';
+        $signMap['HN']='1P-ROA';
+        $signMap['JM']='1P-ROA';
+        $signMap['MQ']='1P-ROA';
+        $signMap['MS']='1P-ROA';
+        $signMap['NI']='1P-ROA';
+        $signMap['PA']='1P-ROA';
+        $signMap['KN']='1P-ROA';
+        $signMap['LC']='1P-ROA';
+        $signMap['VC']='1P-ROA';
+        $signMap['SX']='1P-ROA';
+        $signMap['TT']='1P-ROA';
+        $signMap['TC']='1P-ROA';
+        $signMap['VG']='1P-ROA';
+        $signMap['DZ']='1P-ROF';
+        $signMap['AO']='1P-ROF';
+        $signMap['BJ']='1P-ROF';
+        $signMap['BW']='1P-ROF';
+        $signMap['IO']='1P-ROF';
+        $signMap['BF']='1P-ROF';
+        $signMap['BI']='1P-ROF';
+        $signMap['CM']='1P-ROF';
+        $signMap['CV']='1P-ROF';
+        $signMap['CF']='1P-ROF';
+        $signMap['TD']='1P-ROF';
+        $signMap['KM']='1P-ROF';
+        $signMap['CG']='1P-ROF';
+        $signMap['DJ']='1P-ROF';
+        $signMap['GQ']='1P-ROF';
+        $signMap['ET']='1P-ROF';
+        $signMap['GA']='1P-ROF';
+        $signMap['GM']='1P-ROF';
+        $signMap['GH']='1P-ROF';
+        $signMap['GN']='1P-ROF';
+        $signMap['GW']='1P-ROF';
+        $signMap['KE']='1P-ROF';
+        $signMap['LS']='1P-ROF';
+        $signMap['LY']='1P-ROF';
+        $signMap['MG']='1P-ROF';
+        $signMap['MW']='1P-ROF';
+        $signMap['ML']='1P-ROF';
+        $signMap['MR']='1P-ROF';
+        $signMap['MU']='1P-ROF';
+        $signMap['MA']='1P-ROF';
+        $signMap['MZ']='1P-ROF';
+        $signMap['NA']='1P-ROF';
+        $signMap['NE']='1P-ROF';
+        $signMap['NG']='1P-ROF';
+        $signMap['RE']='1P-ROF';
+        $signMap['RW']='1P-ROF';
+        $signMap['ST']='1P-ROF';
+        $signMap['SN']='1P-ROF';
+        $signMap['SC']='1P-ROF';
+        $signMap['SZ']='1P-ROF';
+        $signMap['TZ']='1P-ROF';
+        $signMap['TG']='1P-ROF';
+        $signMap['TN']='1P-ROF';
+        $signMap['UG']='1P-ROF';
+        $signMap['EH']='1P-ROF';
+        $signMap['ZM']='1P-ROF';
+        $signMap['ZW']='1P-ROF';
+        $signMap['CK']='1P-ROW';
+        $signMap['FJ']='1P-ROW';
+        $signMap['PF']='1P-ROW';
+        $signMap['KI']='1P-ROW';
+        $signMap['NR']='1P-ROW';
+        $signMap['NC']='1P-ROW';
+        $signMap['NU']='1P-ROW';
+        $signMap['PG']='1P-ROW';
+        $signMap['WS']='1P-ROW';
+        $signMap['SB']='1P-ROW';
+        $signMap['TK']='1P-ROW';
+        $signMap['TO']='1P-ROW';
+        $signMap['VU']='1P-ROW';
+        $signMap['WF']='1P-ROW';
+        $signMap['AL']='1P-ROW';
+        $signMap['AD']='1P-ROW';
+        $signMap['BA']='1P-ROW';
+        $signMap['GI']='1P-ROW';
+        $signMap['XZ']='1P-ROW';
+        $signMap['LI']='1P-ROW';
+        $signMap['MK']='1P-ROW';
+        $signMap['MD']='1P-ROW';
+        $signMap['MC']='1P-ROW';
+        $signMap['ME']='1P-ROW';
+        $signMap['SM']='1P-ROW';
+        $signMap['RS']='1P-ROW';
+        $signMap['VA']='1P-ROW';
+        $signMap['BO']='1P-ROA';
+        $signMap['CO']='1P-ROA';
+        $signMap['EC']='1P-ROA';
+        $signMap['GF']='1P-ROA';
+        $signMap['GY']='1P-ROA';
+        $signMap['PY']='1P-ROA';
+        $signMap['PE']='1P-ROA';
+        $signMap['SR']='1P-ROA';
+        $signMap['UY']='1P-ROA';
+        $signMap['VE']='1P-ROA';
+        $signMap['AF']='1P-ROW';
+        $signMap['BD']='1P-ROW';
+        $signMap['BT']='1P-ROW';
+        $signMap['KZ']='1P-ROW';
+        $signMap['KG']='1P-ROW';
+        $signMap['LA']='1P-ROW';
+        $signMap['MV']='1P-ROW';
+        $signMap['MN']='1P-ROW';
+        $signMap['MM']='1P-ROW';
+        $signMap['NP']='1P-ROW';
+        $signMap['TJ']='1P-ROW';
+        $signMap['TM']='1P-ROW';
+        $signMap['UZ']='1P-ROW';
+        $signMap['AM']='1P-ROW';
+        $signMap['AZ']='1P-ROW';
+        $signMap['BH']='1P-ROW';
+        $signMap['GE']='1P-ROW';
+        $signMap['IQ']='1P-ROW';
+        $signMap['JO']='1P-ROW';
+        $signMap['LB']='1P-ROW';
+        $signMap['OM']='1P-ROW';
+        $signMap['YE']='1P-ROW';
+        $signMap['PR']='1P-US';
+        $signMap['HI']='1P-US';
+        $signMap['BL']='1P-FR-*';
+        $signMap['MF']='1P-ROW';
+        $signMap['VI']='1P-US';
+        $signMap['SH']='1P-ZA';
+        $signMap['AS']='1P-US';
+        $signMap['IM']='1P-GB-*';
+        $signMap['CX']='1P-AU';
+        $signMap['CC']='1P-AU';
+        $signMap['GU']='1P-US';
+        $signMap['MH']='1P-US';
+        $signMap['FM']='1P-US';
+        $signMap['NF']='1P-AU';
+        $signMap['MP']='1P-US';
+        $signMap['PW']='1P-US';
+        $signMap['UM']='1P-US';
+        $signMap['AX']='1P-FI';
+        $signMap['GG']='1P-GB-*';
+        $signMap['JE']='1P-GB-*';
+        $signMap['PM']='1P-CA';
+        $signMap['FK']='1P-GB-*';
+        $signMap['TL']='1P-PT-*';
+
+        if (!$countryCode)
+            return '';
+        $sign = $signMap[$countryCode]??'';
+        if (!$sign)
+            return '';
+        return $sign;
+    }
+
+    /**
+     * @title 中外运-西邮经济小包(燕文义乌仓-经济)
+     * @param $order
+     * $return string
+     * @author libaimin
+     */
+    public function label_SINOTRANS_PY_WLB_YW($order){
+        return $this->display('SINOTRANS_PY_WLB_YW',$order);
+    }
+
+    /**
+     * @title 4px新邮挂号小包(深圳)-带电
+     * @param $order
+     * $return string
+     * @author libaimin
+     */
+    public function label_SGP_WLB_FPXSS($order){
+        return $this->display('SGP_WLB_FPXSS',$order);
+    }
+
+    //author by lan 中俄航空 Ruston(燕文义乌仓-标准)
+    private function label_HRB_WLB_RUSTONYW($order){
+        return $this->display('HRB_WLB_RUSTONYW',$order);
+    }
+    //author by lan 中俄航空 Ruston(燕文深圳仓-标准)
+    private function label_HRB_WLB_RUSTONSZ($order){
+        return $this->display('HRB_WLB_RUSTONSZ',$order);
+    }
+    //author by lan 顺友航空经济小包(义乌)
+    private function label_SUNYOU_ECONOMY_YANWENYW($order){
+        return $this->display('SUNYOU_ECONOMY_YANWENYW',$order);
+    }
+
+    //author by lan 新邮经济小包(递四方东莞仓-经济)
+    private function label_SGP_OMP_FPXDG($order)
+    {
+        return $this->display('SGP_OMP_FPXDG', $order);
+    }
+    //author by lan 新邮经济小包(燕文义乌仓-经济)
+    private function label_SGP_OMP_YANWENYW($order){
+        return $this->display('SGP_OMP_YANWENYW',$order);
+    }
+    //author by lan 顺丰国际经济小包(顺丰上门揽收)
+    private function label_SF_EPARCEL_OM_NATIONWIDE($order){
+        $order['signCode'] =$this->getSignMap($order['country_code']);
+        return $this->display('SF_EPARCEL_OM_NATIONWIDE',$order);
+    }
+
+    //author by lan 无忧物流-标准(燕文义乌仓-标准)
+    private function label_CAINIAO_STANDARD_TS_1709669($order){
+        return $this->display('CAINIAO_STANDARD_TS_1709669',$order);
+    }
+    //author by lan 无忧物流-优先(递四方东莞仓-优先)
+    private function label_CAINIAO_PREMIUM_FPXDG($order){
+        return $this->display('CAINIAO_PREMIUM_FPXDG',$order);
+    }
+    //author by lan 无忧物流-优先(燕文义乌仓-优先)
+    private function label_CAINIAO_PREMIUM_YANWENYW($order){
+        return $this->display('CAINIAO_PREMIUM_YANWENYW',$order);
+    }
+
+    //CAINIAO_STANDARD_FPXDG  AliExpress 无忧物流-标准（普货）
+    private function label_CAINIAO_STANDARD_FPXDG($order)
+    {
+        return $this->display('CAINIAO_STANDARD_FPXDG', $order);
+    }
+    //author by lan 中国邮政平常小包+(中邮金华仓)
+    private function label_YANWENJYT_WLB_CPAMJH($order){
+        $order['zone_code'] = $this->getZoneCode($order['country_code']);
+        $order['sorting_code'] = $this->getsortingCode($order['country_code']);
+        return $this->display('YANWENJYT_WLB_CPAMJH',$order);
+    }
+    //author by lan Aliexpress无忧物流-简易(燕文义乌仓-经济)
+    private function label_CAINIAO_ECONOMY_TS_1710060($order){
+        return $this->display('CAINIAO_ECONOMY_TS_1710060',$order);
+    }
+
+
+
+
+
+
+}

@@ -1,0 +1,351 @@
+<?php
+namespace service\pm;
+
+use org\XmlHandle;
+
+/**
+ * PriceMinister 请求服务类
+ * @author wangwei 2019-2-27 15:18:40
+ */
+class RequestService{
+	public $_action = null;//请求接口名
+	public $_version = null;//接口版本
+	public $_accountConfig = array();//授权信息
+	public $_successKey = '';//成功时返回的xml键名
+	
+	/**
+	 * 构造方法
+	 * @param string $login  账号名   pm_account.api_user
+	 * @param string $token  token  pm_account.api_token
+	 */
+	public function __construct($login,$token) {
+		$this->_accountConfig['login'] = $login;
+		$this->_accountConfig['token'] = $token;
+	}
+	
+	/**
+	 * 执行请求
+	 * @param array $url_arr 请求参数
+	 * @param array $data_arr 发送的数据(以XML文本的形式)
+	 * @param array $option 可选参数
+	 * @throws PriceMinisterException
+	 * @return multitype:number string multitype
+	 */
+	public function executeRequest($url_arr=array(),$data_arr=array(),$option=array()){
+		$return = array('ask'=>0,'message'=>'','data'=>array(),'org_data'=>'');
+		//检查授权信息
+		$this->check();
+		//获取公共参数
+		$url_arr = $this->getCommonParams($url_arr);
+		//请求URL
+		$params_url = $this->httpBuildToStr($url_arr);
+		//请求XML数据
+		$params_data = '';
+		if(!empty($data_arr)){
+			$params_data = $this->getXmlContent($data_arr);
+		}
+		//调用curl请求
+		$curlRe = $this->curl($params_url,$params_data,$option);
+		if($curlRe['ask']){//请求成功
+			//XML解析
+			$data = XmlHandle::unserialize($curlRe['data']);
+			//数据结构非预期异常抛出
+			$successKey = $this->_successKey ? $this->_successKey : $this->_action.'result';
+			$errorKey = 'errorresponse';
+			if(empty($data) || (!isset($data[$errorKey]['error']) && !isset($data[$successKey]['response']))){
+				$errorInfo = array(
+						'Message'=>'Unexpected Response Data',
+						'ErrorType'=>'XML Structure Error',
+						'Action'=>$this->_action,
+						'Version'=>$this->_version,
+						'ORG'=>$curlRe['data'],
+				);
+				throw new PriceMinisterException($errorInfo);
+			}
+			//有错误异常抛出
+			if(isset($data[$errorKey]['error'])){
+				$error = $data[$errorKey]['error'];
+				$errorInfo = array(
+						'Message'=>$error['message'].','.$error['details']['detail'],
+						'ErrorCode'=>$error['code'],
+						'ErrorType'=>$error['type'],
+						'ErrorDetails'=>$error['details'],
+						'Action'=>$this->_action,
+						'Version'=>$this->_version,
+						'ORG'=>$curlRe['data'],
+				);
+				throw new PriceMinisterException($errorInfo);
+			}
+			
+			$return['ask'] = 1;
+			$return['message'] = 'success';
+			$return['data'] = $data[$successKey]['response'];
+			$return['org_data'] = $curlRe['data'];
+		}else{
+			$return['message'] = $curlRe['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * curl请求
+	 * @param unknown $params_url
+	 * @param string $params_data
+	 * @param unknown $option
+	 * @example $option=array(
+	 * 						'Type'=>'POST',   //HTTP操作类型: POST  GET  PUT  DELETE
+	 * 						'TimeOut'=>120  //超时时间
+	 * 					   );
+	 * @return mixed
+	 */
+	protected function curl($params_url,$params_data='',$option=array()){
+	    $return = array('ask'=>0,'message'=>'','data'=>array());
+	    
+		//请求地址
+	    $url = PriceMinisterLib::API_DOMAIN . '/sales_ws?' . $params_url;
+		
+	    $Type = isset($option['Type']) ? $option['Type'] : 'GET' ;
+	    $TimeOut = isset($option['TimeOut']) ? $option['TimeOut'] : 120 ;
+	    
+	    $ch = curl_init() ;//初始化资源句柄
+	    curl_setopt($ch, CURLOPT_URL, $url);//设置请求地址
+	    
+	    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $Type);//设置http操作类型
+	    
+	    curl_setopt ( $ch, CURLOPT_VERBOSE, 1 );//启用时会汇报所有的信息，存放在STDERR或指定的CURLOPT_STDERR中
+	    
+// 	    curl_setopt($ch, CURLOPT_HEADER, false);//请求头是否包含在响应中
+	    
+	    curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
+	    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);//将curl_exec()获取的信息以文件流的形式返回，而不是直接输出。
+	    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);//https请求不验证证书
+	    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);//https请求不验证hosts
+	    
+	    curl_setopt($ch, CURLOPT_POSTFIELDS, $params_data);//设置请求数据
+	    
+// 	    curl_setopt($ch, CURLOPT_HTTPHEADER, $request_headers);//设置http头
+	    
+	    curl_setopt($ch, CURLOPT_TIMEOUT,$TimeOut);//设置超时时间
+	    
+	    //最多循环三次
+	    $request_count  = 1;
+	    while ( $request_count <= 3 ) {
+	        //执行请求
+	        $data = curl_exec($ch);
+	        
+// 	        $curlInfo=curl_getinfo($ch);//获取curl请求信息
+// 	        var_dump($data);
+// 	        var_dump($curlInfo);
+	        
+	        //curl是否发生错误
+	        if($errNo = curl_errno($ch)){
+	            $return['message']='PriceMinisterApiCurlRequestError,ErrNo:'.$errNo.',Error:'.curl_error($ch);
+	        }else{
+	            $return['message'] = '';
+	            break;
+	        }
+	        //请求次数累加
+	        $request_count ++;
+	    }
+	    
+	    curl_close($ch);
+	    
+	    $return["ask"] = 1;
+	    $return["message"] = 'success';
+	    $return["data"] = $data;
+	    return $return;
+	}
+	
+	/**
+	 * 设置请求
+	 * @param string $action 请求接口名
+	 * @param string $version 接口版本
+	 */
+	protected function setRequest($action,$version){
+		$this->_action = $action;
+		$this->_version = $version;
+	}
+	
+	/**
+	 * 设置成功时返回的XML键名
+	 * @param string $successKey 成功时返回的XML键名
+	 */
+	protected function setSuccessKey($successKey){
+		$this->_successKey = $successKey;
+	}
+	
+	/**
+	 * 获取XML文本
+	 * @param array $arr
+	 * @return string
+	 */
+	protected function getXmlContent($arr){
+		//创建XML对象
+		$xml = new \SimpleXMLElement("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Request></Request>");
+		//数组转XML
+		$this->array2xml($arr, $xml);
+		//输出XML文本
+		$xml = $xml->asXML();
+		$xml = trim($xml);
+		return $xml;
+	}
+	
+	/**
+	 * 数组转XML
+	 * @param array $info  要装换的数组数组
+	 * @param object $xml  XML对象
+	 */
+	protected function array2xml($info, &$xml){
+		foreach($info as $key => $value){
+			if(is_array($value)){
+				if(is_numeric($key)){
+					$key = array_pop(array_keys($value));
+					$value = array_pop($value);
+				}
+				$subnode = $xml->addChild("{$key}");
+				$this->array2xml($value, $subnode);
+			}else{
+				//针对带属性的节点做特殊处理，如：'SalePrice currency=USD' => 19.99
+				if(preg_match('/\s+/', $key)){
+					$split = preg_split('/\s+/', $key);
+					$key = array_shift($split);
+						
+					$subnode = $xml->addChild("{$key}", htmlspecialchars("$value"));
+					foreach($split as $v){
+						$arr = explode('=', $v);
+						$subnode->addAttribute($arr[0], $arr[1]);
+					}
+				}else{
+					$subnode = $xml->addChild("{$key}", htmlspecialchars("$value"));
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 检查授权信息
+	 * @throws PriceMinisterException
+	 */
+	public function check(){
+		$errorInfo = array(
+				'Message'=>'',
+				'Action'=>$this->_action,
+				'Version'=>$this->_version,
+				'ErrorType'=>'',//错误类型
+		);
+		//检查请求接口名
+		if(empty($this->_action)){
+			$errorInfo['Message'] = 'Request Action Undefined';
+			$errorInfo['ErrorType'] = 'Internalc Error';
+			throw new PriceMinisterException($errorInfo);
+		}
+		//检查接口版本
+		if(empty($this->_version)){
+			$errorInfo['Message'] = 'Request Version Undefined';
+			$errorInfo['ErrorType'] = 'Internalc Error';
+			throw new PriceMinisterException($errorInfo);
+		}
+		//检查login
+		if(empty($this->_accountConfig['login'])){
+			$errorInfo['Message'] = 'login Not Empty';
+			$errorInfo['ErrorType'] = 'Authorization Error';
+			throw new PriceMinisterException($errorInfo);
+		}
+		//检查token
+		if(empty($this->_accountConfig['token'])){
+			$errorInfo['Message'] = 'token Not Empty';
+			$errorInfo['ErrorType'] = 'Authorization Error';
+			throw new PriceMinisterException($errorInfo);
+		}
+	}
+	
+	/**
+	 * 获取公共参数
+	 * @return multitype:string NULL
+	 */
+	protected function getCommonParams($params) {
+		$params['action'] = $this->_action;
+		$params['version'] = $this->_version;
+		$params['pwd'] = $this->_accountConfig['token'];
+		$params['login'] = $this->_accountConfig['login'];
+		return $params;
+	}
+	
+	/**
+	 * 兼容低版本PHP的http_build_query方法，生成URL-encode 之后的请求字符串
+	 * @param array $arr
+	 * @return string
+	 */
+	public function httpBuildToStr($arr){
+		//兼容低版本php的http_build_query不支持PHP_QUERY_RFC3986，单独替换“+”
+//		return str_replace('+', '%20', http_build_query($arr));
+		return http_build_query($arr);
+// 		$return = '';
+// 		if(!empty($arr) && is_array($arr)){
+// 			foreach ($arr as $key=>$val){
+// 				$return .= $key.'='.$this->urlReplace($val).'&';
+// 			}
+// 		}
+// 		$return = trim($return,'&');
+// 		return $return;
+	}
+	
+// 	/**
+// 	 * @param str $val 
+// 	 * @return mixed
+// 	 */
+// 	public function urlReplace($val){
+// 		// ‘%’=>‘%25’
+// 		$val = str_replace('%', '%25', $val);
+// 		// ‘+’=>‘%2B’
+// 		$val = str_replace('+', '%2B', $val);
+// 		// ‘空格’=>‘+’
+// 		$val = str_replace(' ', '+', $val);
+// 		// ‘/’=>‘%2F’
+// 		$val = str_replace('/', '%2F', $val);
+// 		// ‘?’=>‘%3F’
+// 		$val = str_replace('?', '%3F', $val);
+// 		// ‘#’=>‘%23’
+// 		$val = str_replace('#', '%23', $val);
+// 		// ‘&’=>‘%26’
+// 		$val = str_replace('&', '%26', $val);
+// 		// ‘=’=>‘%3D’
+// 		$val = str_replace('=', '%3D', $val);
+// 		// ‘!’=>‘%21’
+// 		$val = str_replace('!', '%21', $val);
+// 		// ‘@’=>‘%40’
+// 		$val = str_replace('@', '%40', $val);
+// 		// ‘$’=>‘%24’
+// 		$val = str_replace('$', '%24', $val);
+// 		// ‘^’=>‘%5E’
+// 		$val = str_replace('^', '%5E', $val);
+// 		// ‘(’=>‘%28’
+// 		$val = str_replace('(', '%28', $val);
+// 		// ‘)’=>‘%29’
+// 		$val = str_replace(')', '%29', $val);
+// 		// ‘[’=>‘%5B’
+// 		$val = str_replace('[', '%5B', $val);
+// 		// ‘]’=>‘%5D’
+// 		$val = str_replace(']', '%5D', $val);
+// 		// ‘;’=>‘%3B’
+// 		$val = str_replace(';', '%3B', $val);
+// 		// ‘:’=>‘%3A’
+// 		$val = str_replace(':', '%3A', $val);
+// 		// ‘'’=>‘%27’
+// 		$val = str_replace("'", '%27', $val);
+// 		// ‘,’=>‘%2C’
+// 		$val = str_replace(',', '%2C', $val);
+// 		// ‘{’=>‘%7B’
+// 		$val = str_replace('{', '%7B', $val);
+// 		// ‘}’=>‘%7D’
+// 		$val = str_replace('}', '%7D', $val);
+// 		// ‘|’=>‘%7C’
+// 		$val = str_replace('|', '%7C', $val);
+// 		// ‘\’=>‘%5C’
+// 		$val = str_replace("\\", "%5C", $val);
+		
+// 		return $val;
+// 	}
+	
+	
+}

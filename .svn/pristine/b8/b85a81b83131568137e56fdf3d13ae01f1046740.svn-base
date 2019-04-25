@@ -1,0 +1,367 @@
+<?php
+
+namespace pandao;
+
+use app\common\cache\Cache;
+use think\Exception;
+use app\common\model\pandao\PandaoAccount as PandaoAccountModel;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/5/22
+ * Time: 15:48
+ */
+class PandaoBaseApi
+{
+    protected $client_id = '';
+
+    protected $client_secret = '';
+
+    protected $code = '';
+
+    protected $redirect_uri = '';
+
+    protected $access_token = '';
+
+    protected $refresh_token = '';
+
+    protected $password = '';
+
+    protected $username = '';
+
+    protected $account_id = 0;
+
+    public function __construct($params = [])
+    {
+        $this->client_id = $params['client_id'] ?? '';
+        $this->client_secret = $params['client_secret'] ?? '';
+        $this->code = $params['code'] ?? '';
+        $this->redirect_uri = $params['redirect_uri'] ?? '';
+        $this->refresh_token = $params['refresh_token'] ?? '';
+        $this->access_token = $params['access_token'] ?? '';
+        $this->password = $params['password'] ?? '';
+        $this->username = $params['username'] ?? '';
+        $this->account_id = $params['account_id'] ?? $params['id'] ?? 0;
+    }
+
+    protected function _refresh_access_token()
+    {
+        $url = 'https://mall.my.com/oauth/v2/token';
+        $postData = [
+            'client_id' => $this->client_id,
+            'client_secret' => $this->client_secret,
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $this->refresh_token,
+        ];
+
+        $postData = http_build_query($postData);
+        $result = $this->httpReader($url, 'POST', $postData);
+        $result = json_decode($result, true);
+        if(isset($result['access_token'])){
+            return $result;
+        }else{
+            exit('access_token 更新失败');
+        }
+
+    }
+
+    /**
+     * @title 已经组装好了授权的；
+     * @param $url 访问地焉
+     * @param $mehod 访问方法'GET'， 'POST'
+     * @param $data 数据；
+     * @return mixed josn
+     */
+    protected function authcall($url, $mehod, $data)
+    {
+        //授权信息；
+        $extra = [
+            'header' => [
+                'Authorization' => 'Bearer ' . $this->access_token,
+            ]
+        ];
+        $result = $this->httpReader($url, $mehod, $data, $extra);
+        $result = json_decode($result, true);
+        //此种情况为未授权, 未授权则先授权，再进行；
+        if (isset($result['error']) && $result['error'] == 'invalid_grant' && $result['error_description'] == 'The access token provided has expired.') {
+            //如果授权成功，则再取，如果刷新授权也不成功，直接返回接果；
+            if ($this->refresh_access_token()) {
+                return $this->authcall($url, $mehod, $data);
+            }
+        }
+
+        return $result;
+    }
+    /**
+     * @title 已经组装好了授权的；
+     * @param $url 访问地焉
+     * @param $mehod 访问方法'GET'， 'POST'
+     * @param $data 数据；
+     * @return mixed josn
+     */
+    protected function authshipping($url, $mehod, $data)
+    {
+        //授权信息；
+        $extra = [
+            'header' => [
+                'Authorization' => 'Bearer ' . $this->access_token,
+            ]
+        ];
+        $result = $this->httpReader($url, $mehod, $data, $extra);
+        //此种情况为未授权, 未授权则先授权，再进行；
+        if (isset($result['error']) && $result['error'] == 'invalid_grant' && $result['error_description'] == 'The access token provided has expired.') {
+            //如果授权成功，则再取，如果刷新授权也不成功，直接返回接果；
+            if ($this->refresh_access_token()) {
+                return $this->authcall($url, $mehod, $data);
+            }
+        }
+
+        return $result;
+    }
+    public function refresh_access_token()
+    {
+        $cache = Cache::store('PandaoAccountCache');
+        //如果account_id不为0，则去缓存看一下，是否更新了access_token;
+        if ($this->account_id != 0) {
+            $pandaoAcc = $cache->getTableRecord($this->account_id);
+            //此种情况为已更新了access_token，直接返回继续使用就好了；
+            if (isset($pandaoAcc['access_token']) && $pandaoAcc['access_token'] != $this->access_token) {
+                $this->access_token = $pandaoAcc['access_token'];
+                return true;
+            }
+        }
+        //上述发现未利用refresh_token更新acess_token,那么需要加锁去更新，先声明KEY
+        $refreshKey = 'RefreshToken:pandao_access_token-' . $this->account_id;
+        try {
+            if ($this->lock($refreshKey)) {
+                if ($this->account_id != 0) {
+                    $pandaoAcc = $cache->getTableRecord($this->account_id);
+                    if (isset($pandaoAcc['access_token']) && $pandaoAcc['access_token'] != $this->access_token) {
+                        $this->access_token = $pandaoAcc['access_token'];
+                        $this->unlock($refreshKey);
+                        return true;
+                    }
+                }
+
+                $result = $this->_refresh_access_token();
+
+                if ($result['access_token']) {
+                    $data['access_token'] = $this->access_token = $result['access_token'];
+                    $data['refresh_token'] = $this->refresh_token = $result['refresh_token'];
+                    $data['expiry_time'] = $result['expires_in'] + time();
+                    PandaoAccountModel::update($data, ['id' => $this->account_id]);
+                    foreach ($data as $key => $val) {
+                        $cache->updateTableRecord($this->account_id, $key, $val);
+                    }
+                    $this->unlock($refreshKey);
+                    return true;
+                }
+                $this->unlock($refreshKey);
+                return false;
+            }
+        } catch (Exception $e) {
+            $this->unlock($refreshKey);
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * HTTP读取
+     * @param string $url 目标URL
+     * @param string $method 请求方式
+     * @param array|string $bodyData 请求BODY正文
+     * @param array $responseHeader 传变量获取请求回应头
+     * @param int $code 传变量获取请求回应状态码
+     * @param string $protocol 传变量获取请求回应协议文本
+     * @param string $statusText 传变量获取请求回应状态文本
+     * @param array $extra 扩展参数,可传以下值,不传则使用默认值
+     * header array 头
+     * host string 主机名
+     * port int 端口号
+     * timeout int 超时(秒)
+     * proxyType int 代理类型; 0 HTTP, 4 SOCKS4, 5 SOCKS5, 6 SOCK4A, 7 SOCKS5_HOSTNAME
+     * proxyAdd string 代理地址
+     * proxyPort int 代理端口
+     * proxyUser string 代理用户
+     * proxyPass string 代理密码
+     * caFile string 服务器端验证证书文件名
+     * sslCertType string 安全连接证书类型
+     * sslCert string 安全连接证书文件名
+     * sslKeyType string 安全连接证书密匙类型
+     * sslKey string 安全连接证书密匙文件名
+     * @return string|array 请求结果;成功返回请求内容;失败返回错误信息数组
+     * error string 失败原因简单描述
+     * debugInfo array 调试信息
+     */
+    public function httpReader($url, $method = 'GET', $bodyData = [], $extra = [], &$responseHeader = null, &$code = 0, &$protocol = '', &$statusText = '')
+    {
+        $ci = curl_init();
+
+        if (isset($extra['timeout'])) {
+            curl_setopt($ci, CURLOPT_TIMEOUT, $extra['timeout']);
+        }
+        curl_setopt($ci, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ci, CURLOPT_HEADER, true);
+        curl_setopt($ci, CURLOPT_AUTOREFERER, true);
+        curl_setopt($ci, CURLOPT_FOLLOWLOCATION, true);
+
+        if (isset($extra['proxyType'])) {
+            curl_setopt($ci, CURLOPT_PROXYTYPE, $extra['proxyType']);
+
+            if (isset($extra['proxyAdd'])) {
+                curl_setopt($ci, CURLOPT_PROXY, $extra['proxyAdd']);
+            }
+
+            if (isset($extra['proxyPort'])) {
+                curl_setopt($ci, CURLOPT_PROXYPORT, $extra['proxyPort']);
+            }
+
+            if (isset($extra['proxyUser'])) {
+                curl_setopt($ci, CURLOPT_PROXYUSERNAME, $extra['proxyUser']);
+            }
+
+            if (isset($extra['proxyPass'])) {
+                curl_setopt($ci, CURLOPT_PROXYPASSWORD, $extra['proxyPass']);
+            }
+        }
+
+        if (isset($extra['caFile'])) {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, 2); //SSL证书认证
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, true); //严格认证
+            curl_setopt($ci, CURLOPT_CAINFO, $extra['caFile']); //证书
+        } else {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, false);
+        }
+
+        if (isset($extra['sslCertType']) && isset($extra['sslCert'])) {
+            curl_setopt($ci, CURLOPT_SSLCERTTYPE, $extra['sslCertType']);
+            curl_setopt($ci, CURLOPT_SSLCERT, $extra['sslCert']);
+        }
+
+        if (isset($extra['sslKeyType']) && isset($extra['sslKey'])) {
+            curl_setopt($ci, CURLOPT_SSLKEYTYPE, $extra['sslKeyType']);
+            curl_setopt($ci, CURLOPT_SSLKEY, $extra['sslKey']);
+        }
+
+        $method = strtoupper($method);
+        switch ($method) {
+            case 'GET':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'GET');
+                if (!empty($bodyData)) {
+                    if (is_array($bodyData)) {
+                        $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($bodyData);
+                    } else {
+                        curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                    }
+                }
+                break;
+            case 'POST':
+                curl_setopt($ci, CURLOPT_POST, true);
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'PUT':
+                //                 curl_setopt ( $ci, CURLOPT_PUT, true );
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'PUT');
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'DELETE':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
+            case 'HEAD':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'HEAD');
+                break;
+            default:
+                throw new \Exception(json_encode(['error' => '未定义的HTTP方式']));
+                return ['error' => '未定义的HTTP方式'];
+        }
+
+        if (!isset($extra['header']) || !isset($extra['header']['Host'])) {
+            $urldata = parse_url($url);
+            $extra['header']['Host'] = $urldata['host'];
+            unset($urldata);
+        }
+
+        $header_array = array();
+        foreach ($extra['header'] as $k => $v) {
+            $header_array[] = $k . ': ' . $v;
+        }
+
+        curl_setopt($ci, CURLOPT_HTTPHEADER, $header_array);
+        curl_setopt($ci, CURLINFO_HEADER_OUT, true);
+
+        curl_setopt($ci, CURLOPT_URL, $url);
+
+        $response = curl_exec($ci);
+
+        if (false === $response) {
+            $http_info = curl_getinfo($ci);
+            throw new \Exception(json_encode(['error' => curl_error($ci), 'debugInfo' => $http_info]));
+            return ['error' => curl_error($ci), 'debugInfo' => $http_info];
+        }
+
+        $responseHeader = [];
+        $headerSize = curl_getinfo($ci, CURLINFO_HEADER_SIZE);
+        $headerData = substr($response, 0, $headerSize);
+        $body = substr($response, $headerSize);
+
+        $responseHeaderList = explode("\r\n", $headerData);
+
+        if (!empty($responseHeaderList)) {
+            foreach ($responseHeaderList as $v) {
+                if (false !== strpos($v, ':')) {
+                    list($key, $value) = explode(':', $v, 2);
+                    $responseHeader[$key] = ltrim($value);
+                } else if (preg_match('/(.+?)\s(\d+)\s(.*)/', $v, $matches) > 0) {
+                    $protocol = $matches[1];
+                    $code = $matches[2];
+                    $statusText = $matches[3];
+                }
+            }
+        }
+
+        curl_close($ci);
+        return $body;
+    }
+
+    /**
+     * 给一个key加锁，失败则等待时间后重新尝试，最多尝试次数后，返回false防止造成偱环;同一个KEY加锁后必需要解锁；
+     * @param $key 加要锁的KEY
+     * @param int $maxTest 最大等待次数；
+     * @return bool
+     */
+    protected function lock($key, $maxTest = 200)
+    {
+        $bol = true;
+        while (true) {
+            $result = Cache::handler()->setnx($key, 1);
+            Cache::handler()->expire($key, 10);
+            if ($result) {
+                break;
+            }
+            $maxTest--;
+            if ($maxTest <= 0) {
+                $bol = false;
+                break;
+            }
+            usleep(50000);
+        }
+        return $bol;
+    }
+
+    /**
+     * 加锁后必需解锁，否则下次同样key会换败
+     * @param $key
+     * @return bool
+     */
+    protected function unlock($key)
+    {
+        Cache::handler()->delete($key);
+        return true;
+    }
+}

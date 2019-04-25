@@ -1,0 +1,909 @@
+<?php
+
+namespace app\common\service;
+
+use app\common\cache\Cache;
+use app\common\model\Goods;
+use app\common\model\Warehouse;
+use app\common\model\report\ReportStatisticByGoods;
+use app\index\service\DepartmentUserMapService;
+use app\order\service\OrderService;
+use think\Exception;
+
+/** 统计
+ * Created by PhpStorm.
+ * User: PHILL
+ * Date: 2017/1/6
+ * Time: 11:41
+ */
+class Report
+{
+	const cachePrefix = 'occupy';
+	const saleByGoods = self::cachePrefix . ':report_statistic_by_goods:table';
+	const saleByGoodsPrefix = self::cachePrefix . ':report_statistic_by_goods:';
+	const saleByCategory = self::cachePrefix . ':report_statistic_by_category:table';
+	const saleByCategoryPrefix = self::cachePrefix . ':report_statistic_by_category:';
+	const saleByDeeps = self::cachePrefix . ':report_statistic_by_deeps:table';
+	const saleByDeepsPrefix = self::cachePrefix . ':report_statistic_by_deeps:';
+	const saleByCountry = self::cachePrefix . ':report_statistic_by_country:table';
+	const saleByCountryPrefix = self::cachePrefix . ':report_statistic_by_country:';
+	const saleByDate = self::cachePrefix . ':report_statistic_by_date:table';
+	const saleByDatePrefix = self::cachePrefix . ':report_statistic_by_date:';
+	const saleByPackage = self::cachePrefix . ':report_statistic_by_package:table';
+	const saleByPackagePrefix = self::cachePrefix . ':report_statistic_by_package:';
+	const saleByBuyer = self::cachePrefix . ':report_statistic_by_buyer:table';
+	const saleByBuyerPrefix = self::cachePrefix . ':report_statistic_by_buyer:';
+	const statisticOrder = self::cachePrefix . ':report_statistic_by_order:table';
+	const statisticOrderPrefix = self::cachePrefix . ':report_statistic_by_order:';
+	const statisticMessage = self::cachePrefix . ':report_statistic_by_message:table';
+	const statisticMessagePrefix = self::cachePrefix . ':report_statistic_by_message:';
+	const skuNeed = 'sku_need:table';
+	const skuNeedPrefix = 'sku_need:';
+
+	/**
+	 * 产品销售统计
+	 * @param $channel_id [渠道id]
+	 * @param $goods_id [产品id]
+	 * @param $sku_id [sku id]
+	 * @param array $type [void => value,order,turnover,sale,repeat,repair,refund,sale_amount,repeat_amount,refund_amount] 作废数,订单商品数,订单成交数,销售数,重发数,返修数,总数,退货数,销售额,重发金额,退货金额
+	 * @param $warehouse_id [仓库id]
+	 * @param $time [time]
+	 * @param bool|false $is_need
+	 * @return bool
+	 */
+	public static function saleByGoods($channel_id, $goods_id, $sku_id, $warehouse_id, $time, array $type, $is_need = true)
+	{
+		date_default_timezone_set("PRC");
+		$cache = Cache::handler(true);
+		$time = strtotime(date('Y-m-d', $time));
+		if (empty($channel_id) || empty($sku_id) || empty($warehouse_id)) {
+			return false;
+		}
+		$key = $channel_id . ':' . $sku_id . ':' . $warehouse_id . ':' . $time;
+		if ($cache->exists(self::saleByGoodsPrefix . $key)) {
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "void":
+						$cache->hIncrBy(self::saleByGoodsPrefix . $key, 'void_quantity', $v);
+						break;
+					case "order":   // 订单商品数
+						$cache->hIncrBy(self::saleByGoodsPrefix . $key, 'order_quantity', $v);
+						if ($is_need) {
+							self::skuNeed($sku_id, $v, $warehouse_id);
+						}
+						break;
+					case "turnover":    //订单笔数 审核之后才计算这个
+						$cache->hIncrBy(self::saleByGoodsPrefix . $key, 'order_turnover', $v);
+						break;
+					case "sale":   //发货之后才写入
+						$cache->hIncrBy(self::saleByGoodsPrefix . $key, 'sale_quantity', $v);
+						break;
+					case "repeat":
+						$cache->hIncrBy(self::saleByGoodsPrefix . $key, 'repeat_quantity', $v);
+						break;
+					case "repair":
+						$cache->hIncrBy(self::saleByGoodsPrefix . $key, 'repair_quantity', $v);
+						break;
+					case "refund":
+						$cache->hIncrBy(self::saleByGoodsPrefix . $key, 'refund_quantity', $v);
+						break;
+					case "sale_amount":
+						$cache->hIncrByFloat(self::saleByGoodsPrefix . $key, 'sale_amount', $v);
+						break;
+					case "buyer":
+						$cache->hIncrBy(self::saleByGoodsPrefix . $key, 'buyer_quantity', $v);
+						break;
+					case "repeat_amount":
+						$cache->hIncrByFloat(self::saleByGoodsPrefix . $key, 'repeat_amount', $v);
+						break;
+					case "refund_amount":
+						$cache->hIncrByFloat(self::saleByGoodsPrefix . $key, 'refund_amount', $v);
+						break;
+				}
+			}
+		} else {
+			$goodsData['dateline'] = $time;
+			$goodsData['channel_id'] = $channel_id;
+			$goodsData['goods_id'] = $goods_id;
+			$goodsData['warehouse_id'] = $warehouse_id;
+			$goodsData['sku_id'] = $sku_id;
+			$goodsData['category_id'] = 0;
+			$goodsData['developer_group_id'] = 0;    //开发分组id
+			$goodsData['developer_id'] = 0;
+			$goodsData['purchaser_id'] = 0;
+			$goodsData['void_quantity'] = 0;
+			$goodsData['order_quantity'] = 0;    //订单商品数
+			$goodsData['order_turnover'] = 0;   //订单笔数（发货之后才计算这个）
+			$goodsData['buyer_quantity'] = 0;
+			$goodsData['sale_quantity'] = 0;
+			$goodsData['repeat_quantity'] = 0;
+			$goodsData['repair_quantity'] = 0;
+			$goodsData['total_quantity'] = 0;
+			$goodsData['refund_quantity'] = 0;
+			$goodsData['sale_amount'] = 0;
+			$goodsData['repeat_amount'] = 0;
+			$goodsData['refund_amount'] = 0;
+			$goodsData['daily_average_thirty'] = 0;
+			$goodsData['daily_average_fifteen'] = 0;
+			$goodsData['daily_average_seven'] = 0;
+			$goodsData['new_listing'] = 0;
+			//根据商品  超找分类
+			$goodsModel = new Goods();
+			$goodsInfo = $goodsModel->where(['id' => $goods_id])->find();
+			if (!empty($goodsInfo)) {
+				$goodsData['category_id'] = $goodsInfo['category_id'];
+				//查找开发者信息
+				$goodsData['developer_id'] = $goodsInfo['developer_id'];
+				//查找采购员信息
+				$goodsData['purchaser_id'] = $goodsInfo['purchaser_id'];
+				//查看是否为新品
+				if ($goodsInfo['sales_status'] == 1 && ($goodsInfo['publish_time'] - time()) < 30 * 24 * 60 * 60) {
+					$goodsData['new_listing'] = 1;   //是新品
+				} else {
+					$goodsData['new_listing'] = 0;
+				}
+			}
+			//查出仓库类型
+			$warehouseModel = new Warehouse();
+			$warehouseInfo = $warehouseModel->where(['id' => $warehouse_id])->find();
+			if (!empty($warehouseInfo)) {
+				$goodsData['warehouse_type'] = $warehouseInfo['type'];
+			} else {
+				$goodsData['warehouse_type'] = 5;   //仓库为零，默认为fba仓库
+			}
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "void":
+						$goodsData['void_quantity'] = $v;
+						break;
+					case "order":   // 订单商品数
+						$goodsData['order_quantity'] = $v;
+						if ($is_need) {
+							self::skuNeed($sku_id, $v, $warehouse_id);
+						}
+						break;
+					case "turnover":    //订单笔数 审核之后才计算这个
+						$goodsData['order_turnover'] = $v;
+						break;
+					case "sale":   //发货之后才写入
+						$goodsData['sale_quantity'] = $v;
+						break;
+					case "repeat":
+						$goodsData['repeat_quantity'] = $v;
+						break;
+					case "repair":
+						$goodsData['repair_quantity'] = $v;
+						break;
+					case "refund":
+						$goodsData['refund_quantity'] = $v;
+						break;
+					case "sale_amount":
+						$goodsData['sale_amount'] = $v;
+						break;
+					case "buyer":
+						$goodsData['buyer_quantity'] = $v;
+						break;
+					case "repeat_amount":
+						$goodsData['repeat_amount'] = $v;
+						break;
+					case "refund_amount":
+						$goodsData['refund_amount'] = $v;
+						break;
+				}
+			}
+			//保存到缓存里
+			foreach ($goodsData as $field => $value) {
+				$cache->hSet(self::saleByGoodsPrefix . $key, $field, $value);
+			}
+			//保存缓存
+			$cache->hSet(self::saleByGoods, $key, $key);
+		}
+		return true;
+	}
+
+	/** 产品按照分类统计
+	 * @param $category_id
+	 * @param $channel_id
+	 * @param $time
+	 * @param array $type
+	 * @return bool
+	 */
+	public static function saleByCategory($category_id, $channel_id, $time, array $type)
+	{
+		date_default_timezone_set("PRC");
+		$cache = Cache::handler(true);
+		$time = strtotime(date('Y-m-d', $time));
+		if (empty($category_id) || empty($channel_id)) {
+			return false;
+		}
+		$key = $channel_id . ':' . $category_id . ':' . $time;
+		if ($cache->exists(self::saleByCategoryPrefix . $key)) {
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "void":
+						$cache->hIncrBy(self::saleByCategoryPrefix . $key, 'void_quantity', $v);
+						break;
+					case "order":   // 订单商品数
+						$cache->hIncrBy(self::saleByCategoryPrefix . $key, 'order_quantity', $v);
+						break;
+					case "turnover":    //订单笔数
+						$cache->hIncrBy(self::saleByCategoryPrefix . $key, 'order_turnover', $v);
+						break;
+					case "sale":
+						$cache->hIncrBy(self::saleByCategoryPrefix . $key, 'sale_quantity', $v);
+						break;
+					case "repeat":
+						$cache->hIncrBy(self::saleByCategoryPrefix . $key, 'repeat_quantity', $v);
+						break;
+					case "repair":
+						$cache->hIncrBy(self::saleByCategoryPrefix . $key, 'repair_quantity', $v);
+						break;
+					case "refund":
+						$cache->hIncrBy(self::saleByCategoryPrefix . $key, 'refund_quantity', $v);
+						break;
+					case "sale_amount":
+						$cache->hIncrByFloat(self::saleByCategoryPrefix . $key, 'sale_amount', $v);
+						break;
+					case "repeat_amount":
+						$cache->hIncrByFloat(self::saleByCategoryPrefix . $key, 'repeat_amount', $v);
+						break;
+					case "refund_amount":
+						$cache->hIncrByFloat(self::saleByCategoryPrefix . $key, 'refund_amount', $v);
+						break;
+				}
+			}
+		} else {
+			$categoryData['dateline'] = $time;
+			$categoryData['channel_id'] = $channel_id;
+			$categoryData['category_id'] = $category_id;
+			$categoryData['void_quantity'] = 0;
+			$categoryData['order_quantity'] = 0;    //订单商品数
+			$categoryData['order_turnover'] = 0;   //订单笔数
+			$categoryData['sale_quantity'] = 0;
+			$categoryData['repeat_quantity'] = 0;
+			$categoryData['repair_quantity'] = 0;
+			$categoryData['total_quantity'] = 0;
+			$categoryData['refund_quantity'] = 0;
+			$categoryData['sale_amount'] = 0;
+			$categoryData['repeat_amount'] = 0;
+			$categoryData['refund_amount'] = 0;
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "void":
+						$categoryData['void_quantity'] = $v;
+						break;
+					case "order":   // 订单商品数
+						$categoryData['order_quantity'] = $v;
+						break;
+					case "turnover":    //订单笔数
+						$categoryData['order_turnover'] = $v;
+						break;
+					case "sale":
+						$categoryData['sale_quantity'] = $v;
+						break;
+					case "repeat":
+						$categoryData['repeat_quantity'] = $v;
+						break;
+					case "repair":
+						$categoryData['repair_quantity'] = $v;
+						break;
+					case "refund":
+						$categoryData['refund_quantity'] = $v;
+						break;
+					case "sale_amount":
+						$categoryData['sale_amount'] = $v;
+						break;
+					case "repeat_amount":
+						$categoryData['repeat_amount'] = $v;
+						break;
+					case "refund_amount":
+						$categoryData['refund_amount'] = $v;
+						break;
+				}
+			}
+			//保存到缓存里
+			foreach ($categoryData as $field => $value) {
+				$cache->hSet(self::saleByCategoryPrefix . $key, $field, $value);
+			}
+			$cache->hSet(self::saleByCategory, $key, $key);
+		}
+		return true;
+	}
+
+	/**
+	 * 销售业绩统计
+	 * @param $channel_id [渠道id]
+	 * @param $site_code [站点代码]
+	 * @param $account_id [账号id]
+	 * @param array $data [payPal,channel,sale,pay,package,first,tariff,refund,profits]
+	 *                      payPal费用，渠道费用，销售额，支付费用，包裹费，头程费，尾程费，退款额，利润
+	 * @param $warehouse_id [仓库id]
+	 * @throws Exception
+	 * @throws \think\db\exception\DataNotFoundException
+	 * @throws \think\db\exception\ModelNotFoundException
+	 * @throws \think\exception\DbException
+	 */
+	public static function saleByDeeps($channel_id, $site_code, $warehouse_id, $account_id, array $data, $time = 0)
+	{
+		date_default_timezone_set("PRC");
+		$cache = Cache::handler(true);
+		if (empty($time)) {
+			$time = strtotime(date('Y-m-d', time()));
+		}
+		if (empty($channel_id) || empty($account_id) || empty($warehouse_id)) {
+			return false;
+		}
+		$key = $channel_id . ':' . $account_id . ':' . $warehouse_id . ':' . $time;
+		if ($cache->exists(self::saleByDeepsPrefix . $key)) {
+			foreach ($data as $k => $v) {
+				switch ($k) {
+					case "payPal":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'paypal_fee', $v);
+						break;
+					case "channel":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'channel_cost', $v);
+						break;
+					case "sale":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'sale_amount', $v);
+						break;
+					case "shipping_fee":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'shipping_fee', $v);
+						break;
+					case "package":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'package_fee', $v);
+						break;
+					case "first":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'first_fee', $v);
+						break;
+					case "tariff":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'tariff', $v);
+						break;
+					case "refund":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'refund_amount', $v);
+						break;
+					case "profits":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'profits', $v);
+						break;
+					case "delivery":
+						$cache->hIncrBy(self::saleByDeepsPrefix . $key, 'delivery_quantity', $v);
+						break;
+					case "cost":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'cost', $v);
+						break;
+					case "p_fee":
+						$cache->hIncrByFloat(self::saleByDeepsPrefix . $key, 'p_fee', $v);
+						break;
+				}
+			}
+			$cache->hSet(self::saleByDeeps, $key, $key);
+		} else {
+			$deepsData['dateline'] = $time;
+			$deepsData['channel_id'] = $channel_id;
+			$deepsData['site_code'] = $site_code;
+			$deepsData['account_id'] = $account_id;
+			$deepsData['paypal_fee'] = 0;
+			$deepsData['channel_cost'] = 0;
+			$deepsData['sale_amount'] = 0;
+			$deepsData['shipping_fee'] = 0;
+			$deepsData['package_fee'] = 0;
+			$deepsData['first_fee'] = 0;
+			$deepsData['tariff'] = 0;
+			$deepsData['refund_amount'] = 0;
+			$deepsData['profits'] = 0;
+			$deepsData['warehouse_id'] = $warehouse_id;
+			$deepsData['delivery_quantity'] = 0;
+			$deepsData['cost'] = 0;
+			$deepsData['p_fee'] = 0;
+			//查出仓库类型
+			$warehouseModel = new Warehouse();
+			$warehouseInfo = $warehouseModel->where(['id' => $warehouse_id])->find();
+			$deepsData['warehouse_type'] = 0;
+			if (!empty($warehouseInfo)) {
+				$deepsData['warehouse_type'] = $warehouseInfo['type'];
+			}
+			$warehouse_type = (new \app\warehouse\service\Warehouse())->getTypeById($warehouse_id);
+			//查询user id
+			$orderService = new OrderService();
+			$userData = $orderService->getSales($channel_id, $account_id, $warehouse_type);
+			if (!empty($userData)) {
+				$deepsData['user_id'] = $userData['seller_id'];
+				//查找部门id
+				$userInfo = Cache::store('user')->getOneUser($deepsData['user_id']);
+				if (!empty($userInfo)) {
+					$departmentUserMapService = new DepartmentUserMapService();
+					$department_ids = $departmentUserMapService->getDepartmentByUserId($deepsData['user_id']);
+					$deepsData['department_id'] = !empty($department_ids) ? $department_ids[0] ?? 0 : 0;
+				}
+			}
+			foreach ($data as $k => $v) {
+				switch ($k) {
+					case "payPal":
+						$deepsData['paypal_fee'] = $v;
+						break;
+					case "channel":
+						$deepsData['channel_cost'] = $v;
+						break;
+					case "sale":
+						$deepsData['sale_amount'] = $v;
+						break;
+					case "shipping_fee":
+						$deepsData['shipping_fee'] = $v;
+						break;
+					case "package":
+						$deepsData['package_fee'] = $v;
+						break;
+					case "first":
+						$deepsData['first_fee'] = $v;
+						break;
+					case "tariff":
+						$deepsData['tariff'] = $v;
+						break;
+					case "refund":
+						$deepsData['refund_amount'] = $v;
+						break;
+					case "profits":
+						$deepsData['profits'] = $v;
+						break;
+					case "delivery":
+						$deepsData['delivery_quantity'] = $v;
+						break;
+					case "cost":
+						$deepsData['cost'] = $v;
+						break;
+					case "p_fee":
+						$deepsData['p_fee'] = $v;
+						break;
+				}
+			}
+			//保存到缓存里
+			foreach ($deepsData as $field => $value) {
+				$cache->hSet(self::saleByDeepsPrefix . $key, $field, $value);
+			}
+			$cache->hSet(self::saleByDeeps, $key, $key);
+		}
+		return true;
+	}
+
+	/** 按国家统计产品销量
+	 * @param $country_code [国家代码]
+	 * @param $goods_id [产品id]
+	 * @param $sku_id [sku id]
+	 * @param array $type [order,sale,refund] 订单笔数,销售数,退货数
+	 * @param $time [time]
+	 * @return bool
+	 */
+	public static function saleByCountry($country_code, $goods_id, $sku_id, $time, array $type)
+	{
+		date_default_timezone_set("PRC");
+		$cache = Cache::handler(true);
+		$time = strtotime(date('Y-m-d', $time));
+		if (empty($country_code) || empty($sku_id)) {
+			return false;
+		}
+		$key = $country_code . ':' . $sku_id . ':' . $time;
+		if ($cache->exists(self::saleByCountryPrefix . $key)) {
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "turnover":
+						$cache->hIncrBy(self::saleByCountryPrefix . $key, 'order_turnover', $v);
+						break;
+					case "sale":  //销售数  发货之后计算
+						$cache->hIncrBy(self::saleByCountryPrefix . $key, 'sale_quantity', $v);
+						break;
+					case "refund":
+						$cache->hIncrBy(self::saleByCountryPrefix . $key, 'refund_quantity', $v);
+						break;
+				}
+			}
+		} else {
+			$countryData['dateline'] = $time;
+			$countryData['country_code'] = $country_code;
+			$countryData['goods_id'] = $goods_id;
+			$countryData['order_turnover'] = 0;
+			$countryData['sale_quantity'] = 0;
+			$countryData['refund_quantity'] = 0;
+			$countryData['sku_id'] = $sku_id;
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "turnover":
+						$countryData['order_turnover'] = $v;
+						break;
+					case "sale":  //销售数  发货之后计算
+						$countryData['sale_quantity'] = $v;
+						break;
+					case "refund":
+						$countryData['refund_quantity'] = $v;
+						break;
+				}
+			}
+			//保存到缓存里
+			foreach ($countryData as $field => $value) {
+				$cache->hSet(self::saleByCountryPrefix . $key, $field, $value);
+			}
+			$cache->hSet(self::saleByCountry, $key, $key);
+		}
+		return true;
+	}
+
+	/** 按年月份统计产品销售信息
+	 * @param $goods_id [产品id]
+	 * @param $sku_id [sku id]
+	 * @param array $type [order,sale,refund] 订单数,销售数,退货数
+	 * @param $category_id [分类 id]
+	 * @param $time [time]
+	 * @return bool
+	 */
+	public static function saleByDate($goods_id, $sku_id, $category_id, $time, array $type)
+	{
+		$cache = Cache::handler(true);
+		$year = date('Y', $time);
+		$month = date('m', $time);
+		if (empty($sku_id)) {
+			return false;
+		}
+		$key = $year . ':' . $month . ':' . $sku_id;
+		if ($cache->exists(self::saleByDatePrefix . $key)) {
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "turnover":  //订单笔数
+						$cache->hIncrBy(self::saleByDatePrefix . $key, 'order_turnover', $v);
+						break;
+					case "sale":   //销售数 发货之后计算
+						$cache->hIncrBy(self::saleByDatePrefix . $key, 'sale_quantity', $v);
+						break;
+					case "refund":
+						$cache->hIncrBy(self::saleByDatePrefix . $key, 'refund_quantity', $v);
+						break;
+				}
+			}
+		} else {
+			$dateData['year'] = $year;
+			$dateData['month'] = $month;
+			$dateData['goods_id'] = $goods_id;
+			$dateData['sku_id'] = $sku_id;
+			$dateData['category_id'] = $category_id;
+			$dateData['order_turnover'] = 0;
+			$dateData['sale_quantity'] = 0;
+			$dateData['refund_quantity'] = 0;
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "turnover":  //订单笔数
+						$dateData['order_turnover'] = $v;
+						break;
+					case "sale":   //销售数 发货之后计算
+						$dateData['sale_quantity'] = $v;
+						break;
+					case "refund":
+						$dateData['refund_quantity'] = $v;
+						break;
+				}
+			}
+			//保存到缓存里
+			foreach ($dateData as $field => $value) {
+				$cache->hSet(self::saleByDatePrefix . $key, $field, $value);
+			}
+			$cache->hSet(self::saleByDate, $key, $key);
+		}
+		return true;
+	}
+
+	/** 按照仓库/运输方式/国家/渠道来统计包裹信息
+	 * @param $channel_id
+	 * @param $warehouse_id
+	 * @param $shipping_id
+	 * @param $country_code
+	 * @param $time
+	 * @param array $type [package,generated,shipping,refund] 包裹数,生成包裹数,运输费用,退货数
+	 * @return bool
+	 */
+	public static function saleByPackage($channel_id, $warehouse_id, $shipping_id, $country_code, $time, array $type)
+	{
+		date_default_timezone_set("PRC");
+		$cache = Cache::handler(true);
+		$time = strtotime(date('Y-m-d', $time));
+		if (empty($channel_id) || empty($warehouse_id) || empty($shipping_id) || empty($country_code)) {
+			return false;
+		}
+		$key = $channel_id . ':' . $warehouse_id . ':' . $shipping_id . ':' . $country_code;
+		if ($cache->exists(self::saleByPackagePrefix . $key)) {
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "package":
+						$cache->hIncrBy(self::saleByPackagePrefix . $key, 'package_quantity', $v);
+						break;
+					case "generated":
+						$cache->hIncrBy(self::saleByPackagePrefix . $key, 'package_generated_quantity', $v);
+						break;
+					case "shipping":
+						$cache->hIncrByFloat(self::saleByPackagePrefix . $key, 'shipping_fee', $v);
+						break;
+					case "refund":
+						$cache->hIncrBy(self::saleByPackagePrefix . $key, 'refund_quantity', $v);
+						break;
+				}
+			}
+		} else {
+			$packageData['dateline'] = $time;
+			$packageData['channel_id'] = $channel_id;
+			$packageData['warehouse_id'] = $warehouse_id;
+			$packageData['shipping_id'] = $shipping_id;
+			$packageData['country_code'] = $country_code;
+			$packageData['package_quantity'] = 0;
+			$packageData['package_generated_quantity'] = 0;
+			$packageData['shipping_fee'] = 0;
+			$packageData['refund_quantity'] = 0;
+			//查出仓库类型
+			$warehouseModel = new Warehouse();
+			$warehouseInfo = $warehouseModel->where(['id' => $warehouse_id])->find();
+			if (!empty($warehouseInfo)) {
+				$packageData['warehouse_type'] = $warehouseInfo['type'];
+			}
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "package":
+						$packageData['package_quantity'] = $v;
+						break;
+					case "generated":
+						$packageData['package_generated_quantity'] = $v;
+						break;
+					case "shipping":
+						$packageData['shipping_fee'] = $v;
+						break;
+					case "refund":
+						$packageData['refund_quantity'] = $v;
+						break;
+				}
+			}
+			//保存到缓存里
+			foreach ($packageData as $field => $value) {
+				$cache->hSet(self::saleByPackagePrefix . $key, $field, $value);
+			}
+			$cache->hSet(self::saleByPackage, $key, $key);
+		}
+		return true;
+	}
+
+	/** 记录所需的sku数
+	 * @param $sku_id 【sku_id】
+	 * @param $quantity 【数量】
+	 * @param $warehouse_id 【仓库id】
+	 * @return bool
+	 */
+	public static function skuNeed($sku_id, $quantity, $warehouse_id)
+	{
+//        $cache = Cache::handler(true);
+//        if (empty($sku_id) || empty($warehouse_id) || empty($quantity) || !is_numeric($quantity)) {
+//            return false;
+//        }
+//        $key = $sku_id . ':' . $warehouse_id;
+//        if ($cache->exists(self::skuNeedPrefix . $key)) {
+//            $cache->hIncrBy(self::skuNeedPrefix . $key, 'quantity', $quantity);
+//        } else {
+//            $skuData['warehouse_id'] = $warehouse_id;
+//            $skuData['sku_id'] = $sku_id;
+//            $skuData['quantity'] = $quantity;
+//            //保存到缓存里
+//            foreach ($skuData as $field => $value) {
+//                $cache->hSet(self::skuNeedPrefix . $key, $field, $value);
+//            }
+//            $cache->hSet(self::skuNeed, $key, $key);
+//        }
+		return true;
+	}
+
+	/** 获取sku 30天之内的销量信息
+	 * @param $sku_id
+	 * @param int $warehouse_id
+	 * @param int $channel_id
+	 * @return false|\PDOStatement|string|\think\Collection
+	 */
+    public static function statisticGoods($sku_id, $warehouse_id = 0, $channel_id = 0)
+    {
+        $thirty_time = strtotime('-31 day');
+        $where['dateline'] = ['>', $thirty_time];
+        if(is_array($sku_id)){
+            $where['sku_id'] = ['in', $sku_id];
+        }else{
+            $where['sku_id'] = ['=', $sku_id];
+        }
+        if (!empty($warehouse_id)) {
+            $where['warehouse_id'] = ['=', $warehouse_id];
+        }
+        if (!empty($channel_id)) {
+            $where['channel_id'] = ['=', $channel_id];
+        }
+        $reportGoodsModel = new ReportStatisticByGoods();
+        $list = $reportGoodsModel->where($where)->select();
+        return $list;
+    }
+
+	/**
+	 * 按每天平台统计订单信息
+	 * @param $channel_id [渠道id]
+	 * @param array $type [order,sale,refund] 订单数,销售数,退货数
+	 * @param $channel [平台id]
+	 * @param $account [账号id]
+	 * @param $time [时间]
+	 * @param array $type
+	 * @return bool
+	 */
+	public static function statisticOrder($channel_id, $account, $time, array $type)
+	{
+		try {
+			$cache = Cache::handler(true);
+			$time = strtotime(date('Y-m-d', $time));
+			$key = $channel_id . ':' . $account . ':' . $time;
+			if ($cache->exists(self::statisticOrderPrefix . $key)) {
+				foreach ($type as $k => $v) {
+					switch ($k) {
+						case "order":  //已付款
+							$cache->hIncrBy(self::statisticOrderPrefix . $key, 'order_quantity', $v);
+							break;
+						case "pay":
+							$cache->hIncrByFloat(self::statisticOrderPrefix . $key, 'pay_amount', $v);
+							break;
+						case "unpaid": //未付款
+							$cache->hIncrBy(self::statisticOrderPrefix . $key, 'order_unpaid_quantity', $v);
+							break;
+					}
+				}
+			} else {
+				$orderData['dateline'] = $time;
+				$orderData['order_quantity'] = 0;
+				$orderData['order_unpaid_quantity'] = 0;
+				$orderData['channel_id'] = $channel_id;
+				$orderData['account_id'] = $account;
+				foreach ($type as $k => $v) {
+					switch ($k) {
+						case "order":  //已付款
+							$orderData['order_quantity'] = $v;
+							break;
+						case "pay":
+							$orderData['pay_amount'] = $v;
+							break;
+						case "unpaid": //未付款
+							$orderData['order_unpaid_quantity'] = $v;
+							break;
+					}
+				}
+				//保存到缓存里
+				foreach ($orderData as $field => $value) {
+					$cache->hSet(self::statisticOrderPrefix . $key, $field, $value);
+				}
+				$cache->hSet(self::statisticOrder, $key, $key);
+			}
+		} catch (Exception $e) {
+
+		}
+		return true;
+	}
+
+	/** 记录失败日志
+	 * @param $message
+	 */
+	public static function log($message)
+	{
+		$fileName = date('Y-m-d', time());
+		$logFile = LOG_PATH . "order/" . $fileName . "order_cache_error.log";
+		file_put_contents($logFile, '-----' . $message . "\r\n", FILE_APPEND);
+	}
+
+	/** 统计sku的买家数
+	 * @param $channel_id [渠道id]
+	 * @param $sku_id
+	 * @param array $type [buyer] 买家数
+	 * @param $buyer [买家名称]
+	 * @param $time [time]
+	 * @return bool
+	 */
+	public static function saleByBuyer($channel_id, $buyer, $sku_id, $time, array $type)
+	{
+		$cache = Cache::handler(true);
+		$time = strtotime(date('Y-m-d', $time));
+		if (empty($channel_id) || empty($sku_id) || empty($buyer)) {
+			return false;
+		}
+		$key = $channel_id . ':' . $sku_id . ':' . $buyer . ':' . $time;
+		if ($cache->exists(self::saleByBuyerPrefix . $key)) {
+			return true;
+		} else {
+			$buyerData['dateline'] = $time;
+			$buyerData['buyer'] = $buyer;
+			$buyerData['quantity'] = 0;
+			$buyerData['channel_id'] = $channel_id;
+			$buyerData['sku_id'] = $sku_id;
+		}
+		foreach ($type as $k => $v) {
+			switch ($k) {
+				case "buyer":
+					$buyerData['quantity'] = $buyerData['quantity'] + $v;
+					break;
+			}
+		}
+		//保存到缓存里
+		foreach ($buyerData as $field => $value) {
+			$cache->hSet(self::saleByBuyerPrefix . $key, $field, $value);
+		}
+		$cache->hSet(self::saleByBuyer, $key, $key);
+		return true;
+	}
+
+    public static function getSaleSum($sku_id, $datelineRange, $warehouse_id = 0, $channel_id = 0)
+    {
+        $where['dateline'] = ['between', $datelineRange];
+        if(is_array($sku_id)){
+            $where['sku_id'] = ['in', $sku_id];
+        }else{
+            $where['sku_id'] = ['=', $sku_id];
+        }
+        if (!empty($warehouse_id)) {
+            $where['warehouse_id'] = ['=', $warehouse_id];
+        }
+        if (!empty($channel_id)) {
+            $where['channel_id'] = ['=', $channel_id];
+        }
+        if(is_array($sku_id)){
+            return ReportStatisticByGoods::where($where)->group('sku_id')->column('sku_id,sum(order_quantity)');
+        }else{
+            return ReportStatisticByGoods::where($where)->sum('order_quantity') ?: 0;
+        }
+    }
+
+
+	/**
+	 * 按每天平台统计订单信息
+	 * @param $channel_id [渠道id]
+	 * @param $customer_id  【客服ID】
+	 * @param $time  【时间戳】
+	 * @param array $type [buyer_qauntity,message_quantity,dispute_quantity] 回复买家数,站内信处理数,纠纷处理数
+	 * @return bool
+	 */
+	public static function statisticMessage($channel_id, $customer_id, $time, array $type)
+	{
+		$cache = Cache::handler(true);
+		$time = strtotime(date('Y-m-d', $time));
+		$key = $channel_id . ':' . $customer_id . ':' . $time;
+		if ($cache->exists(self::statisticMessagePrefix . $key)) {
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "buyer_qauntity":  //站内信发送数
+						$cache->hIncrBy(self::statisticMessagePrefix . $key, 'buyer_qauntity', $v);
+						break;
+					case "message_quantity": //站内信处理数
+						$cache->hIncrBy(self::statisticMessagePrefix . $key, 'message_quantity', $v);
+						break;
+					case "dispute_quantity": //纠纷处理数
+						$cache->hIncrBy(self::statisticMessagePrefix . $key, 'dispute_quantity', $v);
+						break;
+				}
+			}
+		} else {
+			$orderData['dateline'] = $time;
+			$orderData['buyer_qauntity'] = 0;
+			$orderData['message_quantity'] = 0;
+			$orderData['dispute_quantity'] = 0;
+			$orderData['channel_id'] = $channel_id;
+			$orderData['customer_id'] = $customer_id;
+			foreach ($type as $k => $v) {
+				switch ($k) {
+					case "buyer_qauntity":  //
+						$orderData['buyer_qauntity'] = $v;
+						break;
+					case "message_quantity": //
+						$orderData['message_quantity'] = $v;
+						break;
+					case "dispute_quantity": //
+						$orderData['dispute_quantity'] = $v;
+						break;
+				}
+			}
+			//保存到缓存里
+			foreach ($orderData as $field => $value) {
+				$cache->hSet(self::statisticMessagePrefix . $key, $field, $value);
+			}
+			$cache->hSet(self::statisticMessage, $key, $key);
+		}
+		return true;
+	}
+
+}

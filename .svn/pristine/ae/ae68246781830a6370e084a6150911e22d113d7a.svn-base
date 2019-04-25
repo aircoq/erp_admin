@@ -1,0 +1,346 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class GYang extends Base
+{
+    protected $is_open_water = 1;
+    public function isCanDeclare($code)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "canDeclare_".$code  ;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('此渠道不能预览报关单' . $strFun);
+        }
+        return $this->$strFun($code);
+    }
+    private function canDeclare_TWUF(){
+        return 1;
+    }
+
+    public function createLabel($code, $order)
+    {
+        $code = str_replace('-', '_', $code);
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+    public function createDeclareLabel($code,$order){
+        $strFun = "declareLabel_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        return $this->$strFun($order);
+    }
+
+
+
+    public function getSender($countryCode)
+    {
+        $address = [
+            'No. 156 LITE-ON Linjiang Road, Taichung District, Taichung District, Taichung City',
+            'No. 56, Lane 508, Zi Guan Road, Zi Guan District, Kaohsiung',
+            '1 floor, 51 learning street, Xinfeng Township, Hsinchu',
+            'No. 89 Jianhua Third Street, Pingtung City, Pingtung, Pingtung',
+            'No. 3, 68 Li Nan Mei Street, Yongding, Taichung District, Taichung City',
+            '7, five / F, 160 Guo Chang Road, Lu Zhu Township, Kaohsiung, Kaohsiung.',
+            'Taiping District, Taichung City, Taiping City, Taiping District, Zhongshan Road three, 77, No.',
+            'No. 2-2, Xin He Tai He, Pingtung, Pingtung',
+            'Taitung County Chi Shang Township pool village Fuyuan village 18 adjacent to Zhonghua Road 20',
+            '86_3, Qingshui village, Ngan Township, Lianjiang.',
+            'No. 482-1 Zhonghua Road, Shen Gang Township, Changhua.',
+            'No. 42 Lane 15 Zhongxing Road, Jia Shan District, Kaohsiung',
+            '29 amu Road, God Gang District, Taichung City',
+            '4, 7 building, 27 de an road, West District, Chiayi',
+            'No. 2, 12 adjacent 25, Seven Star Village, Emei Township, Hsinchu County',
+            'No. 128 Jixiang Road, Yilan, Yilan',
+            '2-1 East Industrial Road, Pingyuan Town, Taoyuan City',
+            'No. 1 Lane 385, Lane 18, Guangfu Road, Eastern District, Hsinchu',
+            'No. five, ring road, No. 66-2, Nan Tun District, Taichung City',
+            'No. 264, Song Hua Li, Po Zi city, Chiayi',
+            '1 F, 267 Fuhe Road, Yonghe District, Xinbei City',
+            'No. 3, two section 112, Xintai five road, Xinzhi City, Xinbei City',
+            'No. 70, East laopei Ying Road, Xi Hu Town, Changhua County',
+            'One of the 12 floors of Nan Jie Road, No. 206, Lun Zhu District, Taoyuan City',
+            'No. 251, Zhi Shan Road, Dali District, Taichung City',
+            'No. 26 Jilin The Strip, Zhongli District, Taoyuan City',
+            '1538 of the two section of the central road in Taichung city.',
+            '8 floor, 26 street, 5 Jing Zhuang Street, Hsinchu.',
+            'No. 1293, Tai Ying Road, Dashi, Taoyuan City',
+            '33, Shanhai Li Chai Road, Heng Chun Town, Pingtung prefectural, Pingtung, Pingtung.',
+            '213, Lane 36, No.1 lane, success road, Kaohsiung.',
+            'Miaoli County, Zhu Nan Town, Miaoli',
+            'No. 1, 43 lane, three lane five Jia three road, Fengshan District, Kaohsiung',
+            'No. 8 Lane 450, Longxin Road, Longjing District, Taichung City',
+            'Nantou County Yuchi Gongcun village five horse Lane 16-1',
+            '4 adjacent 79, Shijin Road, Shiyan village, Pu Yan Township, Changhua',
+            'No. two, 340 East Road, Changhua',
+            'No. 128, 1 of Hexi village, Shui Shang Township, Chiayi County',
+            'No. 153 Lane 33 Tao Tao Road, Taoyuan District, Taoyuan City',
+            'No. 4, building 101, Chongqing North Road, Datong District, Taipei',
+            'No. 411 Jiajia Road, Jiali District, Tainan',
+            'No. 277 Lane 51, South Zhongshan Road, Taoyuan City',
+            'No. 174 of Guan Shan Li, Nanhua District, Tainan',
+            'No. 1, No. 185-1, Zhongshan Road 2 section, Xinbei City woodland area',
+            'No. 7 Lane 217, two section of Xing Long Road, Wenshan District, Taipei',
+            'No. 226, Wuqing two road, Fengshan District, Kaohsiung',
+            '11 of 1003 of ANN Road, Yan Chao District, Kaohsiung',
+            '1, Yuying Road, No. 63~5, Yuen Lin City, Changhua',
+            'No. 30 lane, nine Dou Li Wo Road, new housing estate, Taoyuan City, 30',
+            'No. two, Nanshan Road, No. 16, Lu Zhu District, Taoyuan City',
+            'No. 877 Dalong Road, Xi Tun District, Taichung City',
+            'No. 19 Lane 2 Lane 600, Grand View Road, Taoyuan City',
+            'No. 408, Shun Village Lane, North Zeng village, Tianwei Township, Changhua County',
+            'Taoyuan District, Taoyuan District, Baoshan, Li Min has five street 267, 2 floor 1.',
+            'Ten Lane Lane 9, Dongguan Road, Poai lane, Heping District, Taichung City',
+            'No. 23, Lane 328, 11 Gaoping Road, Kaohsiung, Kaohsiung',
+            'No. 3 Lane 23 lane, Jinxi Road, Yangmei District, Taoyuan City, 3',
+            'No. 111, 3 section, Zhongshan Road, Yilan, Yilan',
+            'No. 10 Lane 48 lane, Minsheng Road, Longtan District, Taoyuan City, 10',
+            'No. 1136, Wugang Road, URI District, Taichung City',
+            '4, 502 Lane 4 Xintai Road, Xinzhuang City, Xinbei City',
+            'No. 315 of benevolence three street, Xinxing District, Kaohsiung',
+            'No. 121 Huaxing Road, Taoyuan City',
+            'No. 313 Huashan street, Fengshan District, Kaohsiung',
+            '-3 10, 439, three golden road, Changhua, Changhua',
+            'No. 177, Minsheng Road, Taya City, Taichung City',
+            'No. 5 Dehui street, East District, Chiayi',
+            'No. 3, Ho Li Road, Changhua, Changhua.',
+            'No. 7, National Road, Luzhou District, Xinbei City',
+            '30 lane two lane 190 lane, Renhe Road, Zhongli District, Taoyuan City, 30',
+            'No. 3 Fuxing Road, Nan Zhou, Pingtung',
+            'No. 36, Jinxing village, Changzhi Xingxiang village, Pingtung County',
+            'No. 447, No. two, Ting Li He North Road, Zhongli District, Taoyuan City',
+            'No. 7 Lane 24 Yanping Road, Pingtung, Pingtung',
+            'No. 5, 68 of Zhong Xiao East Road, Xinyi District, Taipei',
+            'No. fifty-two Lane nineteen, Zheng de street, Pu Wei village, Bei Pu Township, Hsinchu',
+            'Yilan County Datong Township four seasons Village Lane nine neighborhood fifty-two',
+            'No. 56, Xin De street, Xi Luo town, Yunlin County',
+        ];
+        $address_name = [
+            'SHUWEIBIAO',
+            'HUWENHUAN',
+            'Dingguanrong',
+            'LIUFENJUAN',
+            'ZENGYIHONG',
+            'WANXIANG',
+            'BUDECHUAN',
+            'WANGZHIMIN',
+            'LIUYIQUN',
+            'ZHANGJIE',
+            'YEZUMING',
+            'LIUXIAOQI',
+            'ZHUJIUSHENG',
+            'PENGHAIXIONG',
+            'CHENGBIN',
+            'ZHUSHUNYE',
+            'PENGHAIXIONG',
+            'HUWENHUAN',
+            'CHENGBIN',
+            'LONGTING',
+            'ZENGHAIPING'
+        ];
+        $key_address = array_rand($address, 1);
+        $key_name = array_rand($address_name, 1);
+        $data['sender_address'] = $address[$key_address];
+        $data['sender_name'] = $address_name[$key_name];
+        return $data;
+
+    }
+
+    public function getCode($countryCode, $postCode)
+    {
+        $code = [
+            'AT' => 'VIE',
+            'AU' => 'SYDR',
+            'BE' => 'BUR',
+            'BR' => 'CWB',
+            'BY' => 'MSQ',
+            'CA' => 'YVR',
+            'CH' => 'ZRH',
+            'CZ' => 'PRG',
+            'DE' => 'FRA',
+            'ES' => 'MAD',
+            'FI' => 'HEL',
+            'FR' => 'CDG',
+            'GB' => 'LALO',
+            'GR' => 'ATH',
+            'HU' => 'BUD',
+            'ID' => 'JKT',
+            'IE' => 'DUB',
+            'IL' => 'TLV',
+            'IN' => 'CCU',
+            'IT' => 'MIL',
+            'JP' => 'KWS',
+            'KR' => 'SEL',
+            'NL' => 'AMS',
+            'NO' => 'OSL',
+            'NZ' => 'AKL',
+            'PL' => 'WAW',
+            'PT' => 'LIS',
+            'RU' => 'MOWO',
+            'SE' => 'STO',
+            'SG' => 'SIN',
+            'TH' => 'BKK',
+            'TR' => 'IST',
+            'UA' => 'IEV',
+            'US' => $this->getZipFormat($postCode),
+            'MY' => 'KUL'
+        ];
+        return $code[$countryCode] ?? '';
+    }
+
+    public function getZipFormatPing($postCode)
+    {
+        if (!$postCode)
+            return '';
+        $postCode1 = substr($postCode, 0, 1);
+        $code = '';
+        $postCode1 = strtoupper($postCode1);
+        if (in_array($postCode1, [0, 1, 2, 3])) {
+            $code = 'JFK';
+        } elseif (in_array($postCode1, [7, 8, 9])) {
+            $code = 'LAX';
+        } elseif (in_array($postCode1, [4, 5, 6])) {
+            $code = 'ORD';
+        }
+        return $code;
+    }
+
+    public function getZipFormat($postCode)
+    {
+        if (!$postCode)
+            return '';
+        $postCode1 = substr($postCode, 0, 1);
+        $code = '';
+        $postCode1 = strtoupper($postCode1);
+        if (in_array($postCode1, [0, 1, 2, 3])) {
+            $code = 'JFKR';
+        } elseif (in_array($postCode1, [7, 8, 9])) {
+            $code = 'LAXR';
+        } elseif (in_array($postCode1, [4, 5, 6])) {
+            $code = 'ORDR';
+        }
+        return $code;
+    }
+
+    public function getCodePing($countryCode, $postCode)
+    {
+        $code = [
+            'AT' => 'VIE',
+            'AU' => 'SYD',
+            'BE' => 'BUR',
+            'BR' => 'CWB',
+            'BY' => 'MSQ',
+            'CA' => 'YVR',
+            'CH' => 'ZRH',
+            'CZ' => 'PRG',
+            'DE' => 'FRA',
+            'ES' => 'MAD',
+            'FI' => 'HEL',
+            'FR' => 'CDG',
+            'GB' => 'LALO',
+            'GR' => 'ATH',
+            'HU' => 'BUD',
+            'ID' => 'JKT',
+            'IE' => 'DUB',
+            'IL' => 'TLV',
+            'IN' => 'CCU',
+            'IT' => 'MIL',
+            'JP' => 'KWS',
+            'KR' => 'SEL',
+            'NL' => 'AMS',
+            'NO' => 'OSL',
+            'NZ' => 'AKL',
+            'PL' => 'WAW',
+            'PT' => 'LIS',
+            'RU' => 'MOWO',
+            'SE' => 'STO',
+            'SG' => 'SIN',
+            'TH' => 'BKK',
+            'TR' => 'IST',
+            'UA' => 'IEV',
+            'US' => $this->getZipFormatPing($postCode),
+            'MY' => 'KUL'
+        ];
+        return $code[$countryCode] ?? '';
+    }
+
+    //author by lan 中华邮政挂号
+    private function label_TWRE($order)
+    {
+        $senderInfo = $order['country_code'] == 'RU' ? $this->getSender($order['country_code']) : '';
+        if ($senderInfo) {
+            $order['sender_address'] = $senderInfo['sender_address'];
+            $order['sender_name'] = $senderInfo['sender_name'];
+        } else {
+            $order['sender_address'] = 'P. O. BOX X 100561-00' . rand(1000, 9999) . ' <br> TAIPEI, TAIWAN';
+            $order['sender_name'] = 'G.Y.L';
+        }
+        $order['country_ex'] = $this->getCode($order['country_code'], $order['zip']);
+        return $this->display('TWRE', $order);
+    }
+
+    //author by lan 中华邮政平邮
+    private function label_TWUF($order)
+    {
+        $senderInfo = $order['country_code'] == 'RU' ? $this->getSender($order['country_code']) : '';
+        if ($senderInfo) {
+            $order['sender_address'] = $senderInfo['sender_address'];
+            $order['sender_name'] = $senderInfo['sender_name'];
+        } else {
+            $order['sender_address'] = 'P. O. BOX X 100561-00' . rand(1000, 9999) . ' <br> TAIPEI, TAIWAN';
+            $order['sender_name'] = 'G.Y.L';
+        }
+        $order['country_ex'] = $this->getCodePing($order['country_code'], $order['zip']);
+        return $this->display('TWUF', $order);
+    }
+
+    //author by lan wish国洋平邮
+    private function label_GYUF($order)
+    {
+        $senderInfo = $order['country_code'] == 'RU' ? $this->getSender($order['country_code']) : '';
+        if ($senderInfo) {
+            $order['sender_address'] = $senderInfo['sender_address'];
+            $order['sender_name'] = $senderInfo['sender_name'];
+        } else {
+            $order['sender_address'] = 'P. O. BOX X 100561-00' . rand(1000, 9999) . ' <br> TAIPEI, TAIWAN';
+            $order['sender_name'] = 'G.Y.L';
+        }
+        $order['country_ex'] = $this->getCodePing($order['country_code'], $order['zip']);
+        return $this->display('GYUF', $order);
+    }
+
+
+    //author by lan 中华邮政平邮 报关单
+    private function declareLabel_TWUF($order)
+    {
+
+        $senderInfo = $order['country_code'] == 'RU' ? $this->getSender($order['country_code']) : '';
+        if ($senderInfo) {
+            $order['sender_address'] = $senderInfo['sender_address'];
+            $order['sender_name'] = $senderInfo['sender_name'];
+        } else {
+            $order['sender_address'] = 'P. O. BOX X 100561-00' . rand(1000, 9999) . ' <br> TAIPEI, TAIWAN';
+            $order['sender_name'] = 'G.Y.L';
+        }
+        $order['country_ex'] = $this->getCodePing($order['country_code'], $order['zip']);
+        return $this->display('declare_TWUF', $order);
+    }
+
+}

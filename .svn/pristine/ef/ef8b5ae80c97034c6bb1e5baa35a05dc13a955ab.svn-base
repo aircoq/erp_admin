@@ -1,0 +1,85 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-12
+ * Time: 上午9:08
+ */
+
+namespace swoole;
+
+
+final class  TaskRunner
+{
+    private $workerId;
+    private $workerName;
+    private $time;
+    private $type;
+
+    /**
+     * TaskRunner constructor.
+     * @param $workerId
+     * @param $workerName
+     * @param $time
+     * @param $type
+     */
+    public function __construct($workerId, $workerName, $time, $type)
+    {
+        $this->workerId = $workerId;
+        $this->workerName = $workerName;
+        $this->time = $time;
+        $this->type = $type;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getWorkerId()
+    {
+        return $this->workerId;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getWorkerName()
+    {
+        return $this->workerName;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getTime()
+    {
+        return $this->time;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    function __wakeup()
+    {
+        // TODO: Implement __wakeup() method.
+    }
+
+    public function __sleep()
+    {
+        return ['workerId','workerName', 'time', 'type'];
+    }
+
+    public function __toString()
+    {
+        return json_encode([
+            'workerId' => $this->workerId,
+            'workerName' => $this->workerName,
+            'time' => $this->time,
+            'type' => $this->type,
+        ]);
+    }
+}

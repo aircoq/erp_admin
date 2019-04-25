@@ -1,0 +1,61 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-28
+ * Time: 下午2:14
+ */
+
+namespace erp;
+
+
+class VisitRule extends AbsAccessRule
+{
+    protected $type = self::TYPE_VISIT;
+    protected $title;
+    private $module;
+    private $controller;
+    private $action;
+
+    public function __construct($title = '', $module = '', $controller = '', $action = '')
+    {
+        $this->title = $title;
+        $this->module = $module;
+        $this->controller = $controller;
+        $this->action = $action;
+    }
+
+    public function assert($module, $controller, $action)
+    {
+        if(!preg_match('/'.$this->module."/i",$module)){
+            return false;
+        }
+        if(!preg_match('/'.$this->controller."/i",$controller)){
+            return false;
+        }
+        if(!preg_match('/'.$this->action."/i",$action)){
+            return false;
+        }
+        return true;
+    }
+
+    public function setParam($params)
+    {
+        $this->module = preg_replace('/\*/',".", $params->module);
+        $this->controller = preg_replace('/\*/',".", $params->controller);
+        $this->action = preg_replace('/\*/',".", $params->action);
+    }
+
+    function jsonSerialize()
+    {
+        return [
+            'tag' => get_class($this),
+            'type' => $this->type,
+            'title' => $this->title,
+            'module' => $this->module,
+            'controller' => $this->controller,
+            'action' => $this->action,
+
+        ];
+    }
+}

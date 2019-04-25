@@ -1,0 +1,31 @@
+<?php
+namespace service\oberlo;
+
+/**
+ * Oberlo基础数据类
+ * @author wangwei 2019-3-1 11:32:46
+ */
+class OberloLib{
+	
+    //接口根地址
+	const API_BASE = 'https://supply.oberlo.com/supplier/api/v1';//正式环境地址
+	
+	/**
+	 * 本地时间转Oberlo时间
+	 * @param datetime $LocalDate
+	 * @return datetime
+	 */
+	public static function getOberloDate($LocalDate){
+		return strtotime($LocalDate);
+	}
+	
+	/**
+	 * Oberlo时间转本地时间
+	 * @param datetime $OberloDate
+	 * @return datetime
+	 */
+	public static function getLocalDate($OberloDate){
+		return date('Y-m-d H:i:s',strtotime($OberloDate));
+	}
+	
+}

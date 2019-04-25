@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0077)http://lilangda.tongtool.com/process/new/warehouse/print?0.013180876675128239 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1" style="padding:2pt;width:220pt;font-family:Arial;font-size:10pt;overflow-x:hidden;page-break-after:always;margin: 0 auto;">
+        <table cellpadding="0" cellspacing="0"
+               style="width:220pt;table-layout:fixed;border-collapse:collapse;margin-top:30pt;">
+            <tbody>
+            <tr>
+                <td style="border:1pt solid #000;width: 100pt;font-weight: bold">
+                    Customer ID: szrdf<br>
+                    ShippingCode:<br>
+                    SYBRAM<br>
+
+                </td>
+                <td style="border:1pt solid #000;width: 40pt;text-align: center;font-weight: bold;font-size: 15pt">
+                     <?php echo $country_code;?>
+                </td>
+                <td style="border:1pt solid #000;">
+
+                </td>
+
+            <tr>
+                <td style="border:1pt solid #000;text-align: center " colspan="3">
+                    <div style="margin-top: 5pt"><img style="width:190pt;" src="<?php echo $this->imgSrc($shipping_number);?>"></div>
+                    <div style="font-weight: bold;margin-bottom: 5pt;"> <?php echo $shipping_number;?></div>
+
+                </td>
+
+            </tr>
+            <tr>
+                <td style="border:1pt solid #000;font-weight: bold " colspan="3">
+                    TO:<?php echo $name;?><br>
+                    <?php echo $street.' '.$street2?><br>
+                    <?php echo $city;?> ,<?php echo $province;?>   <?php echo $zip;?><br>
+                    <?php echo $country_en_name;?><br>
+                    <?php echo $phone;?>/  <?php echo $tel;?>
+                </td>
+
+            </tr>
+            <tr>
+                <td style="border:1pt solid #000;font-size: 7pt ;border-right:none;" colspan="2">
+                    Order No:   <?php echo $number ?>
+                </td>
+                <td style="border:1pt solid #000;border-left:none;font-size: 7pt ;text-align: center" colspan="1">
+                    <?php echo date('Y-m-d',time())?>
+                </td>
+
+            </tr>
+            <tr>
+                <td style="border:1pt solid #000; font-size: 7pt ; text-align: center" colspan="2">
+                    SKU/Quantity
+                </td>
+                <td style="border:1pt solid #000; font-size: 9pt ;text-align: center" colspan="1">
+                    YI YAN SHI
+                </td>
+
+            </tr>
+            <tr>
+                <td style="border:1pt solid #000;height:30pt;font-size: 7pt ;text-align: center " colspan="2">
+                    <?php foreach ($list as $k=>$v):?>
+                        <?php echo $v['sku']?>*<?php echo $v['qty']?>
+                    <?php endforeach;?>
+                </td>
+                <td style="border:1pt solid #000;height:30pt;font-size: 7pt ;text-align: center " >
+                   <?php echo $number ?>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+
+</div>
+
+</body>
+</html>

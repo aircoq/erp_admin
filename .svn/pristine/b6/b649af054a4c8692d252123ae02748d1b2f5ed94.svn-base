@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.02451277344572933 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;font-size:10pt;line-height:12pt;page-break-after:always;">
+        <div style="width:270pt;border-bottom:1pt solid #000;">
+            <div style="width:160pt;float:left;font-size:7pt;line-height:8pt;word-wrap:break-word;">
+                FROM::Bonnie yeung
+                <br> TEL:3708 8973
+                <br> Unit B, 8/F
+                <br> First Group Centre, 14 Wang Tai Road,
+                <br> Kowloon Bay,
+                Kowloon, HK
+                <br><font style="font-size:9pt;line-height:12pt;">HONG KONG</font>
+            </div>
+            <div style="width:110pt;float:left;">
+                <table cellpadding="0" cellspacing="0"
+                       style="width:110pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:9pt;">
+                    <tbody>
+                    <tr>
+                        <td style="width:10pt;border:solid 1pt #000;text-align:center;font-size:10pt;line-height:11pt;">
+                            E
+                        </td>
+                        <td style="border:solid 1pt #000;text-align:center;padding:5pt 0;"> POSTAGE PAID<br>HONG
+                            KONG<br>PORT PAYE
+                        </td>
+                        <td style="width:40pt;border:solid 1pt #000;text-align:center;"> PERMIT<br> NO.7398 <br>平郵專用
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="clear:both"></div>
+        </div>
+        <div style="width:264pt;padding:2pt;font-size:10pt;line-height:12pt;"> To:<?php echo $name;?><br> Tel: <?php echo $phone;?> /<?php echo $tel;?>
+            <br> <?php echo $street.$street2;?><br> <?php echo $city;?> <?php echo $province;?>  <?php echo $zip;?> <br><?php echo $country_en_name;?>
+        </div>
+        <div style="width:270pt;">
+            <div style="width:195pt;padding-left:3pt;float:left;font-size:12pt;line-height:14pt;word-wrap:break-word;">
+                <?php echo $country_en_name;?><br><?php echo $country_name;?> <br> <span style="display:inline-block;margin:2pt 0;font-size:9pt;line-height:11pt;">P<?php echo $number;?></span>
+            </div>
+            <div style="width:70pt;float:right;">
+                <div style="width:30pt;float:left;border:1pt solid #000;padding:0 2pt;font-size:12pt;line-height:13pt;">
+                    Z-<?php echo $zoneCodePm ;?>
+
+                </div>
+                <div style="width:29pt;float:left;border:1pt solid #000;border-left:0;padding:0 2pt;font-size:12pt;line-height:13pt;text-align: center;">
+                    <?php echo $country_code ;?>
+                </div>
+                <div style="width:30pt;float:left;border:1pt solid #000;border-top:0;padding:0 2pt;font-size:12pt;line-height:13pt;">
+                    平 <?php echo $xuMap ;?>
+                </div>
+                <div style="width:29pt;float:left;border:1pt solid #000;border-top:0;border-left:0;padding:0 2pt;font-size:12pt;line-height:13pt;text-align: center;height: 12pt">
+                    <?php echo $cgCode ;?>
+                </div>
+            </div>
+            <div style="clear:both"></div>
+        </div>
+        <div style="width:270pt;margin-top:2pt;">
+            <div style="width:200pt;float:left;font-size:12pt;line-height:13pt;text-align:center;"><span
+                        style="display:inline-block;width:190pt;text-align:center;border-bottom:1pt solid #000;"> <?php echo $shipping_number; ?> </span><br>
+                <span style="display:inline-block;height:30pt;margin:2pt 0;line-height:30pt;overflow-y:hidden;">
+                    <img style="width:190pt;height:45pt;" src="<?php echo $this->imgSrc($shipping_number);?>"> </span></div>
+            <div style="width:70pt;float:left;text-align:right;"><span
+                        style="display:inline-block;font-size:7pt;line-height:8pt;width:68pt;text-align:center; word-wrap:break-word"> 302065 YW </span><br>
+                <span style="display:inline-block;margin-top:2pt;border:1pt solid #000;font-size:8pt;line-height:9pt;padding:3pt 0;width:66pt;text-align:center;"> BY AIR MAIL<br>航 PAR AVION 空 </span>
+            </div>
+            <div style="clear:both"></div>
+        </div>
+    </div>
+    <div id="page2"
+         style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;font-size:10pt;line-height:12pt;page-break-after:always">
+        <div style="width:270pt;">
+            <div style="float:left;width:210pt;"><font style="font-size:10pt;line-height:11pt;">報關單 CUSTOMS
+                    DECLARATION</font><br> <font style="font-size:7pt;line-height:8pt;margin-left:20pt;">(本件得由海關開拆 May
+                    be opened officially)</font></div>
+            <div style="float:left;width:60pt;text-align:right;"><font style="font-size:12pt;line-height:13pt;">CN
+                    22</font><br> <font style="font-size:7pt;line-height:8pt;">Pos 401G(3/05)</font></div>
+            <div style="clear:both"></div>
+        </div>
+        <div style="width:270pt;border-bottom:1pt solid #000;">
+            <div style="float:left;width:160pt;"><font style="font-size:7pt;line-height:8pt;">Postal
+                    administration</font><br> <font style="font-size:10pt;line-height:11pt;">香港郵政 HONGKONG POST</font>
+            </div>
+            <div style="float:left;width:110pt;text-align:right;"><font style="font-size:10pt;line-height:11pt;">重要
+                    Important!</font><br> <font style="font-size:7pt;line-height:8pt;">請參閱背面說明</font><br> <font
+                        style="font-size:7pt;line-height:8pt;">See instructions on the back</font></div>
+            <div style="clear:both"></div>
+        </div>
+        <div style="width:270pt;margin-top:2pt;font-size:8pt;line-height:9pt;">
+            <div style="width:100pt;float:left;">
+                <div style="width:100pt;height:15pt;"><span
+                            style="display:inline-block;width:9pt;height:9pt;border:1pt solid #000;">√</span>禮物 Gift
+                </div>
+                <div style="width:100pt;height:15pt;"><span
+                            style="display:inline-block;width:9pt;height:9pt;border:1pt solid #000;"></span>文件 Documents
+                </div>
+            </div>
+            <div style="width:170pt;float:left;">
+                <div style="width:170pt;height:15pt;"><span
+                            style="display:inline-block;width:9pt;height:9pt;border:1pt solid #000;"></span>商用樣本
+                    Commercial sample
+                </div>
+                <div style="width:170pt;height:15pt;"><span
+                            style="display:inline-block;width:9pt;height:9pt;border:1pt solid #000;"></span>其他 Other
+                    <span style="display:inline-block;margin-left:10pt;font-size:6pt;line-height:7pt;text-align:center;">(在適當方格內畫上"√"號)</span>
+                </div>
+            </div>
+            <div style="clear:both"></div>
+        </div>
+        <table cellpadding="0" cellspacing="0"
+               style="font-size:8pt;line-height:10pt;width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr>
+                <td style="width:180pt;border:1pt solid #000;text-align:left;vertical-align:middle;word-wrap:break-word;">
+                    (1)內載物品詳情及(2)數量<br>
+                    Quantity(2) and detailed description of
+                    contents(1)
+                </td>
+
+                <td style="border:1pt solid #000;text-align:left;vertical-align:middle;"> (3)重量<br>Weight<br>(公斤 kg)
+                </td>
+                <td style="border:1pt solid #000;text-align:left;vertical-align:middle;"> (5)價值<br>Value</td>
+
+            </tr>
+            <?php  foreach ($list as $value){?>
+            <tr>
+                <td style="border-left:1pt solid #000;border-right:1pt solid #000;text-align:left;vertical-align:middle;word-wrap:break-word;">
+                    <?php echo $value['declared_name_en'];?>*<?php echo $value['qty'];?>
+                </td>
+                <td style="border-left:1pt solid #000;border-right:1pt solid #000;text-align:left;vertical-align:middle;">
+                    <?php echo number_format($value['declared_weight']/1000,3);?>
+                </td>
+                <td style="border-left:1pt solid #000;border-right:1pt solid #000;text-align:left;vertical-align:middle;">
+                    <?php echo $value['declared_value_currency'];?> <?php echo number_format($value['declared_value']*$value['qty'],2);?>
+                </td>
+            </tr>
+            <?php } ?>
+            <tr>
+                <td style="border:1pt solid #000;text-align:left;vertical-align:middle;"> 只適用於商品 For commercial items
+                    only<br> (7)協制編號及(8)物品原產地(如有)<br> If known,HS tariff number(7) and<br> country of origin of goods(8)
+                </td>
+                <td style="border:1pt solid #000;text-align:left;vertical-align:middle;"> (4)總重量<br>Total weight<br>(公斤
+                    kg)<br><?php echo number_format($total_weight/1000,3);?>
+                </td>
+                <td style="border:1pt solid #000;text-align:left;vertical-align:middle;"> (6)總共價值<br>Total value<br>
+                    <?php echo array_values($declared_info)[0]['declared_value_currency'];?><?php echo number_format($total_value,2);?>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div style="width:270pt;font-size:7pt;line-height:9pt;word-wrap:break-word;">
+            在下面簽署，以證明此報關單上列資料全屬正確，及此郵件并不載有任何法例或郵政規例或海關條例所禁寄的危險物品。 本人的姓名及地址已載於郵件上。
+        </div>
+        <div style="width:270pt;font-size:7pt;line-height:9pt;word-wrap:break-word;border-bottom:1pt solid #000;"> I,
+            the undersigned, whose name and address are give on the item certify that the particulars given in this
+            declaration are correct and that this item does not contain any dangerous article or articles prohibited by
+            legislation or by postal or customs regulations.
+            <div style="text-align:right;"> 302065</div>
+        </div>
+        <div style="width:270pt;font-size:8pt;line-height:10pt;">
+            <div style="float:left;width:200pt;"> (8)日期及寄件人簽署<br>Date and sender"s signature</div>
+
+        </div>
+    </div>
+
+</div>
+
+
+
+
+</body>
+</html>

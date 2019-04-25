@@ -1,0 +1,114 @@
+<?php
+namespace PaypalClient\Accounts;
+
+use PaypalClient\RequestService;
+/**
+ * 账号接口服务类
+ * @author Jacky 2017-9-24 23:04:27
+ */
+class AccountsService extends RequestService{
+    
+    /**
+     * 获取PayPal帐户的可用余额
+     * @param bool $returnAllCurrencies //N 是否返回所有货币
+     */
+    public function GetBalance($returnAllCurrencies = false){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'ack'=>'',//paypal状态标识
+            'http_statu'=>'',
+            'errors'=>array(),
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、整理参数
+        */
+        $params = array(
+            'returnAllCurrencies'=>$returnAllCurrencies ? 1 : 0,
+        );
+        
+        /**
+         * 2、设置请求
+        */
+        $this->setRequest('GetBalance',$params);
+        
+        /**
+         * 3、调用公共请求方法
+        */
+        try {
+            //执行请求
+            $re = $this->executeRequest();
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['ack'] = $re['ack'];
+            $return['http_statu'] = $re['http_statu'];
+            $return['data'] = $re['data'];
+            $return['errors'] = $re['errors'];
+            $return['org_data'] = $re['org_data'];
+        } catch (PayPal_Exception $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['ack'] = $e->getAck();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['errors'] = $e->getErrors();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+    /**
+     * 获取PayPal ID，即PayPal分配的商家帐号，以及有关您的帐户的其他信息。使用动态版本的PayPal按钮和徽标时，需要加密的帐号
+     * pal  paypa分配的商户账号
+     * LOCALE  表示商家的默认区域设置，如en_US
+     */
+    public function GetPalDetails(){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'ack'=>'',//paypal状态标识
+            'http_statu'=>'',
+            'errors'=>array(),
+            'data'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、整理参数
+        */
+        $params = array();
+        
+        /**
+         * 2、设置请求
+        */
+        $this->setRequest('GetPalDetails',$params);
+        
+        /**
+         * 3、调用公共请求方法
+        */
+        try {
+            //执行请求
+            $re = $this->executeRequest();
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['ack'] = $re['ack'];
+            $return['http_statu'] = $re['http_statu'];
+            $return['data'] = $re['data'];
+            $return['errors'] = $re['errors'];
+            $return['org_data'] = $re['org_data'];
+        } catch (PayPal_Exception $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['ack'] = $e->getAck();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['errors'] = $e->getErrors();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+    
+}

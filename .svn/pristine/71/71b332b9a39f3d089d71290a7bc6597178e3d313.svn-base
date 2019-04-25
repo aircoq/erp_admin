@@ -1,0 +1,353 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use service\shipping\operation\Common;
+use org\Curl;
+use org\Xml;
+use think\Exception;
+
+/**
+ *  International 国际在线(国际E邮宝)
+ */
+class International
+{
+
+    // 配置信息
+    private $_config = [
+        'header' => [
+            'version:international_eub_us_1.1',
+        ]
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return array | void
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_secret'])) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+
+        $this->_config['header'][] = 'authenticate:'.$config['client_secret'];
+        return true;
+    }
+
+    /**
+     * 创建物流订单
+     * @param array $config
+     * @param array $order
+     * @param bool $confirm
+     * @return array
+     */
+    public function createOrder(array $config, array $order, $confirm = true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $commitData = $this->buildData($order);
+            $url = 'http://shipping.ems.com.cn/partner/api/public/p/order/';
+            $xml = Curl::curlPost($url, $commitData, $this->_config['header']);
+
+            //日志记录
+            $arr_log = [
+                'url'=>$url,
+                'header'=>$this->_config['header'],
+                'request'=>$commitData,
+                'response'=>$xml
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+
+            $xmlObj = new Xml();
+            $result = $xmlObj->xmlToArray($xml);
+
+            if(isset($result['mailnum'])&&$result['mailnum']){
+                $this->result['data']['number']             = '';                            // 客户订单号
+                $this->result['data']['package_code']       = $result['mailnum'];                              // One World包裹处理号
+                $this->result['data']['trackingNumber']     = $result['mailnum'];  // 跟踪号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];
+                $this->result['data']['confirm']            = true;                              // 是否交运
+                $this->result['data']['label']              = true;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf
+                $this->result['data']['is_weight']          = true;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = true;                              // 是否能查询实际费用
+                $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'  => isset($result['description'])?$result['description']:'未知错误',
+                    'error_code' => 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 取消运单
+     * @param number $mailNumber
+     */
+    public function cancel(array $config, array $order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $mailNumber = $order['shipping_number'];
+            $url = 'http://shipping.ems.com.cn/partner/api/public/p/order/'. $mailNumber;
+            $result = Curl::curlDelete($url, $this->_config['header']);
+            //日志记录
+            $arr_log = [
+                'url'=>$url,
+                'header'=>$this->_config['header'],
+                'request'=>'',
+                'response'=>$result
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+            $result = Xml::xmlToArray($result);
+            if($result['status'] == 'success'){
+                $this->result['success'] = true;
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => isset($result['description'])?$result['description']:'未知错误'
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 取包裹pdf面单
+     */
+    function getLabel($config, $order) {
+        $this->result['number'] = $order['number'];
+        $this->formatHeader($config);
+        $trackNumber = $order['process_code'];
+        $xml = '<?xml version="1.0" encoding="UTF-8"?><orders xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+            . '<printcode>00</printcode><filetype>0</filetype><order><mailnum>'.$trackNumber.'</mailnum></order></orders>';
+        $responseXml = Curl::curlPost('http://shipping.ems.com.cn/partner/api/public/p/print/downloadLabels', $xml, $this->_config['header']); //正式环境
+        $response = Xml::xmlToArray($responseXml);
+        if(is_array($response)){
+            if(isset($response['status'])&&$response['status']=='success'){
+                $pdf_url = $response['url'];
+                $responseString  = file_get_contents($pdf_url);
+//                if (!is_dir($order['path'])){
+//                    mkdir($order['path'],0777);  // 创建文件夹test,并给777的权限（所有权限）
+//                }
+//                $filename = $order['path'] . '/'.$order['number']. '.pdf';
+//                file_put_contents($filename, $responseString);
+
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'],base64_encode($responseString),'pdf');
+                //$this->result['data']['body'] = base64_encode($responseString);
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'  => $response['description'],
+                    'error_code' => 1
+                ];
+            }
+        }else{
+            $this->result['error'] = [
+                'error_msg'  => '网络错误,连接不上服务器',
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取物流渠道
+     * @param $config
+     * @return array
+     */
+    public function getExpress($config){
+        $data = [
+            ['name'=>'e邮宝','code'=>'0'],
+            ['name'=>'e包裹','code'=>'1'],
+            ['name'=>'e特快','code'=>'2'],
+            ['name'=>'国际EMS','code'=>'4'],
+            //['name'=>'e速宝','code'=>'3'],
+        ];
+        $this->result['data'] = $data;
+        $this->result['success'] = true;
+        return $this->result;
+    }
+    
+    /**
+     * 实时跟踪信息查询
+     * @param number $mailNumber
+     * @return $result : 订单跟踪信息数组
+     */
+    public function trackQuery($mailNumber = 0)
+    {
+        $result = [];
+        $url = 'http://shipping.ems.com.cn/partner/api/public/p/track/query/cn/'. $mailNumber;
+        $xml = Curl::curlGet($url);
+        $result = Xml::xmlToArray($xml);
+        return $result;
+    }
+
+    /**
+     * 获取物流订单真实重量和费用
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config,$order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+            $trackNumber = $order['shipping_number'];
+            $responseXml = Curl::getCurl($this->_config['url'] . "order/" . $trackNumber, $this->_config['header']);
+            $response = Xml::xmlToArray($responseXml);
+            if(isset($response['order'])){
+                $order = obj2Array($response['order']);
+                $this->result['data']['real_weight'] = $order['actualweight'];
+                $this->result['data']['real_fee'] = $order['actualfee'];
+                $this->result['data']['currency'] = '';
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'  => '未知错误',
+                    'error_code' => 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    private function buildData($data){
+        $referenceID = isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number']: $data['number'];
+        $volweight = $data['length']*$data['width']*$data['width']/1000/6000;//体积重量长（cm）×宽(cm)×高(cm)÷6000=重量（KG）
+        $volweight = intval($volweight);
+        $xml = '<?xml version="1.0" encoding="UTF-8"?><orders xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">';
+        $xml.= '<order>';
+        $xml.= '<orderid>'.$referenceID.'</orderid>';
+        $xml.= '<ordernum></ordernum>';
+        $xml.= '<operationtype>'.$data['shipping_method_code'].'</operationtype>';
+        $xml.= '<producttype>0</producttype>';
+        $xml.= '<customercode></customercode>';
+        $xml.= '<vipcode></vipcode>';
+        $xml.= '<clcttype>1</clcttype>';
+        $xml.= '<pod>false</pod>';
+        $xml.= '<untread>'.($data['is_need_return']==1 ? 'Returned' : 'Abandoned').'</untread>';
+        $xml.= '<volweight>'.$volweight.'</volweight>';
+        $xml.= '<startdate>'.date('Y-m-d H:m:s').'</startdate>';
+        $xml.= '<enddate>'.date('Y-m-d H:m:s').'</enddate>';
+        $xml.= '<printcode></printcode>';
+
+        $xml.= '<sender>';
+        $xml.= '<name>'.$data['sender']['sender_name'].'</name>';
+        $xml.= '<postcode>'.$data['sender']['sender_zipcode'].'</postcode>';
+        $xml.= '<phone>'.$data['sender']['sender_phone'].'</phone>';
+        $xml.= '<mobile>'.$data['sender']['sender_mobile'].'</mobile>';
+        $xml.= '<country>CN</country>';
+        $xml.= '<province>'.$data['sender']['sender_state'].'</province>';
+        $xml.= '<city>'.$data['sender']['sender_city'].'</city>';
+        $xml.= '<county></county>';
+        $xml.= '<company></company>';
+        $xml.= '<street>'.$data['sender']['sender_street'].'</street>';
+        $xml.= '<email></email>';
+        $xml.= '</sender>';
+
+        $data['street'] = $data['street2'] ? $data['street'] .' '.$data['street2']: $data['street'];
+        $xml.= '<receiver>';
+        $xml.= '<name>'.$data['name'].'</name>';
+        $xml.= '<postcode>'.$data['zip'].'</postcode>';
+        $xml.= '<phone>'.$data['phone'].'</phone>';
+        $xml.= '<mobile>'.$data['tel'].'</mobile>';
+        $xml.= '<country>'.$data['country_code'].'</country>';
+        $xml.= '<province>'.$data['province'].'</province>';
+        $xml.= '<city>'.$data['city'].'</city>';
+        $xml.= '<county></county>';
+        $xml.= '<street>'.$data['street'].'</street>';
+        $xml.= '<email>'.$data['email'].'</email>';
+        $xml.= '</receiver>';
+
+        $xml.= '<collect>';
+        $xml.= '<name>'.$data['sender']['sender_name'].'</name>';
+        $xml.= '<postcode>'.$data['sender']['sender_zipcode'].'</postcode>';
+        $xml.= '<phone>'.$data['sender']['sender_phone'].'</phone>';
+        $xml.= '<mobile>'.$data['sender']['sender_mobile'].'</mobile>';
+        $xml.= '<country>CN</country>';
+        $xml.= '<province>'.$data['sender']['sender_state'].'</province>';
+        $xml.= '<city>'.$data['sender']['sender_city'].'</city>';
+        $xml.= '<county></county>';
+        $xml.= '<company></company>';
+        $xml.= '<street>'.$data['sender']['sender_street'].'</street>';
+        $xml.= '<email></email>';
+        $xml.= '</collect>';
+
+        $xml.= '<items>';
+
+        foreach($data['declared_info'] as $k=>$declared){
+            $xml.= '<item>';
+            $xml.= '<cnname>'.$declared['declared_name_cn'].'</cnname>';
+            $xml.= '<enname>'.$declared['declared_name_en'].'</enname>';
+            $xml.= '<count>'.$declared['qty'].'</count>';
+            $xml.= '<weight>'.($declared['declared_weight']/1000).'</weight>';
+            $xml.= '<delcarevalue>'.number_format($declared['declared_value'],2).'</delcarevalue>';
+            $xml.= '<origin>CN</origin>';
+            $xml.= '<description></description>';
+            //$xml.= '<taxationid></taxationid>';
+            $xml.= '</item>';
+        }
+        $xml.= '</items>';
+        $xml.= '<remark/>';
+        $xml.= '</order>';
+        $xml.= '</orders>';
+        return $xml;
+    }
+
+
+}

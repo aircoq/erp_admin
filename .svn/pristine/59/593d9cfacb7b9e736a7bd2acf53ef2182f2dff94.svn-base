@@ -1,0 +1,33 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-4-8
+ * Time: 上午11:55
+ */
+
+namespace erp;
+
+
+class DataType
+{
+    public function NUMBER()
+    {
+
+    }
+
+    public function STRING()
+    {
+
+    }
+
+    public function OBJECT($class)
+    {
+
+    }
+
+    public function conver($type, $value)
+    {
+
+    }
+}

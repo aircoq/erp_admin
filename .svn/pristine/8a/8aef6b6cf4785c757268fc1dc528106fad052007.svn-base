@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0077)http://lilangda.tongtool.com/process/new/warehouse/print?0.013180876675128239 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;font-size:10pt;line-height: 12pt;overflow-x:hidden;page-break-after:always">
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:9pt;">
+            <tbody>
+            <tr>
+                <td style="border:1pt solid #000;">
+                    <div style="width:60pt;float:left;font-size:24pt;line-height:36pt;font-weight: bold;text-align: center">  TO:</div>
+
+                    <div style="width:70pt;float:left;font-size:7pt;padding: 2pt 0;text-align:left;">
+                        szrdf<br>
+                        <?php echo $number?><br>
+                        顺速宝挂号<br>
+                    </div>
+                    <div style="width:50pt;float:left;font-size:10pt;padding: 2pt 0;font-weight:bold;text-align:left;line-height: 30pt">
+                       <?php echo $country_code ?>
+                    </div>
+                    <div style="width:80pt;float:left;font-size:6pt;padding:5pt 0;text-align:left;">
+                        <?php echo $country_name ?>专线[<?php echo $country_code ?>]<br>
+                        <?php echo $country_name ?>
+                    </div>
+                    <div style="clear:both;"></div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:9pt;">
+            <tbody>
+            <tr>
+                <td style="border:1pt solid #000;border-right:none;font-size: 6pt;vertical-align: center;width: 50pt">
+                    运单号
+                </td>
+                <td style="border:1pt solid #000;border-left:none;text-align: center">
+                    <br>
+                    <img style="width:160pt;" src="<?php echo $this->imgSrc($shipping_number);?>">
+                    <br>
+                    <?php echo $shipping_number;?>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:10pt;">
+            <tbody>
+
+            <tr>
+                <td style="border:solid 1pt #000;word-wrap:break-word;text-align:left;width: 150pt;font-size: 6pt">
+                    内件详细名称和数量<br>
+                    Quantity and detailed description of contents</td>
+                <td style="width:50pt;border:solid 1pt #000;text-align:center;font-size: 6pt">重量(千克)
+                    Weight(KG)</td>
+                <td style="width:60pt;border:solid 1pt #000;text-align:center;font-size: 6pt"> 价值
+                    Value</td>
+            </tr>
+
+            <?php foreach ($list as $k=>$v):?>
+                <tr>
+                    <td style="border:solid 1pt #000;word-wrap:break-word;padding:0 2pt;text-align:center;">
+                        <?php echo $v['declared_name_en']."*".$v['qty'] ;?>
+                    </td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;">
+                        <?php echo number_format($v['declared_weight']/1000,3,'.','');?>
+                    </td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;">
+                        <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?>
+                    </td>
+                </tr>
+            <?php endforeach;?>
+
+            <tr>
+                <td style="border:solid 1pt #000;word-wrap:break-word;text-align:center;"> </td>
+                <td style="border:solid 1pt #000;text-align:center;font-size: 6pt"> 总重量(千克)
+                    Total Weight
+                    (KG)<br><?php echo number_format($total_weight/1000,3,'.','');?> </td>
+                <td style="border:solid 1pt #000;text-align:center;font-size: 6pt">总价值
+                    Total Value<br> <?php echo number_format($total_value,2,'.','');?> </td>
+            </tr>
+
+            <tr>
+                <td colspan="3"
+                    style="border:solid 1pt #000;border-bottom:0;word-wrap:break-word;padding:0 2pt;font-size:5pt;line-height:8pt;">
+                    SKU/Qty
+                </td>
+            </tr>
+            <?php foreach ($list as $k=>$v):?>
+            <tr>
+                <td colspan="3"
+                    style="border:solid 1pt #000;word-wrap:break-word;padding:0 2pt;font-size:5pt;line-height:8pt;">
+                    <?php echo $v['sku']."*".$v['qty'] ;?>
+                </td>
+
+            </tr>
+            <?php endforeach;?>
+
+            </tbody>
+        </table>
+    </div>
+
+
+</div>
+
+</body>
+</html>

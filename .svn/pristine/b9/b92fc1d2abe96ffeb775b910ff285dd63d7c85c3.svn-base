@@ -1,0 +1,77 @@
+<?php
+
+namespace service\ebay;
+
+use think\Loader;
+
+/**
+ * ebay dispute[tradding] 纠纷
+ * @author tanbin
+ *
+ */
+class EbayDisputeApi extends EbayBaseApi
+{		
+
+	protected $config;
+	
+
+	/**
+	 * 初始化
+	 * @param array $config
+	 */
+	public function __construct($config = [])
+	{	
+		parent::__construct($config,1);
+	}
+		
+	/**
+	 * 取出ebay纠纷信息
+	 */
+	function getDispute($createTimeFrom,$createTimeTo){
+	    
+	    set_time_limit(0);
+	    Loader::import('trading.GetUserDisputesRequestType') ;
+	
+	    $request = new \GetUserDisputesRequestType();
+	    $request->setWarningLevel("High");
+	    $request->setDetailLevel('ReturnAll');
+	    $request->setDisputeFilterType("AllInvolvedClosedDisputes"); //AllInvolvedDisputes
+	    $request->setDisputeSortType('DisputeCreatedTimeDescending');
+	    $request->setModTimeFrom($this->setTimeToEbayTime($createTimeFrom));
+	    $request->setModTimeTo($this->setTimeToEbayTime($createTimeTo));
+	   
+	    $perPage = 100 ;
+	    $pageNumber = 1;
+	    $pagination = new \PaginationType();
+	    $pagination->setEntriesPerPage($perPage);
+	    $pagination->setPageNumber($pageNumber);
+	    $request->setPagination($pagination);
+	    
+	    $response   = $this->_proxy->GetUserDisputes($request);
+	    print_r($response);exit;
+	    $result =  $this->xmlToArraySDK($response);
+	   
+	    return $result;		
+	}
+	
+	
+	/**
+	 * 取出ebay纠纷详细信息
+	 */
+	function getDisputeDetail($disputeId){
+	    set_time_limit(0);
+	    Loader::import('trading.GetDisputeRequestType') ;
+	
+	    $request = new \GetDisputeRequestType();
+	    $request->setWarningLevel("High");
+	    $disputeId = '694964220';
+	    $request->setDisputeID($disputeId);
+	     
+	    $response   = $this->_proxy->GetDispute($request);
+	    $result =  $this->xmlToArraySDK($response);
+	    return $result;
+	}
+
+
+	
+}

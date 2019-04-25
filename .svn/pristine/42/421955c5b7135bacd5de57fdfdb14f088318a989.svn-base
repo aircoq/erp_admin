@@ -1,0 +1,234 @@
+<?php
+namespace service\pm\Feeds;
+
+use service\pm\RequestService;
+use service\pm\PriceMinisterException;
+
+/**
+ * PriceMinister接口Feeds服务类
+ * @author wangwei 2019-2-27 17:35:10
+ */
+class FeedService extends RequestService{
+	
+	
+	/**
+	 * This webservice is for reading all PriceMinister product types by platform. 
+	 * These prodyct types will then enable you to get all the product attributes for a given type.
+	 * This webservice is available to professional merchants only.
+	 */
+	public function producttypes(){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+		
+		/**
+		 * 1、设置请求
+		 */
+		$this->setRequest('producttypes', '2011-11-29');
+		
+		/**
+		 * 2、调用公共请求方法
+		 */
+		try {
+			$re = $this->executeRequest();
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+		
+		return $return;
+		
+	}
+	
+	
+	/**
+	 * @param unknown $params
+	 * @example  $params = array(
+	 * 				'alias'=>'',//
+	 * 				'scope'=>'',//VALUES,''
+	 * );
+	 * @return array
+	 */
+	public function producttypetemplate($params){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('producttypetemplate', '2011-11-29');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+		
+	
+	/**
+	 * @param unknown $params
+	 * @example  $params = array(
+	 * );
+	 * @return array
+	 */
+	public function genericimportfile($params){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('genericimportfile', '2015-02-02');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest(array(),$params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * @param unknown $params
+	 * @example  $params = array(
+	 * 			'fileid'=>'',
+	 * 			'nexttoken'=>'',
+	 * );
+	 * @return array
+	 */
+	public function genericimportreport($params){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('genericimportreport', '2011-11-29');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	
+	
+	
+}

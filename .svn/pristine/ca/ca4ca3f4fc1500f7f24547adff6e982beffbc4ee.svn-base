@@ -1,0 +1,145 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-4-25
+ * Time: 上午10:19
+ */
+
+namespace swoole;
+
+
+use app\common\cache\Cache;
+use app\common\cache\driver\TaskWorker;
+use app\common\exception\TaskException;
+use think\Console;
+use think\exception\ErrorException;
+
+class TaskProcess
+{
+    private static $tasks = [];
+    private $task = null;
+    private $process = null;
+    public function __construct($task)
+    {
+        $this->task = $task;
+    }
+
+    public function init($process)
+    {
+        $this->socket_timeout();
+        set_error_handler([$this, "error_handle"]);
+        return $process;
+    }
+
+    public function error_handle($errno, $errstr, $errfile, $errline)
+    {
+        $now = now('Y-m-d H:m:s:f');
+        echo "error:$now  $errno $errstr $errfile $errline\n";
+    }
+
+    private function socket_timeout()
+    {
+        ini_set('default_socket_timeout', -1);  //不超时
+    }
+
+    public function execute($process)
+    {
+        echo "task process\n";
+        $process = $this->init($process);
+        $this->process = $process;
+        $task = $this->task;
+        while (true){
+            try {
+                $objarr = static::popQueue($task);
+                if($objarr){
+                    $now = time();
+                    $out = Console::call('task',['--taskinfo', json_encode(['task'=>$task,'params'=>$objarr])]);
+                    $msg = '';
+                    while ($str = $out->fetch()){
+                        $msg .=$str;
+                    }
+                    $line = __LINE__;
+                    $file = "";
+                }else{
+                    sleep(1);
+                    $msg = '';
+                    $line = __LINE__;
+                    $file = "";
+                }
+
+            }catch (TaskException $exception){
+                $msg = $exception->getMessage();
+                $line = $exception->getLine();
+                $file = $exception->getFile();
+            }catch (ErrorException $exception){
+                $msg = $exception->getMessage();
+                $line = $exception->getLine();
+                $file = $exception->getFile();
+            }catch (\Exception $exception){
+                $msg = $exception->getMessage();
+                $line = $exception->getLine();
+                $file = $exception->getFile();
+            }catch (\Error $exception){
+                $msg = $exception->getMessage();
+                $line = $exception->getLine();
+                $file = $exception->getFile();
+            }
+            if(!is_string($msg)){
+                $msg = json_encode($msg);
+            }
+            if($msg){
+                echo "{$line} {$file} $msg";
+            }
+
+        }
+    }
+
+    /**
+     * @doc 添加任务进程
+     * @param string $task 任务类
+     * @param int $num 进程数
+     */
+    public static function addTask($task, $num=1)
+    {
+        SwooleServer::sendProcessCmd('task', ['tag'=>$task,'num'=>$num]);
+    }
+
+    public static function mdfTask($task, $num)
+    {
+        SwooleServer::sendProcessCmd('task_mdf', ['tag'=>$task,'num'=>$num]);
+    }
+
+    public static function listenTask($task)
+    {
+        static::$tasks[] = $task;
+    }
+
+    private static function popQueue($task)
+    {
+        /**
+         * @var $taskWorker TaskWorker
+         */
+        $taskWorker = Cache::store('TaskWorker');
+        return $taskWorker->popQueue($task);
+    }
+    /**
+     * @doc 执行任务（队列式）
+     * @param $task
+     * @param $params
+     */
+    public static function pushQueue($task, $params)
+    {
+        $taskWorker = Cache::store('TaskWorker');
+        $taskWorker->pushQueue($task, $params);
+    }
+
+    /**
+     * @doc 关闭任务进程
+     * @param $task
+     */
+    public static function killTask($task)
+    {
+        SwooleServer::sendProcessCmd('kill', ['tag'=>$task]);
+    }
+}

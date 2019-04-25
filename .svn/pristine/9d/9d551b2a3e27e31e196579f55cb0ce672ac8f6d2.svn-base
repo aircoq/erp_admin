@@ -1,0 +1,55 @@
+<?php
+
+namespace service\lazada\operation;
+
+use think\Loader;
+use think\Exception;
+use app\index\service\LazadaAccountService;
+
+
+Loader::import('lazada.LazopSdk');
+
+class Category
+{
+    public $app_key;
+    public $app_secret;
+    public $access_token;
+    public $service_url;
+
+    /**
+     *
+     * @param unknown $appname
+     * @param unknown $appversion
+     * @param unknown $aws_access_key_id
+     * @param unknown $aws_secret_access_key
+     * @param unknown $merchant_id
+     * @param unknown $marketplace_id
+     * @param unknown $serviceUrl
+     * @param unknown $account
+     * @param unknown $site
+     */
+    public function __construct($param = [])
+    {
+        $this->app_key = $param['app_key'] ?? '';
+        $this->app_secret = $param['app_secret'] ?? '';
+        $this->access_token= $param['access_token'] ?? '';
+        $this->service_url = $param['service_url'] ?? '';
+
+    }
+
+    /**
+     * 同步分类
+     * @param $params
+     * @return mixed
+     */
+    public function getCategoryByCountry()
+    {
+        $url = $this->service_url;
+        $client  = new \LazopClient($url, $this->app_key, $this->app_secret);
+        $request = new \LazopRequest('/category/tree/get','GET');
+        $result  = $client->execute($request, $this->access_token);
+        $result  = json_decode($result, true);
+        return $result;
+    }
+
+}

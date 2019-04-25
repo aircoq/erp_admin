@@ -1,0 +1,528 @@
+<?php
+/**
+ * 亚马逊上传数据公共 API 服务类
+ * @author wangwei 2019-3-6 18:00:36
+ */
+namespace service\amazon\Feed\Base;
+
+use org\XmlHandle;
+
+class FeedService extends FeedBaseService
+{
+	
+    /**
+     * 上传数据以供亚马逊 MWS处理
+     * 操作的最大请求限额为 15 个，恢复速率为每 2 分钟 1 个请求
+     * @param string $Param_FeedContent           XML请求数据，上传数据大小限制在每个上传数据 2G 以内
+     * @param string $Param_FeedType                FeedType 枚举
+     * @param string | array $Param_MarketplaceIdList    商城 ID(数组或字符串)
+     * @param bool $Param_PurgeAndReplace    启用清除并替换功能
+     * @return array
+     */
+    public function submitFeed(
+    		$Param_FeedContent,
+    		$Param_FeedType,
+    		$Param_MarketplaceIdList = array(),
+    		$Param_PurgeAndReplace = false
+    		){
+		$return = array(
+				'ask' => 0,
+				'message'=>'submitFeed_error',
+				'data'=>array(
+						'FeedSubmissionId'=>'',//上传数据提交的唯一编码
+						'requestId'=>'',//请求id
+						'FeedContent'=>'',//XML请求数据
+						'FeedType'=>'',//已提交的上传数据类型,FeedType 枚举
+						'SubmittedDate'=>'',//提交上传数据的日期和时间
+						'FeedProcessingStatus'=>'',//所提交的上传数据的处理状态
+		         ),
+		);
+		
+		/**
+		 * 1、设置服务类
+		 */
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		 */
+		//将XML字符串放入内存
+		$feedHandle = @fopen('php://temp', 'rw+');
+		fwrite($feedHandle, $Param_FeedContent);
+		rewind($feedHandle);//文件指针的位置倒回文件的开头
+		$request = new \MarketplaceWebService_Model_SubmitFeedRequest();
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+		    $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//如果没有传入商城代码，使用账户本身的代码
+		if($Param_MarketplaceIdList){
+			$request->setMarketplaceIdList(array('Id'=>$Param_MarketplaceIdList));
+		}else{
+			$request->setMarketplaceIdList(array('Id'=>$this->_MarketplaceId));
+		}
+		//设置FeedType枚举
+		$request->setFeedType($Param_FeedType);
+		//设置Md5请求内容
+		rewind($feedHandle);
+		$md5Content = base64_encode(md5(stream_get_contents($feedHandle), true));
+		$request->setContentMd5($md5Content);
+		rewind($feedHandle);
+		//设置是否启用清除并替换功能
+		$request->setPurgeAndReplace($Param_PurgeAndReplace);
+		//设置请求内容
+		$request->setFeedContent($feedHandle);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'submitFeed');
+		@fclose($feedHandle);//释放内存
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_SubmitFeedResult){
+				if($resultObj->isSetFeedSubmissionInfo()){
+					$feedSubmissionInfo = $resultObj->getFeedSubmissionInfo();
+					$return['data']['FeedSubmissionId'] = $feedSubmissionInfo->getFeedSubmissionId();
+					$return['data']['FeedType'] = $feedSubmissionInfo->getFeedType();
+					$return['data']['SubmittedDate'] = $feedSubmissionInfo->getSubmittedDate()->format(DATE_FORMAT);
+					$return['data']['FeedProcessingStatus'] = $feedSubmissionInfo->getFeedProcessingStatus();
+					$return['ask'] = 1;
+					$return['message'] = 'success';
+				}else{
+					$return['message'] = '没有设置FeedSubmissionInfo对象';
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['data']['FeedContent'] = $Param_FeedContent;
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_SubmitFeedResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回过去 90 天内提交的所有上传数据提交列表(用于查询报告处理状态)
+	 * 请求最多可返回 100 个结果,操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 * @param string $Param_SubmittedFromDate  最早提交日期，如:2016-05-18T10:03:09
+	 * @param string $Param_SubmittedToDate      最迟提交日期
+	 * @param string | array $Param_FeedSubmissionIdList    FeedSubmmissionId 数组，（可以是下标数组可以是一个字符串，下同）
+	 * @param string | array $Param_FeedTypeList   查询的FeedType类型
+	 * @param string | array $Param_FeedProcessingStatusList   查询的处理状态数组
+	 * @param int $Param_MaxCount    返回数据的最大条数
+	 * @return array
+	 */
+	public function getFeedSubmissionList(
+			$Param_SubmittedFromDate = '',
+			$Param_SubmittedToDate = '',
+			$Param_FeedSubmissionIdList = array(),
+			$Param_FeedTypeList = array(),
+			$Param_FeedProcessingStatusList = array(),
+			$Param_MaxCount = 100
+			){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getFeedSubmissionList_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'HasNext'=>false,//是否包含下一页
+						'NextToken'=>'',//生成的字符串，用于将信息传递给另一个调用。将 NextToken 值传递给 GetFeedSubmissionListByNextToken 操作
+						'feedSubmissionInfoArr'=>array(),
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		 */
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		 */
+		$request = new \MarketplaceWebService_Model_GetFeedSubmissionListRequest();
+		//设置返回数据的最大条数
+		$request->setMaxCount($Param_MaxCount);
+		//设置查询的处理状态数组
+		if(!empty($Param_FeedTypeList)){
+			$type_obj = new \MarketplaceWebService_Model_TypeList();
+			$type_obj->setType($Param_FeedTypeList);
+			$request->setFeedTypeList($type_obj);
+		}
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+		    $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置最早提交日期
+		if($Param_SubmittedFromDate){
+			$request->setSubmittedFromDate(new \DateTime($Param_SubmittedFromDate, new \DateTimeZone('UTC')));
+		}
+		//设置最晚提交日期
+		if($Param_SubmittedToDate){
+			$request->setSubmittedToDate(new \DateTime($Param_SubmittedToDate, new \DateTimeZone('UTC')));
+		}
+		//设置FeedSubmmissionId数组
+		if(!empty($Param_FeedSubmissionIdList)){
+			$id_list_obj = new \MarketplaceWebService_Model_IdList();
+			$id_list_obj->setId($Param_FeedSubmissionIdList);
+			$request->setFeedSubmissionIdList($id_list_obj);
+		}
+		//设置查询的处理状态数组
+		if(!empty($Param_FeedProcessingStatusList)){
+			$status_list_obj = new \MarketplaceWebService_Model_StatusList();
+			$status_list_obj->setStatus($Param_FeedProcessingStatusList);
+			$request->setFeedProcessingStatusList($status_list_obj);
+		}
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getFeedSubmissionList');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];                                
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetFeedSubmissionListResult){
+				if($resultObj->isSetHasNext()){
+					$return['data']['HasNext'] = $resultObj->getHasNext();
+				}
+				if($resultObj->isSetNextToken()){
+					$return['data']['NextToken'] = $resultObj->getNextToken();
+				}
+				$feedSubmissionInfoArr = array();
+				if($resultObj->isSetFeedSubmissionInfo()){
+					$feedSubmissionInfoList = $resultObj->getFeedSubmissionInfoList();
+					//解析MarketplaceWebService_Model_FeedSubmissionInfo 对象，返回数组
+					$feedSubmissionInfoArr = $this->resolveFeedSubmissionInfoListObj($feedSubmissionInfoList);
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['data']['feedSubmissionInfoArr'] = $feedSubmissionInfoArr;
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetFeedSubmissionListResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回使用 NextToken 参数的上传数据提交列表
+	 * 操作的最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求
+	 * @param string $Param_NextToken  下一页的Token
+	 * @return array
+	 */
+	public function getFeedSubmissionListByNextToken($Param_NextToken){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getFeedSubmissionListByNextToken_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'HasNext'=>false,//是否包含下一页
+						'NextToken'=>'',//生成的字符串，用于将信息传递给另一个调用。将 NextToken 值传递给 GetFeedSubmissionListByNextToken 操作
+						'feedSubmissionInfoArr'=>array(),
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		 */
+		$request = new \MarketplaceWebService_Model_GetFeedSubmissionListByNextTokenRequest();
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+		    $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置NextToken
+		$request->setNextToken($Param_NextToken);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getFeedSubmissionListByNextToken');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetFeedSubmissionListByNextTokenResult){
+				if($resultObj->isSetHasNext()){
+					$return['data']['HasNext'] = $resultObj->getHasNext();
+				}
+				if($resultObj->isSetNextToken()){
+					$return['data']['NextToken'] = $resultObj->getNextToken();
+				}
+				$feedSubmissionInfoArr = array();
+				if($resultObj->isSetFeedSubmissionInfo()){
+					$feedSubmissionInfoList = $resultObj->getFeedSubmissionInfoList();
+					//解析MarketplaceWebService_Model_FeedSubmissionInfo 对象，返回数组
+					$feedSubmissionInfoArr = $this->resolveFeedSubmissionInfoListObj($feedSubmissionInfoList);
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['data']['feedSubmissionInfoArr'] = $feedSubmissionInfoArr;
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetFeedSubmissionListByNextTokenResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回过去 90 天内提交的上传数据计数
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 * @param string $Param_SubmittedFromDate  最早提交日期，如:2016-05-18T10:03:09
+	 * @param string $Param_SubmittedToDate      最迟提交日期
+	 * @param string | array $Param_FeedTypeList   查询的FeedType类型
+	 * @param string | array $Param_FeedProcessingStatusList   查询的处理状态数组
+	 * @return array
+	 */
+	public function getFeedSubmissionCount(
+			$Param_SubmittedFromDate = '',
+			$Param_SubmittedToDate = '',
+			$Param_FeedTypeList = array(),
+			$Param_FeedProcessingStatusList = array()
+			){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getFeedSubmissionCount_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'Count'=>'0',//与请求参数相匹配的上传数据提交总数
+				),
+		);
+	
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+	
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \MarketplaceWebService_Model_GetFeedSubmissionCountRequest();
+		//设置查询的处理状态数组
+		if(!empty($Param_FeedTypeList)){
+			$type_obj = new \MarketplaceWebService_Model_TypeList();
+			$type_obj->setType($Param_FeedTypeList);
+			$request->setFeedTypeList($type_obj);
+		}
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+		    $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置最早提交日期
+		if($Param_SubmittedFromDate){
+			$request->setSubmittedFromDate(new \DateTime($Param_SubmittedFromDate, new \DateTimeZone('UTC')));
+		}
+		//设置最晚提交日期
+		if($Param_SubmittedToDate){
+			$request->setSubmittedToDate(new \DateTime($Param_SubmittedToDate, new \DateTimeZone('UTC')));
+		}
+		//设置查询的处理状态数组
+		if(!empty($Param_FeedProcessingStatusList)){
+			$status_list_obj = new \MarketplaceWebService_Model_StatusList();
+			$status_list_obj->setStatus($Param_FeedProcessingStatusList);
+			$request->setFeedProcessingStatusList($status_list_obj);
+		}
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+	
+		/**
+		 * 3、调用公共的执行请求方法
+		*/
+		$re = $this->executeRequest($service, $request,'getFeedSubmissionCount');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetFeedSubmissionCountResult){
+				if($resultObj->isSetCount()){
+					$return['data']['Count'] = $resultObj->getCount();
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetFeedSubmissionCountResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 取消一个或多个上传数据提交，并返回已取消的上传数据提交计数
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 * @param string $Param_SubmittedFromDate  最早提交日期，如:2016-05-18T10:03:09
+	 * @param string $Param_SubmittedToDate      最迟提交日期
+	 * @param string | array $Param_FeedTypeList   查询的FeedType类型（可以是下标数组可以是一个字符串，下同）
+	 * @param string | array $Param_FeedSubmissionIdList   FeedSubmmissionId
+	 * @return array 
+	 */
+	public function cancelFeedSubmissions(
+			$Param_SubmittedFromDate = '',
+			$Param_SubmittedToDate = '',
+			$Param_FeedTypeList = array(),
+			$Param_FeedSubmissionIdList = array()
+			){
+		$return = array(
+				'ask' => 0,
+				'message'=>'cancelFeedSubmissions_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'Count'=>'0',//与请求参数相匹配的上传数据提交总数
+						'feedSubmissionInfoArr'=>array(),
+				),
+		);
+	
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+	
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \MarketplaceWebService_Model_CancelFeedSubmissionsRequest();
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+		    $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置查询的处理状态数组
+		if(!empty($Param_FeedTypeList)){
+			$type_obj = new \MarketplaceWebService_Model_TypeList();
+			$type_obj->setType($Param_FeedTypeList);
+			$request->setFeedTypeList($type_obj);
+		}
+		//设置FeedSubmmissionId数组
+		if(!empty($Param_FeedSubmissionIdList)){
+			$id_list_obj = new \MarketplaceWebService_Model_IdList();
+			$id_list_obj->setId($Param_FeedSubmissionIdList);
+			$request->setFeedTypeList($id_list_obj);
+		}
+		//设置最早提交日期
+		if($Param_SubmittedFromDate){
+			$request->setSubmittedFromDate(new \DateTime($Param_SubmittedFromDate, new \DateTimeZone('UTC')));
+		}
+		//设置最晚提交日期
+		if($Param_SubmittedToDate){
+			$request->setSubmittedToDate(new \DateTime($Param_SubmittedToDate, new \DateTimeZone('UTC')));
+		}
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		*/
+		$re = $this->executeRequest($service, $request,'cancelFeedSubmissions');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_CancelFeedSubmissionsResult){
+				if($resultObj->isSetCount()){
+					$return['data']['Count'] = $resultObj->getCount();
+				}
+				$feedSubmissionInfoArr = array();
+				if($resultObj->isSetFeedSubmissionInfo()){
+					$feedSubmissionInfoList = $resultObj->getFeedSubmissionInfoList();
+					//解析MarketplaceWebService_Model_FeedSubmissionInfo 对象，返回数组
+					$feedSubmissionInfoArr = $this->resolveFeedSubmissionInfoListObj($feedSubmissionInfoList);
+				}
+				$return['data']['feedSubmissionInfoArr'] = $feedSubmissionInfoArr;
+				$return['data']['requestId'] = $re['requestId'];
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_CancelFeedSubmissionsResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回上传数据处理报告及 Content-MD5 标头
+	 * 操作的最大请求限额为 15个，恢复速率为每分钟恢复 1 个请求
+	 * @param string $Param_FeedSubmissionId
+	 * @return array
+	 */
+	public function getFeedSubmissionResult($Param_FeedSubmissionId){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getFeedSubmissionResult_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'FeedSubmissionId'=>'',//请求的FeedSubmissionId
+						'ContentMd5'=>'',//Content-MD5 标头
+						'ContentArray'=>array(),//返回处理报告的数组数据(由XML数据转换)
+						'ContentXML'=>''//返回处理报告的XML数据
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \MarketplaceWebService_Model_GetFeedSubmissionResultRequest();
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置FeedSubmissionId
+		$request->setFeedSubmissionId($Param_FeedSubmissionId);
+		//设置返回的数据的存储资源句柄
+		$request->setFeedSubmissionResult(@fopen('php://memory', 'rw+'));
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getFeedSubmissionResult');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetFeedSubmissionResultResult){
+				if($resultObj->isSetContentMd5()){
+					$return['data']['ContentMd5'] = $resultObj->getContentMd5();
+				}
+				$return['data']['FeedSubmissionId'] = $request->getFeedSubmissionId();
+				//返回的XML数据
+				$ContentXML = stream_get_contents($request->getFeedSubmissionResult());
+				$return['data']['ContentXML'] = $ContentXML;
+				$return['data']['ContentArray'] = XmlHandle::unserialize($ContentXML);
+				$return['data']['requestId'] = $re['requestId'];
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetFeedSubmissionResultResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+}

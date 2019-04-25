@@ -1,0 +1,214 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-5-22
+ * Time: 上午11:28
+ */
+
+namespace service\shopee\operation;
+
+
+class Item extends Common
+{
+    private $baseUrl="https://partner.shopeemobile.com/api/v1/item/";
+    private $itemsBaseUrl="https://partner.shopeemobile.com/api/v1/items/";
+    private $testUrl="https://partner.uat.shopeemobile.com/api/v1/item/";
+
+    /**
+     * Use this call to add a product item
+     * @param $params
+     * @return mixed
+     */
+    public function add($params)
+    {
+        $url=$this->baseUrl.'add';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to update a product item.
+     * @param $params
+     * @return mixed
+     */
+    public function updateItem($params)
+    {
+        $url=$this->baseUrl.'update';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to get a list of items
+     * @param $params
+     * @return mixed
+     */
+    public function getItemsList($params)
+    {
+        $url=$this->itemsBaseUrl."get";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to get detail of item
+     * @param $params
+     * @return mixed
+     */
+    public function getItemDetail($params){
+        $url=$this->baseUrl.'get';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /***
+     * Use this call to delete a product item.
+     * @param $params
+     * @return mixed
+     */
+    public function delete($params)
+    {
+        $url=$this->baseUrl.'delete';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**Use this call to add item variations
+     * @param $params
+     * @return mixed
+     */
+    public function addVariations($params)
+    {
+        $url=$this->baseUrl.'add_variations';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to add product item images.
+     * @param $params
+     * @return mixed
+     */
+    public function addItemImg($params){
+        $url=$this->baseUrl."img/add";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to delete a product item image.
+     * @param $params
+     * @return mixed
+     */
+    public function deleteItemImg($params)
+    {
+
+        $url=$this->baseUrl."img/delete";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**Use this call to delete item variation
+     * @param $params
+     * @return mixed
+     */
+    public function deleteVariation($params)
+    {
+        $url=$this->baseUrl.'delete_variation';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to get attributes of product item
+     * @param $params
+     * @return mixed
+     */
+    public function getAttributes($params){
+        $url=$this->baseUrl."attributes/get";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to get categories of product item
+     * @param $params
+     * @return mixed
+     */
+    public function GetCategories($params)
+    {
+        $url=$this->baseUrl."categories/get";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     *Use this api to get categories list filtered by country and cross border without using shopID
+     * @param $params
+     * @return mixed
+     */
+    public function getCategoryByCountry($params)
+    {
+        $url=$this->baseUrl."categories/get_by_country";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to add one item image in assigned position
+     * @param array $params
+     * @return mixed
+     */
+    public function insertItemImg($params=[])
+    {
+        $url = $this->baseUrl.'img/insert';
+        return $this->curlPost($url. $params);
+    }
+
+    /**
+     * Use this call to update item product price
+     * @param $params
+     * @return mixed
+     */
+    public function updatePrice($params){
+        $url=$this->itemsBaseUrl.'update_price';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to update item product stock
+     * @param $params
+     * @return mixed
+     */
+    public function updateStock($params){
+        $url=$this->itemsBaseUrl.'update_stock';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to update item variation price
+     * @param $params
+     * @return mixed
+     */
+    public function updateVariationPrice($params)
+    {
+        $url=$this->itemsBaseUrl.'update_variation_price';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    /**
+     * Use this call to update item variation stock
+     * @param $params
+     * @return mixed
+     */
+    public function updateVariationStock($params)
+    {
+        $url=$this->itemsBaseUrl.'update_variation_stock';
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+}

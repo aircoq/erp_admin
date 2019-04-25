@@ -1,0 +1,338 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: zhangdongdong
+ * Date: 2019/3/21
+ * Time: 21:39
+ */
+
+namespace Waimao\AmazonMws;
+
+use app\common\cache\Cache;
+use Exception;
+
+class AmazonRequest extends AmazonMultiCore
+{
+
+    private $accountId;
+
+    public $account;
+
+    public $feedContent;
+
+    public $response;
+
+    public $timeOut = 30;
+
+    public $core = null;
+
+    private $feedMD5;
+
+    public $curlObj = null;
+
+    /** @var int 1正常，9错误 */
+    public $status = 1;
+
+    public $error = [];
+
+    /**
+     * @var $cache \app\common\cache\driver\AmazonAccount
+     */
+    public $cache = [];
+
+    public function __construct(int $accountId, $options, $feed = '', $timeOut = 30)
+    {
+        $this->timeOut = $timeOut;
+        $this->accountId = $accountId;
+        $this->account = Cache::store('AmazonAccount')->getAccount($accountId);
+        $this->setFeedContent($feed);
+        $apiParams = $this->setAccountParam();
+        if ($this->isError()) {
+            return false;
+        }
+        $this->setMarketplaceIds($apiParams['marketplaceId']);
+        parent::__construct($apiParams, $options);
+    }
+
+
+    public function setAccountParam()
+    {
+        if (!$this->checkAccount()) {
+            return false;
+        }
+
+        $accountInfo = $this->account;
+        $site = trim(strtoupper($accountInfo['site']));
+        $apiParams = [
+            'merchantId' => trim($accountInfo['merchant_id']),
+            'marketplaceId' => AmazonConfig::$marketplaceId[$site],
+            'keyId' => trim(paramNotEmpty($accountInfo, 'developer_access_key_id', $accountInfo['access_key_id'])),
+            'secretKey' => trim(paramNotEmpty($accountInfo, 'developer_secret_key', $accountInfo['secret_key'])),
+            'authToken' => trim(paramNotEmpty($accountInfo, 'auth_token','')),
+            'amazonServiceUrl' => AmazonConfig::$serverUrl[$site]. '/'
+        ];
+        return $apiParams;
+    }
+
+    public function checkAccount() : bool
+    {
+        $account = $this->account;
+        if (empty($account)) {
+            $this->setError('帐号ID不存在');
+            return false;
+        }
+        if (empty($account['merchant_id']) || empty($account['site'])) {
+            $this->setError('帐号'. $account['code']. ' appID不存在或站点为空');
+            return false;
+        }
+        if (!empty($account['access_key_id']) && !empty($account['secret_key'])) {
+            return true;
+        }
+        if (
+            !empty($account['developer_access_key_id']) &&
+            !empty($account['developer_secret_key']) &&
+            !empty($account['auth_token'])
+        ) {
+            return true;
+        }
+        $this->setError('帐号'. $account['code']. ' 授权信息不完整');
+        return false;
+    }
+
+    /**
+     * Sets the request ID(s). (Optional)
+     */
+    public function setMarketplaceIds($s)
+    {
+        if ($s && is_string($s)) {
+            $this->resetMarketplaceIds();
+            $this->options['MarketplaceIdList.Id.1'] = $s;
+        } else {
+            if ($s && is_array($s)) {
+                $this->resetMarketplaceIds();
+                $i = 1;
+                foreach ($s as $x) {
+                    $this->options['MarketplaceIdList.Id.' . $i] = $x;
+                    $i++;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Removes ID options.
+     *
+     * Use this in case you change your mind and want to remove the Marketplace ID
+     * parameters you previously set.
+     */
+    public function resetMarketplaceIds()
+    {
+        foreach ($this->options as $op => $junk) {
+            if (preg_match("#MarketplaceIdList#", $op)) {
+                unset($this->options[$op]);
+            }
+        }
+    }
+
+
+    public function buildCurl()
+    {
+        $url = $this->urlbase. $this->urlbranch;
+        $query = $this->genQuery();
+
+        //有上传文件时，别的option参数放在url
+        if (!empty($this->feedContent)) {
+            $url = $url. '?'. $query;
+            $headers = $this->genHeader();
+            $params = ['Header' => $headers, 'Post' => $this->feedContent];
+        } else {//没有上传文件内容时，option参数放在body
+            $params = ['Post' => $query];
+        }
+        //var_dump($url, $params);exit;
+        return $this->buildQuery($url, $params);
+    }
+
+
+    public function getPath()
+    {
+        $path = $this->options['Action'] . 'Result';
+        return $path;
+    }
+
+
+    /**
+     * Sets the Feed Type. (Required)
+     *
+     * This method sets the Feed Type to be sent in the next request. This tells
+     * Amazon how the Feed should be processsed.
+     * This parameter is required in order to submit a feed to Amazon.
+     * @param string $s <p>A value from the list of valid Feed Types.
+     * See the comment inside the function for the complete list.</p>
+     * @return boolean <b>FALSE</b> if improper input
+     */
+    public function setFeedType($s)
+    {
+        if (is_string($s) && $s) {
+            $this->options['FeedType'] = $s;
+        } else {
+            return false;
+        }
+        /*
+         * List of valid Feed Types:
+         * XML Feeds:
+         *      Product Feed ~ _POST_PRODUCT_DATA_
+         *      Relationships Feed ~ _POST_PRODUCT_RELATIONSHIP_DATA_
+         *      Single Format Item Feed ~ _POST_ITEM_DATA_
+         *      Shipping Override Feed ~ _POST_PRODUCT_OVERRIDES_DATA_
+         *      Product Images Feed ~ _POST_PRODUCT_IMAGE_DATA_
+         *      Pricing Feed ~ _POST_PRODUCT_PRICING_DATA_
+         *      Inventory Feed ~ _POST_INVENTORY_AVAILABILITY_DATA_
+         *      Order Acknowledgement Feed ~ _POST_ORDER_ACKNOWLEDGEMENT_DATA_
+         *      Order Fulfillment Feed ~ _POST_ORDER_FULFILLMENT_DATA_
+         *      FBA Shipment Injection Fulfillment Feed~  _POST_FULFILLMENT_ORDER_REQUEST_DATA_
+         *      FBA Shipment Injection ~ _POST_FULFILLMENT_ORDER_CANCELLATION_
+         *      Cancellation Feed ~ _REQUEST_DATA_
+         *      Order Adjustment Feed ~ _POST_PAYMENT_ADJUSTMENT_DATA_
+         *      Invoice Confirmation Feed ~ _POST_INVOICE_CONFIRMATION_DATA_
+         * Tab Delimited Feeds:
+         *      Flat File Listings Feed ~ _POST_FLAT_FILE_LISTINGS_DATA_
+         *      Flat File Order Acknowledgement Feed ~ _POST_FLAT_FILE_ORDER_ACKNOWLEDGEMENT_DATA_
+         *      Flat File Order Fulfillment Feed ~ _POST_FLAT_FILE_FULFILLMENT_DATA_
+         *      Flat File FBA Shipment Injection Fulfillment Feed ~ _POST_FLAT_FILE_FULFILLMENT_ORDER_REQUEST_DATA_
+         *      Flat File FBA Shipment Injection Cancellation Feed ~ _POST_FLAT_FILE_FULFILLMENT_ORDER_CANCELLATION_REQUEST_DATA_
+         *      FBA Flat File Create Inbound Shipment Feed ~ _POST_FLAT_FILE_FBA_CREATE_INBOUND_SHIPMENT_
+         *      FBA Flat File Update Inbound Shipment Feed ~ _POST_FLAT_FILE_FBA_UPDATE_INBOUND_SHIPMENT_
+         *      FBA Flat File Shipment Notification Feed ~ _POST_FLAT_FILE_FBA_SHIPMENT_NOTIFICATION_FEED_
+         *      Flat File Order Adjustment Feed ~ _POST_FLAT_FILE_PAYMENT_ADJUSTMENT_DATA_
+         *      Flat File Invoice Confirmation Feed ~ _POST_FLAT_FILE_INVOICE_CONFIRMATION_DATA_
+         *      Flat File Inventory Loader Feed ~ _POST_FLAT_FILE_INVLOADER_DATA_
+         *      Flat File Music Loader File ~ _POST_FLAT_FILE_CONVERGENCE_LISTINGS_DATA_
+         *      Flat File Book Loader File ~ _POST_FLAT_FILE_BOOKLOADER_DATA_
+         *      Flat File Video Loader File ~ _POST_FLAT_FILE_LISTINGS_DATA_
+         *      Flat File Price and Quantity Update File ~ _POST_FLAT_FILE_PRICEANDQUANTITYONLY_UPDATE_DATA_
+         *      Product Ads Flat File Feed ~ _POST_FLAT_FILE_SHOPZILLA_DATA_
+         * Universal Information Exchange Environment (UIEE) Feeds:
+         *      UIEE Inventory File ~ _POST_UIEE_BOOKLOADER_DATA_
+         */
+    }
+
+    public function getAccount()
+    {
+        return $this->account;
+    }
+
+    public function setResponse($data = '')
+    {
+        //返回数据为空，直接停止
+        if (empty($data)) {
+            $this->response = [];
+            return;
+        }
+        if (is_numeric(strpos($data, 'HTTP/1.1 100 Continue'))) {
+            $data = str_replace('HTTP/1.1 100 Continue', '', $data);
+        }
+        $data = preg_split("/\r\n\r\n/", $data, 2, PREG_SPLIT_NO_EMPTY);
+        if (!empty($data)) {
+            $return['head'] = (isset($data[0]) ? $data[0] : null);
+            $return['body'] = (isset($data[1]) ? $data[1] : null);
+        } else {
+            $return['head'] = null;
+            $return['body'] = null;
+        }
+
+        $matches = array();
+        $data = preg_match("/HTTP\/[0-9.]+ ([0-9]+) (.+)\r\n/", $return['head'], $matches);
+        if (!empty($matches)) {
+            $return['code'] = $matches[1];
+            $return['answer'] = $matches[2];
+        }
+
+        $data = preg_match("/meta http-equiv=.refresh. +content=.[0-9]*;url=([^'\"]*)/i", $return['body'], $matches);
+        if (!empty($matches)) {
+            $return['location'] = $matches[1];
+            $return['code'] = '301';
+        }
+
+        if ($return['code'] == '200' || $return['code'] == '302') {
+            $return['ok'] = 1;
+        } else {
+            $return['error'] = (($return['answer'] and $return['answer'] != 'OK') ? $return['answer'] : 'Something wrong!');
+            $return['ok'] = 0;
+        }
+
+        foreach (preg_split('/\n/', $return['head'], -1, PREG_SPLIT_NO_EMPTY) as $value) {
+            $data = preg_split('/:/', $value, 2, PREG_SPLIT_NO_EMPTY);
+            if (is_array($data) and isset($data['1'])) {
+                $return['headarray'][$data['0']] = trim($data['1']);
+            }
+        }
+        $return['result'] = [];
+        $body = strstr($return['body'], '<');
+        $xml = simplexml_load_string($body);
+        if (!empty($xml)) {
+            $return['result'] = json_decode(json_encode($xml), true);
+        }
+        if (!empty($return['result']['Error']['Message'])) {
+            $return['error'] = $return['result']['Error']['Code']. ':'. $return['result']['Error']['Message'];
+            $this->setError($return['error']);
+        }
+        $this->response = $return;
+    }
+
+    public function getResponse()
+    {
+        return $this->response;
+    }
+
+    public function setFeedContent(string $s)
+    {
+        if (is_string($s) && $s) {
+            $this->feedContent = $s;
+            $this->feedMD5 = base64_encode(md5($this->feedContent, true));
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    protected function genHeader()
+    {
+        if (empty($this->feedMD5)) {
+            return [];
+        }
+        $return[0] = "Content-MD5:" . $this->feedMD5;
+        return $return;
+    }
+
+
+    public function FeedContent()
+    {
+        return $this->feedContent;
+    }
+
+    public function setError(string $error)
+    {
+        $this->status = 9;
+        $this->error[] = $error;
+    }
+
+    /**
+     * 是否出错；
+     * @return bool
+     */
+    public function isError() : bool
+    {
+        if ($this->status == 1) {
+            return false;
+        }
+        return true;
+    }
+
+    public function getErorr() : string
+    {
+        return implode('|', $this->error);
+    }
+}

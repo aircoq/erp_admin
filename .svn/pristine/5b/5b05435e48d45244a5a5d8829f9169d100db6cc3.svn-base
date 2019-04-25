@@ -1,0 +1,339 @@
+<?php
+namespace service\shipping\operation;
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use pandao\PandaoBaseApi;
+use app\common\model\Order;
+use service\shipping\operation\Common;
+use org\Xml;
+use org\Curl;
+use think\Exception;
+use think\Loader;
+use app\order\service\PackageService;
+
+/**
+ *mymall平台线上物流
+ *BY lanshushu
+ * @package app\carrier\controller
+ */
+class Mymall extends PandaoBaseApi
+{
+
+
+
+    protected $client_id = '';
+
+    protected $client_secret = '';
+
+    protected $code = '';
+
+    protected $redirect_uri = '';
+
+    protected $access_token = '';
+
+    protected $refresh_token = '';
+
+    protected $password = '';
+
+    protected $username = '';
+
+    protected $account_id = 0;
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    /**
+     * 设置配置信息
+     * @param array $config
+     * @return bool
+     */
+    private function setConfig($accountId)
+    {
+        $account = Cache::store('PandaoAccountCache')->getAccountById($accountId);
+        if (empty($account)) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => '未找到Mymall账号信息',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->client_id = $account['client_id'];
+        $this->client_secret = $account['client_secret'];
+        $this->password = $account['password'];
+        $this->access_token = $account['access_token'];
+        $this->refresh_token= $account['refresh_token'];
+        return true;
+    }
+    /**
+     * 获取标签
+     * @param  $config
+     * @param  $order
+     * @return array
+     */
+
+
+    /**
+     * 创建物流订单
+     * @param $config
+     * @param $order
+     * @param bool $confirm
+     * @return array
+     */
+    public function createOrder($config,$order,$confirm=true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            if($order['channel_id']!=8){
+                throw new Exception('不是mymall平台不能选择此渠道');
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            //获取平台订单信息
+            $orderModel = new Order();
+            $orderInfo = $orderModel->field('channel_order_number,buyer_id')->where(['id' => $order['order_id']])->find();
+            if (!$orderInfo->channel_order_number) {
+                $this->result['error'] = [
+                    'error_msg'=> $order['order_id'].'获取订单号失败',
+                    'error_code'=>1
+                ];
+                return $this->result;
+            }
+            $channel_order_number=$orderInfo->channel_order_number;
+            $url_label='https://mall.my.com/merchant/api/v1/purchase/order/'.$channel_order_number.'/parcel/label';
+            $result=$this->authshipping($url_label,'GET','');
+            $result_arr = json_decode($result, true);
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=>$order['number'].'-'.$channel_order_number,
+                'response'=>$result_arr
+            ];
+            if(strpos( $result,'%PDF')===false){
+                $this->result['error'] = [
+                    'error_msg'=>$result_arr['meta']['errorMessage']??'标记发货失败',
+                    'error_code'=>1
+                ];
+                return $this->result;
+            }
+            if($result){
+                $url='https://mall.my.com/merchant/api/v1/purchase/order/'.$channel_order_number;
+                $re=$this->authcall($url,'GET','');
+                if(isset($re['data']) && $re['meta']['code']==200){
+                    $label_url = $this->createLabel($order['number'],base64_encode($result));
+                    $this->result['data']['number']             = $order['number'];                            // 客户订单号
+                    $this->result['data']['package_code']       = '';                           // 包裹处理号
+                    $this->result['data']['trackingNumber']     = $re['data']['trackingNumber']??'';   // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'] ;  // 是否有跟踪号
+                    $this->result['data']['confirm']            = true;                         // 是否交运
+                    $this->result['data']['label']              = true;                              // 是否有pdf
+                    $this->result['data']['label_url']          = $label_url;                              // 是否有pdf
+                    $this->result['data']['is_weight']          = true;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee']             = true;                              // 是否能查询实际费用
+                    $this->result['data']['send']               = true;                              // 是否能查询物流订单状态
+                    $this->result['success']                    = true;
+                }else{
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                    $this->result['error'] = [
+                        'error_msg'=>$re['meta']['errorMessage']??'获取跟踪号失败',
+                        'error_code'=>1
+                    ];
+                }
+            }else{
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                $this->result['error'] = [
+                    'error_msg'=>$result_arr['meta']['error_description']??'标记失败',
+                    'error_code'=>1
+                ];
+            }
+
+        }catch (Exception $ex){
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage().$ex->getFile().$ex->getLine(),
+                'error_code'=>1
+            ];
+        }
+
+        return $this->result;
+    }
+    /**
+     * 提交交运
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function confirm(array $config, array $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $this->result['success'] = true;
+            $this->result['data']['confirm'] = true;
+            $this->result['data']['trackingNumber'] = '';
+            $this->result['data']['label'] = false;
+            $this->result['data']['package_code'] = '';                              //包裹处理号
+            $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];  // 是否有跟踪号
+            $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+            $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+            $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+            $this->result['data']['warehouse_id'] = $order['warehouse_id'];
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+    /**
+     * 获取追踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getTrackingNumber($config,$order)
+    {
+        try{
+            if(!$this->setConfig($order['channel_account_id'])){
+                return $this->result;
+            }
+            //获取平台订单信息
+            $orderModel = new Order();
+            $orderInfo = $orderModel->field('channel_order_number,buyer_id')->where(['id' => $order['order_id']])->find();
+            if (!$orderInfo->channel_order_number) {
+                $this->result['error'] = [
+                    'error_msg'=> $order['order_id'].'获取订单号失败',
+                    'error_code'=>1
+                ];
+                return $this->result;
+            }
+            $channel_order_number=$orderInfo->channel_order_number;
+            $url='https://mall.my.com/merchant/api/v1/purchase/order/'.$channel_order_number;
+            $re=$this->authcall($url,'GET','');
+            if(isset($re['data']['trackingNumber']) && !empty($re['data']['trackingNumber'])){
+                $this->result['data'] = [
+                    'trackingNumber'=>param($re['data'], 'trackingNumber')
+                ];
+                $this->result['success']                = true;
+            } else {
+                $this->result['error'] = [
+                    'error_msg'  =>$re['meta']['errorMessage']??'获取跟踪号失败',
+                    'error_code' => 1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * 获取运输方式详细信息
+     * @param $config
+     * @return array
+     */
+    public function getExpress($config)
+    {
+        $this->result['success'] = true;
+        return $this->result;
+
+    }
+    /**
+     * 取消删除包裹
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+    /**
+     * 将返回标签数据转换成pdf文件
+     * @param $number
+     * @param $content
+     * @return string
+     */
+    private function createLabel($number,$content)
+    {
+        $service = new PackageLabelFileService();
+        $label_url = $service->uploadLabelFile($number,$content,'pdf');
+        return $label_url;
+    }
+    /**
+     * 获取标签
+     * @param  $config
+     * @param  $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+//        if(!isset($order['shipping_number'])||empty($order['shipping_number'])){
+//            $this->result['error'] = [
+//                'error_msg'=>'缺少跟踪号',
+//                'error_code'=>1
+//            ];
+//        }else{
+        if(!$this->setConfig($order['channel_account_id'])){
+            return $this->result;
+        }
+        //获取平台订单信息
+        $orderModel = new Order();
+        $orderInfo = $orderModel->field('channel_order_number,buyer_id')->where(['id' => $order['order_id']])->find();
+        if (!$orderInfo->channel_order_number) {
+            $this->result['error'] = [
+                'error_msg'=> $order['order_id'].'获取订单号失败',
+                'error_code'=>1
+            ];
+            return $this->result;
+        }
+        $channel_order_number=$orderInfo->channel_order_number;
+        $urllabel='https://mall.my.com/merchant/api/v1/purchase/order/'.$channel_order_number.'/parcel/label';
+        $result=$this->authshipping($urllabel,'GET','');
+        $result_arr = json_decode($result, true);
+        if($result){
+            if(strpos( $result,'%PDF')===false){
+                throw new Exception('面单下载失败');
+            }
+            $label_url = $this->createLabel($order['number'], base64_encode($result));
+            $this->result['data']['src'] = $label_url;
+            $this->result['data']['type'] = 'pdf';
+            $this->result['success']     = true;
+            return  $this->result;
+        }else{
+            $this->result['error'] = [
+                'error_code' => 1,
+                'error_msg'  => $result_arr['meta']['errorMessage']??'标记失败',
+            ];
+        }
+//        }
+        return $this->result;
+
+    }
+}

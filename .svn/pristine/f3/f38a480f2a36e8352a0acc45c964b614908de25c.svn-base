@@ -1,0 +1,88 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2018/12/27
+ * Time: 16:39
+ */
+
+namespace Logistics\Query;
+
+
+use Logistics\Exceptions\HttpException;
+
+class Kuaidi100Query extends Query
+{
+    private $autoGetCompanyUrl = 'http://m.kuaidi100.com/autonumber/autoComNum';
+
+    public function __construct()
+    {
+        $this->url = 'http://m.kuaidi100.com/query';
+    }
+
+    /**
+     * 获取运单公司编码
+     *
+     * @param string $code
+     * @return string
+     * @throws HttpException
+     */
+    private function getCompanyCode(string $code): string
+    {
+        $params = ['resultv2' => 1, 'text' => $code];
+        $response = $this->curl($this->autoGetCompanyUrl, $params);
+        $getCompanyInfo = \json_decode($response, true);
+        if (empty($getCompanyInfo['auto'])) {
+            throw new HttpException('运单号快递公司编码获取错误');
+        }
+        $comCodes = array_column($getCompanyInfo['auto'], 'comCode');
+        if (empty($comCodes[0])) {
+            throw new HttpException('运单号快递公司编码获取错误');
+        }
+        return $comCodes[0];
+    }
+
+    /**
+     * 调用快递100接口
+     *
+     * @param string $code
+     * @return array
+     * @throws HttpException
+     */
+    public function callInterface(string $code): array
+    {
+        try {
+            $companyCode = $this->getCompanyCode($code);
+            $urlParams = [
+                'type' => $companyCode,
+                'postid' => $code,
+            ];
+            $response = $this->curl($this->url, $urlParams);
+            $this->format($response);
+            return $this->response;
+        } catch (\Exception $exception) {
+            throw new HttpException($exception->getMessage());
+        }
+    }
+
+    /**
+     * 优化获取后数据
+     *
+     * @param string $response
+     * @throws HttpException
+     */
+    protected function format(string $response): void
+    {
+        $responseToArray = \json_decode($response, true);
+        if ($responseToArray['status'] != 200) {
+            throw new HttpException($responseToArray['message']);
+        }
+        $this->response = [
+            'status' => $responseToArray['status'],
+            'message' => $responseToArray['message'],
+            'company' => $responseToArray['com'],
+            'data' => $responseToArray['data'],
+            'code' => $responseToArray['nu'],
+        ];
+    }
+}

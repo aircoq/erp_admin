@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.9579235085990616 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tr style="border:solid 1pt #000;border-bottom: none">
+                <td   colspan="2" style="width:70pt; font-size: 8pt;font-weight: bold;">
+                   <div style="margin: 10pt">
+                       Send To:<br>
+                       NAME :  <?php echo $name;?><br>
+                       ADD : <?php echo $street.' '.$street2;?><br>
+                       CITY : <?php echo $city?> <br>
+                       STATE : <?php echo $province?><br>
+                       COUNTRY :  <?php echo $country_en_name?><br>
+                   </div>
+
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;border-bottom: none;border-top: none;font-size: 8pt">
+                <td   >
+                    <div style="margin: 5pt"> Zip :  <?php echo $zip?></div>
+                </td>
+                <td  >
+                    Phone :  <?php echo $phone?>
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;border-bottom: none;border-top: none;font-size: 8pt;text-align: center">
+                <td   colspan="2">
+                    <div style="line-height: 10pt">  <?php echo $country_en_name?>  <?php echo $country_name?></div>
+                </td>
+
+
+            </tr>
+            <tr style="border:solid 1pt #000;border-bottom: none;border-top: none;font-size: 6pt">
+                <td   colspan="2" style="text-align: center">
+                    <div>
+
+                        <img  style="width:160pt;" src="<?php echo $this->imgSrc($process_code);?>"</div>>
+                    <br>
+
+
+                </td>
+
+
+            </tr>
+            <tr style="border:solid 1pt #000;border-bottom: none;border-top: none;font-size: 8pt">
+                <td   >
+                    <div style="margin: 5pt"> DEDHL 3区</div>
+                </td>
+                <td  >
+                    <?php echo $process_code;?>
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;border-top: none;font-size: 8pt;border-bottom: none;">
+
+                <td    colspan="2" style="text-align: right">
+                    <div style="float:right;margin-right:50pt;margin-bottom:5pt;border: solid 1pt #000;width: 50pt;height: 30pt;font-weight: bold;font-size: 20pt;text-align: center;line-height: 30pt "><?php echo $country_code;?></div>
+                </td>
+
+
+            </tr>
+            <tr style="border:solid 1pt #000;border-top: none;font-size: 8pt">
+                <td colspan="2"  >
+                    <?php foreach ($list as $k=>$v):?>
+                    物品名称 : <?php echo $v['declared_name_en'];?> <?php echo $v['qty'];?> <?php echo $v['declared_name_cn'];?>    <br>
+                    <?php endforeach;?>
+                </td>
+
+
+            </tr>
+
+        </table>
+
+
+
+
+
+
+    </div>
+</div>
+
+
+
+
+</body>
+</html>

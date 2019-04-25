@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="border:1pt solid #000;width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr>
+                <td colspan="3" style="border:1pt solid #000;text-align: center;height: 30pt;font-weight: bold;">
+                    Small Packet
+                </td>
+                <td rowspan="10" colspan="9" style="line-height: 8pt;">
+                    <div style="padding:2pt">
+                        <div style="margin-bottom: 6pt;">
+                            SHIP To:<?php echo $name; ?><br>
+                            Adds:<?php echo $street . $street2; ?><br>
+                            <?php echo $city ?> ,<?php echo $province ?>  <br>
+                            TEL:<?php echo $phone ?> <br>
+                            ZIP:<?php echo $zip ?>
+                        </div>
+                        <div style="margin-bottom: 3pt;">
+                            <div style="display: inline-block;float: left;margin-top: 4pt;">RUSSIAN FEDERATION</div>
+                            <div style="display: inline-block;float: right;margin-top: 4pt;font-size: 20pt;font-weight: bold;text-align: center;width: 60pt"><?php echo $country_code ?></div>
+                            <div style="clear: both;"></div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" style="border: 1pt solid #000;vertical-align: top;">
+                    FROM: <br>
+                    ABKHAZIAN
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0" style="border:1pt solid #000;border-top-width: 0; width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr style="text-align: center;">
+                <td colspan="3" style="border: 1pt solid #000;border-top-width: 0;font-size: 30pt;">R</td>
+                <td colspan="9" style="border: 1pt solid #000;border-top-width: 0;">
+                    <div style="margin: 2pt 0;">
+                        <img style="width: 150pt" src="<?php echo $this->imgSrc($shipping_number);?>"><br>
+                        <?php echo $shipping_number;?>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="8" style="border: 1pt solid #000;text-align: center;font-weight: bold;">Description of Contents</td>
+                <td colspan="2" style="border: 1pt solid #000;text-align: center;font-weight: bold;">Kg</td>
+                <td colspan="2" style="border: 1pt solid #000;text-align: center;font-weight: bold;">Val(US$)</td>
+            </tr>
+            <?php foreach ($list as $k=>$v):?>
+            <tr>
+                <td colspan="8" style="border: 1pt solid #000;text-align: left;vertical-align:top;height:30pt;">
+                    <?php echo $v['declared_name_en']."x".$v['qty'];?>
+                </td>
+                <td colspan="2" style="border: 1pt solid #000;text-align: left;vertical-align:top;height:30pt;">
+                    <?php echo number_format($v['declared_weight']/1000,3,'.','');?>
+                </td>
+                <td colspan="2" style="border: 1pt solid #000;text-align: left;vertical-align:top;height:30pt;">
+                    <?php echo number_format($v['declared_value']);?>
+                </td>
+            </tr>
+            <?php endforeach;?>
+            <tr>
+                <td colspan="8" style="border: 1pt solid #000;text-align: left;vertical-align:top;height:20pt;">
+                    Tatal Gross Weight(kg)
+                </td>
+                <td colspan="2" style="border: 1pt solid #000;text-align: left;vertical-align:top;height:20pt;">
+                    <?php echo number_format($total_weight/1000,3,'.','');?>
+                </td>
+                <td colspan="2" style="border: 1pt solid #000;text-align: left;vertical-align:top;height:20pt;">
+                    <?php echo number_format($total_value,2,'.','');?>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="12" style="border: 1pt solid #000;">
+                    <div style="padding-left: 2pt;padding-bottom: 2pt;">
+                        <div style="line-height: 9pt;">
+                            I certify that the particulars given in this declaration are correct and this item does not contain any dangerous articles prohibited by legislation or by postal or customers regulations. <br>
+                            Return to:ABKHAZIAN <br>
+                            Sender's signiture& Data Signed
+                        </div>
+                        <div style="text-align: right;line-height: 8pt;">
+                            <div style="padding-right: 30pt;font-weight: bold;">CN22</div>
+                        </div>
+                        <div style="line-height: 8pt;">
+                            <div style="padding-left: 15pt;">
+                                <?php foreach ($list as $v):?>
+                                    <?php echo $v['declared_name_en']."*".$v['qty'];?> &nbsp;/
+                                    <?php break;?>
+                                <?php endforeach;?></div>
+                        </div>
+                        <div style="text-align: right;line-height: 8pt;">
+                            <div style="padding-right: 40pt;">C85935</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>
+
+
+

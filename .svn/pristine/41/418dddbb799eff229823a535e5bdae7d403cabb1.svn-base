@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.403459443136609 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="font-family:Arial;margin:0 auto;padding:2pt;width:270pt;background:white;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tr style="border:solid 1pt #000;">
+                <td   style="width:70pt;">
+                    <img  style="width: 60pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAAAxCAIAAAC3esfjAAASZUlEQVR4Ae3cdawtRdIA8AUe7u4s7u7uFjy4O0ECBIK7u7u7B3d3d3d3d/fvx1a20plzzpy5911IvuydP87rrqmu7i7v6rlvkD///PNf/c//Zw4M6MPFv/rqq19++WXvCI400kiTTz5578b+j48apK+s8Ntvv1199dWfeOKJ3jF0ueWWO+WUU3o39n98VJ9Z4bvvvvv0009/9NFHvWPoyCOP3LuB/aP6TIRvvvkmQ+wdQ0cYYYT555+/+dhffvnliy++gD/kkEP+87L/9ddf//jjD7MPMcQQgwwySPNld8VkBvfff/944403ySSTjD322F3xA6FvRGhLzz777Pfff99w1goaETZfsbEPPPDAQgstpDHPPPPcd999FWqtXTjB9NZXNZB//+dpRVhggQUefPBB8FdeeWWyySZLhJ9//jnb2SBjks5ufeOll15aY401BgwYQKFvv/32euR822ci5EJ///33Oeecc/vttx900EFzgiYNIpx66qmbYCbOiCOO+PXXXzc0gvnmm88UDZFjCsR33XXXAw44IGfMRmjDcMMNlxCN119/fdJJJ61sPDAz29hyyy2feuopEioHZhvy888/H/viXRLetdGeXNdhFQTCe+211wAXXnjhFVdcsUfMqpDqUXewwQZrgg/tm2++aYI5MDiE+t1331UolAK7+uqr33vvvQpCpUvVQCr6UcGpdBuJ8MMPP+Q0KiPL7gcffECEPAbfA86nv/HGGyVCfXvWWWcddthh63Havi0Z1BahApx33nkrkNbuM888QyMrQeHHH38EDORwmGyLwFJmpaOeZpppXnjhhTC+cccdN6eI1Q4zzDAB+emnn4yiXhFT0Uc5RgUbc2B9o5EIH3rooY033riG0G+//WbPQw011BhjjMEEb7nllh133LEGv3xlD5dffjlfVwKz7bBx8803VwTs9GkuOALGKKOMksjRsBL6NP7441fguoJiqHnrq4Sw1+RyAikZqYQMbBZcSjXzzDMn5Kqrrgrk2Wab7ZFHHllqqaVuvPFGy95hhx2SCDYald2JJ56YCEmOdx166KHBTz/99MMOOwxDDj/88AsuuCAxiXa66aa76667ElI2GolQqhIZYDmytY0744wzDjhFboIfFGjcBBNM0EotIG+99ZZt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">
+
+                </td>
+                <td style="width: 100pt; text-align: left;font-size: 8pt"> Tracked Packet BY AIR</td>
+                <td style="width: 50pt;border:solid 1pt #000;text-align: center"><?php echo $country_code ?></td>
+                <td style="text-align: center">
+                    Economy
+                 </td>
+
+            </tr>
+        </table>
+        <div style="width:270pt;">
+            <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+                <tbody>
+
+                <tr>
+                    <td  style="width:110pt;vertical-align:top;border:solid 1pt #000;font-size:8pt;line-height:10pt;padding:0 2pt;text-align:left;word-wrap:break-word;">
+                        HT:44011112526000 <br>
+                        From: FT No.3 two Heng Road, Helong Road,<br>
+                        Baiyun District, Guangzhou, Guangdong, China<br>
+                        Zip:510440 Tel:13631272440 <br>
+                    </td>
+                    <td   rowspan="3"
+                          style="vertical-align:top;border:solid 1pt #000;font-size:8pt;line-height:11pt;word-wrap:break-word;padding:0 2pt;font-weight: bold">
+                        Ship To: <?php echo $name;?>
+                        <br> <?php echo $street.' '.$street2;?>
+                        <br> <?php echo $city?>  <?php echo $province?>
+                        <br><?php echo $country_en_name?>
+                        <br> <?php echo $zip?>
+                        <br><?php echo $phone?>
+                        <br><?php echo $country_name?>
+                    </td>
+
+                </tr>
+                <tr>
+                    <td  style="border:solid 1pt #000;border-top:0;font-size:8pt;aline-height:10pt;height: 10pt; padding:0 2pt;text-align:left;">
+                        untracked自编号：P<?php echo $number?>
+                    </td>
+
+                </tr>
+                <tr>
+                    <td  style="border:solid 1pt #000;border-top:0;font-size:8pt;line-height:10pt;height: 10pt; padding:0 2pt;text-align:left;">
+                        退件地址：广州小包大宗收寄处理中心
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="border:solid 1pt #000;border-top:0;font-size:8pt;line-height:10pt;height: 10pt; padding:0 2pt;text-align:center;">
+                        <div style="margin-top: 4pt;width: 200pt;float: left;text-align: center">
+                            <img style="width:160pt;" src="<?php echo $this->imgSrc($shipping_number);?>"> </span><br><?php echo $shipping_number;?>
+                        </div>
+                        <div style="margin-top: 4pt;width:50pt;float: right;text-align: left;font-weight: bold;font-size: 14pt">
+                            E
+                        </div>
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="width:270pt;">
+            <table cellpadding="0" cellspacing="0"
+                   style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:10pt;">
+                <tbody>
+                <tr style="font-size: 7pt">
+                    <td style="width:15pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                        No
+                    </td>
+                    <td style="width:15pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                        Qty
+                    </td>
+                    <td style="width:100pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                        Description Of Contents
+                    </td>
+                    <td style="width:30pt;padding:0 2pt;border:solid 1pt #000;border-top:0;text-align:center;"> kg.</td>
+                    <td style="border:solid 1pt #000;width:35pt;border-top:0;padding:0 2pt;text-align:left;"> Val(US $) </td>
+                    <td style="border:solid 1pt #000;border-top:0;padding:0 2pt;text-align:left;font-size: 7pt"> Goods origin</td>
+                </tr>
+                <?php foreach ($list as $k=>$v):?>
+                    <tr style="font-size: 7pt">
+                        <td style="width:160pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                            <?php echo $k+1;?>
+                        </td>
+                        <td style="width:160pt;padding:0 2pt;border:solid 1pt #000;border-top:0;word-wrap:break-word;">
+                            <?php echo $v['qty'];?>
+                        </td>
+                        <td style="border:solid 1pt #000;word-wrap:break-word;vertical-align:middle;padding:2pt;">
+                            <?php echo $v['declared_name_en']." ".$v['declared_name_cn'];?>
+                        </td>
+                        <td style="border:solid 1pt #000;text-align:center;padding:2pt;">  <?php echo number_format($v['declared_weight']/1000,2,'.','');?></td>
+                        <td style="border:solid 1pt #000;text-align:center;padding:2pt;"> <?php echo number_format($v['declared_value'],2,'.','');?> </td>
+                        <td style="border:solid 1pt #000;text-align:center;padding:2pt;"> China
+                        </td>
+                    </tr>
+                <?php endforeach;?>
+                <tr style="font-size: 7pt">
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;"> Total Gross Weight(Kg)</td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;">  <?php echo number_format($total_weight/1000,2,'.','');?></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"> <?php echo number_format($total_value,2,'.','');?></td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;"></td>
+                </tr>
+                <tr>
+                    <td colspan="6"
+                        style="border:solid 1pt #000;border-bottom:0;word-wrap:break-word;font-size:5pt;line-height:8pt;padding:0 2pt;">
+                        I certify that the particulars given in this declaration are correct and this item does not
+                        contain any dangerous articles prohibited by legislation or by postal or customs regulations.
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="6" style="border:solid 1pt #000;border-top:0;word-wrap:break-word;padding:0 2pt;">
+                        <div style="float:left;width:180pt;font-size:7pt;line-height:8pt;font-weight:bold;"> Sender"s
+                            signature &amp; Date Signed:<?php echo date('Y-m-d',time()) ?>
+                            <br/>
+
+                        </div>
+                        <div style="float:left;width:84pt;font-size:13pt;line-height:10pt;font-weight:bold;text-align:right;">
+                            CN22
+                        </div>
+                        <div style="clear:both;"></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+
+
+</body>
+</html>

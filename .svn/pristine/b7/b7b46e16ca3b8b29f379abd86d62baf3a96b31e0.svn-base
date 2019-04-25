@@ -1,0 +1,97 @@
+<?php
+
+namespace service\distribution\operation;
+
+use app\common\cache\Cache;
+use app\common\traits\ConfigCommon;
+use think\Exception;
+use org\Curl;
+
+/**
+ * @title shopee
+ * @module 请输入模块
+ * @url 输入url
+ * @author starzhan <397041849@qq.com>
+ */
+class Common
+{
+    use ConfigCommon;
+    protected static $_config = [];
+
+    public function __construct($config)
+    {
+        self::$_config['api_key'] = $config['api_key'];
+        self::$_config['api_token'] = $config['api_token'];
+
+    }
+
+    protected function getBaseUrl()
+    {
+        return $this->getConfigData('distribution_url');
+    }
+
+    private function getUrl($url)
+    {
+        return $this->getBaseUrl() . $url;
+    }
+
+    private function getToken()
+    {
+        try {
+            $cache = Cache::handler();
+            $cacheKey = 'cache:distributionAccount:' . self::$_config['api_key'];
+            if ($cache->exists($cacheKey)) {
+                self::$_config['authentication'] = $cache->get($cacheKey);
+                return self::$_config['authentication'];
+            }
+            $data['app_key'] = self::$_config['api_key'];
+            $data['token'] = self::$_config['api_token'];
+            $url = $this->getUrl('/authentication');
+            $response = Curl::curlPost($url, $data);
+            $result = json_decode($response, true);
+            if (isset($result['authentication']) && $result['authentication']) {
+                self::$_config['authentication'] = $result['authentication'];
+                $cache->set($cacheKey, self::$_config['authentication'], 86400);
+                return self::$_config['authentication'];
+            } else {
+                throw new Exception('获取授权是失败，请检查账号是否正确！');
+            }
+        } catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+
+    public function uGet($url)
+    {
+        $result = [];
+        $url = $this->getUrl($url);
+        $header = [];
+        $header[] = "Authorization:" . $this->getToken();
+        $data = Curl::curlGet($url, $header);
+        if ($data) {
+            $result = json_decode($data, true);
+        }
+        return $result;
+    }
+
+    protected function get($url)
+    {
+        $result = [];
+        $url = $this->getUrl($url);
+        $data = Curl::curlGet($url);
+        if ($data) {
+            $result = json_decode($data, true);
+        }
+        return $result;
+    }
+
+    protected function post($url, $infoData)
+    {
+        $url = $this->getUrl($url);
+        $header = [];
+        $header[] = "Authorization:" . $this->getToken();
+        $data = Curl::curlPost($url, http_build_query($infoData), $header);
+        return $data;
+    }
+}

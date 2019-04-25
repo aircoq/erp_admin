@@ -1,0 +1,46 @@
+<?php
+namespace service\baidu\operation;
+
+use app\common\cache\Cache;
+use think\Exception;
+use org\Curl;
+
+class Common
+{
+    protected static $_config = [];
+    public function __construct($config)
+    {
+        self::$_config['api_key'] = $config['api_key'];
+        self::$_config['secret_key'] = $config['secret_key'];
+        if(isset($config['app_id'])){
+            self::$_config['app_id'] = $config['app_id'];
+        }
+    }
+
+    public function getToken(){
+        try{
+            $cache = Cache::handler();
+            $cacheKey = 'cache:baidu:'.self::$_config['api_key'];
+            if($cache->exists($cacheKey)){
+                self::$_config['access_token'] = $cache->get($cacheKey);
+                return self::$_config['access_token'];
+            }
+
+            $url = 'https://openapi.baidu.com/oauth/2.0/token?grant_type=client_credentials&client_id='.self::$_config['api_key'].'&client_secret='.self::$_config['secret_key'];
+            $response = Curl::curlGet($url);
+            $result = json_decode($response,true);
+            if(isset($result['access_token']) && $result['access_token']){
+                self::$_config['access_token'] = $result['access_token'];
+                $cache->set($cacheKey,self::$_config['access_token'],86400*10);
+                return self::$_config['access_token'];
+            }else{
+                throw new Exception('获取授权是失败，请检查账号是否正确！');
+            }
+        }catch (Exception $ex){
+            throw $ex;
+        }
+    }
+
+
+
+}

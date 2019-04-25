@@ -1,0 +1,20 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-24
+ * Time: 下午1:52
+ */
+
+namespace Api\Doc;
+
+class DocException extends \Exception
+{
+    public function __construct($message)
+    {
+        if(!is_string($message)){
+            $message = json_encode($message);
+        }
+        parent::__construct($message, 1);
+    }
+}

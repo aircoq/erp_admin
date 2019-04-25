@@ -1,0 +1,32 @@
+<?php
+// +----------------------------------------------------------------------
+// | 
+// +----------------------------------------------------------------------
+// | File  : AllowDomain.php
+// +----------------------------------------------------------------------
+// | Author: LiuLianSen <3024046831@qq.com>
+// +----------------------------------------------------------------------
+// | Date  : 2017-07-19
+// +----------------------------------------------------------------------
+
+namespace imap\filter\rules;
+
+use PhpImap\IncomingMail;
+
+class AllowedDomain extends AbsBase
+{
+    /**
+     * @param IncomingMail $mail
+     * @return bool
+     */
+    public function check(IncomingMail &$mail)
+    {
+        foreach ($this->exps as $exp){
+            $ma = [];
+            if(preg_match($exp,$mail->fromAddress ,$ma)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

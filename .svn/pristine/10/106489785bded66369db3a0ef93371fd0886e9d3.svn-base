@@ -1,0 +1,357 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2018/6/11
+ * Time: 10:37
+ */
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use org\Curl;
+use think\Exception;
+use think\Loader;
+
+/**
+ * 宇腾物流
+ * Class Yuteng
+ * @package service\shipping\operation
+ */
+class Yuteng
+{
+    // 配置信息
+   private $_config = [
+//       'url'   =>'http://211.149.221.86:8088/yt-api/zipto/order.do',//测试环境
+//       'qudaoUrl'=>'http://211.149.221.86:8088/yt-api/qudao.do?',//测试环境
+       'url'   =>'http://134.175.66.76:8080/yt-api/zipto/order.do',//正式环境
+       'qudaoUrl'=>'http://134.175.66.76:8080/yt-api/qudao.do?',//正式环境
+       'custNo'=>'',
+       'custPass'=>'',
+       'lisNo'=>'',
+       'header' => [
+            'Content-type:application/json'
+        ],
+
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return boolean
+     */
+    private function formatHeader(array $config)
+    {
+       /* $config=[
+            'client_id'=>'SZLLD',
+            'client_secret'=>'SZLLD123',
+            'interface_user_password'=>'82cd1c6c3462bc5161da9f886ef86f66',
+        ];*/
+
+        if (empty($config['interface_user_password'])||empty($config['client_secret'])||empty($config['client_id'])) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['custNo'] = $config['client_id'];
+        $this->_config['custPass'] = $config['client_secret'];
+        $this->_config['lisNo'] = $config['interface_user_password'];
+        return true;
+    }
+
+    /**
+     * 获取运输方式详细信息
+     */
+    public function getExpress($config)
+    {
+        try {
+           $this->formatHeader($config);
+            $param=[
+                'custNo'=>$this->_config['custNo'],
+                'custPass'=>$this->_config['custPass'],
+                'lisNo'=>$this->_config['lisNo'],
+            ];
+            $url1 = $this->_config['qudaoUrl'].http_build_query($param);
+            $result_json = Curl::curlGet($url1);
+            $result=json_decode($result_json,true);
+            if (!isset($result['qudaoList'])) {
+                $this->result['error'] = [
+                    'error_msg'=>'未知错误',
+                    'error_code'=>1
+                ];
+            }else{
+                $this->result['success'] = true;
+                if(!empty($result['qudaoList'])){
+                    foreach($result['qudaoList'] as $item){
+                        $this->result['data'][] = [
+                            'name'=>$item['NAME_NM'],
+                            'code'=>$item['ITEM_NO'],
+                        ];
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+   public function  imageToPdf($number,$png_url){
+       Loader::import('tcpdf/tcpdf', EXTEND_PATH, '.class.php');  //PDF_PAGE_FORMAT
+       $pdf = new \TCPDF('P', 'mm', [100,150] ,true, 'UTF-8', false);
+       $pdf->SetMargins(0, 0, 10);
+       //设置分页
+       $pdf->SetAutoPageBreak(TRUE, 0);
+       //设置图片比例
+       $pdf->setImageScale(1.25);
+       //将页眉页脚的信息输出出来。
+       $pdf->AddPage();
+       ob_end_clean();
+       // $pdf->writeHTMLCell(0, 0, 0, 0, 0, 0, 0, 0, true, 1, true);
+       //40:x轴，95:y轴，40：图片大小
+       $pdf->Image($png_url, 0, 0, 264, 396, 'jpg', '', 'center', true, 300);
+
+       $name=$number.".pdf";
+       $pdf_read=$pdf->Output($name,'S');
+       $pdf_encode=base64_encode($pdf_read);
+       return $pdf_encode;
+   }
+    /**
+     * 新增物流订单
+     * @param $config
+     * @param $order
+     * @param bool $confirm
+     * @return array
+     */
+    public function createOrder($config,$order,$confirm = true)
+    {
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if ($this->formatHeader($config)) {
+                $param = $this->buildData($order);
+                $commitData= json_encode($param);
+                $responseJson = Curl::curlPost($this->_config['url'], $commitData,$this->_config['header']);
+                //日志记录
+                $arr_log = [
+                    'url' => $this->_config['url'],
+                    'header' => '',
+                    'request' => $commitData,
+                    'response' => $responseJson
+                ];
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);  //比较特殊面单是下单时候获取的（下单写入缓存）
+                $response = json_decode($responseJson, true);
+                if (is_array($response) && isset($response['code']) && $response['code'] == 1) {
+                    $pdf=$this->imageToPdf($order['number'],$response['data']['labelImageUrl']);
+                    $label_url = $this->createLabel($order['number'],$pdf);
+                    $this->result['data']['number'] =$order['number'];                            // 客户订单号
+                    $this->result['data']['package_code'] = $response['data']['orderId'];          // 包裹处理号
+                    $this->result['data']['trackingNumber'] = $response['data']['trackingNo'];   // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];                           // 是否有跟踪号
+                    $this->result['data']['confirm'] = true;                                                 // 是否交运
+                    $this->result['data']['label'] = true;                              // 是否有pdf
+                    $this->result['data']['label_url'] = $label_url;                              // 是否有pdf
+                    $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                    $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                    $this->result['success'] = true;
+
+                } elseif (is_array($response)) {
+                    $this->result['error'] = [
+                        'error_msg' => isset($response['msg']) ?$response['msg'] : '未知错误',
+                        'error_code' => 1
+                    ];
+                } else {
+                    $this->result['error'] = [
+                        'error_msg' => '网络错误,连接不上服务器',
+                        'error_code' => 1
+                    ];
+                }
+            }
+        }catch(Exception $e){
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 将返回标签数据转换成pdf文件
+     * @param $number
+     * @param $content
+     * @return string
+     */
+    private function createLabel($number,$content)
+    {
+        $service = new PackageLabelFileService();
+        $label_url = $service->uploadLabelFile($number,$content,'pdf');
+        return $label_url;
+    }
+
+
+    public function buildData($order){
+    $soldItems = [];
+    $declareds = $order['declared_info'];
+    $declared_weight=0;
+    $qty=0;
+    $declared_value=0;
+    $declared_name_cn=array();
+    $declared_name_en=array();
+    $hs_code=array();
+    foreach($declareds as $key=>$declared) {
+      $declared_weight += number_format($declared['declared_weight'] / 1000, 3);
+      $qty += $declared['qty'];
+      $declared_value += $declared['declared_value'];
+      $declared_name_cn[]= $declared['declared_name_cn'];
+      $declared_name_en[]= $declared['declared_name_en'];
+      $hs_code[]= $declared['hs_code'];
+
+    }
+        $soldItems[] = [
+            'zhuangtai' => 'OT',//状态：集运固定JY，其余一律固定为OT
+            "mLength"=>0,
+            "mWidth"=>0,
+            "mHeigth"=>0,
+            'qty' => $qty,//数量
+            'value' => $declared_value,//价值
+            'mWeit' => $declared_weight,//实重
+            'jobNo' => '',//FBA单箱号
+            'pingmingCh' =>implode(',',$declared_name_cn),//中文品名
+            'pingmingEn' =>implode(',',$declared_name_en) ,//英文品名
+            "pingpai"=>"",
+            'hcode'=>implode(',',$hs_code),
+            "xinghao"=>"",
+        ];
+    $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+    $data['data']=[
+        "custNo"=>$this->_config['custNo'],//客户助记码,
+        "custPass"=>$this->_config['custPass'],
+        "lisNo"=>$this->_config['lisNo'],
+        "refNo"=>$referenceID,
+        "tidanNo"=>$referenceID,
+        "qudaoType"=>$order['shipping_method_code'],
+//        "qudaoType"=>"30",
+        "dest"=>$order['country_code'],
+        "congGs"=>$order['name'],
+        "congNm"=>$order['name'],
+        "congAdd"=>$order['street'].' '.$order['street2'],//收件人地址
+        "congTel"=>!empty($order['phone'])?$order['phone']:$order['tel'], //收件电话
+        "sjYoubian"=>$order['zip'],//收件人邮编
+        "zhou"=>$order['province'], //收件省州,
+        "city"=>$order['city'], //收件人城市
+        "congAdd2"=>$order['street'],
+        "congAdd3"=>$order['street2'],
+        "hwNm"=>$soldItems[0]['pingmingCh'],
+        "upsMk"=>"PACKAGE",
+        "orderDetailList"=>$soldItems,
+    ];
+    return $data;
+
+}
+    /**
+     * 获取跟踪号
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function getTrackingNumber(array $config, array $order)
+    {
+
+            $this->result['number'] = $order['number'];
+            $this->result['error'] = [
+                'error_msg'=>'未知错误',
+                'error_code'=>1
+            ];
+        return $this->result;
+    }
+
+
+    /**
+     * 获取时间戳
+     */
+    private function getTimeStamp()
+    {
+        $response = Curl::curlPost($this->_config['url'],json_encode(array('RequestName'=>"TimeStamp")));
+        //var_dump($response);die;
+        if(empty($response)){
+            throw new Exception("未知错误！");
+        }
+        $response = json_decode($response, true);
+        return $response['ReturnValue'];
+    }
+
+
+
+
+    /**
+     * 获取标签
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+
+        if($this->formatHeader($config)){
+            if($order['number']=='155211628987'){
+                $pdf=$this->imageToPdf($order['number'],'http://cdn.zipto.chareice.com/label-image-of-1253-V812601903090197?imageMogr2/thumbnail/1200x/crop/1200x1800|watermark/2/text/Q0ENCg0K/fontsize/800/gravity/NorthEast/dx/46/dy/930');
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'],$pdf,'pdf');
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'=>'获取面单失败',
+                    'error_code'=>1
+                ];
+            }
+
+        }
+        return $this->result;
+    }
+
+
+
+    /**
+     * 取消删除包裹
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+
+}

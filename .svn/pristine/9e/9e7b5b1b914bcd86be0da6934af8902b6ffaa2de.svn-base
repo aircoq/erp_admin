@@ -1,0 +1,530 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use think\Exception;
+use app\common\cache\Cache;
+use app\common\model\OrderSourceDetail;
+use app\common\model\Order;
+use app\common\model\OrderDetail;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+use service\lazada\LazadaOrderApi;
+
+use org\Curl;
+use think\Loader;
+/**
+ * Class Lazada
+ * @package service\shipping\operation
+ */
+class Lazada
+{
+    private     $config = [
+        'app_key'           => '',
+        'app_secret'  => '',
+        'access_token'      => '',
+        'id'      => '',
+        'site'      => '',
+        'account_code'   => '',
+        'serviceUrl'   => '',
+    ];
+
+    private $result = ['data' => [], 'error' => [], 'success' => false];
+
+
+    // 计量单位
+    private $measure_unit = [
+        'EA', 'KG', 'MT'
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    
+
+    private function getOrderInfo($channel_account_id)
+    {
+        $lazadaAcount = Cache::store('LazadaAccount')->readAccount($channel_account_id);
+        if (empty($lazadaAcount['app_key'] )|| empty($lazadaAcount['app_secret']) || empty($lazadaAcount['access_token']) ) {
+            throw new Exception('缺少必要授权信息');
+        }
+        $url=Cache::store('account')->lazadaSite();
+        $serviceUrl=$url[$lazadaAcount['site']]['endpoint'];
+        $this->config['app_key'] = $lazadaAcount['app_key'];
+        $this->config['app_secret'] = $lazadaAcount['app_secret'];
+        $this->config['access_token'] =$lazadaAcount['access_token'];
+        $this->config['site'] =$lazadaAcount['site'];
+        $this->config['id'] =$lazadaAcount['id'];
+        $this->config['account_code'] =$lazadaAcount['code'];
+        $this->config['serviceUrl'] =$serviceUrl;
+        return true;
+    }
+
+
+    private  function getChannelId($package_id){
+        $OrderDetail = new OrderDetail();
+        $orderSource = $OrderDetail->where('package_id', $package_id)->field('channel_item_id')->select();
+        if(empty($orderSource)){
+            $this->result['error'] = [
+                'error_msg'=> $package_id.'获取物品单号item_id失败',
+                'error_code'=>1
+            ];
+            return $this->result;
+        }
+        $itemId=[];
+        foreach($orderSource as $key=> $order_source_detail_id) {
+            if(empty($order_source_detail_id->channel_item_id)){
+                $this->result['error'] = [
+                    'error_msg'=> $package_id.'获取物品单号item_id失败',
+                    'error_code'=>1
+                ];
+                return $this->result;
+            }else{
+                $itemId[] =$order_source_detail_id->channel_item_id;
+            }
+        }
+        return $itemId;
+    }
+
+
+    /**
+     * 创建出库单 -- 下单
+     * createDevlieryOrder
+     * @param array $token 授权信息
+     * @param array $orders 包裹详情
+     * @return array
+     */
+    public function createOrder($config,$order,$confirm=true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+
+            //获取交易号
+            /*$OrderSourceDetail = new OrderSourceDetail();
+            $packageService = new PackageService();
+            $order_ids = $packageService->getOrderIdsByPackageId($order['package_id']);
+            $orderSource = $OrderSourceDetail->where(['order_id'=>['in',$order_ids]])->field('channel_item_id')->select();*/
+            $itemId=$this->getChannelId($order['package_id']);
+            $account= $this->getOrderInfo($order['channel_account_id']);
+            $lazada= new LazadaOrderApi($this->config);
+            $data=[
+                'shipping_method_code'=>$order['shipping_method_code'],
+                'channel_item_id'=>json_encode($itemId),
+            ];
+            $result=$lazada->orderPack($data);  //下单返回跟踪号接口
+            //日志记录
+            $arr_log = [
+                'url'=>'',
+                'header'=>'',
+                'request'=>json_encode($account).''.json_encode($data),
+                'response'=>json_encode($result)
+            ];
+            if(isset($result['data']['order_items'][0]['tracking_number']) && !empty($result['data']['order_items'][0]['tracking_number']) ){
+                //同步平台订单
+                $data['tracking_number']=$result['data']['order_items'][0]['tracking_number'];
+                $rts=$lazada->orderRts($data); //标记更改后台状态
+            }else{
+                Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                $message='';
+                if(strpos($result['message'],'All order items must have status Pending')  || strpos($result['message'],'Shipment type is Fulfillment by Warehouse. Order Processing is not possible')){
+                    $orderModel = new Order();
+                    $order_number = $orderModel->field('order_number')->where(['id' => $order['order_id']])->find();
+                    $order_number=explode('-',$order_number['order_number']);
+                    $order_number=end($order_number);
+                    $result_order=$lazada->getOneOrderDetail($order_number);
+                    if(isset($result_order['data'])){
+                        $message=$lazada->lazadaChangeStatus($result_order['data']);  //如果是平台发货加入队列  加入到问题订单
+                    }
+                }
+                $this->result['error'] = [
+                    'error_msg'  =>!empty($message)?$message:(isset($result['message'])?$result['message']:'平台状态已改变'),
+                    'error_code' => 1
+                ];
+                $this->result['success'] = false;
+                return  $this->result;
+            }
+            if($rts && isset($rts['code']) && $rts['code']==0 && is_array($result['data'])){
+                $this->result['data']['number']             = $order['number'];      // 参考号
+                $this->result['data']['package_code']       = $result['data']['order_items'][0]['package_id'];  // 包裹号
+                $this->result['data']['trackingNumber']     = $result['data']['order_items'][0]['tracking_number'];  // 跟踪号
+                $this->result['data']['has_trackingNumber'] = true;
+                $this->result['data']['confirm']            = true;                              // 是否交运
+                $this->result['data']['label']              = false;                              // 是否有pdf
+                $this->result['data']['label_url']          = '';                              // 是否有pdf 不自动获取面单
+                $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                $this->result['success']                    = true;
+
+            }else{
+                if(isset($result['code']) && $result['code']==82){
+                    $this->result['error'] = [
+                        'error_msg'  =>'状态已标记',
+                        'error_code' => 1
+                    ];
+                }else{
+                    $this->result['error'] = [
+                        'error_msg'  =>$result['message']??'网络超时',
+                        'error_code' => 1
+                    ];
+                }
+
+            }
+        }  catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+
+    /**
+     * 获取所有物流渠道
+     * @param array $config
+     * @return array
+     */
+
+    public function getExpress($config)
+    {
+
+        $data = [
+            ['code'=>'LGS-FM40','name'=>'LGS-FM40'],
+            ['code'=>'LGS-Tiki-ID','name'=>'LGS-Tiki-ID'],
+            ['code'=>'LGS-TH1', 'name'=>'LGS-TH1'],
+            ['code'=>'LGS-SG2','name'=>'LGS-SG2'],
+            ['code'=>'LGS-SG1','name'=>'LGS-SG1'],
+            ['code'=>'LGS-PH1', 'name'=> 'LGS-PH1'],
+            ['code'=>'LGS-FM41', 'name'=>'LGS-FM41'],
+            ['code'=>'LGS-LEX-ID', 'name'=>'LGS-LEX-ID'],
+            ['code'=>'LGS-FM21', 'name'=>'LGS-FM21'],
+            ['code'=>'LGS-LEX-ID-HK', 'name'=>'LGS-LEX-ID-HK'],
+            ['code'=>'LGS-FM19', 'name'=>'LGS-FM19'],
+            ['code'=>'LGS-FM05', 'name'=>'LGS-FM05'],
+            ['code'=>'LGS-SG3-HK', 'name'=>'LGS-SG3-HK'],
+            ['code'=>'LGS-FM02', 'name'=>'LGS-FM02'],
+            ['code'=>'LGS-FM17','name'=>'LGS-FM17'],
+            ['code'=>'LGS-FM03','name'=>'LGS-FM03'],
+            ['code'=>'LGS-FM18','name'=>'LGS-FM18'],
+            ['code'=>'AS-LBC-JZ-HK Sellers-LZ','name'=>'AS-LBC-JZ-HK Sellers-LZ'],
+            ['code'=>'LGS-FM11','name'=>'LGS-FM11'],
+            ['code'=>'AS-LBC-JZ-HK Sellers-LZ2','name'=>'AS-LBC-JZ-HK Sellers-LZ2'],
+            ['code'=>'LGS-FM12','name'=>'LGS-FM12'],
+            ['code'=>'LGS-FM42','name'=>'LGS-FM42'],
+            ['code'=>'LGS-FM04','name'=>'LGS-FM04'],
+            ['code'=>'LGS-FM10','name'=>'LGS-FM10'],
+            ['code'=>'LGS-FM43','name'=>'LGS-FM43'],
+            ['code'=>'LGS-FM15','name'=>'LGS-FM15'],
+            ['code'=>'LGS-FM16','name'=>'LGS-FM16'],
+            ['code'=>'LGS-FM13','name'=>'LGS-FM13'],
+            ['code'=>'LGS-SG3','name'=>'LGS-SG3'],
+            ['code'=>'AS-Poslaju','name'=>'AS-Poslaju'],
+            ['code'=>'LGS-FM14','name'=>'LGS-FM14'],
+            ['code'=>'LGS-FM08','name'=>'LGS-FM08'],
+            ['code'=>'LGS-FM09','name'=>'LGS-FM09'],
+            ['code'=>'LGS-FM06','name'=>'LGS-FM06'],
+            ['code'=>'LGS-FM07','name'=>'LGS-FM07'],
+            ['code'=>'LGS-FM01','name'=>'LGS-FM01'],
+            ['code'=>'LGS-TH3-HK','name'=>'LGS-TH3-HK'],
+            ['code'=>'LGS-FM20','name'=>'LGS-FM20'],
+            ['code'=>'LGS-PH1-HK','name'=>'LGS-PH1-HK'],
+            ['code'=>'AS-Poslaju-HK','name'=>'AS-Poslaju-HK'],
+
+        ];
+
+        $result = [];
+        foreach($data as $value){
+
+            $result[] = [
+                'code'=>$value['code'],
+                'name'=>$value['name'],
+            ];
+
+        }
+        $this->result['success'] = true;
+        $this->result['data'] = $result;
+        return $this->result;
+    }
+
+
+    /**
+     * 交运包裹
+     * @param unknown $name
+     */
+    public function confirmOrder($config, $package)
+    {
+
+    }
+
+    /**
+     * 删除包裹信息
+     */
+    public function deleteOrder($config, $package)
+    {
+
+    }
+
+
+
+    /**
+     * 获取出库单信息
+     * @param array $info(order_code, reference_code)
+     * @return array (data['weight], shippingNumber)
+     */
+    public function getDeliveryOrder($warehouse_id, array $info)
+    {
+
+    }
+    public function getLogisticsServiceList($config)
+    {
+
+    }
+
+    /**
+     * 确认是否已发货
+     * @param array $token
+     * @param array $info
+     * @return array
+     */
+    public function isSend($token, $info)
+    {
+
+    }
+
+
+    /**
+     * 获取标签
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        try{
+            /*$this->result['number'] = $order['number'];
+            //获取买家id lazada账号
+            $orderInfo = $this->getOrderInfo($order['channel_account_id']);
+            //获取交易号
+            $OrderSourceDetail = new OrderSourceDetail();
+            $orderSource = $OrderSourceDetail->where('order_id', $order['order_id'])->field('channel_item_id')->select();
+            if(empty($orderSource)){
+                $this->result['error'] = [
+                    'error_msg'=> $order['order_id'].'获取物品单号item_id失败',
+                    'error_code'=>1
+                ];
+                return $this->result;
+            }
+            foreach($orderSource as $key=> $order_source_detail_id) {
+                if(empty($order_source_detail_id->channel_item_id)){
+                    $this->result['error'] = [
+                        'error_msg'=> $order['order_id'].'获取物品单号item_id失败',
+                        'error_code'=>1
+                    ];
+                    return $this->result;
+                }else{
+                    $itemId[] =$order_source_detail_id->channel_item_id;
+                }
+            }
+            $url1=Cache::store('account')->lazadaSite();
+            $url=$url1[$orderInfo['site']]['endpoint'];
+            $c = new \LazopClient($url,$orderInfo['app_key'],$orderInfo['app_secret']);
+            $request = new \LazopRequest('/order/document/get','GET');
+            $request->addApiParam('doc_type','shippingLabel');
+            $request->addApiParam('order_item_ids', json_encode($itemId));
+            $response=$c->execute($request,$orderInfo['access_token']);
+            $arr_response = json_decode($response, true);
+            if($arr_response['code']=="0" && is_array($arr_response)){
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'], $arr_response['data']['document']['file'],'pdf');
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'=>(is_array($arr_response) && isset($arr_response['message']) && $arr_response['message'])? $arr_response['message']:'获取标签失败',
+                    'error_code'=>1
+                ];
+            }*/
+            if($order['label_source_type']=='1'  && !empty($order['shipping_number'])  && isset($order['package_id'])){
+                (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+                ];
+                $this->result['number'] = $order['number'];
+                return $this->result;
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 提交交运
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    /**
+     * 提交交运
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function confirm(array $config, array $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $account= $this->getOrderInfo($order['channel_account_id']);
+            $lazada= new LazadaOrderApi($this->config);
+            if(empty($order['shipping_number'])){
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '跟踪号不存在，无法交运'
+                ];
+                return $this->result;
+            }
+
+            //同步平台订单
+            $itemId=$this->getChannelId($order['package_id']);
+            $data['channel_item_id']=json_encode($itemId);
+            $data['tracking_number']=$order['shipping_number'];
+            $data['shipping_method_code']=$order['shipping_method_code'];
+            $rts=$lazada->orderRts($data); //标记更改后台状态
+            if($rts && isset($rts['code']) && $rts['code']==0 ){
+                $this->result['number'] = $order['number'];
+                $this->result['success'] = true;
+                $this->result['data']['confirm'] = true;
+                $this->result['data']['trackingNumber'] = '';
+                $this->result['data']['label'] = false;
+                $this->result['data']['package_code'] = '';                              //包裹处理号
+                $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'];  // 是否有跟踪号
+                $this->result['data']['is_weight'] = false;                              // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;                              // 是否能查询实际费用
+                $this->result['data']['send'] = false;                              // 是否能查询物流订单状态
+                $this->result['data']['warehouse_id'] = $order['warehouse_id'];
+            }else{
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '交运失败'
+                ];
+                return $this->result;
+            }
+
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg' => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * 取消删除订单
+     * @param $config
+     * @param $order
+     */
+    public function cancel($config,$order)
+    {
+//        try{
+        /* $this->result['number'] = $order['number'];
+         //获取买家id lazada账号
+         $orderInfo = Cache::store('LazadaAccount')->readAccount($order['channel_account_id']);
+         //获取交易号
+         $OrderSourceDetail = new OrderSourceDetail();
+         $join['s'] = ['order_package s','o.order_id=s.order_id','left'];
+         $orderSource = $OrderSourceDetail->alias('o')->join($join)->where('s.number', $order['number'])->field('o.channel_item_id')->select();
+         if(empty($orderSource)){
+             $this->result['error'] = [
+                 'error_msg'=> $order['number'].'获取物品单号item_id失败',
+                 'error_code'=>1
+             ];
+             return $this->result;
+         }
+         foreach($orderSource as $key=> $order_source_detail_id) {
+             if(empty($order_source_detail_id->channel_item_id)){
+                 $this->result['error'] = [
+                     'error_msg'=> $order['number'].'获取物品单号item_id失败',
+                     'error_code'=>1
+                 ];
+                 return $this->result;
+             }else{
+                 $itemId[] =$order_source_detail_id->channel_item_id;
+             }
+         }
+         $url1=Cache::store('account')->lazadaSite();
+         $url=$url1[$orderInfo['site']]['endpoint'];
+         $c = new \LazopClient($url,$orderInfo['app_key'],$orderInfo['app_secret']);
+         $request = new \LazopRequest('/order/cancel');
+         $request->addApiParam('reason_detail','Out of stock');
+         $request->addApiParam('reason_id','15');
+         $request->addApiParam('order_item_ids', json_encode($itemId));
+         $response=$c->execute($request,$orderInfo['access_token']);
+         //日志记录
+         $arr_log = [
+             'url'=>$url,
+             'header'=>'',
+             'request'=>json_encode($orderInfo),
+             'response'=>$response
+         ];
+         Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+         $arr_response = json_decode($response, true);
+         if($arr_response['code']=='0' && is_array($arr_response)){
+             $this->result['success']    = true;
+         }else{
+             $this->result['error'] = [
+                 'error_msg'=>(is_array($arr_response) && isset($arr_response['message']) && $arr_response['message'])? $arr_response['message']:'取消失败',
+                 'error_code'=>1
+             ];
+         }
+
+     }catch(Exception $ex){
+         $this->result['error'] = [
+             'error_msg'=>$ex->getMessage(),
+             'error_code'=>1
+         ];
+     }*/
+        $this->result['error'] = [
+            'error_msg'=>'取消失败',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageStatus($config, $order)
+    {
+        $account= $this->getOrderInfo($order['channel_account_id']);
+        $lazada= new LazadaOrderApi($this->config);
+        $result=$lazada->getOneOrderDetail($order['order_id']);
+        $this->result['number'] = $order['number'];
+        if ($result['code']==0 && isset($result['data'])) {
+            $this->result['data'] = [
+                'is_send' => $result['data'][0]['status']=='delivered' ? true : false
+            ];
+        }
+        return $this->result;
+    }
+}

@@ -1,0 +1,391 @@
+<?php
+
+namespace service\amazon;
+
+use think\Loader;
+use app\common\cache\Cache;
+
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Client') ;
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Model.ListOrdersRequest') ;
+Loader::import('service.amazon.MarketplaceWebServiceOrders.Model.ListOrderItemsRequest') ;
+
+//Loader::import('service.amazon.MarketplaceWebServiceOrders.Exception') ;
+//Loader::import('service.amazon.MarketplaceWebServiceOrders.Mock') ;
+//Loader::import('service.amazon.MarketplaceWebServiceOrders.Model') ;
+
+class AmazonFbaOrderApi 
+{       
+    private $appname;
+    private $appversion;
+    private $aws_access_key_id;
+    private $aws_secret_access_key;
+    private $merchant_id;
+    private $marketplace_id;
+    private $service_url;
+    private $account;
+    private $site;
+    private $logname;
+    
+    private $config;
+    private $authorize;
+    
+    
+    /**
+     * 
+     * @param unknown $appname
+     * @param unknown $appversion
+     * @param unknown $aws_access_key_id
+     * @param unknown $aws_secret_access_key
+     * @param unknown $merchant_id
+     * @param unknown $marketplace_id
+     * @param unknown $serviceUrl
+     * @param unknown $account
+     * @param unknown $site
+     */
+	public function __construct($appname,$appversion,$aws_access_key_id,$aws_secret_access_key,$merchant_id,$marketplace_id,$serviceUrl,$account,$site)
+	{
+	    $this->appname                = $appname;
+	    $this->appversion             = $appversion;
+	    $this->aws_access_key_id      = $aws_access_key_id;
+	    $this->aws_secret_access_key  = $aws_secret_access_key;
+	    $this->merchant_id            = $merchant_id;
+	    $this->marketplace_id         = $marketplace_id;
+	    $this->service_url            = $serviceUrl;
+	    $this->account                = $account;
+	    $this->site                   = $site;	    
+	    
+	    $this->config = array (
+	        'ServiceURL' 	=> $this->service_url,
+	        'ProxyHost'  	=> null,
+	        'ProxyPort'  	=> -1,
+	        'MaxErrorRetry'  =>1,
+	    );
+	}
+	
+	/*
+	 * 根据amazon order id 查找 订单详细
+	 */
+	public function getOrders($amazon_order_id)
+	{   
+	    	    
+	    $allResponse     = array();
+	    $service 	     = new \MarketplaceWebServiceOrders_Client($this->aws_access_key_id, $this->aws_secret_access_key, $this->appname, $this->appversion, $this->config);
+	    $request         = new \MarketplaceWebServiceOrders_Model_GetOrderRequest();
+	    $request->setSellerId($this->merchant_id);
+	
+	    $request->setAmazonOrderId($amazon_order_id);
+	    $response        = $service->getOrder($request);
+	    $OrdersResult    = $response->getGetOrderResult();
+	    $allResponse[]   = $OrdersResult;
+	    return $allResponse;
+	}
+		
+	
+	/**
+	 * 抓取一段时间内的订单的列表
+	 * @param datetime $starttime
+	 * @param datetime $endtime
+	 * @return array
+	 *
+	 */
+	public function getOrderLists($startTime, $endTime)
+	{   	    
+	    $allResponse = array();
+	    $service 	 = new \MarketplaceWebServiceOrders_Client($this->aws_access_key_id, $this->aws_secret_access_key, $this->appname, $this->appversion ,$this->config);
+	    $request 	 = new \MarketplaceWebServiceOrders_Model_ListOrdersRequest();
+	    $request->setSellerId($this->merchant_id);
+	    $request->setMarketplaceId($this->marketplace_id);
+	
+	    $request->setCreatedAfter($startTime);
+	    //$request->setCreatedBefore($endtime);
+	
+	    //$request->setLastUpdatedAfter($starttime);
+	    //$request->setLastUpdatedBefore($endtime);
+	
+	    $request->setOrderStatus(array("Unshipped", "PartiallyShipped","Shipped",'Pending','Canceled','Unfulfillable','PendingAvailability'));
+	    $request->setFulfillmentChannel('AFN');
+	    
+	    $request->setMaxResultsPerPage(100);
+	    $response 		   = $service->listOrders($request);
+	    $listOrdersResult  = $response->getListOrdersResult();
+	    
+	    $allResponse[] 	   = $listOrdersResult;
+	    #########################   分页抓取剩下的分页   start  ################################
+	    $while_index	   =	0;
+	    while ($listOrdersResult->isSetNextToken() && $response->isSetResponseMetadata()) {	        	
+	        $request		    = new \MarketplaceWebServiceOrders_Model_ListOrdersByNextTokenRequest();
+	        $request->setSellerId($this->merchant_id);
+	        $request->setNextToken($listOrdersResult->getNextToken());
+	        $response			= $service->ListOrdersByNextToken($request);
+	        $listOrdersResult   = $response->getListOrdersByNextTokenResult();
+	        $allResponse[]	    = $listOrdersResult;
+	        
+	        //ListOrders 和   ListOrdersByNextToken 操作的最大请求限额为 6 个防止意外循环
+	        if($while_index%6 == 5){
+	            //echo "sleep 65\r\n";
+	            sleep(65);		//恢复速度1分钟
+	        }
+	        //容错机制， 异常后自动弹出
+	        if($while_index > 5){
+	            break;
+	        }
+	        $while_index++;
+	    }
+	    #########################   分页抓取剩下的分页   end   ##################################
+	    return $allResponse;
+	}
+	
+	
+	/**
+	 * 抓取订单产品详细
+	 * @param number $OrderId
+	 * @return array
+	 *
+	 */
+	public function getOrderDetailLists($OrderId)
+	{
+	   
+	    $service 	 = new \MarketplaceWebServiceOrders_Client($this->aws_access_key_id, $this->aws_secret_access_key, $this->appname, $this->appversion, $this->config);
+	    $request 	 = new \MarketplaceWebServiceOrders_Model_ListOrderItemsRequest();
+	    $request->setSellerId($this->merchant_id);
+	    $request->setAmazonOrderId($OrderId);
+	    $response 				= $service->listOrderItems($request);
+	    $listOrderItemsResult 	= $response->getListOrderItemsResult();
+	    $all_response           = array();
+	    $all_response[]         = $listOrderItemsResult;
+	
+	    //$orderItems 			= $listOrderItemsResult->getOrderItems();
+	    //$orderItemList 	    = $orderItems->getOrderItem();
+	    while ($listOrderItemsResult->isSetNextToken()) {
+	        $request = new \MarketplaceWebServiceOrders_Model_ListOrderItemsByNextTokenRequest();
+	        $request->setSellerId($this->merchant_id);
+	        $request->setNextToken($listOrderItemsResult->getNextToken());
+	        $response				=	$service->ListOrdersByNextToken($request);
+	        $listOrderItemsResult 	= 	$response->getListOrderItemsByNextTokenResult();
+	        $all_response[]			=	$listOrderItemsResult;
+	        //最大的请求权限为30个,每30个就sleep 60秒恢复 
+	        if($this->_requestTimes%30 == 0){
+	            sleep(60);
+	            $this->_requestTimes = 0;
+	        }
+	        $this->_requestTimes++;
+	    }
+	    return $all_response;
+	}
+	
+	
+	/**
+	 * 
+	 * @param unknown $amazonids
+	 */
+	public function getOrder($amazonids)
+	{
+						
+		$simplelists = $this->getOrders($amazonids);
+		$orders = $this->spiderOrderListsCommon($simplelists);
+		return $orders;
+	}
+	
+	public function spiderOrderLists($accountId,$starttime, $endtime)
+	{			
+	    
+		$simplelists = $this->getOrderLists($starttime, $endtime);
+		$orders      = $this->spiderOrderListsCommon($accountId,$simplelists);
+		file_put_contents("/tmp/amazonorder.log", $accountId."\r\n",FILE_APPEND);
+		return $orders;
+	}
+	
+	/**
+	 * 根据订单号抓取订单列表
+	 * @param datetime $starttime
+	 * @param datetime $endtime
+	 * @return array
+	 * @author 
+	 */
+	public function spiderOrderListsCommon($accountId,$simplelists)
+	{		
+	    $inserOrder = [];
+		foreach ($simplelists as $xml_simplelist) {
+			$simplelist = $this->object_array($xml_simplelist);
+			$orders     = $simplelist['' . "\0" . '*' . "\0" . '_fields']['Orders']['FieldValue'];
+			if (empty($orders)) {
+			     return $inserOrder;
+			}
+			foreach ($orders as $order) {
+			    
+				$orderInfo     = $order['' . "\0" . '*' . "\0" . '_fields'];	
+				$amazonOrderId = $orderInfo['AmazonOrderId']['FieldValue'];		
+				if (empty($amazonOrderId)) {
+					continue;
+				}
+				$countryList = Cache::store('country')->getCountry();
+				
+				//用户信息
+				$ShippingAddress = $orderInfo['ShippingAddress']['FieldValue']['' . "\0" . '*' . "\0" . '_fields'];
+				$street1         = htmlentities($ShippingAddress['AddressLine1']['FieldValue']);
+				$street2         = htmlentities($ShippingAddress['AddressLine2']['FieldValue']);
+				
+				if(empty($street1) && !empty($street2)){
+					$street1 = $street2;
+					$street2 = '';
+				}
+				
+				$street3     = htmlentities($ShippingAddress['AddressLine2']['FieldValue']);
+				
+				if (!empty($ShippingAddress['County']['FieldValue'])) { //郡，县
+					$street2 = htmlentities($ShippingAddress['County']['FieldValue'] . ' ' . $street2, ENT_QUOTES);
+					$street3 = htmlentities($ShippingAddress['County']['FieldValue'] . ' ' . $street3, ENT_QUOTES);
+				}
+				$countrySn 	 = isset($ShippingAddress['CountryCode']['FieldValue'])?$ShippingAddress['CountryCode']['FieldValue']:'';
+				
+				
+				if($street1 == $street2){
+					$street2 = '';
+				}
+				if($street1 == $street3){
+					$street3 = '';
+				}
+				
+				$state = htmlentities($ShippingAddress['StateOrRegion']['FieldValue'],ENT_QUOTES);
+				$city  = htmlentities($ShippingAddress['City']['FieldValue'],ENT_QUOTES);
+				if (empty($city)) {
+					$city = $state;
+				}
+				
+				//订单表数据
+				$order = array(
+						'order_number'					=> $amazonOrderId,						
+						'site'							=> $this->site,
+						'payment_method'				=> isset($orderInfo['PaymentMethod']['FieldValue'])?$orderInfo['PaymentMethod']['FieldValue']:' ',
+						'currency'						=> isset($orderInfo['OrderTotal']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['CurrencyCode']['FieldValue'])?$orderInfo['OrderTotal']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['CurrencyCode']['FieldValue']:'',
+						'account_id'					=> $accountId,						
+						'payment_time' 					=> isset($orderInfo['LastUpdateDate']['FieldValue'])?strtotime($orderInfo['LastUpdateDate']['FieldValue']):0,						
+						'actual_total' 		            => isset($orderInfo['OrderTotal']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue'])?$orderInfo['OrderTotal']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue']:0,
+						'transport_id'  	 			=> 0, //数据库字段不能为空，先置为0						
+						'latest_shipped_time' 			=> isset($orderInfo['LatestShipDate']['FieldValue'])?strtotime($orderInfo['LatestShipDate']['FieldValue']):0,
+						'or_transport'					=> isset($orderInfo['ShipServiceLevel']['FieldValue'])?$orderInfo['ShipServiceLevel']['FieldValue']:0,
+						'order_status'					=> isset($orderInfo['OrderStatus']['FieldValue'])?$orderInfo['OrderStatus']['FieldValue']:'',						
+						'created_time'      			=> isset($orderInfo['PurchaseDate']['FieldValue'])?strtotime($orderInfo['PurchaseDate']['FieldValue']):0,
+						
+						'declared_price'		         => 0.00,				
+						'fulfillment_channel'            => isset($orderInfo['FulfillmentChannel']['FieldValue'])?$orderInfo['FulfillmentChannel']['FieldValue']:'',
+						'sales_channel'		             => isset($orderInfo['SalesChannel']['FieldValue'])?$orderInfo['SalesChannel']['FieldValue']:'',
+						'ship_service_level'	         => isset($orderInfo['ShipServiceLevel']['FieldValue'])?$orderInfo['ShipServiceLevel']['FieldValue']:'',
+						'marketplace_id'		         => isset($orderInfo['MarketplaceId']['FieldValue'])?$orderInfo['MarketplaceId']['FieldValue']:'',
+						'shipment_serviceLevel_category' => isset($orderInfo['ShipmentServiceLevelCategory']['FieldValue'])?$orderInfo['ShipmentServiceLevelCategory']['FieldValue']:'',
+						
+						'user_name'						 => htmlentities($ShippingAddress['Name']['FieldValue'], ENT_QUOTES),
+						'platform_username'				 => htmlentities($orderInfo['BuyerName']['FieldValue'], ENT_QUOTES),
+						'email'				             => isset($orderInfo['BuyerEmail']['FieldValue'])?$orderInfo['BuyerEmail']['FieldValue']:'',
+						'country_name'		             => isset($countryList[$countrySn]['country_en_name'])?$countryList[$countrySn]['country_en_name']:'',//get_country_name 根据国家简码返回国家全英文名						
+						'country'			             => $countrySn,						
+						'state' 			             => $state,
+						'city' 				             => $city,
+						'address1' 			             => $street1,
+						'address2' 			             => $street2, 
+						'address3' 			             => $street3,
+						'phone' 			             => isset($ShippingAddress['Phone']['FieldValue'])?$ShippingAddress['Phone']['FieldValue']:'',
+						'zip_code' 			             => isset($ShippingAddress['PostalCode']['FieldValue'])?htmlentities($ShippingAddress['PostalCode']['FieldValue'],ENT_QUOTES):'',
+				);				
+				$orderDetailObjList	= $this->getOrderDetailLists($amazonOrderId);						
+				$orderDetailLists 	= $this->object_array($orderDetailObjList);
+				$orderDetail        = [];			
+				$total_shipping_fee = 0;
+				
+				foreach ($orderDetailLists as $orderDetailList) {
+					$orderDetails = $orderDetailList['' . "\0" . '*' . "\0" . '_fields']['OrderItems']['FieldValue'];
+					if (!empty($orderDetails)) {
+    					foreach ($orderDetails as $orderItems) {
+    						$orderItem  = $orderItems['' . "\0" . '*' . "\0" . '_fields'];
+    						$itemPrices = $orderItem['ItemPrice']['FieldValue']['' . "\0" . '*' . "\0" . '_fields'];
+    						$itemTitle  = htmlentities($orderItem['Title']['FieldValue'], ENT_QUOTES) ;// mb_substr(htmlentities($orderItem['Title']['FieldValue'], ENT_QUOTES),0,150,'UTF-8');						
+    						$price      = 0;						
+    						if (!empty($orderItem['QuantityOrdered']['FieldValue'])) {
+    							$price = round($itemPrices['Amount']['FieldValue'] / $orderItem['QuantityOrdered']['FieldValue'], 2);
+    						}
+    						
+    						$tmp_sku            = str_pad(preg_replace('/^(0|\*)*/', '', $orderItem['SellerSKU']['FieldValue']), 3, '0', STR_PAD_LEFT);//自己的sku
+    												
+    						$tmp_fee            = floatval($orderItem['ShippingPrice']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue']);
+    						$total_shipping_fee = $total_shipping_fee + $tmp_fee;
+    						
+    						$orderDetail[] = array(
+    								'orderDetail'=> array(
+    										'record_number'		    => $orderItem['OrderItemId']['FieldValue'],
+    										'order_number'          => $amazonOrderId,
+    										'item_price'			=> $price,
+    										'online_sku'            => $orderItem['SellerSKU']['FieldValue'],
+                                            'sku'				    => $orderItem['SellerSKU']['FieldValue'],
+    										'qty'			        => $orderItem['QuantityOrdered']['FieldValue'],
+    										'shipping_fee'		    => $tmp_fee, //amazon的邮费没有？
+    										'created_time'		    => time(),
+    										'item_id'			    => $orderItem['ASIN']['FieldValue'],
+    										 
+    										'item_title'			=> $itemTitle,
+    										'item_url'			    => '',
+    										'shipping_tax'		    => empty($orderItem['ShippingTax']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue'])?0:$orderItem['ShippingTax']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue'],
+    										'shipping_discount'	    => empty($orderItem['ShippingDiscount']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue'])?0:$orderItem['ShippingDiscount']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue'],
+    										'shipping_price'		=> empty($orderItem['ShippingPrice']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue'])?0:$orderItem['ShippingPrice']['FieldValue']['' . "\0" . '*' . "\0" . '_fields']['Amount']['FieldValue'],
+    										'condition_note'		=> empty($orderItem['ConditionNote']['FieldValue'])?'not found':$orderItem['ConditionNote']['FieldValue'],
+    										'condition_subtype_id'  => !empty($orderItem['ConditionSubtypeId']['FieldValue'])?$orderItem['ConditionSubtypeId']['FieldValue']:'',
+    										'condition_id'		    => !empty($orderItem['ConditionId']['FieldValue'])?$orderItem['ConditionId']['FieldValue']:'',
+    								),	
+    						);
+    					}
+				    }
+					unset($orderDetailList);
+				}
+				$order['actual_shipping'] = $total_shipping_fee;				
+				//组装数据
+				$inserOrder[] = array(
+						'order' 			=>	$order,
+						'orderDetail'		=> 	$orderDetail
+				);				
+			}
+		}		
+		return $inserOrder;
+	}
+	
+	
+	/**
+	 * 对象转为数组
+	 * @param object $obj
+	 * @return array
+	 * @author czq
+	 */
+	function object_array($array)
+	{
+		if (is_object($array)) {
+			$array = (array)$array;
+		}
+		if (is_array($array)) {
+			foreach($array as $key=>$value) {
+				$array[$key] = $this->object_array($value);
+			}
+		}
+		return $array;
+	}
+	
+	
+	
+    /**
+     * 取订单列表 
+     * @param unknown $accountId
+     * @param unknown $startTime
+     * @param unknown $endtime
+     */
+    public function getAmazonOrderList($accountId,$startTime, $endtime )
+    {         
+                 
+        $spiderlists = $this->spiderOrderLists($accountId,$startTime, $endtime );
+         
+        return $spiderlists;
+         
+    }
+
+
+    //上传跟踪号
+
+    
+	
+}

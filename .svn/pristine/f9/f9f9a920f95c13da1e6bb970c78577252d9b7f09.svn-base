@@ -1,0 +1,745 @@
+<?php
+namespace service\pm\PostConfirmationOfSale;
+
+use service\pm\RequestService;
+use service\pm\PriceMinisterException;
+
+/**
+ * PostConfirmationOfSale接口服务类
+ * @author WangWei 2017-1-12 18:42:31
+ */
+class PostConfirmationOfSaleService extends RequestService{
+	
+	/**
+	 * 获取当前销售订单
+	 * @param array $params
+	 * @example $params = array(
+	 * 				'nexttoken'=>'',// N 
+	 * 				'purchasedate'=>'',//N 订单最后创建日期，Filter on last item’s creation date (minimum)The pattern is YYYY-MM-DD
+	 * 				'notshippeditemsonly'=>'',//N  只包含未发货物品，'true'、'false'
+	 * 				'ispendingpreorder'=>'',//N  Filter on pre-orders Enter value “y” to only have pre-order items
+	 * );
+	 * @return array
+	 */
+	public function GetCurrentSales($params){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'nexttoken'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+		
+		/**
+		 * 1、设置请求
+		 */
+		$this->setRequest('getcurrentsales', '2016-03-16');
+		
+		/**
+		 * 2、调用公共请求方法
+		 */
+		try {
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['nexttoken'] = $re['data']['nexttoken'];
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+		
+		return $return;
+		
+	}
+	
+	/**
+	 * 获取计费信息
+	 * @param int $purchaseid  //Y  Purchase reference number
+	 * @return array
+	 */
+	public function GetBillingInformation($purchaseid){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+		
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($purchaseid)){
+			$return['message'] = 'purchaseid Not Empty';
+			return $return;
+		}
+		
+		/**
+		 * 2、设置请求
+		 */
+		$this->setRequest('getbillinginformation', '2016-03-16');
+		
+		/**
+		 * 3、调用公共请求方法
+		 */
+		try {
+			$re = $this->executeRequest(array('purchaseid'=>$purchaseid));
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+		
+		return $return;
+		
+	}
+	
+	/**
+	 * This webservice can retrieve the items relating to the shipment of the order after its confirmation via the purchaseid returned to the WS getnewsales.
+	 * The purchase orders prepaid mode will be available in the response of this WS.
+	 * This WS is available to professional and private sellers.
+	 * 
+	 * @param int $purchaseid  //Y  Priceminister order id
+	 * @return array
+	 */
+	public function GetShippingInformation($purchaseid){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($purchaseid)){
+			$return['message'] = 'purchaseid Not Empty';
+			return $return;
+		}
+		
+		/**
+		 * 2、设置请求
+		*/
+		$this->setRequest('getshippinginformation', '2014-02-11');
+	
+		/**
+		 * 3、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest(array('purchaseid'=>$purchaseid));
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * This webservice allows the user to deal with the sales after having accepted.
+	 * The webservice returns the list of articles sold for which the seller could have to action:
+	 * articles with pending claims
+	 * articles with unread buyer message
+	 * articles with unread messages from PriceMinister
+	 * Each article with one or many « todo » is listed in the webservice with precisions concerning the nature(s) of the « todo ».
+	 * The details of the todo (detail concerning the claim, message from PriceMinister or from the buyer, etc…) will be gathered via another webservice from the item id provided in the webservice.
+	 * 
+	 * @return array
+	 */
+	public function GetItemToDoList(){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('getitemtodolist', '2011-09-01');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest();
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * 	The WS GetItemInfos allows the user to gather details of elements related to an article:
+	 * condition of the article
+	 * condition of the article
+	 * history of the article
+	 * the totality of message related to the article (both sent and received)
+	 * the possible actions relating to the article
+	 * Important: The use of this webservice will change the status of all messages to “read”. They will therefore no longer appear when the preceding webservice “getitemtodolist” is used a second time.
+	 * This WS is available to both sellers (individuals and professionals) and buyers.
+	 * 
+	 * @param int $itemid  //Y  Item reference for which the user wants to gather information
+	 * @return array
+	 */
+	public function GetItemInfos($itemid){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($itemid)){
+			$return['message'] = 'itemid Not Empty';
+			return $return;
+		}
+		
+		/**
+		 * 2、设置请求
+		*/
+		$this->setRequest('getiteminfos', '2011-09-01');
+	
+		/**
+		 * 3、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest(array('itemid'=>$itemid));
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * This webservice allows the user to cancel an item after having previously accepting the sale.
+	 * Important: this relates to a cancellation of a sale after having previously accepting it. 
+	 * This kind of cancellation is detrimental to the quality of service of your boutique. 
+	 * These cancellations are followed by PriceMinister.
+	 * 
+	 * @param int $itemid  //Y  PriceMinister Item Id
+	 * @param string $comment  //Y  	Comment linked to this cancellation
+	 * @return array
+	 */
+	public function CancelItem($itemid,$comment){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($itemid)){
+			$return['message'] = 'itemid Not Empty';
+			return $return;
+		}
+		if(empty($comment)){
+			$return['message'] = 'comment Not Empty';
+			return $return;
+		}
+		
+		/**
+		 * 2、设置请求
+		 */
+		$this->setRequest('cancelitem', '2011-02-02');
+	
+		/**
+		 * 3、调用公共请求方法
+		*/
+		try {
+			$params = array(
+					'itemid'=>$itemid,
+					'comment'=>$comment
+			);
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * This webservice allows the user to send an e-mail or reply to the PriceMinister Customer Service Department. 
+	 * (To reply to an e-mail sent previously you must use the mailid of the parent message – the message sent by PriceMinister – which is present in the previous webservice : 
+	 * GetItemInfos)
+	 * PriceMinister is contactable up to 30 days following confirmation of receipt of the item by the buyer,
+	 * or within 72 days of the date the item was ordered.
+	 * 
+	 * @param array $params
+	 * @example $params = array(
+	 * 						'itemid'=>'',//Y  PriceMinister Item Id
+	 * 						'content'=>'',//Y  Comment
+	 * 						'mailparentid'=>'',//Y  In the event of a reply to an e-mail from the PriceMinister Customer Service Department : id of the message sent by PriceMinister
+	 * );
+	 * 
+	 * @return array
+	 */
+	public function ContactUsAboutItem($params){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('contactusaboutitem', '2011-09-01');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * @param string $itemid  //Y  PriceMinister item number
+	 * @param string $content  //Y  Comment
+	 * @return array
+	 */
+	public function ContactUserAboutItem($itemid,$content){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($itemid)){
+			$return['message'] = 'itemid Not Empty';
+			return $return;
+		}
+		if(empty($content)){
+			$return['message'] = 'content Not Empty';
+			return $return;
+		}
+		
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('contactuseraboutitem', '2011-02-02');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$params = array(
+					'itemid'=>$itemid,
+					'content'=>$content,
+			);
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * This webservice enables:
+	 * sending the tracking number of an order,
+	 * adding a tag <shipped>1</shipped> (*) within the responses of the webservices GetCurrentSales,
+	 * GetItemsInfos and GetBillingInformation
+	 * and activating the accelerated compensation (provided the merchand account is eligible). (*)
+	 * (*) from version 2016-03-16.
+	 * This webservice is accessible to professional merchants.
+	 * Calling this webservice triggers a message in the client interface and sending him an email with the link of the package.
+	 * 
+	 * @param array $params
+	 * @example $params = array(
+	 * 					'itemid'=>'',//Y  PriceMinister ordered item’s identifier
+	 * 					'transporter_name'=>'',//Y  Name of carrier. Go at the bottom of this page the accepted carriers.
+	 * 					'tracking_number'=>'',//Y  Parcel number
+	 * 					'tracking_url'=>'',//N  Link to track parcel  No (save for the following transporter names: “Autre” et “Kiala”)
+	 * );
+	 * 
+	 * transporter_name:
+<option value="Colis Prive">Colis Prive</option>
+<option value="So Colissimo">So Colissimo</option>
+<option value="Colissimo">Colissimo</option>
+<option value="Autre">Autre (*)</option>
+<option value="DPD">DPD</option>
+<option value="Mondial Relay">Mondial Relay (*)</option>
+<option value="CHRONOPOST">CHRONOPOST</option>
+<option value="TNT">TNT</option>
+<option value="UPS">UPS</option>
+<option value="Fedex">Fedex</option>
+<option value="Tatex">Tatex</option>
+<option value="GLS">GLS</option>
+<option value="DHL">DHL</option>
+<option value="France Express">France Express</option>
+<option value="Kiala">Kiala (*)</option>
+<option value="Courrier Suivi">Courrier Suivi</option>
+<option value="Exapaq">Exapaq</option>
+	 * 
+	 * @return array
+	 */
+	public function SetTrackingPackageInfos($params){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('settrackingpackageinfos', '2016-03-16');
+		$this->setSuccessKey('setshippingpackageinfosresult');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * This webservice enables:
+	 * sending the traking number of many orders,
+	 * informing the buyer that the order/s has/have been shipped (event for the Normal mode),
+	 * adding the tag <shipped>1</shipped> in the result of the new versions of webservices GetCurrentSales, 
+	 * GetItemsInfos et GetBillingInformation.
+	 * and activating the accelerated compensationet (provided the merchant account is eligible).
+	 * There is no need to use the new webservice if the order shipping confirmation has been already transmitted by the webservice SetTrackingPackageInfos.
+	 * Thr API call to this webservice triggers a message in the buyer’s account and send a email with the traking number. 
+	 * The email will not include the traking number if the shipping mode is in Normal mode.
+	 * This webservice is accessible to professional merchants.
+	 * 
+	 * @param array $params
+	 * @return array
+	 */
+	public function ImportItemShippingStatus($params){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+	
+		/**
+		 * 1、设置请求
+		*/
+		$this->setRequest('importitemshippingstatus', '2016-05-09');
+	
+		/**
+		 * 2、调用公共请求方法
+		*/
+		try {
+			$re = $this->executeRequest(array(),$params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+	/**
+	 * This webservice is used to confirm a pre-order an item, once the stock received.
+	 * 
+	 * @param string $advertid  //Y  Listing ID The advertID is available in inventory export.
+	 * @param string $stock  //Y  Number of preorders received
+	 * @return array
+	 */
+	public function Confirmpreorder($advertid,$stock){
+		$return = array(
+				'ask'=>0,
+				'message'=>'',
+				'data'=>array(),
+				'request_action'=>'',
+				'action_version'=>'',
+				'error_code'=>'',
+				'error_type'=>'',
+				'error_details'=>array(),
+				'org_data'=>'',
+		);
+
+		/**
+		 * 1、简单校验
+		 */
+		if(empty($advertid)){
+			$return['message'] = 'advertid Not Empty';
+			return $return;
+		}
+		if(empty($stock)){
+			$return['message'] = 'stock Not Empty';
+			return $return;
+		}
+		
+		/**
+		 * 2、设置请求
+		*/
+		$this->setRequest('confirmpreorder', '2013-01-09');
+	
+		/**
+		 * 3、调用公共请求方法
+		*/
+		try {
+			$params = array(
+					'advertid'=>$advertid,
+					'stock'=>$stock,
+			);
+			$re = $this->executeRequest($params);
+			$return['request_action'] = $this->_action;
+			$return['action_version'] = $this->_version;
+			if($re['ask']){
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+				$return['data'] = $re['data'];
+				$return['org_data'] = $re['org_data'];
+			}else{
+				$return['message'] = $re['message'];
+			}
+		} catch (PriceMinisterException $e) {
+			$return['message'] = $e->getErrorMessage();
+			$return['error_type'] = $e->getErrorType();
+			$return['error_code'] = $e->getErrorCode();
+			$return['error_details'] = $e->getErrorDetails();
+			$return['request_action'] = $e->getAction();
+			$return['action_version'] = $e->getVersion();
+			$return['org_data'] = $e->getORG();
+		}
+	
+		return $return;
+	
+	}
+	
+}

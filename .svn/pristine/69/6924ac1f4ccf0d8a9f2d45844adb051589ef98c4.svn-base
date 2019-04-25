@@ -1,0 +1,150 @@
+<?php
+/**
+ * TOP API: rte1csx059.liliangda.erp.orderproduct.data request
+ * 
+ * @author auto create
+ * @since 1.0, 2018.04.03
+ */
+class LiliangdaErpOrderproductDataRequest
+{
+	/** 
+	 * 调用方法
+	 **/
+	private $action;
+	
+	/** 
+	 * 调用类
+	 **/
+	private $className;
+	
+	/** 
+	 * 应用clientId
+	 **/
+	private $clientId;
+	
+	/** 
+	 * 应用秘钥
+	 **/
+	private $clientSecret;
+	
+	/** 
+	 * 调用模块
+	 **/
+	private $module;
+	
+	/** 
+	 * 额外请求参数 page，pageSize，status
+	 **/
+	private $requestParams;
+	
+	/** 
+	 * 请求token
+	 **/
+	private $token;
+	
+	private $apiParas = array();
+	
+	public function setAction($action)
+	{
+		$this->action = $action;
+		$this->apiParas["action"] = $action;
+	}
+
+	public function getAction()
+	{
+		return $this->action;
+	}
+
+	public function setClassName($className)
+	{
+		$this->className = $className;
+		$this->apiParas["className"] = $className;
+	}
+
+	public function getClassName()
+	{
+		return $this->className;
+	}
+
+	public function setClientId($clientId)
+	{
+		$this->clientId = $clientId;
+		$this->apiParas["client_id"] = $clientId;
+	}
+
+	public function getClientId()
+	{
+		return $this->clientId;
+	}
+
+	public function setClientSecret($clientSecret)
+	{
+		$this->clientSecret = $clientSecret;
+		$this->apiParas["client_secret"] = $clientSecret;
+	}
+
+	public function getClientSecret()
+	{
+		return $this->clientSecret;
+	}
+
+	public function setModule($module)
+	{
+		$this->module = $module;
+		$this->apiParas["module"] = $module;
+	}
+
+	public function getModule()
+	{
+		return $this->module;
+	}
+
+	public function setRequestParams($requestParams)
+	{
+		$this->requestParams = $requestParams;
+		$this->apiParas["requestParams"] = $requestParams;
+	}
+
+	public function getRequestParams()
+	{
+		return $this->requestParams;
+	}
+
+	public function setToken($token)
+	{
+		$this->token = $token;
+		$this->apiParas["token"] = $token;
+	}
+
+	public function getToken()
+	{
+		return $this->token;
+	}
+
+	public function getApiMethodName()
+	{
+		return "liliangda.erp.orderproduct.data";
+	}
+	
+	public function getApiParas()
+	{
+		return $this->apiParas;
+	}
+	
+	public function check()
+	{
+		
+		RequestCheckUtil::checkNotNull($this->action,"action");
+		RequestCheckUtil::checkNotNull($this->className,"className");
+		RequestCheckUtil::checkNotNull($this->clientId,"clientId");
+		RequestCheckUtil::checkNotNull($this->clientSecret,"clientSecret");
+		RequestCheckUtil::checkNotNull($this->module,"module");
+		RequestCheckUtil::checkNotNull($this->requestParams,"requestParams");
+		RequestCheckUtil::checkNotNull($this->token,"token");
+	}
+	
+	public function putOtherTextParam($key, $value) {
+		$this->apiParas[$key] = $value;
+		$this->$key = $value;
+	}
+}

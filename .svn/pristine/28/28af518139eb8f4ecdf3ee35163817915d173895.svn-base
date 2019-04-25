@@ -1,0 +1,395 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2018/7/4
+ * Time: 20:37
+ */
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use org\Curl;
+use think\Exception;
+use app\common\model\Goods;
+
+/**
+ * 赛诚
+ * Class Saicheng
+ * @package service\shipping\operation
+ */
+class Saicheng
+{
+    // 配置信息
+    private $_config = [
+//        'url'   => 'http://58.246.57.188:8888/apiSCLIPlatformTest/api/saic/', //测试
+        'url'=> 'http://api.saichenglogistics.cn/apiSCLIPlatform/api/saic/', //线上
+        'header' => [
+            'Content-type:application/json;charset=utf-8'
+        ],
+        'client_id'=>'',
+        'client_secret'  => '',
+
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+    
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return boolean
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_secret'])||empty($config['client_id']) || empty($config['interface_user_password']) ) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['appid'] = $config['client_id'];
+        $this->_config['token'] = $config['client_secret'];
+        $this->_config['pwd'] = $config['interface_user_password'];
+        return true;
+    }
+
+    /**
+     * 新增物流订单
+     * @param $config
+     * @param $order
+     * @param bool $confirm
+     * @return array
+     */
+    public function createOrder($config,$order,$confirm=true)
+    {
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $declareds = $order['declared_info'];
+            $shipping_method_code=explode('|',$order['shipping_method_code']);
+            $parcel_price=0;
+            $parcel_quantity=0;
+            foreach($declareds as $key=>$declared){
+                $parcel_value_currency=$declared['declared_value_currency'];
+                $parcel_price+=($declared['qty']*$declared['declared_value']);
+                $parcel_quantity+=$declared['qty'];
+                $contents[]=[
+                    'parcel_unit_code'=>$declared['sku'],
+                    'parcel_unit_description'=>in_array($shipping_method_code[1],['YS','EU','US'])?$declared['declared_name_cn']:$declared['declared_name_en'],//包裹内件描述或申报名,尽量填英文，有要求填中文的才填中文(YS、EU、US表示填中文申报名)
+                    'parcel_money_code'=>$declared['declared_value_currency'],
+                    'parcel_declared_name_en'=>$declared['declared_name_en'],
+                    'parcel_unit_quantity'=>$declared['qty'],
+                    'parcel_unit_value'=>number_format($declared['declared_value'],2),
+                    'parcel_unit_weight'=>number_format($declared['declared_weight']/1000,3),
+                    'goods_link'=>$declared['url'],
+                    'hs_code'=>$declared['hs_code'],
+                    'goods_origin'=>$shipping_method_code[1],
+                ];
+            }
+            $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+            $package = [
+                'user_id'=>$this->_config['appid'],
+                'send_time'=>date('Y-m-d H:i:s',time()),
+                'sign_ture'=>md5(date('Y-m-d H:i:s',time()).$this->_config['appid'].$this->_config['token']),
+                'order_no'=>$referenceID,
+                'carrier_id'=>$shipping_method_code[1],
+                'service_code'=>$shipping_method_code[0],
+
+                'destination_contact_name'=>$order['name'], //收件人
+                'destination_company'=>'', //收件人公司
+                'destination_street'=>$order['street'], //收件人地址(最长35个字符)
+                'destination_street2'=>$order['street2'], //收件人地址(最长35个字符)
+                'destination_district'=>'', //收件人郊区
+                'destination_city'=>$order['city'], //收件人城市
+                'destination_postal_code'=>$order['zip'], //收件人邮编
+                'destination_state'=>$order['province'], //收件省州
+                'destination_country'=>$order['country_code'], //收件国家
+                'destination_contact_phone'=>!empty($order['phone'])?$order['phone']:(!empty($order['tel'])?$order['tel']:000), //收件人电话01、98、CL,EU、US必填
+                'destination_email'=>$order['email'], //收件人邮箱地址, US必填
+
+                'sender_contact_name'=>$order['sender']['sender_name'], //发件人
+                'sender_street'=>$order['sender']['sender_street'], //发件地址
+                'sender_suburb'=>'', //发件郊区
+                'sender_city'=>$order['sender']['sender_city'], //发件城市
+                'sender_postal_code'=>$order['sender']['sender_zipcode'], //01、YS、DP、LZ、CP、UT、EU、CE,CL、US服务商必填
+                'sender_state'=>$order['sender']['sender_state'], //发件省州
+                'sender_country_code'=>$order['sender']['sender_country'], //US填国家ISO3代码
+                'sender_contact_phone'=>$order['sender']['sender_phone'], //发货人电话01、YS、DP、LZ、CP、UT、EU、CE,CL、US必填
+                'sender_email'=>$order['sender']['sender_email'], //发件电邮
+
+                'parcel_type'=>$shipping_method_code[1]=='EU'?'SPX':($shipping_method_code[1]=='CL'?'CTN':''), //包裹类型EU必填:DOC(文件)、SPX(包裹)CL必填:CTN(Carton)、PAL(Pallet)、SAT(Satchel)
+                'parcel_warehouse_code'=>$shipping_method_code[1]=='EU'?$shipping_method_code[2]:'', //包裹类型EU必填:DOC(文件)、SPX(包裹)CL必填:CTN(Carton)、PAL(Pallet)、SAT(Satchel)
+                'parcel_battery_type'=>'NOBattery', //是否含带电子产品,NOBattery（不带电）、WithBattery（带电）、Battery（纯电池）EU必填, 01、98如果不填，默认不带电
+                'parcel_value_currency'=>$parcel_value_currency, //货币类型EU、US必填USD(表示美元)DP、LZ、CP、UT服务商必填
+                //HK必填，填写HK包裹的区号HK渠道服务代码填HKPOST时，必填：平邮一区、平邮二区、平邮三区、平邮四区。HK渠道服务代码填HKPOST-2时，必填：挂号一区、挂号二区、挂号三区
+                'delivery_zone'=>($shipping_method_code[1]=='HK' && $shipping_method_code[0]=='HKPOST')?'平邮一区':(($shipping_method_code[1]=='HK' && $shipping_method_code[0]=='HKPOST-2')?'挂号一区':'') ,
+                'insurance_required'=>'N',//是否需要保险费DP、LZ、CP、UT必填:"Y"需要,"N"不需要
+                'documents'=>'N',//包裹是否只包含文件DP、LZ、CP、UT必填:"Y"是,"N"不是
+                'non_delivery_instruction'=>'NONE',//非交货情况下的说明DP、LZ、CP、UT必填:NONE[无说明],RETURN[发送人返回],DESTROY[文件销毁]
+                'export_type'=>'Other',//出口类型DP、LZ、CP、UT必填:可选值有（Merchandise / Sample,Gift,Returned Goods,Other
+                'reference_number'=>$referenceID,//此字段可以输入客户订单号或客户的其他内部参考号
+                'parcel_price'=>number_format($parcel_price,2),//包裹内件总价格(申报总价格)
+
+                'parcel_quantity'=>$parcel_quantity,//包裹内件总数量
+                'parcel_weight'=>number_format($order['estimated_weight']/1000,3),//包裹内件总重量
+
+                'parcel_length'=>0,
+                'parcel_height'=>0,
+                'parcel_width'=>0,
+                /*'parcel_length'=>number_format($order['length']/10,2),
+                'parcel_height'=>number_format($order['height']/10,2),
+                'parcel_width'=>number_format($order['width']/10,2),*/
+
+                'return_country'=>($shipping_method_code[1]=='01' || $shipping_method_code[1]=='98')?'AU':'',
+                'return_post'=>($shipping_method_code[1]=='01' || $shipping_method_code[1]=='98')?'1405':'',
+                'return_state'=>($shipping_method_code[1]=='01' || $shipping_method_code[1]=='98')?'NSW':'',
+                'return_street'=>($shipping_method_code[1]=='01' || $shipping_method_code[1]=='98')?'Po BOX 6082':'',
+                'return_city'=>($shipping_method_code[1]=='01' || $shipping_method_code[1]=='98')?'Chullora':'',
+                'return_company'=>($shipping_method_code[1]=='01' || $shipping_method_code[1]=='98')?'C/O STI':'',
+                'contents'=>$contents,
+            ];
+            $response = Curl::curlPost($this->_config['url'].'createParcel',json_encode($package),$this->_config['header']);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->_config['url'],
+                'header'=>'',
+                'request'=>json_encode($package),
+                'response'=>$response
+            ];
+            $result = json_decode($response, true);
+            if(is_array($result)){
+                if(isset($result['success']) && $result['success']=='true'){
+                    $this->result['data']['number']             = $order['number'];      // 参考号
+                    $this->result['data']['package_code']       = $result['parcel']['order_no'];  // 内单号
+                    $this->result['data']['trackingNumber']     = $result['parcel']['tracking_code'];  // 跟踪号(转单号是跟踪号) （有些没有跟踪号）
+                    $this->result['data']['has_trackingNumber'] = true;
+                    $this->result['data']['confirm']            = true;                              // 是否交运
+                    $this->result['data']['label']              = true;                              // 是否有pdf
+                    $this->result['data']['label_url']          = '';                              // 是否有pdf
+                    $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                    $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                    $this->result['success']                    = true;
+                }else{
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+                    $this->result['error'] = [
+                        'error_msg'  => json_encode($result['errors']),
+                        'error_code' => 1
+                    ];
+                }
+            }else{
+                $this->result['error'] = [
+                    'error_msg'  => '未知错误',
+                    'error_code' => 1
+                ];
+            }
+
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+    public function updateWeight($config){
+
+    }
+    /**
+     * 删除订单（暂时不可用）
+     * @param number $orderId
+     * @param string $customerId
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+
+    }
+    /**
+     * 获取运输方式详细信息
+     */
+    public function getExpress($config)
+    {
+        $parcel_warehouse_code=[
+            'SZ'=>'深圳',
+            'HZ'=>'杭州',
+            'GZ'=>'广州',
+            'LD'=>'伦敦',
+            'SH'=>'上海'
+        ];
+        $warehouse_code=array();
+        $arr=array();
+        $i=0;
+        foreach ($parcel_warehouse_code as $key=>$value){
+            $i++;
+            $warehouse_code[$i]=[
+                ['code'=>'CORREOS|EU|'.$key, 'name'=>'Standard Air+ ES(交货仓库'.$value.')'],
+                ['code'=>'19EURDPDDE|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')'],
+                ['code'=>'PRIORITY_R1|EU|'.$key, 'name'=>'Economy Air(交货仓库'.$value.')'],
+                ['code'=>'DAC|EU|'.$key, 'name'=>'Standard Air(交货仓库'.$value.')'],
+                ['code'=>'SL018|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')'],
+                ['code'=>'FRSLTDPDNL|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')'],
+                ['code'=>'FRSLUT|EU|'.$key, 'name'=>'Economy Air(交货仓库'.$value.')'],
+                ['code'=>'PTSLTCACEXP|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')'],
+                ['code'=>'IESLTANPOST|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')'],
+                ['code'=>'3HPA|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')'],
+                ['code'=>'3H|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')'],
+                ['code'=>'UKECSLTYD|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')'],
+                ['code'=>'UKECSLTRM|EU|'.$key, 'name'=>'Standard Air+(交货仓库'.$value.')']
+            ];
+            $arr=array_merge($warehouse_code[$i],$arr);
+
+        }
+        $data = [
+            ['code'=>'ANTPAC|98','name'=>'空邮小包-半程跟踪(普货)(澳洲专线)'],
+            ['code'=>'ANTPAC#S|98','name'=>'空邮小包-半程跟踪(特货)(澳洲专线)'],
+            ['code'=>'ANTPAC#NEW|98','name'=>'空邮小包-半程跟踪(特货)(澳洲专线)'],
+            ['code'=>'AeParcelPacNS|01', 'name'=>'空邮专递-全程跟踪-不带签名(普货)(澳洲专线)'],
+            ['code'=>'AeParcelPacNS#S|01','name'=>'空邮专递-全程跟踪-不带签名(特货)(澳洲专线)'],
+            ['code'=>'AeParcelPar#NEW|01','name'=>'空邮专递-全程跟踪-签名(普货)(澳洲专线)'],
+            ['code'=>'AeParcelPar#S|01', 'name'=> '空邮专递-全程跟踪-签名(特货)(澳洲专线)'],
+
+            ['code'=>'USPS|US', 'name'=>'空邮标准包裹美国专线'],
+            ['code'=>'USFM|US', 'name'=>'空邮专递包裹美国专线'],
+
+
+
+            ['code'=>'BRCPEpacket|CE', 'name'=>'E邮宝'],
+            ['code'=>'RUCPEpacket|CE', 'name'=>'E邮宝'],
+            ['code'=>'CPEpacket|CE', 'name'=>'E邮宝'],
+
+            ['code'=>'HKPOST|HK', 'name'=>'香港小包'],
+            ['code'=>'HKPOST-2|HK', 'name'=>'香港挂号'],
+
+            ['code'=>'CLMYWPCL|YS', 'name'=>'Standard Air +(东南亚专线)'],
+            ['code'=>'CLMYEPCL|YS', 'name'=>'Standard Air +(东南亚专线)'],
+            ['code'=>'CLSGPCL|YS', 'name'=>'Standard Air +东南亚专线'],
+            ['code'=>'CLTHPCL|YS', 'name'=>'Standard Air +东南亚专线'],
+            ['code'=>'CLVNPCL|YS', 'name'=>'Standard Air +东南亚专线'],
+            ['code'=>'CLIDPCL|YS', 'name'=>'Standard Air +东南亚专线'],
+
+            ['code'=>'SPMYWPCL|YS', 'name'=>'Standard Air +东南亚小包'],
+            ['code'=>'SPMYWPCL|YS', 'name'=>'Standard Air +东南亚小包'],
+            ['code'=>'SPSGPCL|YS', 'name'=>'Standard Air +东南亚小包'],
+            ['code'=>'SPTHPCL|YS', 'name'=>'Standard Air +东南亚小包'],
+            ['code'=>'SPVNPCL|HK', 'name'=>'Standard Air +东南亚小包'],
+            ['code'=>'SPIDPCL|HK', 'name'=>'Standard Air +东南亚小包 '],
+
+
+            ['code'=>'NZANTPACS|UT', 'name'=>'Economy Air新西兰专线'],
+            ['code'=>'NZANTPAC|DP', 'name'=>'Economy Air新西兰专线'],
+            ['code'=>'NZPPA|LZ', 'name'=>'Standard Air 新西兰专线'],
+            ['code'=>'NZPPAS|CP', 'name'=>'Standard Air+新西兰专线 '],
+
+            ['code'=>'NZSAPACS|UT', 'name'=>'Economy Air 新西兰小包'],
+            ['code'=>'NZSAPAC|DP', 'name'=>'Economy Air 新西兰小包'],
+            ['code'=>'NZSAPPA|LZ', 'name'=>'Standard Air新西兰小包 '],
+            ['code'=>'NZSAPPAS|CP', 'name'=>'Standard Air+ 新西兰小包'],
+
+            ['code'=>'BRNX|BR', 'name'=>'巴西专线 '],
+
+            ['code'=>'USFM|US', 'name'=>'美国专线 '],
+            ['code'=>'USPS|US', 'name'=>'美国专线 '],
+
+            ['code'=>'CourierPSSCC|CL', 'name'=>'澳洲CL服务 '],
+            ['code'=>'CourierPCP|CL', 'name'=>'澳洲CL服务 '],
+
+            ['code'=>'DHL|OT', 'name'=>'快递 '],
+            ['code'=>'FedEx|OT', 'name'=>'快递 '],
+            ['code'=>'UPS|OT', 'name'=>'快递 '],
+            ['code'=>'EMS|OT', 'name'=>'快递 '],
+
+        ];
+        $warehouses=array_merge($arr,$data);
+        $result = [];
+        foreach($warehouses as $value){
+            $result[] = [
+                'code'=>$value['code'],
+                'name'=>$value['name'],
+            ];
+
+        }
+        $this->result['success'] = true;
+        $this->result['data'] = $result;
+        return $this->result;
+    }
+
+
+    /**
+     * 获取标签
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+
+        try{
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            if(empty($order['shipping_number'])){
+                throw new Exception('跟踪号为空，不能获取面单');
+            }
+            $requestData = [
+                'findNumbers'=>$order['shipping_number'],
+                'userId'=>$this->_config['appid'],
+                'pwd'=>md5($this->_config['appid'].$this->_config['pwd'] ),
+                'hasSku'=>'no',
+            ];
+            $url1 = $this->_config['url'].'printLabels?'.http_build_query($requestData);
+            $response = Curl::curlGet($url1);
+            if(strpos($response,'%PDF')===false){
+                throw new Exception('面单下载失败');
+            }
+            if ($response) {
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'],base64_encode($response),'pdf');
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+
+            }else{
+                $this->result['error'] = [
+                    'error_msg'=>'获取标签失败',
+                    'error_code'=>1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+
+
+}

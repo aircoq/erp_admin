@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="border:1pt solid #000;width:270pt;table-layout:fixed;border-collapse:collapse;float: left;">
+            <tbody>
+            <tr style="height:50pt">
+                <td colspan="5" style="border:1pt solid #000;border-bottom-width: 0;border-right-width: 0;">
+                    <div style="margin-left: 2pt;">
+                        CUSTOMSDECLARTION<br>
+                        DESIGNATEDOPERATOR
+                    </div>
+                </td>
+                <td colspan="2" style="line-height: 8pt;padding-left: 2pt;vertical-align: bottom;border-bottom-width:0; ">
+                    <div style="margin-bottom: 5pt;">
+                        important!
+                    </div>
+                </td>
+                <td colspan="5" style="line-height: 8pt;">
+                   <div style="text-align: right;font-weight: bold;line-height: 20pt"> CN22</div>
+                    <div style="padding-left:2pt">
+                        <div style="margin-bottom: 6pt;">
+                            Maybe opened officially<br>
+                            Peut etre ouvert d'office
+                        </div>
+                        <div>
+                            See instructions on the back
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <tr style="line-height: 16pt;">
+                <td colspan="5" style="border:1pt solid #000;text-align: center">
+                    Gift\Cad
+                </td>
+                <td style="border:1pt solid #000;" colspan="2">
+
+                </td>
+                <td colspan="5" style="text-align: left;border:1pt solid #000;">
+                    &nbsp;Commercial sample
+                </td>
+            </tr>
+            <tr style="line-height: 16pt;">
+                <td colspan="5" style="border:1pt solid #000;text-align: center;">
+                    Document
+                </td>
+                <td style="border:1pt solid #000;text-align: center;" colspan="2">
+                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAPCAYAAADUFP50AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAARJJREFUOE9j/A8EDOQAkEZyAAM5msCupIrGzweK/mtzsPxn1y79f/Q7yMhP/3dnq/1nY5X4H7jgIYodqDb+ffV/Xbzsf2Ym4f8B85/+/3mp9b8FF9N/AdfJ/2/+QXUbhlP/Ppr/P0CU6T+rXu7/2mCx/8y8Nv87Lv/G8BEWP/75f73P8T8/E/N/ZmbO/8Z1p/+DXY0GsGj8/f9yl+1/PmaW/yzM7P/1Ko7+/0qMxt/XJ/x3EmD+z+dY+b/alf8/E7fF/5YLPwnY+OfO/2keQv+ZWDX+Fx36+v/r4eL/mqzAwHGeiC9w/vy/P9fvvygT03+xkCX/n/8FWvL3+f8lwABiYhIFhjK+6CAhNVAn5ZBg4X8APUi6AD/XJQwAAAAASUVORK5CYII=">
+                </td>
+                <td colspan="5" style="text-align: center;border:1pt solid #000;">
+                    Other Tick one more boxes
+                </td>
+            </tr>
+            <tr>
+                <td colspan="8" style="border:1pt solid #000;text-align: center;">
+                    Quantity and detailed description of content
+                </td>
+                <td style="border:1pt solid #000;text-align: center;" colspan="2">
+                    Weight <br>(in kg)
+                </td>
+                <td colspan="2" style="text-align: center;border:1pt solid #000;">
+                    Vaklue <br>(USD)
+                </td>
+            </tr>
+            <?php foreach ($list as $k=>$v):if($k>1){ break;}?>
+            <tr>
+                <td colspan="8" style="border:1pt solid #000;text-align: left;">
+                    <div style="padding-left:2pt;"> <?php echo $v['declared_name_en']."*".$v['qty'];?></div>
+                </td>
+                <td style="border:1pt solid #000;text-align: center;" colspan="2">
+                    <?php echo number_format($v['declared_weight']/1000,3,'.','');?>
+                </td>
+                <td colspan="2" style="text-align: center;border:1pt solid #000;">
+                    <?php echo number_format($v['declared_value']*$v['qty'],3,'.','');?>
+                </td>
+            </tr>
+            <?php endforeach;?>
+            <tr>
+                <td colspan="8" style="border:1pt solid #000;text-align: center;">
+                    For commercial items onlyif knowm,HStariff numberand countryof origin of goo
+                </td>
+                <td style="border:1pt solid #000;text-align: center;" colspan="2">
+                    Total <br>Weight <br>(Kg) <br> <?php echo number_format($total_weight/1000,2,'.','');?>
+                </td>
+                <td colspan="2" style="text-align: center;border:1pt solid #000;">
+                    Total <br>Vaklue <br>(USD) <br><?php echo number_format($total_value,2,'.','');?>
+                </td>
+            </tr>
+            <?php foreach ($list as $k=>$v): if($k>1){ break;}?>
+            <tr>
+                <td colspan="8" style="border:1pt solid #000;text-align: left;">
+                    <div style="padding-left:2pt;"><?php echo $v['declared_name_cn']."*".$v['qty'];?></div>
+                </td>
+                <td style="border:1pt solid #000;text-align: center;" colspan="2">
+
+                </td>
+                <td colspan="2" style="text-align: center;border:1pt solid #000;">
+
+                </td>
+            </tr>
+            <?php endforeach;?>
+            <tr>
+                <td colspan="12" style="border:1pt solid #000;text-align: left;">
+                    <div style="padding-left:2pt;">
+                        I the undersingned,whose name and address are given on the item,certifythat the
+                        particulars given in this declaration are correct and that this item does not
+                        conainanydangerous article or articles prohibited bylegislation or bypostal
+                        customs rgulations Date and sender's siganature<?php echo date('Y-m-d H:i:s',time())?>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:9pt;margin:0 auto;margin-top: 20pt;">
+        <!-- 地址标签 -->
+        <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+            <div style="border:1pt solid #000;">
+                <table cellpadding="0" cellspacing="0" style="width:266pt;table-layout:fixed;float: left;">
+                    <tbody>
+                    <tr >
+                        <td  colspan="12">
+                            <div style="border:1pt solid #000;padding: 1pt;width:170px;float: left;border-left: 0;border-top:0;">
+                                <table>
+                                    <tr>
+                                        <td style="font-weight: bold">HH</td>
+                                        <td>Name
+                                            Business
+                                            Street
+                                            Zipcode
+                                            Country</td>
+                                        <td>
+                                            BPOST
+                                            POBox7169
+                                            1934 CityEMCBrucargo
+                                            Belgium
+                                        </td>
+                                    </tr>
+                                </table>
+
+                            </div>
+                            <div style="width:80px;float: left;padding: 5px;">
+                                if<br>
+                                undelivered<br>
+                                please<br>
+                                return to<br>
+                                sende<br>
+
+                            </div>
+                            <div style="border:1pt solid #000;padding-bottom:20pt;padding-top:10pt;padding-left:3pt;height:30px;width:80px;float: right;font-size: 6px;border-right: 0;border-top: 0;">
+                                BE.PP-<font style="font-size: 10pt;font-weight: bold">7169</font><br>BELGIE(E)-<br>
+                                BELGIQUE
+
+                            </div>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td colspan="12" style="text-align: left;font-weight: bold;line-height: 20pt">
+                            <?php echo 'P'.$number; ?>
+                        </td>
+
+                    </tr>
+                    <tr >
+                        <td colspan="2" style="border:1pt solid #000;border-left: 0;border-right: 0;"> <span style="font-size: 11pt;font-weight: bold;">TO:</span><br></td>
+                        <td colspan="10" style="border:1pt solid #000;border-right: 0;">
+
+                            <div style="width:100%;margin-top: 10pt;margin-left:5pt;">
+                                <div>
+                                    <span style="font-size: 11pt;font-weight: bold;">name:</span><?php echo $name;?><br>
+                                    <span style="font-size: 11pt;font-weight: bold;">Busines:</span><?php echo $street;?><br>
+                                    <span style="font-size: 11pt;font-weight: bold;">Street:</span> <?php echo $street2;?><br>
+                                    <span style="font-size: 11pt;font-weight: bold;">City:</span>  <?php echo $city?>  <?php echo $province?> <br>
+                                    <span style="font-size: 11pt;font-weight: bold;">Zipcode:</span>  <?php echo $zip?> <br>
+                                    <span style="font-size: 11pt;font-weight: bold;">TEL:</span>  <?php echo $phone?>/<?php echo $tel?> <br>
+                                    <span style="font-size: 11pt;font-weight: bold;">Country:</span>   <?php echo $country_en_name?> <br>
+
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <table cellpadding="0" cellspacing="0" style="width:266pt;table-layout:fixed;border-collapse:collapse;">
+                    <tbody>
+                    <tr>
+                        <td colspan="3" style="text-align: center;font-weight: bold;">
+                            R
+                        </td>
+                        <td colspan="8">
+                            <?php echo $shipping_number; ?>
+
+                        </td>
+                        <td colspan="1" style="text-align: center;font-weight: bold;">
+                            <?php echo $country_code; ?>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="12" style="padding:2pt 0;font-size:8pt;line-height:10pt;">
+                            <div style="float:left;width:100%;text-align:center;padding:2pt 0;">
+                                <span style="display:inline-block;height:28pt;line-height:30pt;overflow-y:hidden;">
+                                    <img style="width:180pt;height:40pt;"
+                                        src="<?php echo $this->imgSrc($shipping_number); ?>"> </span><br>
+
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- <div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div> -->
+</body>
+</html>

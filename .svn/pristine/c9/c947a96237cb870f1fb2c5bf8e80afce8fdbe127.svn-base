@@ -1,0 +1,118 @@
+<?php
+
+namespace app\index\service;
+
+use app\common\model\DepartmentTagMap;
+use app\index\service\DepartmentTagService as TagService;
+use app\common\exception\JsonErrorException;
+use think\Exception;
+
+class DepartmentTagMapService
+{
+
+    protected $departmentTagMapModel = null;
+
+    public function __construct()
+    {
+        if (is_null($this->departmentTagMapModel)) {
+            $this->departmentTagMapModel = new DepartmentTagMap();
+        }
+    }
+
+    /**
+     * 获取部门所有的标签
+     * @param int $department_id 部门id
+     * @return array
+     */
+    public function get($department_id)
+    {
+        $maps = $this->departmentTagMapModel->where('department_id', $department_id)->select();
+
+        $tagService = new TagService();
+
+        foreach ($maps as $key => &$val) {
+            $val['name'] = $tagService->getNameById($val['department_tag_id']);
+        }
+
+        return $maps;
+    }
+
+
+    /**
+     * 新增部门标签
+     * @param int $department_id 部门id
+     * @param array $department_tag_id 标签id
+     * @return boolean
+     */
+    public function add($department_id, array $department_tag_id)
+    {
+        // 1. 删除部门所有的标签
+        $this->delByDeptId($department_id);
+
+        // 2. 重新保存部门的所有标签
+        if (!empty($department_tag_id)){
+            foreach ($department_tag_id as $id) {
+                $data[] = [
+                    'department_id' => $department_id,
+                    'department_tag_id' => $id,
+                    'create_time' => $_SERVER['REQUEST_TIME']
+                ];
+            }
+            return $this->departmentTagMapModel->insertAll($data);
+        }
+        return true;
+    }
+
+
+    /**
+     * 删除部门与标签的映射关系
+     * @param int $id 映射表id
+     * @return boolean
+     */
+    public function del($id)
+    {
+        return $this->departmentTagMapModel->where('id', $id)->delete();
+    }
+
+    /**
+     * 根据部门id，删除部门与标签的映射关系
+     * @param int $department_id 部门表id
+     * @return boolean
+     */
+    public function delByDeptId($department_id)
+    {
+        return $this->departmentTagMapModel->where('department_id', $department_id)->delete();
+    }
+
+    /**
+     * 根据部门id，删除部门与标签的映射关系
+     * @param int $department_tag_id 标签id
+     * @return boolean
+     */
+    public function isExists($department_tag_id)
+    {
+        $re = $this->departmentTagMapModel->where('department_tag_id', $department_tag_id)->count();
+        return $re && true;
+    }
+
+    /**
+     * 根据部门id，删除部门与标签的映射关系
+     * @param int $department_tag_id 标签id
+     * @return boolean
+     */
+    public function delByTagId($department_tag_id)
+    {
+        return $this->departmentTagMapModel->where('department_tag_id', $department_tag_id)->delete();
+    }
+
+    /**
+     * 获取部门所有的标签id
+     * @param array $department_id 部门id
+     * @return array
+     */
+    public function getDeptTagId($department_id)
+    {
+        $where['department_id'] = ['in', $department_id];
+        return $this->departmentTagMapModel->field('department_id,department_tag_id')->where($where)->select();
+    }
+}

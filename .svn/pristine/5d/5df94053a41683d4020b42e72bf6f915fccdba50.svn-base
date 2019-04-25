@@ -1,0 +1,57 @@
+<?php
+namespace command;
+use app\index\service\AbsTasker;
+use app\index\service\TaskScheduler;
+use think\console\Command;
+use think\console\Input;
+use think\console\input\Option;
+use think\console\Output;
+
+/**
+ * 拓展cmd命令
+ * @author RondaFul
+ *
+ */
+class Cmd extends Command
+{
+    /**
+     * 配置cmd 命令参数
+     * @see \think\console\Command::configure()
+     */
+    protected function configure()
+    {
+        // 指令配置
+        $this
+        ->setName('cmd')
+        ->addOption('names', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->addOption('method', null, Option::VALUE_OPTIONAL, 'command entrance all', null)
+        ->addOption('args', null, Option::VALUE_OPTIONAL, 'command argument', null)
+        ->setDescription('command entrance');
+    }
+    
+    /**
+     * 根据传值执行相应类下的方法（计划任务使用）
+     * @see \think\console\Command::execute()
+     */
+    protected function execute(Input $input, Output $output)
+    {
+        $names  = $input->getOption('names');
+        $method = $input->getOption('method');
+        $args   = $input->getOption('args');
+        $args   = isset($args) && !empty($args) ? json_decode($args, true) : [];
+        $obj    = new $names();
+        if(method_exists($obj, $method)){
+            if ($args) {
+                $obj->$method($args);
+            } else {
+                $obj->$method();
+            }
+        }else{
+            echo "";
+        }
+    }
+
+    protected function execute2(Input $input, Output $output){
+        $workerId = $input->getOption('worker');
+    }
+}

@@ -1,0 +1,57 @@
+<?php
+namespace service\oberlo\Categorie;
+
+use service\oberlo\RequestService;
+use service\oberlo\OberloException;
+
+/**
+ * Categorie接口服务类
+ * @author wangwei 2019-3-1 17:29:52
+ */
+class CategorieService extends RequestService{
+    
+    /**
+     * 获取所有品类
+     * @return array
+     */
+    public function getCategoryTree(){
+        $return = array(
+            'ask'=>0,
+            'message'=>'',
+            'reason'=>'',
+            'http_statu'=>'',
+            'request_url'=>'',
+            'categories'=>array(),
+            'org_data'=>'',
+        );
+        
+        /**
+         * 1、设置请求
+         */
+        $this->setRequest('GET', '/categories');
+        
+        /**
+         * 2、调用公共请求方法
+         */
+        try {
+            //执行请求
+            $re = $this->executeRequest();
+            if($re['ask']){
+                $return['ask'] = 1;
+            }
+            $return['message'] = $re['message'];
+            $return['http_statu'] = $re['http_statu'];
+            $return['request_url'] = $re['request_url'];
+            $return['categories'] = $re['data']['items'];
+            $return['org_data'] = $re['org_data'];
+        } catch (OberloException $e) {
+            $return['message'] = $e->getErrorMessage();
+            $return['reason'] = $e->getErrorReason();
+            $return['request_url'] = $e->getRequestUrl();
+            $return['http_statu'] = $e->getHttpStatu();
+            $return['org_data'] = $e->getORG();
+        }
+        return $return;
+    }
+	
+}

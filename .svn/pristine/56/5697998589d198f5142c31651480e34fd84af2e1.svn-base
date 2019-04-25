@@ -1,0 +1,74 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-12
+ * Time: 上午9:36
+ */
+
+namespace swoole;
+
+
+final class TaskRunResult
+{
+    /**
+     * @var TaskRunner
+     */
+    private $taskRunner;
+
+    private $pid;
+    private $time;
+    private $result;
+
+    /**
+     * TaskRunResult constructor.
+     * @param TaskRunner $taskRunner
+     * @param $pid
+     * @param $time
+     * @param $result
+     */
+    public function __construct(TaskRunner $taskRunner, $pid, $time, $result)
+    {
+        $this->taskRunner = $taskRunner;
+        $this->pid = $pid;
+        $this->time = $time;
+        $this->result = $result;
+    }
+
+    /**
+     * @return TaskRunner
+     */
+    public function getTaskRunner(): TaskRunner
+    {
+        return $this->taskRunner;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPid()
+    {
+        return $this->pid;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getTime()
+    {
+        return $this->time;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResult()
+    {
+        return $this->result;
+    }
+
+    public function log()
+    {
+        echo 100;
+    }
+}

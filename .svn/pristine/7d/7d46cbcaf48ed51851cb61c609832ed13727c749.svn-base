@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.5526475073239963 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;">
+        <div style="width:270pt;border-bottom:1pt solid #000;">
+            <div style="float:left;width:240pt;">
+                <div style="margin-left:10pt;font-size:11pt;line-height:12pt;">YANWEN</div>
+                <div style="margin-left:10pt;font-size:11pt;line-height:12pt;text-align: right;font-weight: bold">1</div>
+                <div style="width:240pt;text-align:center;font-size:9pt;line-height:10pt;"><span
+                        style="display:inline-block;height:30pt;line-height:30pt;overflow-y:hidden">
+                        <img style="width:190pt;height:45pt;" src="<?php echo $this->imgSrc($shipping_number);?>"> </span>
+                    <br>
+                    <?php echo $shipping_number;?>
+                </div>
+            </div>
+
+            <div style="clear:both"></div>
+        </div>
+        <div style="width:270pt;padding:2pt 0;font-size:9pt;line-height:10pt;font-weight:bold;text-align:center;border-bottom:1pt solid #000;">
+            燕邮宝挂号
+        </div>
+        <div style="width:266pt;padding:2pt;font-size:10pt;line-height:12pt;"><strong>To:</strong><br> <?php echo $name;?>
+            Tel: <?php echo $phone;?> <br> <?php echo $street.$street2;?>  <br>
+            <?php echo $city;?>  <?php echo $province;?>  <?php echo $zip;?><br>
+            <?php echo $country_en_name;?> <br>
+            OrderNo:P<?php echo $number;?> <br>
+            <?php echo $country_name;?>
+        </div>
+        <div style="width:270pt;">
+            <div style="width:100%;text-align:right;font-size:8pt;line-height:11pt;">302065</div>
+        </div>
+        <div style="width:270pt;">
+            <div style="width:100%;text-align:right;font-size:10pt;line-height:11pt;"><?php echo date('Y-m-d',time());?></div>
+        </div>
+        <div style="clear:both"></div>
+    </div>
+    <div style="width:270pt;margin-top:2pt;overflow-x:hidden;">
+
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+
+</body>
+</html>

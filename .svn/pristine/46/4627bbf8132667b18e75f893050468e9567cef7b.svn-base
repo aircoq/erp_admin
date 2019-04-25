@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.05695864137022055 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <div style="width:268pt;border:1pt solid #000;">
+            <div style="width:80pt;float:left;"><img width="100%" style="height:24pt"
+                                                     src="data:image/jpeg;base64,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"></div>
+            <div style="line-height: 8pt;width:100pt;float:left;font-size:8pt;font-weight:bold;text-align:center;"> 航
+                空<br>Small packet<br>BY AIR
+            </div>
+            <div style="width:80pt;float:left;font-size:10pt;line-height:10pt;font-weight:bold;text-align:center;margin-top:7pt;">
+                <?php echo $country_name;?> <?php echo $country_code;?>
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-top:0;font-size:8pt;line-height:9pt;">
+            协议客户：90000008504838
+        </div>
+        <div style="width:268pt;border:solid 1pt #000;border-top:0;font-weight:bold;font-size:7pt;line-height:8pt;">
+            <div style="width:30pt;float:left;"> From:</div>
+            <div style="width:238pt;float:left;word-wrap:break-word;"> ROOM 201, 2ND FLOOR, STREET 151, XIWANG INDUSTRY
+                AREA, TIANTANGWEI VILLAGE
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-top:0;border-bottom:0;font-size:8pt;line-height:8pt;word-wrap:break-word;">
+            <div style="width:30pt;float:left;font-weight:bold;"> TO:</div>
+            <div style="width:238pt;float:left;word-wrap:break-word;">
+                <?php echo $name;?><br> <?php echo $street.$street2;?>
+                <br><?php echo $city?> <?php echo $province?>
+                <?php echo $zip?> <?php echo $country_en_name?>
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt;border:solid 1pt #000;border-bottom:0;font-weight:bold;font-size:8pt;line-height:9pt;">
+            <div style="width:100pt;float:left;"> Zip:<?php echo $zip?></div>
+            <div style="width:168pt;float:left;word-wrap:break-word;"> TEl: <?php echo $phone?></div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt;border:solid 1pt #000;font-size:8pt;line-height:8pt;">
+            <div style="width:65pt;float:left;"> 退件单位：</div>
+            <div style="width:200pt;float:left;word-wrap:break-word;"> 广州小包大宗寄处理中心</div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt; border:solid 1pt #000;border-top:0;border-bottom:none;padding-top:1pt;font-size:8pt;line-height:9pt;">
+            <div style="width:34pt;text-align:center;float:left;font-size:30pt;line-height:30pt;"> <?php echo $zip_code?$zip_code:'&nbsp;';?></div>
+            <div style="width:205pt;float:left;text-align:center;"><span
+                        style="display:inline-block;height:25pt;line-height:25pt;overflow-y:hidden"> <img
+                            style="width:180pt;height:30pt;"
+                            src="<?php echo $this->imgSrc($shipping_number);?>"> </span>
+                <br> <?php echo $shipping_number; ?>
+            </div>
+            <div style="width:28pt;text-align:center;float:left;font-size:14pt;line-height:30pt;"> C</div>
+            <div style="clear:both;"></div>
+        </div>
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:6pt;line-height:6pt;">
+            <tbody>
+            <tr>
+                <td style="width:88pt;border:solid 1pt #000;"><b>报关签条</b><br> CUSTOMS DECLARATION</td>
+                <td style="width:88pt;border:solid 1pt #000;"> 可以径行开拆 CN22<br> May be opened officially</td>
+                <td style="border:solid 1pt #000;"> 请先阅读背面的注意事项<br> see Instrictions on the</td>
+            </tr>
+            </tbody>
+        </table>
+        <div style="width:270pt;">
+            <div style="width:180pt;float:left;">
+                <table cellpadding="0" cellspacing="0"
+                       style="width:180pt;table-layout:fixed;border-collapse:collapse;font-size:6pt;line-height:6pt;">
+                    <tbody>
+                    <tr>
+                        <td style="width:88pt;"></td>
+                        <td style="width:48pt;"></td>
+                        <td style=""></td>
+                    </tr>
+                    <tr>
+                        <td style="border:solid 1pt #000;border-top:none;"> 邮件种类 Category of Item</td>
+                        <td colspan="2" style="border:solid 1pt #000;border-top:none;"> 其他 other</td>
+                    </tr>
+                    <tr>
+                        <td style="border:solid 1pt #000;text-align:center;word-wrap:break-word;font-size: 6pt;">
+                            内件详细名称和数量Quantity and detailed description
+                        </td>
+                        <td style="border:solid 1pt #000;text-align:center;"> 重量（千克）<br> weight(kg)</td>
+                        <td style="border:solid 1pt #000;text-align:center;"> 价值<br> value</td>
+                    </tr>
+                    <?php foreach ($list as $k=>$v):?>
+                    <tr>
+                        <td style="border-left:solid 1pt #000;border-right:solid 1pt #000;word-wrap:break-word;font-size: 7pt; line-height: 8pt;text-align:center;">
+                            <?php echo $v['qty']."*".$v['declared_name_en']." ".$v['declared_name_cn'];?>
+                        </td>
+                        <td style="border-left:solid 1pt #000;border-right:solid 1pt #000;text-align:center;font-size: 7pt; line-height: 8pt;">
+                            <?php echo number_format($v['declared_weight']/1000*$v['qty'],3,'.','');?>
+                        </td>
+                        <td style="border-left:solid 1pt #000;border-right:solid 1pt #000;text-align:center;font-size: 7pt; line-height: 8pt;">
+                            USD <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?>
+                        </td>
+                    </tr>
+                    <?php endforeach;?>
+                    <tr>
+                        <td style="border:solid 1pt #000;word-wrap:break-word;font-size: 6pt;">
+                            协调系统税则号列和货物原产国(只对商品邮件填写)HS tatill number and country of origin
+                        </td>
+                        <td style="border:solid 1pt #000;text-align:center;"> 总重量(千克)<br>Total weight</td>
+                        <td style="border:solid 1pt #000;text-align:center;"> 总价值<br>Total value<br></td>
+                    </tr>
+                    <tr>
+                        <td style="border:solid 1pt #000;word-wrap:break-word;font-size: 6pt;"></td>
+                        <td style="border:solid 1pt #000;text-align:center;"> <?php echo number_format($total_weight/1000,3,'.','');?></td>
+                        <td style="border:solid 1pt #000;text-align:center;"> USD <?php echo number_format($total_value,2,'.','');?></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="width:90pt;float:left;text-align:center;">
+                <table cellpadding="0" cellspacing="0"
+                       style="width:90pt;table-layout:fixed;border-collapse:collapse;font-size:6pt;line-height:6pt;">
+                    <tbody>
+                    <tr>
+                        <td style="width:38pt;border:1pt solid #000;border-top:none;border-left:none;text-align:center;">
+                            航空
+                        </td>
+                        <td style="border:1pt solid #000;border-top:none;text-align:center;text-align:center; font-weight:bold;">
+                            Guanzhou<br>China
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width:38pt;border:1pt solid #000;border-left:none;text-align:center;"> PAP<br> AVION
+                        </td>
+                        <td style="border:1pt solid #000;word-wrap:break-word;text-align:center; font-weight:bold;">
+                            已验视
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width:38pt;border:1pt solid #000;border-left:none;text-align:center;"> 小包邮件</td>
+                        <td style="border:1pt solid #000;word-wrap:break-word;text-align:center; font-weight:bold;"> 单位：<br>广州小包中心
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width:38pt;border:1pt solid #000;border-left:none;text-align:center;"> PETIT PAQUET
+                        </td>
+                        <td style="border:1pt solid #000;word-wrap:break-word;text-align:center; font-weight:bold;">
+                            验视人：梁穗敏
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:266pt;padding:1pt;border:solid 1pt #000;font-size:5pt;line-height:5pt;word-wrap:break-word;">
+            我保证上述准确无误，本函件未装法律或邮政和海关规章禁止寄违禁的任何危险物Itheundersingned,certify the particulars given in this declaration are
+            correct and this this item does not contain any dangerous artickes prohibited by legislation or by postal
+            customs regulations. <br>寄件人签字Sender"ssignature:Alex Lee <span style="margin-left:120pt;">Rondaful</span>
+        </div>
+
+</div>
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

@@ -1,0 +1,758 @@
+<?php
+/**
+ * 亚马逊报告 API 服务类
+ * @author wangwei  
+ * @date 2018-10-31 19:41:59
+ */
+namespace service\amazon\Report;
+
+use service\amazon\Report\ReportBaseService;
+use org\XmlHandle;
+
+class ReportService extends ReportBaseService
+{
+	/**
+	 * 创建报告请求，并将请求提交至亚马逊 MWS
+	 * 最大请求限额为 15 个，恢复速率为每分钟 1 个请求
+	 * @param string $ReportType  ReportType的值，指明待请求报告的类型
+	 * @param date $StartDate  用于选择待报告数据日期范围的起始日期(默认值：现在)，如:2016-05-18 10:03:09
+	 * @param date $EndDate  用于选择待报告数据日期范围的结束日期
+	 * @param string $ReportOptions  传递给报告的其他信息，具体格式和数据需要请参照文档
+	 * @param array $MarketplaceIdList  一个包含账号所注册的一个或多个商城编号的列表(默认值：注册的第一个商城)。生成的报告将包含您指定的所有商城的信息
+	 */
+	public function requestReport(
+			$ReportType,
+			$StartDate = '',
+			$EndDate = '',
+			$ReportOptions = '',
+			$MarketplaceIdList = array()
+			){
+		$return = array(
+				'ask' => 0,
+				'message'=>'requestReport_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'ReportRequestId'=>'',//报告请求的唯一编码
+						'ReportType'=>'',//所请求的 ReportType 值
+						'StartDate'=>'',//用于选择待报告数据日期范围的起始日期
+						'EndDate'=>'',//	用于选择待报告数据日期范围的结束日期
+						'Scheduled'=>false,//用来指明是否已计划报告。如果已计划报告，则值为 true；否则值为 false
+						'SubmittedDate'=>'',//提交报告的日期
+						'ReportProcessingStatus'=>'',//报告的处理状态
+				),
+		);
+	
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+	
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \MarketplaceWebService_Model_RequestReportRequest();
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置要获取的报告类型
+		$request->setReportType($ReportType);
+		//设置要获取的报告数据的日期范围的起始日期
+		if($StartDate){
+			$request->setStartDate(new \DateTime($StartDate, new \DateTimeZone('UTC')));
+		}
+		//设置要获取的报告数据的日期范围的结束日期
+		if($EndDate){
+			$request->setEndDate(new \DateTime($EndDate, new \DateTimeZone('UTC')));
+		}
+		//设置传递给报告的其他信息(具体格式和数据需要请参照文档)
+		$request->setReportOptions($ReportOptions);
+		//如果站点不为中国和日本，并且传入 商城编号的列表 ,设置它
+		if($this->_tokenConfig['SITE'] !='JP' && $this->_tokenConfig['SITE'] !='CN' && !empty($MarketplaceIdList)){
+			$IdList = new \MarketplaceWebService_Model_IdList();
+			$IdList->setId($MarketplaceIdList);
+			$request->setMarketplaceIdList($IdList);
+		}
+	
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'requestReport');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_RequestReportResult){
+				if ($resultObj->isSetReportRequestInfo()) {
+					$reportRequestInfo = $resultObj->getReportRequestInfo();
+					if ($reportRequestInfo->isSetReportRequestId()){
+						$return['data']['ReportRequestId'] = $reportRequestInfo->getReportRequestId();
+					}
+					if ($reportRequestInfo->isSetReportType()){
+						$return['data']['ReportType'] = $reportRequestInfo->getReportType();
+					}
+					if ($reportRequestInfo->isSetStartDate()){
+						$return['data']['StartDate'] = $reportRequestInfo->getStartDate()->format(DATE_FORMAT);
+					}
+					if ($reportRequestInfo->isSetEndDate()){
+						$return['data']['EndDate'] = $reportRequestInfo->getEndDate()->format(DATE_FORMAT);
+					}
+					if($reportRequestInfo->isSetScheduled()){
+						$return['data']['Scheduled'] = $reportRequestInfo->getScheduled();
+					}
+					if ($reportRequestInfo->isSetSubmittedDate()){
+						$return['data']['SubmittedDate'] = $reportRequestInfo->getSubmittedDate()->format(DATE_FORMAT);
+					}
+					if ($reportRequestInfo->isSetReportProcessingStatus()){
+						$return['data']['ReportProcessingStatus'] = $reportRequestInfo->getReportProcessingStatus();
+					}
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_RequestReportResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回可用于获取报告的 ReportRequestId 的报告请求列表(用于查询报告处理状态)
+	 * 最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 * @param string $RequestedFromDate  选择待报告数据日期范围的起始日期，如:2016-05-18 10:03:09
+	 * @param string $RequestedToDate  选择待报告数据日期范围的结束日期
+	 * @param array $ReportRequestIdList  ReportRequestId 数组，传入后将忽略其他参数（可以是下标数组可以是一个字符串，下同）
+	 * @param array $ReportTypeList  ReportType枚举值的结构化列表
+	 * @param array $ReportProcessingStatusList  报告处理状态的结构化列表，依照其来过滤报告请求
+	 * @param int $MaxCount  表明待返回报告请求的最大数量。如果指定一个大于 100 的数字，请求将被拒绝
+	 */
+	public function getReportRequestList(
+			$RequestedFromDate = '',
+			$RequestedToDate = '',
+			$ReportRequestIdList = array(),
+			$ReportTypeList = array(),
+			$ReportProcessingStatusList = array(),
+			$MaxCount = 100
+			){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getReportRequestList_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'HasNext'=>false,//是否包含下一页
+						'NextToken'=>'',//生成的字符串，用于将信息传递给另一个调用。将 NextToken 值传递给 GetReportRequestListByNextToken 操作
+						'reportRequestInfoArr'=>array()
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		 */
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		 */
+		$request = new \MarketplaceWebService_Model_GetReportRequestListRequest();
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置起始时间
+		if($RequestedFromDate){
+			$request->setRequestedFromDate(new \DateTime($RequestedFromDate, new \DateTimeZone('UTC')));
+		}
+		//设置结束时间
+		if($RequestedToDate){
+			$request->setRequestedToDate(new \DateTime($RequestedToDate, new \DateTimeZone('UTC')));
+		}
+		//设置ReportRequestId 数组
+		if(!empty($ReportRequestIdList)){
+			$RequestIdList = new \MarketplaceWebService_Model_IdList();
+			$RequestIdList->setId($ReportRequestIdList);
+			$request->setReportRequestIdList($RequestIdList);
+		}
+		//设置报告类型
+		if(!empty($ReportTypeList)){
+			$TypeList = new \MarketplaceWebService_Model_TypeList();
+			$TypeList->setType($ReportTypeList);
+			$request->setReportTypeList($TypeList);
+		}
+		//设置报告状态
+		if(!empty($ReportProcessingStatusList)){
+			$StatusList = new \MarketplaceWebService_Model_StatusList();
+			$StatusList->setStatus($ReportProcessingStatusList);
+			$request->setReportProcessingStatusList($StatusList);
+		}
+		//设置返回的数据条数
+		$request->setMaxCount($MaxCount);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getReportRequestList');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetReportRequestListResult){
+				if ($resultObj->isSetNextToken()){
+					$return['data']['NextToken'] = $resultObj->getNextToken();
+				}
+				if ($resultObj->isSetHasNext()){
+					$return['data']['HasNext'] = $resultObj->getHasNext();
+				}
+				$reportRequestInfoArr = array();
+				if($resultObj->isSetReportRequestInfo()){
+					$reportRequestInfoList = $resultObj->getReportRequestInfoList();
+					//解析 \MarketplaceWebService_Model_ReportRequestInfo 对象，返回数组
+					$reportRequestInfoArr = $this->resolveReportRequestInfoListObj($reportRequestInfoList);
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['data']['reportRequestInfoArr'] = $reportRequestInfoArr;
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetReportRequestListResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回使用 NextToken 参数的报告请求列表
+	 * 最大请求限额为 30 个，恢复速率为每 2 秒 1 个请求
+	 * @param string $NextToken  下一页的Token
+	 * @return array
+	 */
+	public function getReportRequestListByNextToken($NextToken){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getReportRequestListByNextToken_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'HasNext'=>false,//是否包含下一页
+						'NextToken'=>'',//生成的字符串，用于将信息传递给另一个调用。将 NextToken 值传递给 GetReportRequestListByNextToken 操作
+						'reportRequestInfoArr'=>array()
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		 */
+		$request = new \MarketplaceWebService_Model_GetReportRequestListByNextTokenRequest();
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置NextToken
+		$request->setNextToken($NextToken);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getReportRequestListByNextToken');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetReportRequestListByNextTokenResult){
+				if ($resultObj->isSetNextToken()){
+					$return['data']['NextToken'] = $resultObj->getNextToken();
+				}
+				if ($resultObj->isSetHasNext()){
+					$return['data']['HasNext'] = $resultObj->getHasNext();
+				}
+				$reportRequestInfoArr = array();
+				if($resultObj->isSetReportRequestInfo()){
+					$reportRequestInfoList = $resultObj->getReportRequestInfoList();
+					//解析 \MarketplaceWebService_Model_ReportRequestInfo 对象，返回数组
+					$reportRequestInfoArr = $this->resolveReportRequestInfoListObj($reportRequestInfoList);
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['data']['reportRequestInfoArr'] = $reportRequestInfoArr;
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetReportRequestListByNextTokenResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回已提交至亚马逊 MWS 进行处理的报告请求计数
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 * @param string $RequestedFromDate   选择待报告数据日期范围的起始日期，如:2016-05-18 10:03:09
+	 * @param string $RequestedToDate   选择待报告数据日期范围的结束日期
+	 * @param array $ReportTypeList   ReportType 枚举值的结构化列表 （可以是下标数组可以是一个字符串，下同）
+	 * @param array $ReportProcessingStatusList   报告处理状态的结构化列表，依照其来过滤报告请求
+	 */
+	public function getReportRequestCount(
+			$RequestedFromDate = '',
+			$RequestedToDate = '',
+			$ReportTypeList = array(),
+			$ReportProcessingStatusList = array()
+			){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getReportRequestCount_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'Count'=>'0',//非负整数，指明报告请求总数
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		 */
+		$request = new \MarketplaceWebService_Model_GetReportRequestCountRequest();
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置报告类型数组
+		if(!empty($ReportTypeList)){
+			$TypeList = new \MarketplaceWebService_Model_TypeList();
+			$TypeList->setType($ReportTypeList);
+			$request->setReportTypeList($TypeList);
+		}
+		//设置报告状态数组
+		if(!empty($ReportProcessingStatusList)){
+			$StatusList = new \MarketplaceWebService_Model_StatusList();
+			$StatusList->setStatus($ReportProcessingStatusList);
+			$request->setReportProcessingStatusList($StatusList);
+		}
+		//设置要获取的报告数据的日期范围的起始日期
+		if($RequestedFromDate){
+			$request->setRequestedFromDate(new \DateTime($RequestedFromDate, new \DateTimeZone('UTC')));
+		}
+		//设置要获取的报告数据的日期范围的结束日期
+		if($RequestedToDate){
+			$request->setRequestedToDate(new \DateTime($RequestedToDate, new \DateTimeZone('UTC')));
+		}
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getReportRequestCount');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetReportRequestCountResult){
+				if ($resultObj->isSetCount()){
+					$return['data']['Count'] = $resultObj->getCount();
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetReportRequestCountResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 取消一个或多个报告请求
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 */
+	public function cancelReportRequests(){
+		
+	}
+	
+	/**
+	 * 返回在过去 90 天内所创建的报告列表
+	 * 操作的最大请求限额为 10 个，恢复速率为每分钟 1 个请求
+	 * @param date $AvailableFromDate  您可进行查找的起始日期，如:2016-05-18 10:03:09
+	 * @param string $AvailableToDate   您可进行查找的结束日期
+	 * @param array $ReportRequestIdList  ReportRequestId 值的结构化列表。如果您传入 ReportRequestId 的值，则会忽略其他查询条件
+	 * @param array $ReportTypeList  ReportType 枚举值的结构化列表
+	 * @param bool $Acknowledged   用来指明在之前调用 UpdateReportAcknowledgements 时是否已确认订单报告
+	 * @param int $MaxCount   非负整数，表明待返回报告请求的最大数量。如果指定一个大于 100 的数字，请求将被拒绝
+	 * @return array
+	 */
+	public function getReportList(
+			$AvailableFromDate = '',
+			$AvailableToDate = '',
+			$ReportRequestIdList = array(),
+			$ReportTypeList = array(),
+			$Acknowledged = null,
+			$MaxCount = 100
+			){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getReportList_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'HasNext'=>false,//是否包含下一页
+						'NextToken'=>'',//生成的字符串，用于将信息传递给另一个调用。将 NextToken 值传递给 GetReportListByNextToken 操作
+						'reportInfoArr'=>array()
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		 */
+		$request = new \MarketplaceWebService_Model_GetReportListRequest();
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置起始时间
+		if($AvailableFromDate){
+			$request->setAvailableFromDate(new \DateTime($AvailableFromDate, new \DateTimeZone('UTC')));
+		}
+		//设置结束时间
+		if($AvailableToDate){
+			$request->setAvailableToDate(new \DateTime($AvailableToDate, new \DateTimeZone('UTC')));
+		}
+		//设置ReportRequestId 数组
+		if(!empty($ReportRequestIdList)){
+			$RequestIdList = new \MarketplaceWebService_Model_IdList();
+			$RequestIdList->setId($ReportRequestIdList);
+			$request->setReportRequestIdList($RequestIdList);
+		}
+		//设置报告类型
+		if(!empty($ReportTypeList)){
+			$TypeList = new \MarketplaceWebService_Model_TypeList();
+			$TypeList->setType($ReportTypeList);
+			$request->setReportTypeList($TypeList);
+		}
+		//设置是否已确认订单报告
+		if(!is_null($Acknowledged)){
+			$request->setAcknowledged($Acknowledged);
+		}
+		//设置返回报告请求的最大数量
+		$request->setMaxCount($MaxCount);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getReportList');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetReportListResult){
+				if ($resultObj->isSetNextToken()){
+					$return['data']['NextToken'] = $resultObj->getNextToken();
+				}
+				if ($resultObj->isSetHasNext()){
+					$return['data']['HasNext'] = $resultObj->getHasNext();
+				}
+				$reportInfoArr = array();
+				if($resultObj->isSetReportInfo()){
+					$reportInfoList = $resultObj->getReportInfoList();
+					//解析 \MarketplaceWebService_Model_ReportInfo 对象，返回数组
+					$reportInfoArr = $this->resolveReportInfoListObj($reportInfoList);
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['data']['reportInfoArr'] = $reportInfoArr;
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetReportListResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 可通过之前请求提供给 GetReportListByNextToken 或 GetReportList 的 NextToken 值，返回报告列表
+	 * 操作的最大请求限额为 30 个，恢复速率为每 2 秒 1 个请求
+	 */
+	public function getReportListByNextToken($NextToken){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getReportList_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'HasNext'=>false,//是否包含下一页
+						'NextToken'=>'',//生成的字符串，用于将信息传递给另一个调用。将 NextToken 值传递给 GetReportListByNextToken 操作
+						'reportInfoArr'=>array()
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \MarketplaceWebService_Model_GetReportListByNextTokenRequest();
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置NextToken
+		$request->setNextToken($NextToken);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getReportListByNextToken');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetReportListByNextTokenResult){
+				if ($resultObj->isSetNextToken()){
+					$return['data']['NextToken'] = $resultObj->getNextToken();
+				}
+				if ($resultObj->isSetHasNext()){
+					$return['data']['HasNext'] = $resultObj->getHasNext();
+				}
+				$reportInfoArr = array();
+				if($resultObj->isSetReportInfo()){
+					$reportInfoList = $resultObj->getReportInfoList();
+					//解析 \MarketplaceWebService_Model_ReportInfo 对象，返回数组
+					$reportInfoArr = $this->resolveReportInfoListObj($reportInfoList);
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['data']['reportInfoArr'] = $reportInfoArr;
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_GetReportListByNextTokenResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回在过去 90 天内创建、状态为 _DONE_ 且可供下载的报告计数
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 */
+	public function getReportCount(){
+	
+	}
+	
+	/**
+	 * 下载报告内容
+	 * 操作的最大请求限额为 15 个，恢复速率为每分钟 1 个请求
+	 */
+	public function getReport($ReportId){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getReport_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'ReportId'=>'',//请求的ReportId
+						'ContentMd5'=>'',//Content-MD5 标头
+						'ContentArray'=>array(),//返回处理报告的数组数据(由XML数据转换)
+						'ContentXML'=>'',//返回处理报告的XML数据
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		 */
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \MarketplaceWebService_Model_GetReportRequest();
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置第三方请求token
+		if($this->_tokenConfig['MWS_AUTH_TOKEN']){
+			$request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+		}
+		//设置返回的数据的存储资源句柄
+		$request->setReport(@fopen('php://memory', 'rw+'));
+		//设置ReportId
+		$request->setReportId($ReportId);
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'getReport');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_GetReportResult){
+				if($resultObj->isSetContentMd5()){
+					$return['data']['ContentMd5'] = $resultObj->getContentMd5();
+				}
+				$return['data']['ReportId'] = $request->getReportId();
+				//返回的XML数据
+				$ContentXML = stream_get_contents($request->getReport());
+				//乱码处理
+				if(isset($re['responseHeaderMetadata']) && $re['responseHeaderMetadata'] instanceof \MarketplaceWebService_Model_ResponseHeaderMetadata){
+				    if($ContentType = $re['responseHeaderMetadata']->getContentType()){
+				        $cmRe = preg_match('/charset=(.*)$/i', $ContentType,$cm);
+				        if($cmRe && strtolower($cmRe[1])!='utf-8'){
+				            $ContentXML = mb_convert_encoding($ContentXML, "UTF-8", $cm[1]);
+				        }
+				    }
+				}
+				$return['data']['ContentXML'] = $ContentXML;
+				// 先解析XML
+				$ContentArr = XmlHandle::unserialize($ContentXML);
+				//解析XML失败，则解析文本(制表符分隔)
+				if(empty($ContentArr)){
+					$ContentArr = $this->tabStringToArr($ContentXML);
+				}
+				$return['data']['ContentArray'] = $ContentArr;
+				$return['data']['requestId'] = $re['requestId'];
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是\MarketplaceWebService_Model_GetReportResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 创建、更新或删除特定报告类型的报告请求计划
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 * @param string $ReportType
+	 * @param string $Schedule 报告请求的创建时间间隔
+	 * @param date $ScheduledDate 下一个报告请求计划提交的日期，如:2016-05-18 10:03:09
+	 * @example $Schedule枚举：
+	 * _15_MINUTES_(每 15 分钟)、_30_MINUTES_(每 30 分钟)、_1_HOUR_(每小时)、_2_HOURS_(每 2 小时)、
+	 * _4_HOURS_(每 4 小时)、_8_HOURS_(每 8 小时)、_12_HOURS_(每 12 小时)、_1_DAY_(每天)、
+	 * _2_DAYS_(每 2 天)、_72_HOURS_(每 3 天)、_1_WEEK_(每周)、_14_DAYS_(每 14 天)、
+	 * _15_DAYS_(每 15 天)、_30_DAYS_(每 30 天)、_NEVER_(删除之前所创建的报告请求计划)
+	 */
+	public function manageReportSchedule($ReportType,$Schedule,$ScheduledDate=''){
+		$return = array(
+				'ask' => 0,
+				'message'=>'getReport_error',
+				'data'=>array(
+						'requestId'=>'',//请求id
+						'Count'=>'',//报告请求总数
+						'reportScheduleArr'=>array(),
+				),
+		);
+		
+		/**
+		 * 1、设置服务类
+		*/
+		$this->setService();
+		$service = $this->getService();
+		
+		/**
+		 * 2、构建请求对象
+		*/
+		$request = new \MarketplaceWebService_Model_ManageReportScheduleRequest();
+		//设置商城ID
+		$request->setMarketplace($this->_MarketplaceId);
+		//卖家的销售ID
+		$request->setMerchant($this->_tokenConfig['MERCHANT_ID']);
+		//设置报表类型
+		$request->setReportType($ReportType);
+		//设置报告请求的创建时间间隔
+		$request->setSchedule($Schedule);
+		//设置下一个报告请求计划提交的日期
+		if($ScheduledDate){
+			$request->setScheduledDate(new \DateTime($ScheduledDate, new \DateTimeZone('UTC')));
+		}
+		
+		/**
+		 * 3、调用公共的执行请求方法
+		 */
+		$re = $this->executeRequest($service, $request,'manageReportSchedule');
+		if($re['ask']){
+			$resultObj = $re['resultObj'];
+			if(is_object($resultObj) && $resultObj instanceof \MarketplaceWebService_Model_ManageReportScheduleResult){
+				if($resultObj->isSetCount()){
+					$return['data']['Count'] = $resultObj->getCount();
+				}
+				if($resultObj->isSetReportSchedule()){
+					$reportScheduleList = $resultObj->getReportScheduleList();
+					//解析MarketplaceWebService_Model_ReportSchedule 对象，返回数组
+					$return['data']['reportScheduleArr'] = $this->resolveReportScheduleListObj($reportScheduleList);
+				}
+				$return['data']['requestId'] = $re['requestId'];
+				$return['ask'] = 1;
+				$return['message'] = 'success';
+			}else{
+				$return['message'] = '底层返回的结果不是对象或者不是MarketplaceWebService_Model_ManageReportScheduleResult对象';
+			}
+		}else{
+			$return['message'] = $re['message'];
+		}
+		return $return;
+	}
+	
+	/**
+	 * 返回计划提交至亚马逊 MWS 进行处理的订单报告请求列表
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 */
+	public function getReportScheduleList(){
+	
+	}
+	
+	/**
+	 * 当前无法调用该操作，原因是 GetReportScheduleList 操作无法返回 100 个以上的结果。包含该操作以实现以后的兼容性
+	 */
+	public function getReportScheduleListByNextToken(){
+	
+	}
+	
+	/**
+	 * 返回计划提交至亚马逊 MWS 的订单报告请求计数
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 */
+	public function getReportScheduleCount(){
+	
+	}
+	
+	/**
+	 * 更新一个或多个报告的确认状态
+	 * 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求
+	 */
+	public function updateReportAcknowledgements(){
+	
+	}
+	
+}

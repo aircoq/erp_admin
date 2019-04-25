@@ -1,0 +1,63 @@
+<?php
+
+namespace service\brandslink\operation;
+
+use app\common\cache\Cache;
+use app\common\traits\ConfigCommon;
+use think\Exception;
+use org\Curl;
+
+class Common
+{
+    use ConfigCommon;
+    protected static $_config = [];
+
+    public function __construct($config)
+    {
+        //self::$_config['api_key'] = $config['api_key'];
+        //self::$_config['api_token'] = $config['api_token'];
+
+    }
+
+    protected function getBaseUrl()
+    {
+        return $this->getConfigData('distribution_url')."/commodity";
+        //return 'https://wg.brandslink.com:8105/commodity';
+    }
+
+    private function getUrl($url)
+    {
+        return $this->getBaseUrl() . $url;
+    }
+
+    private function getToken()
+    {
+
+    }
+
+
+
+    protected function get($url,$data=[])
+    {
+        $result = [];
+        $url = $this->getUrl($url);
+        $data = Curl::curlGet($url);
+        if ($data) {
+            $result = json_decode($data, true);
+        }
+        return $result;
+    }
+
+    protected function post($url, $infoData)
+    {
+        $result = [];
+        $url = $this->getUrl($url);
+        $header = ["Content-Type:application/json"];
+        $postData = json_encode($infoData);
+        $data = Curl::curlPost($url,$postData,$header);
+        if ($data) {
+            $result = json_decode($data, true);
+        }
+        return $result;
+    }
+}

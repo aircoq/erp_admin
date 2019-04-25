@@ -1,0 +1,201 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-18
+ * Time: 下午7:20
+ */
+namespace swoole\taskExecuter;
+
+use app\common\interfaces\QueueJob;
+use app\common\service\SwooleQueueJob;
+use app\common\service\SwooleQueueWorker;
+//use app\listing\queue\WishListingJobStatus;
+//use app\publish\queue\AliexpressQueueJob;
+use swoole\SwooleTasker;
+use swoole\TaskExecuter;
+use think\Db;
+use think\exception\ClassNotFoundException;
+use think\exception\ErrorException;
+use think\Config;
+
+class Queuer extends TaskExecuter
+{
+
+    public $hostType;
+    public $queueAttr;
+    public static function init($server)
+    {
+        $queueWorker = new SwooleQueueWorker();
+        //$queueWorker->reset();
+        $obj = new static([]);
+        $obj->setServer($server);
+        $obj->hostType = Config::get('swoole.current_hosttype') ?? '';
+        $server->tick(1000, [$obj, "onQueuerScheduler"], $queueWorker);
+        $server->tick(10000, [$obj, "onQueuerFailReset"], $queueWorker);
+        $server->tick(5000, [$obj, "onQueueTimer"], $queueWorker);
+    }
+
+    public function onQueuerScheduler($count, SwooleQueueWorker $queueWorker)
+    {
+    	$queuesKey = $queueWorker->getWorkersByPriority($this->hostType);
+        $max = $this->getTaskMax();
+        $used = $this->getTaskUsed();
+        $taskLeisure = $max - $used - ($this->server->setting['reserved_for_task'] ?? 5);
+        //$queuesKey = array_keys($queues);
+        $notDoLists = [];
+        $stopQueues = [];
+        while ($taskLeisure > 0 && ($queue = array_shift($queuesKey))) {
+        	$attr = $queueWorker->getQueueAttribute($queue);
+        	if (empty($attr['status'])) {
+                $stopQueues[] = $queue;
+                continue;
+            }elseif($queueWorker->getHashLength($queue) < 1){
+            	continue;
+            }
+            $maxTask = $attr['consumer'] ?? forward_static_call([$queue, SwooleQueueJob::SWOOLE_TASK_MAX_NUMBER]);
+            $queueUsed = $this->getQueueUsedCount($queue);
+            if ($queueUsed < $maxTask) {
+                $queueObj = new static($queue);
+                $queueObj->hostType = $this->hostType;
+                $queueObj->queueAttr = $attr;
+                $this->server->task(serialize($queueObj));
+                $taskLeisure -= 1;
+            } else {
+                $notDoLists[] = $queue;
+            }
+        }
+        if (!empty($queuesKey)) {
+            $count = count($queuesKey);
+            SwooleTasker::logFile('queuerNotWorker', now().":count($count)". var_export($queuesKey, true));
+        }
+        if (!empty($notDoLists)) {
+            $count = count($notDoLists);
+            SwooleTasker::logFile('queuerNotDoLists', now().":count($count)". var_export($notDoLists, true));
+        }
+        if(!empty($stopQueues)){
+            $count = count($stopQueues);
+            SwooleTasker::logFile('stopQueues', now().":count($count)". var_export($stopQueues, true));
+        }
+        unset($stopQueues);
+        unset($queuesKey);
+        unset($notDoLists);
+    }
+
+    public function getQueueUsedCount($queue)
+    {
+        return $this->server->tableQueue->get($queue, 'count') ?: 0;
+    }
+
+    public function incQueueUsedCount($queue, $inc = 1)
+    {
+        $this->server->tableQueue->incr($queue, 'count', $inc);
+    }
+
+    public function decQueueUsedCount($queue, $dec = 1)
+    {
+        $this->server->tableQueue->decr($queue, 'count', $dec);
+    }
+
+    public function onQueuerFailReset($count, SwooleQueueWorker $queueWorker)
+    {
+        $queueWorker->failReset($this->hostType);
+        $this->checkStuckQueuer($queueWorker);
+    }
+
+    public function onQueueTimer($count, SwooleQueueWorker $queueWorker)
+    {
+        $queueWorker->queueTimer($this->hostType);
+    }
+
+    public function execute()
+    {
+        try {
+            $queuer = $this->data;
+            $worker = new SwooleQueueWorker();
+            $loaded = spl_autoload_functions();
+            if($loaded){
+                foreach ($loaded as $tmp){
+                    if(is_array($tmp) && in_array('Autoloader', $tmp)){
+                        spl_autoload_unregister('Autoloader::autoload');
+                        break;
+                    }
+                }
+            }
+            $this->incQueueUsedCount($queuer);
+            $this->checkQueuer($queuer);
+            $todoing = true;
+            $runCount = 0;
+            $canNext = true;
+            while ($canNext && $todoing && $worker->execQueuer($this->server->worker_id, $queuer, $this->hostType)) {
+                $times = Db::transTimes();
+                if($times > 0){
+                    SwooleTasker::logFile('transaction', "$queuer 事务未提交或回滚 事务数：$times");
+                    do{
+                        $times--;
+                        Db::rollback();
+                    }while($times > 0);
+                }
+                //自增运行次数，
+                $runCount++;
+                //判断是否被中断。如果中断返回false
+                $todoing = $this->server->tableTask->get($this->server->worker_id, 'status');
+                $canNext = isset($this->queueAttr['run_times']) ? $runCount <= $this->queueAttr['run_times'] : $queuer::canNext($runCount);
+            }
+        } catch (ClassNotFoundException $exception) {
+            $log = \app\common\cache\Cache::store('queuerLog');
+            $log->recordLog($queuer, $worker->currentParams, QueueJob::LOG_TYPE_ERROR, $exception->getMessage());
+        } catch (ErrorException $exception) {
+            $log = \app\common\cache\Cache::store('queuerLog');
+            $log->recordLog($queuer, $worker->currentParams, QueueJob::LOG_TYPE_ERROR, $exception->getMessage());
+        } catch (\Throwable $exception) {
+            $log = \app\common\cache\Cache::store('queuerLog');
+            $log->recordLog($queuer, $worker->currentParams, QueueJob::LOG_TYPE_ERROR, $exception->getMessage());
+        } finally {
+            unset($worker);
+            $this->decQueueUsedCount($queuer);
+        }
+
+    }
+
+    public function checkQueuer($queuer)
+    {
+        if (!class_exists($queuer)) {
+            throw new ClassNotFoundException("队列工作器不存在", $queuer);
+        }
+        if (!is_subclass($queuer, SwooleQueueJob::class)) {
+            throw new ClassNotFoundException("非法的队列工作器", $queuer);
+        }
+    }
+    
+    public function checkStuckQueuer(SwooleQueueWorker $queueWorker){
+    	return true;///要用的时候再开启
+        $kill = [];
+        foreach ($this->server->tableTask as $info) {
+            $queuer = $info['task'];
+            if(is_subclass_of($queuer, SwooleQueueJob::class)){
+                $timeOut = $queueWorker->getQueueTimeout($queuer);
+                if(empty($timeOut)){
+                    continue;
+                }
+                $consuming = $queueWorker->getQueuerConsuming($info['workerId'], $this->hostType);
+                $currTime = time();
+                $timeOut = 3600;///临时用
+                //$number > 60 && ($info['time'] + 600) < $currTime
+                if(isset($consuming['dotime']) && ($consuming['dotime'] + $timeOut) < $currTime){
+                    $res = system("kill -9 {$info['pid']}");
+                    $info['consuming'] = $consuming;
+                    $res !== false && ($kill[] = $info);
+                }
+            }
+        }
+        if(! empty($kill)){
+            SwooleTasker::logFile('autoKillQueuer', json_encode($kill));
+        }
+    }
+
+    public function getExecuterName(): string
+    {
+        return $this->data;
+    }
+}

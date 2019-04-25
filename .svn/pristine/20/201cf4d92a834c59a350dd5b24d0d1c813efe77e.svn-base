@@ -1,0 +1,326 @@
+<?php
+namespace service\aliexpress\operation;
+
+use app\common\model\aliexpress\AliexpressAccount;
+use app\common\cache\Cache;
+
+/**
+ * aliexpress 平台api
+ */
+class Common
+{
+    protected $account_id;
+    protected $client_id;
+    protected $client_secret;
+    protected $accessToken;
+    protected $refreshtoken;
+
+    /**
+     * 构造函数
+     */
+    public function __construct($config = [])
+    {
+        $this->account_id    = isset($config['id']) ? $config['id'] : '';
+        $this->client_id     = isset($config['client_id']) ? $config['client_id'] : '';
+        $this->client_secret = isset($config['client_secret']) ? $config['client_secret'] : '';
+        $this->accessToken   = isset($config['accessToken']) ? $config['accessToken'] : '';
+        $this->refreshtoken  = isset($config['refreshtoken']) ? $config['refreshtoken'] : '';
+    }
+    
+    /**
+     * 生成code url
+     * @param string $redirectUrl
+     * @param string $state 自定义参数
+     * @return $codeUrl : 返回拼接的url
+     */
+    public function getCodeUrl($data = [], $state = '')
+    {
+        $data['site'] = 'aliexpress';
+        if (!empty($state)) {
+            $data['state'] = $state;
+        }
+        $signature = $this->apiSign($data,'',  $this->client_secret);
+        
+        $codeUrl = sprintf(
+            "http://authhz.alibaba.com/auth/authorize.htm?client_id=%s&site=aliexpress&redirect_uri=%s&state=%s&_aop_signature=%s",
+            $this->client_id, $data['redirect_uri'], $state, $signature
+        );
+        return $codeUrl;
+    }
+    
+    /**
+     * 获取token
+     * @return $result : 返回token数组
+     */
+    public function getToken($data = [])
+    {
+        //公共
+        $url = 'https://gw.api.alibaba.com/openapi/http/1/system.oauth2/getToken/' . $this->client_id;
+        $data = 'grant_type=authorization_code&need_refresh_token=true&client_id='.$this->client_id.'&client_secret='.$this->client_secret.'&redirect_uri='.$data['redirect_uri'].'&code='.$data['code'];
+        $result = $this->curlPost($url, $data);
+        if ($result) {
+            $result = json_decode($result, true);
+        }
+        return $result;
+    }
+
+    /**
+     * 通过refreshToken换取accessToken
+     * Enter description here …
+     * @param unknown_type $refreshToken
+     * $appkey = '', $appsecret = '', $refreshtoken = ''
+     * @return $result : 返回accessToken数组
+     */
+    public function getTokenByRefreshToken($config = [])
+    {
+        $url = 'https://gw.api.alibaba.com/openapi/param2/1/system.oauth2/getToken/' . $config['client_id'];
+        $data['grant_type'] = 'refresh_token';
+        $data['refresh_token'] = $config['refresh_token'];
+        $data['client_id'] = $config['client_id'];
+        $data['client_secret'] = $config['client_secret'];
+        $result = $this->curlPost($url, $data);
+        if ($result) {
+            $result = json_decode($result, true);
+        }
+        return $result;
+    }
+
+    /**
+     * 获取新的refreshToken
+     * @param unknown $config
+     * @return $result ： 返回refreshToken数组
+     */
+    public function postponeToken($config = [])
+    {
+        $url = 'https://gw.api.alibaba.com/openapi/param2/1/system.oauth2/postponeToken/' . $config['client_id'];
+        $data['client_id'] = $config['client_id'];
+        $data['client_secret'] = $config['client_secret'];
+        $data['refresh_token'] = $config['refresh_token'];
+        $data['access_token'] = $config['access_token'];
+
+        $result = $this->curlPost($url, $data);
+        if ($result) {
+            $result = json_decode($result, true);
+        }
+        return $result;
+    }
+    
+    /**
+     * api 签名串组规则
+     * @param unknown_type $redirectUrl
+     * @return $codeSign ： 生成签名串
+     */
+    public function apiSign($code = [], $signStr = '', $client_secret = '')
+    {
+        ksort($code);
+        foreach ($code as $key => $val) {
+            $signStr .= $key . $val;
+        }
+        $codeSign = strtoupper(bin2hex(hash_hmac('sha1', $signStr, $client_secret, true)));
+        return $codeSign;
+    }
+    
+    /**
+     * 时间转换
+     * @param string $time
+     * 将此格式 20170326010506000-0700转成时间戳
+     */
+    public function convertTime($time = '', $separator = '-')
+    {
+        $b = substr($time, 0,4).$separator.substr($time, 4, 2).$separator.substr($time, 6, 2).' '.substr($time, 8, 2).':'.substr($time, 10, 2).':'.substr($time, 12, 2);
+        return strtotime($b);
+    }
+    
+    /**
+     * 根据api请求地址获取生成签名所需urlPath
+     * @param string $url
+     * @return string
+     */
+    public function getUrlPath($url)
+    {
+        $m = [];
+        preg_match('/param2.+/i', $url, $m);
+        return $m[0];
+    }
+
+    /**
+     * 请求Aliexpress数据
+     * @param string $url
+     * @param array $data
+     * @return array
+     */
+    public function requestAliexpress($url,$data)
+    {
+        $result = $this->executeCurl($url,$data);
+        //如果返回access_token过期则用RefreshToken去生成新的access_token
+        if(isset($result['error_code'])&&$result['error_code']=='401'){
+            if($this->updateToken()){
+                $result = $this->executeCurl($url,$data);
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * 执行curl请求接口
+     * @param $url
+     * @param $data
+     * @return mixed
+     */
+    public function executeCurl($url,$data)
+    {
+        $data['access_token'] = $this->accessToken;
+        $signature = $this->apiSign($data, $this->getUrlPath($url), $this->client_secret);
+        $data['_aop_signature'] = $signature;
+        $result = $this->curlPost($url, $data);
+        $newResult = json_decode($this->format_ErrorJson($result), true);
+        return $newResult;
+    }
+
+    /**
+     * 更新access_token
+     * @return bool
+     */
+    protected function updateToken()
+    {
+        if(empty($this->account_id)){
+            return false;
+        }
+        //缓存里面取一次看是否已更新过
+        $cache_account = Cache::store('AliexpressAccount')->getTableRecord($this->account_id);
+        if($cache_account['access_token']!=$this->accessToken){
+            $this->accessToken = $cache_account['access_token'];
+            return true;
+        }
+        $config = [
+            'refresh_token'=>$this->refreshtoken,
+            'client_id'=>$this->client_id,
+            'client_secret'=>$this->client_secret
+        ];
+
+        $key = 'Lock:AliexpressGetAccessTocke-'. $this->account_id;
+        //同时两个或多个进和进入这里，先到者加锁成功，进去换access_token,其余的在外等，最先进去的换access_token成功后，解锁
+        //后来者再加锁进去先查一下缓存，如果已更新，则直接返回，示更新，则继续换access_token;
+        if($this->lock($key)) {
+            //成功加锁进来后，缓存里面取一次看是否已更新过
+            $cache_account = Cache::store('AliexpressAccount')->getTableRecord($this->account_id);
+            if($cache_account['access_token']!=$this->accessToken){
+                $this->accessToken = $cache_account['access_token'];
+                $this->unlock($key);
+                return true;
+            }
+
+            $result = $this->getTokenByRefreshToken($config);
+            //换token成功；
+            if(isset($result['access_token'])&&!empty($result['access_token'])){
+                //更新数据库和缓存
+
+                $model = new AliexpressAccount();
+                $account = $model->where(['id'=>$this->account_id])->find();
+                if(!empty($account)){
+                    $updateData['is_authorization'] = 1;
+                    $updateData['access_token'] = $result['access_token'];
+                    if (isset($result['refresh_token'])) {
+                        $updateData['refresh_token'] = $result['refresh_token'];
+                    }
+                    if (isset($result['expiry_time'])) {
+                        $updateData['expiry_time'] = strtotime($result['expiry_time']);
+                    }
+
+                    if($account->save($updateData)){
+                        foreach($updateData as $key=>$val) {
+                            Cache::store('AliexpressAccount')->updateTableRecord($this->account_id, $key, $val);
+                        }
+                    }
+                }
+
+
+                $this->accessToken = $result['access_token'];
+                $this->unlock($key);
+                return true;
+
+            //换token失败；
+            } else {
+                $this->unlock($key);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 格式化处理错误json数据
+     * @param $data
+     * @return mixed
+     */
+    private function format_ErrorJson($data)
+    {
+        $data = preg_replace('/[\x00-\x08\x10\x0B\x0C\x0E-\x19\x7F]'.
+        '|[\x00-\x7F][\x80-\xBF]+'.
+        '|([\xC0\xC1]|[\xF0-\xFF])[\x80-\xBF]*'.
+        '|[\xC2-\xDF]((?![\x80-\xBF])|[\x80-\xBF]{2,})'.
+        '|[\xE0-\xEF](([\x80-\xBF](?![\x80-\xBF]))|(?![\x80-\xBF]{2})|[\x80-\xBF]{3,})/S',
+        '?', $data );
+
+        //reject overly long 3 byte sequences and UTF-16 surrogates and replace with ?
+        $data = preg_replace('/\xE0[\x80-\x9F][\x80-\xBF]'.
+         '|\xED[\xA0-\xBF][\x80-\xBF]/S','?', $data );
+            return $data;
+    }
+
+    /**
+     * 可以去掉了，在extend/org/curl工具类
+     * @param unknown $url
+     * @param unknown $data
+     * @return mixed
+     */
+    public function curlPost($url, $data)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response;
+    }
+
+    /**
+     * 给一个key加锁，失败则等待时间后重新尝试，最多尝试次数后，返回false防止造成偱环;同一个KEY加锁后必需要解锁；
+     * @param $key 加要锁的KEY
+     * @param int $maxTest 最大等待次数；
+     * @return bool
+     */
+    private function lock($key, $maxTest = 50) {
+        $bol = true;
+        while(true) {
+            $result = Cache::handler()->setnx($key, 1);
+            if($result) {
+                Cache::handler()->expire($key, 2);
+                break;
+            }
+            $maxTest--;
+            if($maxTest <= 0) {
+                $bol = false;
+                break;
+            }
+            usleep(5000);
+        }
+        return $bol;
+    }
+
+    /**
+     * 加锁后必需解锁，否则下次同样key会换败
+     * @param $key
+     * @return bool
+     */
+    private function unlock($key) {
+        Cache::handler()->delete($key);
+        return true;
+    }
+
+}

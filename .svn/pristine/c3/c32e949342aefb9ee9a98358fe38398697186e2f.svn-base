@@ -1,0 +1,40 @@
+<?php
+namespace aliy1688;
+
+use think\Cache;
+
+/**
+ * 1688获取指定订单的国内物流信息
+ *
+ * Class GetLogisticsInfos
+ * @package aliy1688
+ */
+class GetLogisticsInfos extends  AbsBase
+{
+    protected $apiPath = 'param2/1/com.alibaba.logistics/alibaba.trade.getLogisticsInfos.buyerView/';
+    protected $params = ['webSite' => '1688'];
+    protected $requestType = 'POST';
+
+    public function __construct($orderId, $appKey, $secretKey, $refreshToken ,$accessToken)
+    {
+        $this->params['orderId'] = $orderId;
+        $this->appKey = $appKey ? $appKey : $this->appKey;
+        $this->secretKey = $secretKey ? $secretKey : $this->secretKey;
+        $this->refreshToken = $refreshToken ? $refreshToken : $this->refreshToken;
+        $this->accessToken = $accessToken?$accessToken:$this->accessToken;
+    }
+
+    /**
+     * @param string $orderId
+     * @return array
+     */
+    public function request($orderId = '')
+    {
+        if($orderId) {
+            $this->params['orderId'] = $orderId;
+        }
+        return  parent::request();
+    }
+
+}
+

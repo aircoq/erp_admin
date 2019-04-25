@@ -1,0 +1,90 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0078)http://lilangda.tongtool.com/process/new/warehouse/print?0.0072098256405750405 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-size:10pt;line-height:12pt;overflow-x:hidden;page-break-after: always;">
+        <div style="width:268pt;border:1pt solid #000;">
+            <div style="width:264pt;padding:2pt;border-bottom:1pt solid #000;">
+                <div style="float:left;width:95pt;padding-top:10pt;padding-left:2pt;font-size:8pt;line-height:10pt;">
+                    <span style="font-size:9pt;line-height:12pt;font-weight:bold;"><?php echo date('Y-m-d H:i:s');?></span><br> Order
+                    No:<br> P<?php echo $number;?>
+                </div>
+                <div style="float:right;width:164pt;border:1pt solid #000;">
+                    <table cellpadding="0" cellspacing="0"
+                           style="width:164pt;table-layout:fixed;border-collapse:collapse;font-size:6pt;line-height:9pt;">
+                        <tbody>
+                        <tr>
+                            <td style="height:54pt;border-right:1pt solid #000;vertical-align:bottom;padding:0 2pt;"> If
+                                undelivered please return to:<br>PO BOX <font style="font-size:10pt;line-height:10pt;">9830</font><br>1934
+                                EMC Brucargo-Belgium
+                            </td>
+                            <td style="width:70pt;padding-left:3pt;vertical-align:bottom;"> BE.PP<font
+                                        style="font-size:10pt;line-height:10pt;">9830</font><br> BELGIE(N)-BELGIQUE
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="clear:both"></div>
+            </div>
+            <div style="width:264pt;min-height:50pt;padding:2pt;font-size:9pt;line-height:11pt;font-weight:bold;"> To:
+                <?php echo $name;?>
+                <br> Adds: <?php echo $street.$street2;?>
+                <br> <?php echo $city?> <?php echo $province?>
+                <span style="text-transform:uppercase;margin-left:10pt;"><?php echo $country_en_name?></span>
+            </div>
+            <div style="width:264pt;padding:2pt;font-size:9pt;line-height:11pt;font-weight:bold;border-bottom:1pt solid #000;">
+                <div style="width:100pt;float:left;"> Zip: <?php echo $zip?></div>
+                <div style="width:160pt;float:left;"> Tel: <?php echo $phone?></div>
+                <div style="clear:both;"></div>
+            </div>
+            <div style="width:268pt;text-align:center;padding-top:2pt;font-size:9pt;line-height:10pt;">
+                <div style="width:228pt;float:left;"><span style="display:inline-block;height:35pt;overflow-y:hidden">  <img
+                                style="width:200pt;height:40pt;"
+                                src="<?php echo $this->imgSrc($shipping_number);?>">   </span><br>
+                    <strong> <?php echo $shipping_number;?> </strong>
+                    <div style="text-align:left;font-size:10pt;line-height:12pt;font-weight:bold;margin-top:3pt;">Item
+                    </div>
+                </div>
+                <div style="width:40pt;float:right;font-size:30pt;line-height:30pt;text-align:right;"> 1</div>
+            </div>
+            <table cellpadding="0" cellspacing="0"
+                   style="width:264pt;margin:0 auto 2pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:10pt;">
+                <tbody>
+                <tr>
+                    <td style="width:160pt;padding:2pt;border:1pt solid #000;"> Goods Description</td>
+                    <td style="width:45pt;padding:2pt;border:1pt solid #000;text-align:center;"> Quantity</td>
+                    <td style="padding:2pt;border:1pt solid #000;text-align:center;"> Sub Total</td>
+                </tr>
+                <?php foreach ($list as $k=>$v):?>
+                <tr>
+                    <td style="padding:2pt;border:1pt solid #000;"> <?php echo $v['declared_name_en'];?></td>
+                    <td style="padding:2pt;border:1pt solid #000;text-align:center;"> <?php echo $v['qty'];?></td>
+                    <td style="padding:2pt;border:1pt solid #000;text-align:center;"> USD: <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?></td>
+                </tr>
+                <?php endforeach;?>
+                <tr>
+                    <td colspan="2" style="padding:2pt;border:1pt solid #000;"> Total:</td>
+                    <td style="padding:2pt;border:1pt solid #000;text-align:center;"> USD: <?php echo number_format($total_value,2,'.','');?></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

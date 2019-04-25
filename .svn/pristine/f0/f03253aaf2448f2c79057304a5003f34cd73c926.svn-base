@@ -1,0 +1,132 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0077)http://lilangda.tongtool.com/process/new/warehouse/print?0.013180876675128239 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;font-size:10pt;line-height: 12pt;overflow-x:hidden;page-break-after:always">
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:9pt;line-height:10pt;">
+            <tbody>
+            <tr>
+                <td style="border:1pt solid #000;text-align:center;">
+                    <div style="width:80pt;float:left;font-size:12pt;line-height:36pt;font-weight: bold;"> 特邮小包</div>
+                    <div style="width:180pt;float:left;font-size:9pt;line-height:10pt;padding: 2pt;">
+                        <table cellpadding="0" cellspacing="0"
+                               style="width:180pt;table-layout:fixed;border-collapse:collapse;text-align:center;font-size:8pt;line-height:9pt;">
+                            <tbody>
+                            <tr>
+                                <td style="width:80pt;border:solid 1pt #000;height:40pt;"> POSTAGE PAID<br> HONG
+                                    KONG<br> CHINA <br>中国香港 <br>邮资已付
+                                </td>
+                                <td style="width:40pt;border:solid 1pt #000;"> PERMIT NO<br>特许编号<br>06987</td>
+                                <td style="border:solid 1pt #000;"> BY AIR MAIL <br>航空 <br> PAR AVION</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="clear:both;"></div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:10pt;">
+            <tbody>
+            <tr>
+                <td style="vertical-align:top;width:100pt;height: 70pt;padding:0 2pt;border-left:1pt solid #000;line-height: 8pt; font-size: 7pt;">
+                    From:Shop 12A , 188 Nam Cheong St. , KLN, HK
+                </td>
+                <td rowspan="2"
+                    style="vertical-align:top;padding:0 2pt;word-wrap:break-word;font-size:9pt;line-height:11pt;border:1pt solid #000;border-top:none;border-bottom:none;">
+                    <strong>Send To：</strong><?php echo $name;?><br>
+                    <?php echo $street.''.$street2;?>, <br>
+                    <?php echo $city;?> ,
+                    <?php echo $province;?>
+                    <br><br> <span style="text-transform:uppercase;">
+                        <?php echo $country_en_name;?> </span> <?php echo $country_name;?> <br> ZIP: <?php echo $zip;?>
+                    <br> Tel: <?php echo $phone;?> <br></td>
+            </tr>
+            <tr>
+                <td style="padding:0 2pt;font-size:7pt;lin-height:10pt;font-weight: bold;border:1pt solid #000;border-top:none;border-bottom:none;">
+                    CN22(Customs Declaration)
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:10pt;">
+            <tbody>
+            <tr>
+                <td style="border:solid 1pt #000;word-wrap:break-word;text-align:center;"> description of contents</td>
+                <td style="width:50pt;border:solid 1pt #000;text-align:center;"> Kg</td>
+                <td style="width:60pt;border:solid 1pt #000;text-align:center;"> Val(US $)</td>
+            </tr>
+            <?php foreach ($list as $k=>$v):?>
+                <tr>
+                    <td style="border:solid 1pt #000;word-wrap:break-word;padding:0 2pt;text-align:center;">
+                        <?php echo $v['declared_name_en']."*".$v['qty']." ".$v['declared_name_cn'];?>
+                    </td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;">
+                        <?php echo number_format($v['declared_weight']/1000,3,'.','');?>
+                    </td>
+                    <td style="border:solid 1pt #000;padding:0 2pt;text-align:center;">
+                        <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?>
+                    </td>
+                </tr>
+            <?php endforeach;?>
+            <tr>
+                <td style="border:solid 1pt #000;word-wrap:break-word;text-align:center;"> Total Gross Weight(Kg)</td>
+                <td style="border:solid 1pt #000;text-align:center;"> <?php echo number_format($total_weight/1000,3,'.','');?> </td>
+                <td style="border:solid 1pt #000;text-align:center;"> <?php echo number_format($total_value,2,'.','');?> </td>
+            </tr>
+            <tr>
+                <td colspan="3"
+                    style="border:solid 1pt #000;border-bottom:0;word-wrap:break-word;padding:0 2pt;font-size:6pt;line-height:8pt;">
+                    I certify that the particulars given in this declaration are correct and this item does not contain
+                    any dangerous articles prohibited by legislation or by postal or customers regulations.
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2"
+                    style="border:solid 1pt #000;border-top:0;border-right:none;border-bottom:none;word-wrap:break-word;padding:0 2pt;font-weight:bold;">
+                    Sender"s signiture&amp; Data Signed:
+                </td>
+                <td style="border:solid 1pt #000;border-top:0;border-left:none;border-bottom:none;padding:0 2pt;font-size:10pt;line-height:12pt;font-weight:bold;">
+                    CN22
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3"
+                    style="border:1pt solid #000;text-align:center;border-top:none;border-bottom:none;padding-top:1pt;font-size:9pt;line-height:10pt;">
+                    <div style="width:230pt;float:left;text-align:center;"><span
+                                style="display:inline-block;height:30pt;line-height:35pt;overflow-y:hidden;"> <img
+                                    style="width:180pt;height:40pt;"
+                                    src="<?php echo $this->imgSrc($shipping_number);?>"> </span><br>
+                        <strong><?php echo $shipping_number;?></strong><br> <span style="font-size:8pt;font-weight: bold;">DO NOT SCAN (For Internal Use)</span>
+                    </div>
+                    <div style="width:30pt;float:left;font-size:16pt;line-height:40pt;font-weight:bold;"> <?php echo $mapCdoe;?></div>
+                    <div style="clear:both;"></div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" style="border:solid 1pt #000;border-top:0;border-left:none;padding:0 2pt;font-size:8pt;line-height:12pt;text-align:right;">
+                    <?php echo date('Y-m-d H:i:s',time())?>&nbsp; &nbsp; &nbsp;C85935
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,380 @@
+<?php
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use service\shipping\operation\Common;
+use org\Xml;
+use org\Curl;
+use think\Exception;
+
+/**
+ *  哈俄陆邮
+ *  Haer Haer
+ */
+class Haer
+{
+    // 配置信息   
+    private $_config = [
+        'url'   => 'http://ehd.rtb56.com/webservice/PublicService.asmx/ServiceInterfaceUTF8',
+        'header'         =>  [
+            'Content-type:application/x-www-form-urlencoded'
+        ],
+        'appToken' =>  '',
+        'appKey'   =>  ''
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+
+
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return array | void
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['accessToken'])  || empty($config['client_secret'])) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['appToken'] = $config['accessToken'];
+        $this->_config['appKey']   = $config['client_secret'];
+        return true;
+    }
+
+    /**
+     * @desc 物流下单
+     * @param array $config 配置信息
+     * @param array $data : 订单信息数组
+     * @return array 结果信息数组
+     */
+    public function createOrder($config, $data,$confirm=true)
+    {
+        try{
+            if (!isset($data['number'])) {
+                $data = $data[0];
+            }
+            $this->result['number'] = $data['number'];
+            if($this->formatHeader($config)){
+                $commitData['paramsJson'] = $this->buildData($data);
+                $commitData['appToken'] = $this->_config['appToken'];
+                $commitData['appKey'] = $this->_config['appKey'];
+                $commitData['serviceMethod'] = 'createorder';
+                $result = Curl::curlPost($this->_config['url'], http_build_query($commitData), $this->_config['header']);
+                //日志记录
+                $arr_log = [
+                    'url'=>$this->_config['url'],
+                    'header'=>'',
+                    'request'=>$commitData,
+                    'response'=>$result
+                ];
+                $response = json_decode($result, true);
+                if (is_array($response)) {
+                    if(isset($response['success']) && $response['success']==1 && isset($response['data']) && param($response['data'], 'shipping_method_no')){
+                        $result = $response['data'];
+                        $this->result['data']['number']             = $result['refrence_no'];                            // 客户订单号
+                        $this->result['data']['package_code']       = '';                              // One World包裹处理号
+                        $this->result['data']['trackingNumber']     = $result['shipping_method_no'];                            // 跟踪号
+                        $this->result['data']['has_trackingNumber'] = $config['has_trackingNumber'] ;                           // 是否有跟踪号
+                        $this->result['data']['confirm']            = true;                                                 // 是否交运
+                        $this->result['data']['label']              = true;                              // 是否有pdf
+                        $this->result['data']['label_url']          = '';                              // 是否有pdf
+                        $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                        $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                        $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                        $this->result['success']                    = true;
+                    }else{
+                        Cache::store('LogisticsLog')->setLogisticsLog($data['number'],$arr_log);
+                        $msg=$response['cnmessage']??'未知错误';
+                        $tel = strlen($data['tel'])>4 ? $data['tel'] : $data['phone'];
+                        if(strpos($msg,'收件人电话为空') && !empty($tel) ){
+                            $msg=$msg.'(俄罗斯电话号码形式 1.十位数字 第一位必须是9 ,2.是11位数字 第一位必须是7或者8,不可以是78或者87，开头要是89或者79或者9)';
+                        };
+                        if(strpos($msg,'收件人电话和收件人手机至少正确填写一项')){
+                            $msg=$msg.'(俄罗斯电话号码形式 1.十位数字 第一位必须是9 ,2.是11位数字 第一位必须是7或者8)';
+                        };
+                        $this->result['error'] = [
+                            'error_msg'  => $msg,
+                            'error_code' => 1
+                        ];
+                    }
+                }else {
+                    $this->result['error'] = [
+                        'error_msg'  => '未知错误',
+                        'error_code' => 1
+                    ];
+                }
+            }
+        }catch(Exception $e){
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取面单
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            if($this->formatHeader($config)){
+                $params = [
+                    'configInfo'=>[
+                        'lable_file_type'=>'2',
+                        'lable_paper_type'=>'1',
+                        'lable_content_type'=>'4',
+                        'additional_info'=>[
+                            'lable_print_invoiceinfo'=>'N',
+                            'lable_print_buyerid'=>'N',
+                            'lable_print_datetime'=>'Y',
+                            'customsdeclaration_print_actualweight'=>'N',
+                        ]
+                    ],
+                    'listorder'=>[['reference_no'=>$order['number']]]
+                ];
+                $commitData['paramsJson'] = json_encode($params);
+                $commitData['appToken'] = $this->_config['appToken'];
+                $commitData['appKey']   = $this->_config['appKey'];
+                $commitData['serviceMethod'] = 'getnewlabel';
+                $result = Curl::curlPost($this->_config['url'], http_build_query($commitData));
+                $response = json_decode($result, true);
+                // 处理响应内容
+                if (is_array($response)) {
+                    if (isset($response['success']) && $response['success']==1) {
+                        $responseString  = Curl::curlGet($response['data'][0]['lable_file']);
+                        if(strpos($responseString,'%PDF')===false){
+                            throw new Exception('面单下载失败');
+                        }
+                        $service = new PackageLabelFileService();
+                        $label_url = $service->uploadLabelFile($order['number'],base64_encode($responseString),'pdf');
+                        $this->result['data']['src'] = $label_url;
+                        $this->result['data']['type'] = 'pdf';
+                        $this->result['success']                    = true;
+                    } else {
+                        $this->result['error'] = [
+                            'error_code' => 1,
+                            'error_msg'  => $response['cnmessage']
+                        ];
+                    }
+                } else {
+                    $this->result['error'] = [
+                        'error_msg'  => '未知错误',
+                        'error_code' => 1
+                    ];
+                }
+            }
+        } catch(Exception $e){
+            $this->result['error'] = [
+                'error_msg'  => $e->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+
+    /**
+     * @desc 获取邮寄方式
+     */
+    public function getExpress($config)
+    {
+        if($this->formatHeader($config)){
+            $data = [];
+            $paramsJson = [];
+            $commitData['paramsJson']       = json_encode($paramsJson);
+            $commitData['appToken']         = $this->_config['appToken'];
+            $commitData['appKey']           = $this->_config['appKey'];
+            $commitData['serviceMethod']    = 'getshippingmethod';
+            $result = Curl::curlPost($this->_config['url'], http_build_query($commitData), $this->_config['header']);
+            $result = json_decode($result, TRUE);
+            if($result['success']!=1){
+                $this->result['error'] = [
+                    'error_msg'=>isset($result['cnmessage'])?$result['cnmessage']:'未知错误',
+                    'error_code'=>1
+                ];
+            }else{
+                foreach($result['data'] as $k=>$item){
+                    $data[$k] = [
+                        'name'=>$item['cnname'],
+                        'code'=>$item['code']
+                    ];
+                }
+                $this->result['success'] = true;
+                $this->result['data'] = $data;
+            }
+
+        }
+        return $this->result;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+
+    /*
+     * @desc 组装下单数据
+     */
+    private function buildData($data){
+        $result = [];
+        $result['reference_no']  = isset($data['customer_number']) && $data['customer_number'] ? $data['customer_number'] :$data['number'];
+        $result['shipping_method'] = $data['shipping_method_code'];
+        $result['order_weight'] = $data['estimated_weight']/1000;
+        $result['order_pieces'] = 1;
+        $result['return_sign'] = $data['is_need_return']==1?'Y':'N';
+        ///发送人信息
+        $result['shipper']  = [
+            'shipper_name'        => $data['sender']['sender_name'],
+            'shipper_countrycode' => $data['sender']['sender_country'],
+            'shipper_province' => $data['sender']['sender_state'],
+            'shipper_city' => $data['sender']['sender_city'],
+            'shipper_street'    => $data['sender']['sender_street'],
+            'shipper_postcode'  => $data['sender']['sender_zipcode'],
+            'shipper_telephone' => $data['sender']['sender_phone'],
+            'shipper_mobile' => $data['sender']['sender_mobile'],
+        ];
+        //phone
+        $tel = strlen($data['tel'])>4 ? $data['tel'] : $data['phone'];
+        //收货人信息
+        $result['consignee'] = [
+            'consignee_name'        => $data['name'],
+            'consignee_countrycode' => $data['country_code'],
+            'consignee_street'      => $data['street'].' '.$data['street2'],
+            'consignee_mobile'      => $this->filterPhone($data['phone']),
+            'consignee_province'      => $data['province'],
+            'consignee_city'      => $data['city'],
+            'consignee_telephone'      => $data['tel'],
+            'consignee_postcode'      => $data['zip'],
+
+        ];
+        //产品信息
+        $invoices = [];
+        $all_invoice_enname = '';
+        if($data['shipping_method_code'] == 'PK0001'){ //要求总的申报信息不能超过28个字符
+            foreach($data['declared_info'] as $k=>$declared){
+                $all_invoice_enname .= $declared['declared_name_en'];
+            }
+        }
+        if(strlen($all_invoice_enname)>28) {//超过才考虑截取
+            $invoice_enname = '';
+            foreach($data['declared_info'] as $k=>$declared) {
+                if (isset($invoices[$declared['declared_name_en']])) {
+                    $invoices[$declared['declared_name_en']]['invoice_quantity'] += $declared['qty'];
+                } else {
+                    $this_invoice_enname = $this->cutString($declared['declared_name_en'], 28);
+                    if(strlen($invoice_enname.$this_invoice_enname)>28){
+                        continue;
+                    }
+                    $invoice_enname .= $this_invoice_enname;
+                    if($this_invoice_enname){
+                        $invoices[$declared['declared_name_en']] = [
+                            'sku'                => $declared['sku'],
+                            'invoice_enname'     => $this_invoice_enname,
+                            'invoice_cnname'     => $declared['declared_name_cn'],
+                            'invoice_quantity'   => $declared['qty'],
+                            'invoice_unitcharge' => number_format($declared['declared_value'],2),
+                            'hs_code'            => $declared['hs_code'],
+                        ];
+                    }
+                }
+            }
+        }else {
+            foreach($data['declared_info'] as $k=>$declared){
+                $invoices[] = [
+                    'sku'                => $declared['sku'],
+                    'invoice_enname'     => $declared['declared_name_en'],
+                    'invoice_cnname'     => $declared['declared_name_cn'],
+                    'invoice_quantity'   => $declared['qty'],
+                    'invoice_unitcharge' => number_format($declared['declared_value'],2),
+                    'hs_code'            => $declared['hs_code'],
+                ];
+            }
+        }
+
+        $result['invoice'] = array_values($invoices);
+        return json_encode($result);
+    }
+
+    /**
+     * @desc 申报英文名称控制在28个字符内
+     */
+    private function cutString($str, $len=28)
+    {
+        $words = explode(' ', $str);
+        $join_str = '';
+        foreach($words as $item){
+            if(strlen($join_str.' '.$item) <= $len){
+                $join_str = $join_str.' '.$item;
+            }else{
+                break;
+            }
+        }
+        return $join_str;
+    }
+    /**
+     * @desc 过滤掉电话号码特殊字符
+     */
+    private function filterPhone($phone)
+    {
+        $phone=str_replace('+','',$phone);
+        $phone=str_replace('-','',$phone);
+        $phone=str_replace(')','',$phone);
+        $phone=str_replace('(','',$phone);
+        $phone=str_replace('_','',$phone);
+        $phone=str_replace(' ','',$phone);
+        return $phone;
+    }
+    /**
+     * 获取追踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getTrackingNumber($config,$order)
+    {
+        $this->result['error'] = [
+            'error_msg' =>'获取失败',
+            'error_code' => 1
+        ];
+        return $this->result;
+    }
+
+}

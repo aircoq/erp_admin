@@ -1,0 +1,151 @@
+<?php
+namespace service\ebay;
+
+use think\Loader;
+use service\ebay\EbayBaseApi;
+use org\Xml;
+
+/**
+ * ebay账号APi
+ * 
+ * @author tanbin
+ *         @date 2017-05-10
+ */
+class EbayAccountApi extends EbayBaseApi
+{
+
+    protected $config;
+
+    /**
+     * 初始化
+     * 
+     * @param array $config            
+     */
+    public function __construct($config = [])
+    {
+        parent::__construct($config, 1);
+    }
+
+    /**
+     * 取ebay session id
+     */
+    function getSessionID($runame)
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetSessionIDRequestType');
+        $request = new \GetSessionIDRequestType();
+        $request->setRuName($runame);
+        $request->setWarningLevel("Low");
+        $response = $this->_proxy->GetSessionID($request);
+        $response = $this->xmlToArraySDK($response);
+
+        if (param($response, 'Ack')) {
+            return $response['SessionID'];
+        }
+        return false;
+    }
+
+    /**
+     * 取第三方的token
+     * 
+     * @param string $sessionId            
+     */
+    public function getFetchEbayToken($sessionId = '')
+    {
+        set_time_limit(0);
+        Loader::import('trading.FetchTokenRequestType');
+        $request = new \FetchTokenRequestType();
+        // $fetchtokenrequest->setSecretID("");
+        $request->setSessionID($sessionId);
+        $response = $this->_proxy->FetchToken($request);
+        $response = str_ireplace([
+            'soapenv:',
+            'SOAP:'
+        ], '', $response);
+        
+        $re = Xml::xmlToArray($response);
+        if (isset($re['Body']->FetchTokenResponse)) {
+            return $re['Body']->FetchTokenResponse;
+        } elseif (isset($re['Body']->Fault)) {
+            return false;
+        }
+        
+        return false;
+    }
+
+    /**
+     * 获取店铺账号信息
+     * 
+     * @param string $userId
+     *            账号名称
+     */
+    public function getUser($userId = '')
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetUserRequestType');
+        $request = new \GetUserRequestType();
+        $request->setUserID($userId);
+        
+        $response = $this->_proxy->GetUser($request);
+        $resultArr = parent::xmlToArraySDK($response);
+        
+        if ($resultArr && $resultArr['Ack'] == 'Success') {
+            return $resultArr['User'];
+        }
+        
+        return [];
+    }
+
+    /**
+     * 获取店铺账号信息
+     */
+    public function getStore()
+    {
+        set_time_limit(0);
+        Loader::import('trading.GetStoreRequestType');
+        $request = new \GetStoreRequestType();
+        $request->setUserID('rf-ning');
+        
+        $response = $this->_proxy->GetStore($request);
+        $resultArr = parent::xmlToArraySDK($response);
+        print_r($resultArr);
+        exit();
+    }
+
+    /**
+     *
+     * @param string $sessionId            
+     */
+    public function getConfirmIdentity($sessionId = '')
+    {
+        set_time_limit(0);
+        Loader::import('trading.ConfirmIdentityRequestType');
+        $request = new \ConfirmIdentityRequestType();
+        $request->setSessionID($sessionId);
+        $response = $this->_proxy->ConfirmIdentity($request);
+        $response = $this->xmlToArraySDK($response);
+        
+        if (param($response, 'Ack')) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    public function geteBayOfficialTime()
+    {
+        set_time_limit(0);
+        Loader::import('trading.GeteBayOfficialTimeRequestType');
+        $request = new \GeteBayOfficialTimeRequestType();
+        $response = $this->_proxy->GeteBayOfficialTime($request);
+        $response = $this->xmlToArraySDK($response);
+        
+        if (param($response, 'Ack')) {
+            return true;
+	    }
+	
+	    return false;
+	
+	}
+	
+}

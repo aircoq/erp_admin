@@ -1,0 +1,330 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/7/3
+ * Time: 18:16
+ */
+
+namespace cd;
+
+use org\Xml;
+
+class CdBaseApi
+{
+    protected $client_id = '';
+
+    protected $client_secret = '';
+
+    protected $code = '';
+
+    protected $error = '';
+
+    protected $channel_type = '';
+
+    protected $token_id = '';
+
+    public function __construct($params = [])
+    {
+
+        $this->client_id = $params['client_id'] ?? '';
+        $this->client_secret = $params['client_secret'] ?? '';
+        $this->code = $params['code'] ?? '';
+        $this->token_id = $params['token_id'] ?? '';
+        $this->channel_type = $params['channel_type'] ?? $params['channel_type'] ?? '';
+    }
+
+
+
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    public function getHeaderMessage()
+    {
+        if (!$this->token_id) {
+            $this->getSign();
+        }
+        $str = '';
+        $str .= '<headerMessage xmlns:d4p1="http://schemas.datacontract.org/2004/07/Cdiscount.Framework.Core.Communication.Messages" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">';
+        $str .= '<d4p1:Context>';
+        $str .= '<d4p1:CatalogID>1</d4p1:CatalogID>';
+        $str .= '<d4p1:ConfigurationPolicy i:nil="true" />';
+        $str .= '<d4p1:CustomerID i:nil="true" />';
+        $str .= '<d4p1:CustomerId>0</d4p1:CustomerId>';
+        $str .= '<d4p1:CustomerNumber i:nil="true" />';
+        $str .= '<d4p1:CustomerPoolID i:nil="true" />';
+        $str .= '<d4p1:GeoCoordinate xmlns:d6p1="http://schemas.datacontract.org/2004/07/System.Device.Location" i:nil="true" />';
+        $str .= '<d4p1:SecuredContext>false</d4p1:SecuredContext>';
+        $str .= '<d4p1:SiteID>100</d4p1:SiteID>';
+        $str .= '</d4p1:Context>';
+        $str .= '<d4p1:Localization>';
+        $str .= '<d4p1:Country>Fr</d4p1:Country>';
+        $str .= '<d4p1:CultureName i:nil="true" />';
+        $str .= '<d4p1:Currency>Eur</d4p1:Currency>';
+        $str .= '<d4p1:DecimalPosition>2</d4p1:DecimalPosition>';
+        $str .= '<d4p1:Language>Fr</d4p1:Language>';
+        $str .= '</d4p1:Localization>';
+        $str .= '<d4p1:Security>';
+        $str .= '<d4p1:DomainRightsList i:nil="true" />';
+        $str .= '<d4p1:IssuerID i:nil="true" />';
+        $str .= '<d4p1:SessionID i:nil="true" />';
+        $str .= '<d4p1:SubjectLocality i:nil="true" />';
+        $str .= '<d4p1:TokenId>' . $this->token_id . '</d4p1:TokenId>';
+        $str .= '<d4p1:UserName>CdscntMkpWebapp</d4p1:UserName>';
+        $str .= '</d4p1:Security>';
+        $str .= '<d4p1:Version>1.0</d4p1:Version>';
+        $str .= '</headerMessage>';
+
+        return $str;
+    }
+
+
+    /**
+     * 得到私密的Key资源
+     * @param string $url 沃尔玛API URL以及path和查询参数
+     * @param string $method 请求方式【大写】
+     * @param string $timestemp 时间戳【毫秒】
+     * @return string sign 加密后的签名
+     */
+    public function getSign()
+    {
+        $url = 'https://sts.cdiscount.com/users/httpIssue.svc/?realm=https://wsvc.cdiscount.com/MarketplaceAPIService.svc';
+        $username = $this->client_id;
+        $password = $this->client_secret;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "$url");
+        curl_setopt($ch, CURLOPT_PORT, 443);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+        curl_setopt($ch, CURLOPT_USERAGENT, $_SERVER['HTTP_USER_AGENT']);
+        curl_setopt($ch, CURLOPT_USERPWD, "{$username}:{$password}");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); //不验证证书
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); //不验证证书
+
+        $return = curl_exec($ch);
+        $msg = curl_error($ch);
+        curl_close($ch);
+        if (!$return) {
+            $this->error = $msg;
+            return false;
+        } else {
+            return $this->getToken($return);
+        }
+    }
+
+    public function getToken($xml)
+    {
+        preg_match_all('/<string .*?>.*?<\/string>/', $xml, $result);
+        $this->token_id = substr($result[0][0], -41, 32);
+        return $this->token_id;
+    }
+
+    //将XML转为array
+    public function xmlToArray($xml)
+    {
+
+        //禁止引用外部xml实体
+        libxml_disable_entity_loader(true);
+        $values = json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
+        return $values;
+    }
+
+
+    /**
+     * Xml转化为数组
+     * @param string $array
+     * @param string $head
+     * @param string $headStr
+     * @param string $name
+     * @param string $key_name 如果key是数字是替换的字符串
+     * @return array
+     */
+    public function arrayToXml($array, $head = true, $headStr = '', $name = '', $key_name = '')
+    {
+        $xml = '';
+        $xml .= $head ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "<$name$head $headStr>" : '' . "\n";
+        foreach ($array as $key => $val) {
+            if (is_array($val)) {
+                if (is_numeric($key)) {
+                    $key = $key_name ?? $key;
+                }
+                $xml .= "<$name" . $key . ">" . $this->arrayToXml($val, false, $headStr, $name, $key_name) . "</" . $key . ">" . "\n";
+            } else {
+                $xml .= "<$name" . $key . ">" . $val . "</" . $key . ">" . "\n";
+            }
+        }
+        $xml .= $head ? "</$head>" : '' . "\n";
+        return $xml;
+    }
+
+    /**
+     * HTTP读取
+     * @param string $url 目标URL
+     * @param string $method 请求方式
+     * @param array|string $bodyData 请求BODY正文
+     * @param array $responseHeader 传变量获取请求回应头
+     * @param int $code 传变量获取请求回应状态码
+     * @param string $protocol 传变量获取请求回应协议文本
+     * @param string $statusText 传变量获取请求回应状态文本
+     * @param array $extra 扩展参数,可传以下值,不传则使用默认值
+     * header array 头
+     * host string 主机名
+     * port int 端口号
+     * timeout int 超时(秒)
+     * proxyType int 代理类型; 0 HTTP, 4 SOCKS4, 5 SOCKS5, 6 SOCK4A, 7 SOCKS5_HOSTNAME
+     * proxyAdd string 代理地址
+     * proxyPort int 代理端口
+     * proxyUser string 代理用户
+     * proxyPass string 代理密码
+     * caFile string 服务器端验证证书文件名
+     * sslCertType string 安全连接证书类型
+     * sslCert string 安全连接证书文件名
+     * sslKeyType string 安全连接证书密匙类型
+     * sslKey string 安全连接证书密匙文件名
+     * @return string|array 请求结果;成功返回请求内容;失败返回错误信息数组
+     * error string 失败原因简单描述
+     * debugInfo array 调试信息
+     */
+    public function httpReader($url, $method = 'GET', $bodyData = [], $extra = [], &$responseHeader = null, &$code = 0, &$protocol = '', &$statusText = '')
+    {
+        $ci = curl_init();
+
+        if (isset($extra['timeout'])) {
+            curl_setopt($ci, CURLOPT_TIMEOUT, $extra['timeout']);
+        }
+        curl_setopt($ci, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ci, CURLOPT_HEADER, true);
+        curl_setopt($ci, CURLOPT_AUTOREFERER, true);
+        curl_setopt($ci, CURLOPT_FOLLOWLOCATION, true);
+
+        if (isset($extra['proxyType'])) {
+            curl_setopt($ci, CURLOPT_PROXYTYPE, $extra['proxyType']);
+
+            if (isset($extra['proxyAdd'])) {
+                curl_setopt($ci, CURLOPT_PROXY, $extra['proxyAdd']);
+            }
+
+            if (isset($extra['proxyPort'])) {
+                curl_setopt($ci, CURLOPT_PROXYPORT, $extra['proxyPort']);
+            }
+
+            if (isset($extra['proxyUser'])) {
+                curl_setopt($ci, CURLOPT_PROXYUSERNAME, $extra['proxyUser']);
+            }
+
+            if (isset($extra['proxyPass'])) {
+                curl_setopt($ci, CURLOPT_PROXYPASSWORD, $extra['proxyPass']);
+            }
+        }
+
+        if (isset($extra['caFile'])) {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, 2); //SSL证书认证
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, true); //严格认证
+            curl_setopt($ci, CURLOPT_CAINFO, $extra['caFile']); //证书
+        } else {
+            curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ci, CURLOPT_SSL_VERIFYHOST, false);
+        }
+
+        if (isset($extra['sslCertType']) && isset($extra['sslCert'])) {
+            curl_setopt($ci, CURLOPT_SSLCERTTYPE, $extra['sslCertType']);
+            curl_setopt($ci, CURLOPT_SSLCERT, $extra['sslCert']);
+        }
+
+        if (isset($extra['sslKeyType']) && isset($extra['sslKey'])) {
+            curl_setopt($ci, CURLOPT_SSLKEYTYPE, $extra['sslKeyType']);
+            curl_setopt($ci, CURLOPT_SSLKEY, $extra['sslKey']);
+        }
+
+        $method = strtoupper($method);
+        switch ($method) {
+            case 'GET':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'GET');
+                if (!empty($bodyData)) {
+                    if (is_array($bodyData)) {
+                        $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($bodyData);
+                    } else {
+                        curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                    }
+                }
+                break;
+            case 'POST':
+                curl_setopt($ci, CURLOPT_POST, true);
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'PUT':
+                //                 curl_setopt ( $ci, CURLOPT_PUT, true );
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'PUT');
+                if (!empty ($bodyData)) {
+                    curl_setopt($ci, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+            case 'DELETE':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
+            case 'HEAD':
+                curl_setopt($ci, CURLOPT_CUSTOMREQUEST, 'HEAD');
+                break;
+            default:
+                throw new \Exception(json_encode(['error' => '未定义的HTTP方式']));
+                return ['error' => '未定义的HTTP方式'];
+        }
+
+        if (!isset($extra['header']) || !isset($extra['header']['Host'])) {
+            $urldata = parse_url($url);
+            $extra['header']['Host'] = $urldata['host'];
+            unset($urldata);
+        }
+
+        $header_array = array();
+        foreach ($extra['header'] as $k => $v) {
+            $header_array[] = $k . ': ' . $v;
+        }
+
+        curl_setopt($ci, CURLOPT_HTTPHEADER, $header_array);
+        curl_setopt($ci, CURLINFO_HEADER_OUT, true);
+
+        curl_setopt($ci, CURLOPT_URL, $url);
+
+        $response = curl_exec($ci);
+
+        if (false === $response) {
+            $http_info = curl_getinfo($ci);
+            throw new \Exception(json_encode(['error' => curl_error($ci), 'debugInfo' => $http_info]));
+            return ['error' => curl_error($ci), 'debugInfo' => $http_info];
+        }
+
+        $responseHeader = [];
+        $headerSize = curl_getinfo($ci, CURLINFO_HEADER_SIZE);
+        $headerData = substr($response, 0, $headerSize);
+        $body = substr($response, $headerSize);
+
+        $responseHeaderList = explode("\r\n", $headerData);
+
+        if (!empty($responseHeaderList)) {
+            foreach ($responseHeaderList as $v) {
+                if (false !== strpos($v, ':')) {
+                    list($key, $value) = explode(':', $v, 2);
+                    $responseHeader[$key] = ltrim($value);
+                } else if (preg_match('/(.+?)\s(\d+)\s(.*)/', $v, $matches) > 0) {
+                    $protocol = $matches[1];
+                    $code = $matches[2];
+                    $statusText = $matches[3];
+                }
+            }
+        }
+
+        curl_close($ci);
+        return $body;
+    }
+
+
+}

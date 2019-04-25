@@ -1,0 +1,41 @@
+JWT-PHP
+=======
+
+JSON Web Token (JWT) for PHP
+
+RFC: http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-30
+
+Hash: HMAC SHA-256
+
+
+Example:
+=======
+
+```php
+
+// Secret password
+$key = '1234';
+
+// Claimset
+$claimSet = array(
+    // user id
+    'iss' => '1',
+    // Expiration Time
+    'exp' => strtotime(date('Y-m-d H:i:s') . ' + 1 day')
+);
+
+$jwt = new \Odan\Jwt\JsonWebToken();
+
+// Create token
+$token = $jwt->encode($claimSet, $key);
+
+// check token
+$claimDecoded = $jwt->decode($token, $key);
+
+if($claimDecoded['valid'] == true) {
+    echo 'Token is valid';
+} else {
+    echo 'Error: Token is not valid';
+}
+
+```

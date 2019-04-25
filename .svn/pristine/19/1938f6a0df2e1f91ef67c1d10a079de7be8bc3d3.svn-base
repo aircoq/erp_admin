@@ -1,0 +1,87 @@
+<?php
+namespace service\dingding\operation;
+
+use org\Curl;
+use think\Config;
+/**
+ * dingding 平台api
+ */
+class Common
+{
+
+    private $domain = 'https://oapi.dingtalk.com';
+    protected $client_id;
+    protected $client_secret;
+    protected $corpid;
+    protected $corpsecret;
+    protected $accessToken;
+
+    /**
+     * 构造函数
+     */
+    public function __construct($config)
+    {
+        $this->client_id     = Config::get('dingding.appId');
+        $this->client_secret = Config::get('dingding.appSecret');
+        $this->corpid        = Config::get('dingding.corpId');
+        $this->corpsecret    = Config::get('dingding.corpSecret');
+        $this->accessToken   = $this->getAccessToken();
+    }
+    
+    /**
+     * 获取access_token
+     * @return $result : 返回access_token
+     */
+    public function getAccessToken()
+    {
+        $url = 'https://oapi.dingtalk.com/gettoken?corpid='. $this->corpid .'&corpsecret='. $this->corpsecret;
+        $content = Curl::curlGet($url);
+        $content = json_decode($content, true);
+        if ($content['errcode'] == 0) {
+            return $content['access_token'];
+        }
+        return $content;
+    }
+    
+    /**
+     * 获取部门列表
+     * @return $result ： 部门列表
+     */
+    public function departmentList()
+    {
+        $url = 'https://oapi.dingtalk.com/department/list?access_token='. $this->accessToken;
+        $result = Curl::curlGet($url);
+        $result = json_decode($result, true);
+        return $result;
+    }
+
+    public function departmentDetail($id)
+    {
+        return $this->requestGet('/department/get', ['id'=>$id]);
+    }
+    
+    /**
+     * 获取部门成员详情列表
+     * @param number $departmentId
+     * @return $result : 用户详情列表
+     */
+    public function userList($departmentId = 0)
+    {
+        $url = 'https://oapi.dingtalk.com/user/list?access_token='. $this->accessToken .'&department_id='. $departmentId;
+        $result = Curl::curlGet($url);
+        $result = json_decode($result, true);
+        return $result;
+    }
+
+    private function requestGet($url, $data = [])
+    {
+        $gets = array_merge(['access_token'=>$this->accessToken], $data);
+        $params = '';
+        foreach ($gets as $key => $val) {
+            $params .= "$key=$val&";
+        }
+        $url = $this->domain.$url."?".$params;
+        $result = Curl::curlGet($url);
+        return json_decode($result, true);
+    }
+}

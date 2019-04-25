@@ -1,0 +1,134 @@
+<?php
+namespace org;
+
+/**
+ * Curl 操作类
+ * @author RondaFul
+ *
+ */
+class Curl
+{
+/**
+     * CURL GET 
+     * @param  $url
+     * @return mixed
+     */
+    public static function curlGet($url, $headers = [] ,$httpcode = false)
+    {
+        $ch = curl_init();
+        //设置选项，包括URL
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+        curl_setopt($ch, CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); //不验证证书
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); //不验证证书
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);//防页面跳转
+        //执行并获取HTML文档内容
+        $response = curl_exec($ch);
+        $code = curl_getinfo($ch,CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        //返回http code状态码
+        if($httpcode){
+            return $code;
+        }
+        
+        return $response;
+    }
+    
+    /**
+     * CURL POST
+     * @param  $url
+     * @param  $data
+     * @param string $header : 请求首部
+     * @return mixed
+     */
+    public static function curlPost($url, $data, $headers = [] ,$httpcode = false)
+    {
+        $ch = curl_init();
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 500);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($ch);
+        $code = curl_getinfo($ch,CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        //返回http code状态码
+        
+        if($httpcode){
+            return $code;
+        }
+        return $response;
+    }
+    
+    /**
+     * CURL DELETE
+     * @param  $url
+     * @param  $data
+     * @param  $header : 请求首部
+     * @return mixed
+     */
+    public static function curlDelete($url, $headers = [])
+    {
+        $ch = curl_init();
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt ($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response;
+    }
+    
+    public static  function getCurl($url, $header, $xml_data='')
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        //curl_setopt($ch,CURLOPT_HEADER,1);
+        if ($header) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+        }
+        if (!empty($xml_data)) {
+            curl_setopt($ch, CURLOPT_POST, 0);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_data);
+        }
+        $response = curl_exec($ch);
+        if (curl_errno($ch)) {
+            print curl_error($ch);
+        }
+        curl_close($ch);
+        return $response;
+    }
+    
+    /**
+     * @info 下载远程文件，直接写入目标文件，避免内存溢出!
+     * @author hot-zr
+     * @param unknown $filename 目标文件
+     * @param unknown $destination 写入位置文件
+     */
+    public static function downFileToFlow($filename, $destination)
+    {
+        $fp_output = fopen($destination, 'w');
+        $ch = curl_init($filename);
+        curl_setopt($ch, CURLOPT_FILE, $fp_output);
+        curl_exec($ch);
+        curl_close($ch);
+        exec($destination, $out, $status);
+        fclose($fp_output);
+        return (bool)filesize($destination);
+    }
+}

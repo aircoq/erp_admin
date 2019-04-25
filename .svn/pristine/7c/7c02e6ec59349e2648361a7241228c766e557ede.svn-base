@@ -1,0 +1,47 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-18
+ * Time: 上午10:42
+ */
+
+namespace erp;
+
+
+abstract class AbsDataFilter
+{
+    const TYPE_PUBLIC = 1;
+    const TYPE_PRIVATE= 2;
+    protected $type = self::TYPE_PRIVATE;
+    protected $params = [];
+    protected $model;
+    public function setParams($params)
+    {
+        $this->params = $params;
+    }
+    public abstract function getParams() :array ;
+
+    protected function getParam($key)
+    {
+
+    }
+    public abstract function filter();
+
+    public function doFilter(ErpModel $model = null)
+    {
+        if($model){
+            $this->model = $model;
+        }
+    }
+
+    public function isPublic()
+    {
+        return $this->type === self::TYPE_PUBLIC;
+    }
+
+    public function isPrivate()
+    {
+        return $this->type === self::TYPE_PRIVATE;
+    }
+}

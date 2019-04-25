@@ -1,0 +1,221 @@
+<?php
+namespace app\common\cache\driver;
+
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\model\WarehouseGoods as Model;
+use app\warehouse\service\OrderOos;
+
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-10
+ * Time: 上午10:56
+ */
+class WarehouseGoods extends Cache
+{
+    const cacheGoodsAvailableQuantity = "inventory:goodsAvailableQuantity";
+    const cacheGoodsAvailableQuantityChange = "inventory:goodsAvailableQuantityChange";
+
+    const cacheGoodsWaitShippingQuantity = "inventory:goodsWaitShippingQuantity";
+    const cacheGoodsWaitShippingQuantityChange = "inventory:goodsWaitShippingQuantityChange";
+
+    const cacheGoodsOOSQuantity = "inventory:goodsOOSQuantity";
+    const cacheGoodsOOSQuantityChange = "inventory:goodsOOSQuantityChange";
+
+    const cacheGoodsPreAllocationQuantity = "inventory:goodsPreAllocationQuantity";
+    const cacheLastUpdateAgeTime = "inventory:lastUpdateAgeTime";
+
+    /**
+     * @doc 待发货数量
+     * @param int $warehouseId
+     * @param int $skuId
+     * @param int $quantity
+     * @return int
+     */
+    public function waiting_shipping_quantity($warehouseId, $skuId, $quantity = null)
+    {
+        $changeKey = self::cacheGoodsWaitShippingQuantityChange . ':' . $warehouseId;
+        $key = self::cacheGoodsWaitShippingQuantity . ':' . $warehouseId;
+        if (!is_null($quantity)) { //set
+            $this->persistRedis->sAdd($changeKey, $skuId);
+            $ret = $this->persistRedis->hIncrBy($key, $skuId, $quantity);
+            return $ret;
+        } else { //get
+            if ($this->persistRedis->hExists($key, $skuId)) {
+                $num = $this->persistRedis->hGet($key, $skuId);
+            } else {
+                $wareHouse = Model::getByWarehouseIdSkuId($warehouseId, $skuId);
+                if ($wareHouse) {
+                    $num = $wareHouse['waiting_shipping_quantity'] ?: 0;
+                } else {
+                    $num = 0;
+                }
+                $this->persistRedis->hSet($key, $skuId, $num);
+            }
+            return (int)$num;
+        }
+    }
+
+    /**
+     * 获取/更新 缺货数
+     * @param $warehouseId
+     * @param $skuId
+     * @param int $quantity
+     * @return int
+     */
+    public function oos_quantity($warehouseId, $skuId, $quantity = null)
+    {
+        //$changeKey = self::cacheGoodsOOSQuantityChange . ':' . $warehouseId;
+        $key = self::cacheGoodsOOSQuantity . ':' . $warehouseId;
+        if (!is_null($quantity)) { //set
+            //$this->redis->sAdd($changeKey,$skuId);
+            return $this->redis->hDel($key, $skuId);
+        }
+
+        $qty = $this->redis->hGet($key, $skuId);
+        if ($qty === false) {
+            $qty = (new OrderOos())->getOosQuantity($warehouseId, $skuId);
+            $qty = $qty ?: 0;
+            $this->redis->hSet($key, $skuId, $qty);
+        }
+
+        return intval($qty);
+    }
+
+    /**
+     * 库存可用数
+     * @param $warehouseId
+     * @param $skuId
+     * @param int $quantity 当有设值为写入，更新
+     * @return integer;
+     */
+    public function available_quantity($warehouseId, $skuId, $quantity = null)
+    {
+        if (!$warehouseId) {
+            throw new JsonErrorException('available_quantity operate error warehouse_id is ' . $warehouseId);
+        }
+        if (!$skuId) {
+            throw new JsonErrorException('available_quantity operate error sku_id is ' . $skuId);
+        }
+        //$changeKey = self::cacheGoodsAvailableQuantityChange . ':' . $warehouseId;
+        $key = self::cacheGoodsAvailableQuantity . ':' . $warehouseId;
+        if (!is_null($quantity)) {//set
+            //$this->redis->sAdd($changeKey, $skuId);
+            //return $this->redis->hDel($key, $skuId);
+            return $this->delAvailableQuantity($key, $skuId);
+        } else {//get
+            if (($num = $this->redis->hGet($key, $skuId)) === false) {
+                $wareHouse = (new Model())->master()->where(['warehouse_id'=>$warehouseId,'sku_id'=>$skuId])->find();
+                if ($wareHouse) {
+                    $num = $wareHouse->quantity - $wareHouse->waiting_shipping_quantity - $wareHouse->ready_lock_quantity;
+                } else {
+                    $num = 0;
+                }
+                $this->redis->hSet($key, $skuId, $num);
+            }
+            return $num;
+        }
+
+    }
+
+    /**
+     * @desc 删除可用库存(失败了 再试一次)
+     * @param string $key
+     * @param int $skuId
+     * @param int $time
+     * @return boolean
+     */
+    public function delAvailableQuantity($key, $skuId, $time = 1)
+    {
+        $num = $this->redis->hDel($key, $skuId);
+        if (!$num && $time == 1) {
+            $time++;
+            $num = $this->delAvailableQuantity($key, $skuId, $time);
+        }
+        return $num;
+    }
+
+
+
+    /**
+     * 获取/更新 预占库存数
+     * @param $warehouseId
+     * @param $skuId
+     * @param int $quantity
+     * @return int
+     */
+    public function pre_allocation_quantity($warehouseId, $skuId, $quantity = null)
+    {
+        $key = self::cacheGoodsPreAllocationQuantity . ':' . $warehouseId;
+        if (!is_null($quantity)) {//set
+            return $this->redis->hIncrBy($key, $skuId, $quantity);
+        } else { //get
+            return $this->redis->hGet($key, $skuId) ?: 0;
+        }
+    }
+
+    /**
+     * 获取扣除列表
+     * @param $warehouseId
+     * @return array
+     */
+    public function getChangeUsableQuantitys($warehouseId)
+    {
+        $key = self::cacheGoodsAvailableQuantityChange . ":" . $warehouseId;
+        $skus = [];
+        while ($sku = $this->redis->sPop($key)) {
+            $skus[$sku] = $this->available_quantity($warehouseId, $sku);
+        }
+        return $skus;
+    }
+
+    public function isChangeUsableQuantity($warehouseId, $skuId)
+    {
+        $key = self::cacheGoodsAvailableQuantityChange . ":" . $warehouseId;
+        return $this->redis->sIsMember($key, $skuId);
+    }
+
+    public function changeUsableQuantityRemove($warehouseId, $skuId)
+    {
+        $key = self::cacheGoodsAvailableQuantityChange . ":" . $warehouseId;
+        return $this->redis->sRem($key, $skuId);
+    }
+
+    /**
+     * @param $warehouseId
+     * @return array
+     */
+    public function getChangeWaitShippingQuantitys($warehouseId)
+    {
+        $key = self::cacheGoodsWaitShippingQuantityChange . ":" . $warehouseId;
+        $skus = [];
+        while ($sku = $this->persistRedis->sPop($key)) {
+            $skus[$sku] = $this->waiting_shipping_quantity($warehouseId, $sku);
+        }
+        return $skus;
+    }
+
+    /*
+     * @desc 获取更新库龄最后更新时间
+     */
+    public function getLastUpdateAgeTime()
+    {
+        if (!$this->persistRedis->exists(self::cacheLastUpdateAgeTime)) {
+            $time = 0;
+        } else {
+            $time = $this->persistRedis->get(self::cacheLastUpdateAgeTime);
+        }
+        return $time;
+    }
+
+
+    /*
+     * @desc 设置更新库龄最后更新时间
+     */
+    public function setLastUpdateAgeTime($time = 0)
+    {
+        $this->persistRedis->set(self::cacheLastUpdateAgeTime, $time);
+    }
+
+}

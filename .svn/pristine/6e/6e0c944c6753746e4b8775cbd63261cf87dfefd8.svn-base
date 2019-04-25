@@ -1,0 +1,381 @@
+<?php
+
+namespace app\publish\queue;
+
+use app\common\exception\QueueException;
+use app\common\model\amazon\AmazonPublishProduct;
+use app\common\service\ChannelAccountConst;
+use app\common\service\SwooleQueueJob;
+use think\Exception;
+use app\publish\service\AmazonPublishHelper;
+use app\common\model\amazon\AmazonHeelSaleComplain as AmazonHeelSaleComplainModel;
+use app\common\model\amazon\AmazonListing as AmazonListingModel;
+use app\internalletter\service\InternalLetterService;
+use app\common\model\ChannelUserAccountMap as ChannelUserAccountMapModel;
+use app\common\model\amazon\AmazonAccount as AmazonAccountModel;
+use app\common\cache\Cache;
+use app\common\model\amazon\AmazonSellerHeelSale as AmazonSellerHeelSaleModel;
+use app\common\model\amazon\AmazonPublishProductDetail as AmazonPublishProductDetailModel;
+use Waimao\AmazonMws\AmazonConfig;
+use app\publish\queue\AmazonSellerNameHeelSaleQueuer;
+use app\common\service\UniqueQueuer;
+
+class AmazonHeelSaleComplaintQueuer extends  SwooleQueueJob {
+
+    public function getName():string
+    {
+        return 'amazon跟卖-投诉';
+    }
+
+    public function getDesc():string
+    {
+        return 'amazon跟卖-投诉';
+    }
+
+    public function getAuthor():string
+    {
+        return 'hao';
+    }
+
+    public function init()
+    {
+    }
+
+    public static function swooleTaskMaxNumber():int
+    {
+        return 40;
+    }
+
+
+    public function execute()
+    {
+        set_time_limit(0);
+        $id = $this->params['id'];
+        if (empty($id)) {
+            return;
+        }
+
+
+        try {
+
+            $hash_key = 'AnyOfferChangedQueue';
+
+            if(!Cache::handler()->hExists($hash_key, $id)){
+                return;
+            }
+
+            $result = Cache::handler()->hGet($hash_key, $id);
+
+            if($result){
+                $result = \GuzzleHttp\json_decode($result, true);
+
+                //删除缓存
+                Cache::handler()->hDel($hash_key, $id);
+
+                $notificationMetaData = (array)$result['NotificationMetaData'];
+
+                $marketplaceId = $notificationMetaData['MarketplaceId'];
+                $site = '';
+                foreach (AmazonConfig::$marketplaceId as $key => $val) {
+                    if($val == $marketplaceId) {
+                        $site = $key;
+                        break;
+                    }
+                }
+
+                $seller_id_site = [
+                    'site' => $site,
+                    'sellerId' => $notificationMetaData['SellerId'],
+                ];
+
+                $time_offer_change = '';
+                foreach ($result as $val){
+
+                    foreach ($val as $v){
+                        $v = (array)$v;
+
+                        //跟卖时间
+                        if(isset($v['OfferChangeTrigger'])){
+
+                            $time_offer_change = $v['OfferChangeTrigger']['TimeOfOfferChange'];
+                            $timeYmd = explode('T', $time_offer_change);
+
+                            if($timeYmd){
+                                $timeHmi = explode('.', $timeYmd[1]);
+                                $time_offer_change = isset($timeYmd[0]) && isset($timeHmi[0]) ? strtotime($timeYmd[0].' '.$timeHmi[0]) : time();
+                            }
+                        }
+
+
+                        if(isset($v['Summary'])){
+                            $summary = (array)$v['Summary'];
+                            //最低价
+                            $numberOfOffers = (array)$summary['NumberOfOffers'];
+
+                            if(isset($numberOfOffers['OfferCount']) && $numberOfOffers['OfferCount'] > 1){
+
+                                //销售价
+                                $amount = '';//最低价
+                                $listingPrice = '';
+                                if(isset($summary['LowestPrices'])){
+                                    $lowestPrice = (array)$summary['LowestPrices'];
+
+                                    if(isset($lowestPrice['LowestPrice'])){
+                                        foreach ($lowestPrice as $vv){
+                                            $vv = (array)$vv;
+
+                                            if(isset($vv['ListingPrice'])){
+                                                $listingPrice = (array)$vv['ListingPrice'];
+                                                $amount = isset($listingPrice['Amount']) ? $listingPrice['Amount'] : '';
+                                            }
+
+                                        }
+                                    }
+                                }
+
+                                //购物车价格
+                                $buy_box_price = '';
+                                if(isset($summary['BuyBoxPrices'])){
+                                    $buyBoxPrice = (array)$summary['BuyBoxPrices'];
+
+                                    if(isset($buyBoxPrice['BuyBoxPrice'])){
+                                        if(isset($buyBoxPrice['BuyBoxPrice']['ListingPrice'])){
+                                            $listingPrice = $buyBoxPrice['BuyBoxPrice']['ListingPrice'];
+                                            $buy_box_price = $listingPrice['Amount'];
+                                        }
+                                    }
+                                }
+
+
+                                //跟卖数据
+                                $data_offers = [];
+                                if(isset($v['Offers'])){
+                                    $offer = (array)$v['Offers']['Offer'];
+
+                                    foreach ($offer as $valOffer){
+                                        $data_offers[] = [
+                                            'seller_id' => $valOffer['SellerId'],
+                                            'buy_box_price' => $buy_box_price,
+                                            'heel_sale_price' => isset($valOffer['ListingPrice']['Amount']) ? $valOffer['ListingPrice']['Amount'] : '0.00',
+                                            'heel_sale_time' => $time_offer_change,
+                                        ];
+                                    }
+                                }
+
+                                //推送到跟卖消息队里中
+                                $offerChangeTrigger = $v['OfferChangeTrigger'];
+                                $asin = ((array)$offerChangeTrigger)['ASIN'];
+
+                                if($amount){
+                                    $this->addUpdateComplain($seller_id_site, $asin, $amount, $data_offers);
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+            }
+
+            return true;
+
+        } catch (Exception $exp){
+            throw new QueueException($exp->getMessage());
+        }
+    }
+
+
+
+    /**
+     * @param $complainModel
+     * @param $offerListingCount
+     * 添加,更新投诉
+     */
+    protected  function addUpdateComplain($seller_id_site, $asin, $amount, $data_offers)
+    {
+
+        $seller_id = $seller_id_site['sellerId'];
+        $site = $seller_id_site['site'];
+
+        $model = new AmazonAccountModel;
+        $accountId = $model->field('id')->where(['merchant_id' => $seller_id, 'site' => $site])->find();
+
+        if(!$accountId){
+            return;
+        }
+
+        $account_id = $accountId->toArray()['id'];
+
+        $complainModel = new AmazonHeelSaleComplainModel();
+        $listingModel = new AmazonListingModel();
+        $sellerHeelSaleModel = new AmazonSellerHeelSaleModel();
+
+        $where = [
+            'asin' => $asin,
+            'account_id' => $account_id,
+            'is_delete' => 0
+        ];
+        $complain = $complainModel->where($where)->field('id,is_heel_sale,salesperson_id')->find();
+
+        $is_heel_sale = 1;
+        $time = time();
+
+        //投诉记录存在
+        if($complain){
+
+            $salesperson_id = $complain['salesperson_id'];
+
+            $where = [
+                'asin1' => $asin,
+                'account_id' => $account_id,
+                'seller_type' => 1
+            ];
+
+            $list = $listingModel->alias('c')->where($where)->field('id,image_url,seller_sku, publish_detail_id')->find();
+
+            $image_url = '';
+            $seller_sku = '';
+            $brand = '';
+
+            $data['brand'] = '';
+            if($list){
+                $list = is_object($list) ? $list->toArray() : $list;
+
+                $image_url = $list['image_url'];
+                $seller_sku = $list['seller_sku'];
+
+                if($list['publish_detail_id']) {
+
+                    $detailInfo = (new AmazonPublishProductDetailModel)->field('product_id')->where(['id' => $list['publish_detail_id']])->find();
+
+                    if($detailInfo) {
+                        $productInfo = (new AmazonPublishProduct())->field('brand')->where(['id' => $detailInfo['product_id']])->find();
+
+                        $data['brand'] = $productInfo['brand'];
+                    }
+                }
+
+            }
+
+
+            $data['is_heel_sale'] = $is_heel_sale;
+            $data['create_time'] = $time;
+            $data['price'] = $amount;
+
+            $complainModel->update($data, ['id' => $complain['id']]);
+
+            $sellerHeelSaleModel->where(['heel_sale_complain_id' => $complain['id']])->delete();
+
+            if($data_offers){
+
+                foreach ($data_offers as $val){
+                    $val['heel_sale_complain_id'] = $complain['id'];
+                    $val['created_time'] = time();
+
+                    $id = $sellerHeelSaleModel->insertGetId($val);
+
+                    //加入获取店铺名称队列
+                   /* $params = [
+                        'id' => $id,
+                        'seller_id' => $val['seller_id'],
+                        'site' => $site,
+                        'asin' => $asin
+                    ];
+                    (new UniqueQueuer(AmazonSellerNameHeelSaleQueuer::class))->push($params);*/
+
+                }
+            }
+        }else{//新增投诉记录
+
+            if(isset($asin) && $asin){
+
+                $where = [
+                    'asin1' => $asin,
+                    'account_id' => $account_id,
+                    'seller_type' => 1
+                ];
+
+                $list = $listingModel->alias('c')->where($where)->field('id,image_url,seller_sku, publish_detail_id')->find();
+                $image_url = '';
+                $seller_sku = '';
+                $brand = '';
+
+                $data['brand'] = '';
+                if($list){
+                    $list = is_object($list) ? $list->toArray() : $list;
+
+                    $image_url = $list['image_url'];
+                    $seller_sku = $list['seller_sku'];
+
+                    if($list['publish_detail_id']) {
+                        $detailInfo = (new AmazonPublishProductDetailModel)->field('product_id')->where(['id' => $list['publish_detail_id']])->find();
+
+                        if($detailInfo) {
+                            $productInfo = (new AmazonPublishProduct())->field('brand')->where(['id' => $detailInfo['product_id']])->find();
+
+                            $data['brand'] = $productInfo['brand'];
+                        }
+                    }
+                }
+
+
+                $mapModel = new ChannelUserAccountMapModel;
+                $where = [
+                    'account_id' => $account_id,
+                    'channel_id' => ChannelAccountConst::channel_amazon
+                ];
+
+                $channelMap = $mapModel->where($where)->field('seller_id')->find();
+                $sellerId = is_object($channelMap) ? $channelMap->toArray()['seller_id'] : 0;
+
+                $data = [
+                    'img' => $image_url,
+                    'asin' => $asin,
+                    'sku' => $seller_sku,
+                    'account_id' => $account_id,
+                    'salesperson_id' => $sellerId,
+                    'is_heel_sale' => $is_heel_sale,
+                    'create_time' => $time,
+                    'price' => $amount,
+                ];
+
+                $id = $complainModel->insertGetId($data);
+
+                if($id && $data_offers){
+
+                    foreach ($data_offers as $val){
+                        $val['heel_sale_complain_id'] = $id;
+                        $val['created_time'] = time();
+
+                        $id = $sellerHeelSaleModel->insertGetId($val);
+
+                        //加入获取店铺名称队列
+                        /*$params = [
+                            'id' => $id,
+                            'seller_id' => $val['seller_id'],
+                            'site' => $site,
+                            'asin' => $asin
+                        ];
+                        (new UniqueQueuer(AmazonSellerNameHeelSaleQueuer::class))->push($params);*/
+                    }
+                }
+                $salesperson_id = $data['salesperson_id'];
+            }
+        }
+
+        if(isset($salesperson_id) && $salesperson_id && $is_heel_sale){
+            //发送钉钉消息
+            $InternalLetterService = new InternalLetterService();
+            $params = [
+                'receive_ids'=> $salesperson_id,
+                'title'=>'asin:'.$asin.'被跟卖了',
+                'content'=>'asin:'.$asin.'被跟卖了',
+                'type'=>26,
+                'dingtalk'=>1
+            ];
+            $InternalLetterService->sendLetter($params);
+        }
+
+        return true;
+    }
+}

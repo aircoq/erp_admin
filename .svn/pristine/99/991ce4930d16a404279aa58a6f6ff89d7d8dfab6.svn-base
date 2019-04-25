@@ -1,0 +1,211 @@
+<?php
+
+/**
+ * Description of EbayEndItemsApi
+ * @datetime 2017-6-21  16:52:47
+ * @author joy
+ */
+
+namespace service\ebay;
+class EbayItemApi extends Common
+{
+    public  function __construct($userRequestToken, $developerID = '96a1eee5-e4cb-43bb-89ff-1943863b91a4', $applicationID = 'ShenYanh-FastLine-PRD-b57734100-aaa0fbc8', $certificateID = 'PRD-577341007be2-2627-488b-8a70-5c62', $serverUrl = 'https://api.ebay.com/ws/api.dll', $compatabilityLevel = 1021, $siteToUseID = 0) 
+    {
+        parent::__construct($userRequestToken, $developerID, $applicationID, $certificateID, $serverUrl, $compatabilityLevel, $siteToUseID);
+    }
+    public  function getEbayDetails($detailName,$siteID)
+    {
+        $this->setVerb('GeteBayDetails');
+        $this->setSiteID($siteID);
+        $requestXmlBody=<<<EOD
+        <?xml version="1.0" encoding="utf-8"?>
+            <GeteBayDetailsRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+                <RequesterCredentials>
+                    <eBayAuthToken>$this->userToken</eBayAuthToken>
+                </RequesterCredentials> 
+              <DetailName>$detailName</DetailName>
+              <ErrorLanguage>$this->ErrorLanguage</ErrorLanguage>
+              <Version>$this->Version</Version>
+              <WarningLevel>$this->WarningLevel</WarningLevel>
+            </GeteBayDetailsRequest>
+EOD;
+        $responseXml  = $this->sendHttpRequest($requestXmlBody);
+        
+        if (stristr($responseXml, 'HTTP 404') || $responseXml == '')
+        {
+             return ['result'=>false,'data'=>[]];  
+        }else{
+            $xmlArray= $this->xmlToArray($responseXml);
+            return  ['result'=>true,'data'=>$xmlArray]; 
+        }
+        
+    }
+    /**
+     * 修改lisiting
+     */
+    public  function reviseFixedPriceItem($requestXmlBody)
+    {
+        $this->setVerb('ReviseFixedPriceItem');
+        $responseXml  = $this->sendHttpRequest($requestXmlBody);
+        if (stristr($responseXml, 'HTTP 404') || $responseXml == '')
+        {
+             return ['result'=>false,'data'=>[]];  
+        }else{
+            $xmlArray= $this->xmlToArray($responseXml);
+            return  ['result'=>true,'data'=>$xmlArray]; 
+        }   
+    }
+    /**
+     * 获取店铺listing
+     * @StartTimeFrom datetime 起始时间 2016-02-12T21:59:59.005Z
+     * @StartTimeTo datetime 结束时间 2016-02-26T21:59:59.005Z
+     * @param int $page 当前页码
+     * @param int $pageSize 每页显示数量
+     */
+    public function getSellerList($startTimeFrom,$startTimeTo,$page=1,$pageSize=30) 
+    {
+        $requestXmlBody=<<<EOD
+            <?xml version="1.0" encoding="utf-8"?>
+            <GetSellerListRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+              <RequesterCredentials>
+                <eBayAuthToken>$this->userToken</eBayAuthToken>
+              </RequesterCredentials>
+              <ErrorLanguage>en_US</ErrorLanguage>
+              <WarningLevel>High</WarningLevel>
+              <GranularityLevel>Coarse</GranularityLevel> 
+              <StartTimeFrom>$startTimeFrom</StartTimeFrom> 
+              <StartTimeTo>$startTimeTo</StartTimeTo> 
+              <IncludeWatchCount>true</IncludeWatchCount> 
+              <Pagination> 
+                <EntriesPerPage>$pageSize</EntriesPerPage> 
+                <PageNumber>$page</PageNumber>
+              </Pagination> 
+            </GetSellerListRequest>
+EOD;
+        $responseXml    = $this->sendHttpRequest($requestXmlBody);
+        dump($responseXml);die;
+    }
+    /**
+     * 下架商品
+     * @param array $data
+     */
+    public  function endItem($requestXmlBody)
+    {
+        $this->setVerb('EndItem');
+        $responseXml    = $this->sendHttpRequest($requestXmlBody);        
+        if (stristr($responseXml, 'HTTP 404') || $responseXml == '')
+        {
+             return ['result'=>false,'data'=>[]];  
+        }else{
+            $xmlArray= $this->xmlToArray($responseXml);
+            return  ['result'=>true,'data'=>$xmlArray]; 
+        }
+    }
+    /**
+     * 发送请求
+     * @param type $requestXmlBody
+     * @param type $verb
+     * @return type
+     */
+    public  function sendRequest($requestXmlBody,$verb='')
+    {
+        $this->setVerb($verb);
+        $responseXml    = $this->sendHttpRequest($requestXmlBody);        
+        if (stristr($responseXml, 'HTTP 404') || $responseXml == '')
+        {
+             return ['result'=>false,'data'=>[]];  
+        }else{
+            $xmlArray= $this->xmlToArray($responseXml);
+            return  ['result'=>true,'data'=>$xmlArray]; 
+        }
+    }
+    /**
+     * 更新listing库存可售价
+     * @param type $data
+     * @return type
+     */
+    public  function ReviseInventoryStatus($data)
+    {
+        $this->setVerb('ReviseInventoryStatus');
+         $contentXmlFileContents = <<<EOD
+                 <?xml version="1.0" encoding="utf-8"?>
+        <ReviseInventoryStatusRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+          <RequesterCredentials>
+            <eBayAuthToken>$this->userToken</eBayAuthToken>
+          </RequesterCredentials>
+          <Version>$this->Version</Version>
+          <ErrorLanguage>$this->ErrorLanguage</ErrorLanguage>
+          <WarningLevel>$this->WarningLevel</WarningLevel>
+          <InventoryStatus>
+            <ItemID>{$data['item_id']}</ItemID>
+EOD;
+         if(isset($data['sku']) && !empty($data['sku']))
+         {
+             $contentXmlFileContents .= '<SKU>'.$data['sku'].'</SKU>';
+         }
+         
+        $contentXmlFileContents .= <<<EOD
+                
+        <StartPrice>{$data['price']}</StartPrice>
+        <Quantity>{$data['quantity']}</Quantity>
+        </InventoryStatus>
+        </ReviseInventoryStatusRequest>
+EOD;
+         
+        $responseXml    = $this->sendHttpRequest($contentXmlFileContents);
+        
+        if (stristr($responseXml, 'HTTP 404') || $responseXml == '')
+        {
+             return ['result'=>false,'data'=>[]];  
+        }else{
+            $xmlArray= $this->xmlToArray($responseXml);
+            return  ['result'=>true,'data'=>$xmlArray]; 
+        }
+    }
+    /**
+     * 获取收取token
+     * @param string $username 账号
+     * @param string $SessionID sessionID
+     * @param string $verb 接口名称
+     * @return type
+     */
+    public  function FetchToken($username,$SessionID,$verb)
+    {
+         $this->verb = $verb;
+         $requestBody = <<<EOD
+          <?xml version="1.0" encoding="utf-8"?>
+          <FetchTokenRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+          <RequesterCredentials><Username>$username</Username></RequesterCredentials>
+          <SessionID>$SessionID</SessionID>
+        </FetchTokenRequest>        
+EOD;
+        $responseBody = $this->sendHttpRequest($requestBody);   
+      
+        $responseXml = simplexml_load_string($responseBody);
+        
+        return $responseXml;
+    }
+    /**
+     * 获取eBay sessionId
+     * @param string $RuName 应用名称run_name
+     * @return type
+     */
+    public function GetSessionID($RuName='Shen_Yanhong-ShenYanh-FastLi-qfsdsmi')
+    {
+         $requestBody = <<<EOD
+          <?xml version="1.0" encoding="utf-8" ?>
+       <GetSessionIDRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+          <Version>$this->Version</Version>
+           <RuName>$RuName</RuName>
+        </GetSessionIDRequest>      
+EOD;
+      $responseBody = $this->sendHttpRequest($requestBody);   
+      
+        $responseXml = simplexml_load_string($responseBody);
+      
+        $SessionID = (string)$responseXml->SessionID;  // need
+        
+        return $SessionID;
+         
+    }
+}

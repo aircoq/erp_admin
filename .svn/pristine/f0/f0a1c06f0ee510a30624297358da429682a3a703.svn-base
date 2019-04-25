@@ -1,0 +1,27 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-17
+ * Time: 上午10:52
+ */
+
+namespace swoole;
+
+
+abstract class WebSocketCmd
+{
+    private $data;
+
+    public function __construct($data)
+    {
+        $this->data = $data;
+    }
+
+    protected function getData()
+    {
+        return $this->data;
+    }
+
+    public abstract function execute();
+}

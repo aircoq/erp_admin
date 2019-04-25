@@ -1,0 +1,1448 @@
+<?php
+
+namespace service\ebay;
+
+//use think\EbaySession ;
+use think\Db;
+use think\Loader;
+use org\Xml;
+
+class EbayProductApi 
+{		
+	private $userToken;
+	private $devID;
+	private $appID;
+	private $certID;
+	private $serverUrl;
+	private $compatLevel;
+	private $siteID;
+	private $verb;
+	
+	/**
+	 *  初始化 
+	 * @param unknown $userRequestToken
+	 * @param unknown $developerID
+	 * @param unknown $applicationID
+	 * @param unknown $certificateID
+	 * @param unknown $serverUrl
+	 * @param number  $compatabilityLevel
+	 * @param number  $siteToUseID
+	 * @param unknown $callName 
+	 */
+	public function __construct($userRequestToken, $developerID, $applicationID, $certificateID, $serverUrl,$compatabilityLevel=981, $siteToUseID=0, $callName)
+	{	
+		$this->userToken    = $userRequestToken;
+		$this->devID        = $developerID;
+		$this->appID        = $applicationID;
+		$this->certID       = $certificateID;
+		$this->compatLevel  = $compatabilityLevel;
+		$this->siteID       = $siteToUseID;
+		$this->verb         = $callName;
+		$this->serverUrl    = $serverUrl;
+		
+	}
+	
+	
+	/**
+	 * 取出交易明线信息
+	 */
+	public function getItemTransactions($serverUrl,$devID,$appID,$certID,$userToken,$compatabilityLevel=981,$siteID=0,$itemID,$modTimeFrom,$modTimeTo,$entriesPerPage=100,$page)
+	{	
+		//the call being made:
+		$verb = 'GetItemTransactions';
+		//Build the request Xml string
+		$requestXmlBody  = '<?xml version="1.0" encoding="utf-8" ?>';
+		$requestXmlBody .= '<GetItemTransactionsRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+		$requestXmlBody .= '<DetailLevel>ReturnAll</DetailLevel>';
+		$requestXmlBody .= "<WarningLevel>High</WarningLevel><ItemID>$itemID</ItemID><ModTimeFrom>$modTimeFrom</ModTimeFrom>";
+		$requestXmlBody .= "<ModTimeTo>$modTimeTo</ModTimeTo>";
+		$requestXmlBody .= "<IncludeVariations>true></IncludeVariations>";
+		$requestXmlBody .= "<OutputSelector>Item.ItemID</OutputSelector>";
+		$requestXmlBody .= "<OutputSelector>PageNumber</OutputSelector><OutputSelector>PaginationResult</OutputSelector><OutputSelector>TransactionArray.Transaction.Variation</OutputSelector><OutputSelector>TransactionArray.Transaction.QuantityPurchased</OutputSelector>";
+		$requestXmlBody .= "<OutputSelector>TransactionArray.Transaction.Status</OutputSelector><OutputSelector>TransactionArray.Transaction.TransactionPrice</OutputSelector>";
+		$requestXmlBody .= "<OutputSelector>TransactionArray.Transaction.CreatedDate</OutputSelector>";
+		$requestXmlBody .= "<Pagination><EntriesPerPage>$entriesPerPage</EntriesPerPage><PageNumber>$page</PageNumber></Pagination>";	 
+		$requestXmlBody .= "<RequesterCredentials><eBayAuthToken>$userToken</eBayAuthToken></RequesterCredentials>";
+		$requestXmlBody .= '</GetItemTransactionsRequest>';
+		
+		$session = new EbaySession($userToken, $devID, $appID, $certID, $serverUrl, $compatabilityLevel, $siteID, $verb);
+		//send the request and get response
+		$responseXml = $session->sendHttpRequest($requestXmlBody);
+				
+		if (stristr($responseXml, 'HTTP 404') || $responseXml == '')
+			die('<P>Error sending request');
+			$objArray = $this->xmlToArray($responseXml);
+					
+			if ($objArray['Ack']=='Success' ){
+				$variations  			= array();
+				$item        			= $objArray['Item'];
+				//$PerPage   			= $objArray['PerPage'];
+				$pageRequest 			= $objArray['PageNumber']; //第多少页
+				$totalPage   			= $objArray['PaginationResult']['TotalNumberOfEntries'];
+				$itemID      			= $item['ItemID'];
+				$variations  			= $item['Variations']['Variation'];
+				$transactions			= $objArray['TransactionArray']['Transaction'];
+				//交易信息
+				$data['ItemID']         = $itemID;
+				$data['total']          = $totalPage;
+				$data['page']           = $pageRequest;
+				$data['entriesPerPage'] = $entriesPerPage;
+				$data['transactions']   = $transactions;
+				$data['variations']     = $variations;
+			}
+			return $data;
+			
+	}
+	
+	
+	/**
+	 * 取ebay 时间 内的交易明细
+	 * @param unknown $id
+	 * @param unknown $itemID
+	 */
+	public  function curlEbayData($masterTable,$detailTable,$id,$itemID,$modTimeFrom,$modTimeTo,$entriesPerPage=100,$serverUrl,$devID,$appID,$certID,$userToken)	
+	{   
+		if ($entriesPerPage>100 ) {
+			$entriesPerPage  = 100;
+		}
+		$siteID = 0 ;
+		
+		if (empty($serverUrl) || empty($devID) || empty($appID) || empty($certID) || empty($userToken)) {
+			return false;
+		}
+		unset($data);
+		
+		//取交易信息
+		$data          = $this->getItemTransactions($serverUrl,$devID,$appID,$certID,$userToken,$compatabilityLevel,$siteID,$itemID,$modTimeFrom,$modTimeTo,$entriesPerPage,1);		
+		$transactions  = array();
+		$totalPage     = $data['total'];
+		$pageCeil      = ceil($totalPage/$entriesPerPage);
+		$transactions[]= $data['transactions'];
+		unset($data);
+		
+		if($pageCeil>1){
+			for($pageNumber=2;$pageNumber<=$pageCeil;$pageNumber++){				
+				$data           = $this->getItemTransactions($serverUrl,$devID,$appID,$certID,$userToken,$compatabilityLevel,$siteID,$itemID,$modTimeFrom,$modTimeTo,$entriesPerPage,$pageNumber);				
+				$transactions[] = $data['transactions'];
+				unset($data);
+			}
+		}
+		
+		//交易明细
+		$transaction = array();
+		foreach($transactions as $vals){
+			foreach($vals as $val){
+				array_push($transaction,$val);
+				//unset($val);
+			}
+			unset($vals);
+		}
+		
+		$rs = $this->saveDataToMysql($masterTable,$detailTable,$id,$transaction);		
+		if($rs){
+			return true;
+		}
+	    
+	}
+	
+	
+	/**
+	 * 保存统计好的数据到数据库
+	 * @param unknown $transactions
+	 */
+	public function saveDataToMysql($masterTable,$detailTable,$id,$transactions)
+	{			
+		$flag   = false;
+		$datas  = array();
+			
+		foreach ($transactions as $key=>$transaction){	
+			$sku                    = $transaction['Variation']['SKU'];
+			$quantityPurchased      = $transaction['QuantityPurchased'];
+			$createdDate            = strtotime(substr($transaction['CreatedDate'],0,10));				
+			$lastTimeModified       = substr($transaction['Status']['LastTimeModified'],0,10);
+			$completeStatus         = $transaction['Status']['CompleteStatus']; // Complete
+			//$sale['PaymentTime']  = $transaction->MonetaryDetails;
+			$price                  = $transaction['TransactionPrice'];
+			if(!empty($datas[$sku][$createdDate])){				 
+				$datas[$sku][$createdDate]['day_sold'] += $quantityPurchased;
+				$datas[$sku][$createdDate]['price']    += $price*$quantityPurchased;				 
+			}else{				 
+				$datas[$sku][$createdDate]['day_sold']  = $quantityPurchased;
+				$datas[$sku][$createdDate]['price']     = $price*$quantityPurchased;
+			}
+			unset($transaction);
+		}
+		 
+		$master = array();
+		$data   = array();
+		//更新明细表的数据
+		foreach($datas as $key=>$sku){
+			foreach($sku as $k=>$v){
+				$date                    = date("Ymd",$k);
+				$price                   = $v['price']/$v['day_sold'];
+				$data[$date]['day_sold'] = $v['day_sold'];
+				$data[$date]['price']    =  round($price ,2);
+				
+				$master[$date]['day_sold'] += $v['day_sold'];
+			}
+			$detail_json = json_encode($data,true);
+			
+			$rs = Db::table($detailTable)
+			->where('sku', $key)
+			->update(['day_sold' => $detail_json]);
+			unset($sku);
+		}
+		
+		$time = time();
+		$num  = 0; 
+		for($i=0; $i<15; $i++){			
+			$date = date('Ymd', $time - (86400*$i));
+			if(isset($master['date']['day_sold'])){
+				$average_sold +=  $master['date']['day_sold'];
+				$num          +=1;
+			}
+		}
+		$average_sold = $average_sold/$num;	
+		$master_json = json_encode($master,true);	
+		$rs = Db::table($masterTable)
+		->where('id', $id)
+		->update(['day_sold' => $master_json,'update_time'=>time(),'average_sold'=>$average_sold]);
+		
+		if($rs){
+			$flag = true;
+		}		
+		return $flag;
+		
+	}
+	
+	
+	/**
+	 * 取单个产品的详细信息
+	 * 返回插入的ID
+	 */
+	public function getItems($masterTable,$detailTable,$serverUrl,$devID,$appID,$certID,$userToken,$compatabilityLevel=981,$siteID=0,$itemID)
+	{	
+		 
+		$flag = false;
+		if ( empty($serverUrl) || empty($devID) || empty($appID) || empty($certID) || empty($userToken)) {
+			return $flag;
+		}
+		//SiteID = 0  (US) - UK = 3, Canada = 2, Australia = 15, ....		
+		//the call being made:
+		$verb = 'GetItem';
+		// OutputSelector
+		
+		///Build the request Xml string
+		$requestXmlBody = '<?xml version="1.0" encoding="utf-8" ?>';
+		$requestXmlBody .= '<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+		$requestXmlBody .= '<DetailLevel>ReturnAll</DetailLevel>';
+		$requestXmlBody .= "<WarningLevel>High</WarningLevel><ItemID>$itemID</ItemID>";
+		//$requestXmlBody .= "<IncludeItemCompatibilityList>true></IncludeItemCompatibilityList>";
+		$requestXmlBody .= "<RequesterCredentials><eBayAuthToken>$userToken</eBayAuthToken></RequesterCredentials>";
+		$requestXmlBody .= '</GetItemRequest>';
+	    
+		$session = new EbaySession($userToken, $devID, $appID, $certID, $serverUrl, $compatabilityLevel, $siteID, $verb);
+		//send the request and get response
+		$responseXml = $session->sendHttpRequest($requestXmlBody);
+		if (stristr($responseXml, 'HTTP 404') || $responseXml == ''){
+			//die('<P>Error sending request');
+			//return $flag;
+		}
+		$xmlArray= $this->xmlToArray($responseXml);				
+		if($xmlArray['Ack']=='Success'){
+			$item                     = $xmlArray['Item'];
+			$currency                 = $item['Currency'];
+			$itemID                   = $item['ItemID'];
+			 
+			$startTime                = $item['ListingDetails']['StartTime'];
+			$endTime                  = $item['ListingDetails']['EndTime'];
+			$viewItemURL              = $item['ListingDetails']['ViewItemURL'] ;
+			$listingDuration          = $item['ListingDuration']; //GTC
+			$category_id		      = $item['PrimaryCategory']['CategoryID'];
+			$category_name			  = $item['PrimaryCategory']['CategoryName'];
+			$listing_type 		      = $item['ListingType'];
+			$payment_methods          = $item['PaymentMethods'];
+			$quantity                 = $item['Quantity'];
+			$feedback_score           = $item['Seller']['FeedbackScore'] ;
+			$positive_feedback_percent= $item['Seller']['PositiveFeedbackPercent'];
+			$userID                   = $item['Seller']['UserID'];
+			$listingStatus            = $item['SellingStatus']['ListingStatus'];
+			$quantity_sold            = $item['SellingStatus']['QuantitySold'];
+			 
+			$site                     = $item['Site'];
+			$shipToLocations          = $item['ShipToLocations'];
+			$price                    = $item['StartPrice'];
+			//$storeCategoryID        = $item->Storefront->StoreCategoryID;//店铺ID
+			$title                    = $item['Title'];
+			$hit_count                = $item['HitCount'];
+			$sku                      = $item['SKU'];
+			$galleryType              = $item['PictureDetails']['GalleryType'];
+			$gallery_url              = $item['PictureDetails']['GalleryURL'];
+			$conditionDisplayName     = $item['ConditionDisplayName'];
+			
+			//新增数据
+			$data = array(
+					'currency'                =>$currency,
+					'item_id'                 =>$itemID,
+					'start_time'              =>strtotime($startTime),
+					'end_time'                =>strtotime($endTime),
+					'item_url'                =>$viewItemURL,
+					'listing_duration'        =>$listingDuration,
+					'category_id'             =>$category_id,
+					'category_name'           =>$category_name,
+					'listing_type'            =>$listing_type,
+					'payment_methods'         =>$payment_methods,
+					'quantity'                =>$quantity,
+					'feedback_score'          =>$feedback_score,
+					'positive_feedback_percent'=>$positive_feedback_percent,
+					'seller_id'               =>$userID,
+					'listing_status'          =>$listingStatus,
+					'site'                    =>$site,
+					'ship_locations'          =>$shipToLocations,
+					'price'                   =>$price,
+					'title'                   =>$title,
+					'hit_count'               =>$hit_count,
+					'sku'                     =>$sku,
+					'gallery_type'            =>$galleryType,
+					'gallery_url'             =>$gallery_url,
+					'condition_display_name'  =>$conditionDisplayName,
+					'create_time'             =>time(),
+					'variations'              =>count($item['Variations']['Variation'])?1:0
+			);
+			
+			// 启动事务
+			Db::startTrans();
+			$res = Db::name($masterTable)->insertGetId($data);
+			
+			if($res){
+				//子sku
+				$variations              = $item['Variations']['Variation'];
+				if(!empty ($variations)){
+					foreach ($variations as  $v){
+						$dataDetail[] = array(
+								'ebay_research_item_id' => $res,
+								'item_id'               => $itemID,
+								'sku'                   => $v['SKU'],
+								'start_price'           => $v['StartPrice'],
+								'name'                  => $v['VariationSpecifics']['NameValueList']['Name'],
+								'value'                 => $v['VariationSpecifics']['NameValueList']['Value'],
+								'quantity_sold'         => $v['SellingStatus']['QuantitySold'],
+								 
+						);
+						unset($v);
+					}
+					$rs = Db::name($detailTable)->insertAll($dataDetail);					
+				}
+				try {
+					// 提交事务
+					if ($res ||  $rs ){
+						Db::commit();
+						$flag = $res;
+					}
+				} catch (\Exception $e) {
+					//回滚事务
+					Db::rollback();
+				}				 
+			}			
+		}		
+		return $flag;
+	}
+	
+	
+	/**
+	 * 根据关键词搜索 
+	 * @param unknown $word
+	 * @return boolean|unknown
+	 */
+	public function  getKeyWords($word,$pageNumber)
+	{			
+		if(empty($word)){
+			return false;
+		}
+		$xml  = '<findItemsIneBayStoresRequest xmlns="http://www.ebay.com/marketplace/search/v1/services">';
+		$xml .="<keywords>$word</keywords>";
+		//$xml .="<outputSelector>AspectHistogram</outputSelector><outputSelector>UnitPriceInfo</outputSelector><outputSelector>StoreInfo</outputSelector>";
+		//$xml .="<outputSelector>SellerInfo</outputSelector><outputSelector>PictureURLSuperSize</outputSelector><outputSelector>PictureURLLarge</outputSelector><outputSelector>GalleryInfo</outputSelector>";
+		$xml .="<outputSelector>ConditionHistogram</outputSelector><outputSelector>CategoryHistogram</outputSelector>";		
+		$xml .= "<sortOrder>BestMatch</sortOrder>" ;
+		$xml .="<paginationInput><pageNumber>$pageNumber</pageNumber><entriesPerPage>100</entriesPerPage></paginationInput>";
+		$xml .='</findItemsIneBayStoresRequest> ';
+		
+		$responseXml  = $this->sendMessage($xml);		
+		$xmlArray= $this->xmlToArray($responseXml);		
+		if($xmlArray['ack']=='Success'){
+			foreach($xmlArray['searchResult']['item'] as $val){
+			  $data[] = $val['itemId'];
+			}
+			return $data;
+		}
+		return false;
+	}
+		
+	/**
+	 * 发送请求
+	 * @return NULL|NULL|unknown
+	 */
+	function sendMessage($message,$extraXmlHeaders='')
+	{	
+	    $timeout = 300;
+	    $method  = "findItemsIneBayStores" ;
+		// continue with curl support !
+		$ch           = curl_init();
+		$ep           = 'http://svcs.ebay.com/services/search/FindingService/v1';
+		$reqHeaders[] = 'Content-Type: text/xml;charset=utf-8';
+		
+		$reqHeaders[] = 'X-EBAY-SOA-SERVICE-NAME: FindingService';
+		$reqHeaders[] = 'X-EBAY-SOA-SERVICE-VERSION:1.13.0 ' ;
+		$reqHeaders[] = 'X-EBAY-SOA-SECURITY-APPNAME:ShenYanh-FastLine-PRD-b57734100-aaa0fbc8' ;
+		$reqHeaders[] = 'X-EBAY-SOA-OPERATION-NAME: ' . $method;		
+		if (empty($globalId))
+			$reqHeaders[] = 'X-EBAY-SOA-GLOBAL-ID: EBAY-US';
+			else
+				$reqHeaders[] = 'X-EBAY-SOA-GLOBAL-ID: ' . $globalId;
+				$reqHeaders[] = 'X-EBAY-SOA-REQUEST-DATA-FORMAT: XML';
+			
+		
+		if (is_array($extraXmlHeaders))
+			$reqHeaders = array_merge((array)$reqHeaders, $extraXmlHeaders);			
+			ob_start();			
+			curl_setopt( $ch, CURLOPT_URL, $ep);
+			
+			// curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, 0);
+			// curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 0);
+			
+			curl_setopt( $ch, CURLOPT_HTTPHEADER, $reqHeaders );
+			curl_setopt( $ch, CURLOPT_USERAGENT, 'ebatns;shapi;1.0' );
+			curl_setopt( $ch, CURLOPT_TIMEOUT, $timeout );
+			
+			curl_setopt( $ch, CURLOPT_POST, 1 );
+			curl_setopt( $ch, CURLOPT_POSTFIELDS, $message );
+			
+			curl_setopt( $ch, CURLOPT_FAILONERROR, 0 );
+			curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, 1 );
+			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
+			curl_setopt( $ch, CURLOPT_HEADER, 1 );
+			curl_setopt( $ch, CURLOPT_HTTP_VERSION, 1 );
+			
+			// added support for multi-threaded clients
+			if (isset($this->_transportOptions['HTTP_CURL_MULTITHREADED']))
+			{   
+				curl_setopt( $ch, CURLOPT_DNS_USE_GLOBAL_CACHE, 0 );
+			}
+			
+			$responseRaw = curl_exec( $ch );
+			
+			if ( !$responseRaw )
+			{	
+				curl_close( $ch );
+				return null;
+			}else{
+				curl_close( $ch );	
+				$responseBody = null;
+				if ( preg_match( "/^(.*?)\r?\n\r?\n(.*)/s", $responseRaw, $match ) )
+				{   
+					$responseBody = $match[2];
+					//$headerLines = split( "\r?\n", $match[1] );
+					$headerLines = preg_split( "/\r?\n/", $match[1] );
+					foreach ( $headerLines as $line )
+					{	
+						if ( strpos( $line, ':' ) === false )
+						{   
+							$responseHeaders[0] = $line;
+							continue;
+						}	
+						list( $key, $value ) = explode( ':', $line );
+						$responseHeaders[strtolower( $key )] = trim( $value );
+					}
+				}
+				
+			}
+			return $responseBody;
+	}
+	
+	/**
+	 * 取ebay 产品的180天统计 数据 
+	 * @param unknown $itemID
+	 * @param unknown $modTimeFrom
+	 * @param unknown $modTimeTo
+	 */
+	public function getEbayData($itemID,$modTimeFrom="",$modTimeTo="")
+	{	
+		
+		$serverUrl = "https://api.ebay.com/ws/api.dll";
+		$devID     = '96a1eee5-e4cb-43bb-89ff-1943863b91a4';
+		$appID     = 'ShenYanh-FastLine-PRD-b57734100-aaa0fbc8';
+		$certID    = 'PRD-577341007be2-2627-488b-8a70-5c62';
+		$userToken = 'AgAAAA**AQAAAA**aAAAAA**gB7RVw**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AAlIajCJGBqQSdj6x9nY+seQ**DGMDAA**AAMAAA**MeXmSDvMYHjQEpb5j2lQ7YDunaLaecgHSLnICmYqaSf/d4+8AonuTkX0NPLt79i6mxZ+PKysW4krzu37Mbn7mcWfH7A3IttY38NRufapP1ClqGPm9cE6vFccw0oFVlex7LWliD2qgxwxw841n8DA+aZWOwEUNpjYX0Dk/vZYl6gztXD0A/0vQuF20LM+yn35yk7F9AizVlw1aG6d8/Lh7slpic0UkZHqoZXPXlwP44DdOiyCEH26u6UauRcwMaihQ/0+FH5TEwd1KBhWkKpMe5hk3MYPY/tnKlwqBPYgsU09xPStXg+jgj0FyPfyqQm+l3319UfzOqzwW7b7WtbnS4IGKxAQuSaIe5h2E/psgXqzhRWGNy1sNeSMiZABix/NACZ5R5BrWLrblTTzjKHT65ldMsgyhdAsqmNvRV/+uD6T61nOmz5fasxVCuRNgFVM0OMyE2zCZV4pTiQdc/cGZfSE1oYduc9pmx5duVWph/JDwSWSUSXfumRkEXVUThQzDHIpOEND1sKqanz7v7WK9pjBF/iYuBSW/1PoA1GhY8W5+UJ1E5yWchw3ONhD+XXL2U75nRw0a2W8t2NrGuJG9e8jwLLauk807sRTokrhW83cqjezwmku2AIw2ISPLbmj1anRjLdUXUPdHZWvKGgD+SkcuU0v6+ubOD53nKRGAMW04YEFouZCCgvYmFFIcrLBhh9i4L2xnuCCRoic9lIVC9H2g/s7NaGcz23qmkeTtZeJxtKD38vj3bXDtGWQUl7C';
+		$compatabilityLevel= 981 ;		
+		$siteID         = 0; //SiteID = 0  (US) - UK = 3, Canada = 2, Australia = 15, ....
+		$entriesPerPage = 100;
+		
+		if(empty($itemID)){
+			return false;
+		}
+				
+		$masterTable    = "ebay_item";
+		$detailTable    = "ebay_item_detail";
+		$now            = time();
+		$id             = $this->getItems($masterTable,$detailTable,$serverUrl,$devID,$appID,$certID,$userToken,$compatabilityLevel,$siteID,$itemID);
+		
+		if ($id) {
+			for ($i = 0; $i < 6 ;$i++ ) {
+				$modTimeFrom   = date("Y-m-d H:i:s",$now - 60*60*24*30*($i+1));
+				$modTimeTo     = date("Y-m-d H:i:s",$now - 60*60*24*30*$i);
+				$this->curlEbayData($masterTable,$detailTable,$id,$itemID,$modTimeFrom,$modTimeTo,$entriesPerPage,$serverUrl,$devID,$appID,$certID,$userToken) ;				
+			}
+		}		 
+	}
+	
+	/**
+	 * 取ebay 产品的每天统计 数据
+	 * @param unknown $itemID
+	 * @param unknown $modTimeFrom
+	 * @param unknown $modTimeTo
+	 */
+	public function getEbayTrackData($itemID,$modTimeFrom="",$modTimeTo="")
+	{			
+		$serverUrl = "https://api.ebay.com/ws/api.dll";
+		$devID     = '96a1eee5-e4cb-43bb-89ff-1943863b91a4';
+		$appID     = 'ShenYanh-FastLine-PRD-b57734100-aaa0fbc8';
+		$certID    = 'PRD-577341007be2-2627-488b-8a70-5c62';
+		$userToken = 'AgAAAA**AQAAAA**aAAAAA**gB7RVw**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AAlIajCJGBqQSdj6x9nY+seQ**DGMDAA**AAMAAA**MeXmSDvMYHjQEpb5j2lQ7YDunaLaecgHSLnICmYqaSf/d4+8AonuTkX0NPLt79i6mxZ+PKysW4krzu37Mbn7mcWfH7A3IttY38NRufapP1ClqGPm9cE6vFccw0oFVlex7LWliD2qgxwxw841n8DA+aZWOwEUNpjYX0Dk/vZYl6gztXD0A/0vQuF20LM+yn35yk7F9AizVlw1aG6d8/Lh7slpic0UkZHqoZXPXlwP44DdOiyCEH26u6UauRcwMaihQ/0+FH5TEwd1KBhWkKpMe5hk3MYPY/tnKlwqBPYgsU09xPStXg+jgj0FyPfyqQm+l3319UfzOqzwW7b7WtbnS4IGKxAQuSaIe5h2E/psgXqzhRWGNy1sNeSMiZABix/NACZ5R5BrWLrblTTzjKHT65ldMsgyhdAsqmNvRV/+uD6T61nOmz5fasxVCuRNgFVM0OMyE2zCZV4pTiQdc/cGZfSE1oYduc9pmx5duVWph/JDwSWSUSXfumRkEXVUThQzDHIpOEND1sKqanz7v7WK9pjBF/iYuBSW/1PoA1GhY8W5+UJ1E5yWchw3ONhD+XXL2U75nRw0a2W8t2NrGuJG9e8jwLLauk807sRTokrhW83cqjezwmku2AIw2ISPLbmj1anRjLdUXUPdHZWvKGgD+SkcuU0v6+ubOD53nKRGAMW04YEFouZCCgvYmFFIcrLBhh9i4L2xnuCCRoic9lIVC9H2g/s7NaGcz23qmkeTtZeJxtKD38vj3bXDtGWQUl7C';
+		$compatabilityLevel= 981 ;
+		$siteID            = 0; //SiteID   US =0  ,   UK = 3, Canada = 2, Australia = 15,  DE = 77  ....
+		$entriesPerPage    = 100;
+	    
+		if(empty($itemID)){
+			return false;
+		}
+		$masterTable    = "ebay_item_track";
+		$detailTable    = "ebay_item_track_detail";
+		$now            = time();
+		$result         = Db::name($masterTable)->where('item_id', $itemID)->find();
+		if(empty($result)){
+			$id         = $this->getItems($masterTable,$detailTable,$serverUrl,$devID,$appID,$certID,$userToken,$compatabilityLevel,$siteID,$itemID);
+		}
+		if($result['status']==1){
+			$id         = $result['id'];
+			$update_time= $result['update_time'];
+		}
+		if(empty($update_time)){
+			$update_time = $now - 60*60*24 ;
+		}
+		if ($id) {
+				$modTimeFrom   = date("Y-m-d H:i:s",$update_time);
+				$modTimeTo     = date("Y-m-d H:i:s",$now);
+				$this->curlEbayData($masterTable,$detailTable,$id,$itemID,$modTimeFrom,$modTimeTo,$entriesPerPage,$serverUrl,$devID,$appID,$certID,$userToken) ;				
+		}		
+	}
+	
+	
+	/**
+	 * 获取ebay 分类 
+	 * @return unknown
+	 */
+	
+	public function getCategory()
+	{	
+		//Build the request Xml string
+		$requestXmlBody  = '<?xml version="1.0" encoding="utf-8" ?>';
+		$requestXmlBody .= '<GetCategoriesRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+		$requestXmlBody .= '<DetailLevel>ReturnAll</DetailLevel>';
+		$requestXmlBody .= "<WarningLevel>High</WarningLevel>";
+		$requestXmlBody .= "<ViewAllNodes>true</ViewAllNodes>";		
+		$requestXmlBody .= "<RequesterCredentials><eBayAuthToken>$this->userToken</eBayAuthToken></RequesterCredentials>";
+		$requestXmlBody .= '</GetCategoriesRequest>';
+		$msg             = "" ;
+		$data            = array();
+		$responseXml     = $this->sendHttpRequest($requestXmlBody);			
+		if (stristr($responseXml, 'HTTP 404') || $responseXml == '') {
+		    return $data;
+		}
+		
+		$objArray = $this->xmlToArray($responseXml);
+		if ($objArray['Ack']=='Success' ){
+			$data        = $objArray['CategoryArray'];
+			return $data;
+		}
+	    return $msg;
+	}
+	
+	/**
+	 * 按站点取分类的属性
+	 * @param unknown $categoryID
+	 * @return \service\ebay\unknown|string
+	 */
+	public function getCategorySpecifics($categoryID)
+	{	
+		//Build the request Xml string
+		$requestXmlBody  = '<?xml version="1.0" encoding="utf-8" ?>';
+		$requestXmlBody .= '<GetCategorySpecificsRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+		$requestXmlBody .= '<DetailLevel>ReturnAll</DetailLevel>';
+		$requestXmlBody .= "<WarningLevel>High</WarningLevel>";
+	    //$requestXmlBody .= "<CategorySpecificsFileInfo>true</CategorySpecificsFileInfo>";
+		$requestXmlBody .= "<CategoryID>$categoryID</CategoryID>";
+		$requestXmlBody .= "<RequesterCredentials><eBayAuthToken>$this->userToken</eBayAuthToken></RequesterCredentials>";
+		$requestXmlBody .= '</GetCategorySpecificsRequest>';
+		$msg             = "" ;
+		$data            = array();
+		$responseXml    = $this->sendHttpRequest($requestXmlBody);				
+		if (stristr($responseXml, 'HTTP 404') || $responseXml == '') {
+		    return $data;
+		}
+		
+		$objArray = $this->xmlToArray($responseXml);
+		if ($objArray['Ack'] == 'Success' ) {
+			$data        = $objArray['Recommendations'];
+			return $data;
+		}
+	    return $msg;
+	}
+	
+	
+	
+	public function getItem($itemID)
+	{		    
+		//Build the request Xml string
+		$requestXmlBody  = '<?xml version="1.0" encoding="utf-8" ?>';
+		$requestXmlBody .= '<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+		$requestXmlBody .= '<DetailLevel>ReturnAll</DetailLevel>';
+		$requestXmlBody .= "<WarningLevel>High</WarningLevel>";
+		$requestXmlBody .= "<ItemID>$itemID</ItemID>";
+		$requestXmlBody .= "<RequesterCredentials><eBayAuthToken>$this->userToken</eBayAuthToken></RequesterCredentials>";
+		$requestXmlBody .= '</GetItemRequest>';
+		$msg             = "" ;
+		
+		$responseXml    = $this->sendHttpRequest($requestXmlBody);
+	
+		if (stristr($responseXml, 'HTTP 404') || $responseXml == '')
+			die('<P>Error sending request');
+			$objArray = $this->xmlToArray($responseXml);			
+			if ($objArray['Ack']=='Success' ){
+				$data        = $objArray['Item'];
+				return $data;
+			}
+			return $msg;	
+	}
+		
+	
+	/**
+	 * 取在售产品信息
+	 * @param unknown $serverUrl
+	 * @param unknown $devID
+	 * @param unknown $appID
+	 * @param unknown $certID
+	 * @param unknown $userToken
+	 * @param number $compatabilityLevel
+	 * @param number $siteID
+	 * @param unknown $itemID
+	 * @param unknown $modTimeFrom
+	 * @param unknown $modTimeTo
+	 * @param number $entriesPerPage
+	 * @param unknown $page
+	 */
+	public function getMyeBaySelling($entriesPerPage=10,$page=1)
+	{		   
+		//Build the request Xml string
+		$requestXmlBody  = '<?xml version="1.0" encoding="utf-8" ?>';
+		$requestXmlBody .= '<GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">';
+		$requestXmlBody .= '<DetailLevel>ReturnAll</DetailLevel>';
+		$requestXmlBody .= "<WarningLevel>High</WarningLevel>";
+		$requestXmlBody .= "<ScheduledList><Include>false</Include></ScheduledList>";
+		$requestXmlBody .= "<ActiveList>";
+		$requestXmlBody .= "<Include>true></Include>";
+		$requestXmlBody .= "<Pagination><EntriesPerPage>$entriesPerPage</EntriesPerPage><PageNumber>$page</PageNumber></Pagination>";
+		$requestXmlBody .= "</ActiveList>";
+		$requestXmlBody .= "<SoldList><Include>false</Include></SoldList><UnsoldList><Include>false</Include></UnsoldList><BidList><Include>false</Include></BidList><DeletedFromSoldList><Include>false</Include></DeletedFromSoldList><DeletedFromUnsoldList><Include>false</Include></DeletedFromUnsoldList>";
+		$requestXmlBody .= "<SellingSummary><Include>false</Include></SellingSummary>";
+		$requestXmlBody .= "<RequesterCredentials><eBayAuthToken>$this->userToken</eBayAuthToken></RequesterCredentials>";
+		$requestXmlBody .= '</GetMyeBaySellingRequest>';
+		
+		//send the request and get response
+		$responseXml = $this->sendHttpRequest($requestXmlBody);
+		if (stristr($responseXml, 'HTTP 404') || $responseXml == '')
+			die('<P>Error sending request');
+			$objArray = $this->xmlToArray($responseXml);
+			$data     = array();
+			if ($objArray['Ack']=='Success' ){
+				$activeList             = $objArray['ActiveList'];
+				$itemArray              = $activeList['ItemArray'];
+				$totalNumberOfPages     = $activeList['PaginationResult']['TotalNumberOfPages']; //总数多少页				
+				$totalRows              = $activeList['PaginationResult']['TotalNumberOfEntries'];//总条数				
+				$data['total']          = $totalNumberOfPages;
+				$data['totalRows']      = $totalRows;				
+				$data['itemArray']      = $itemArray;							
+			}			
+			return $data;
+	}
+	
+	
+	/**
+	 *  将本地的图片上传 到ebay ，返回图片URL 
+	 * @param unknown $store
+	 * @param unknown $site
+	 * @param unknown $filename
+	 * @return unknown
+	 */
+	function UploadSiteHostedPictures($serverUrl,$store,$siteID,$filename,$filePath,$devID,$appID,$certID,$userToken)
+	{   		
+		$verb               = 'UploadSiteHostedPictures';
+		$version            = 803;
+		//$imageArr         = explode("/", $filename);
+		
+		$handle             = fopen($filePath."/".$filename,'r');	
+		$multiPartImageData = fread($handle,filesize($filePath."/".$filename));		
+		fclose($handle);
+	    
+		///Build the request XML request which is first part of multi-part POST
+		$xmlReq       = '<?xml version="1.0" encoding="utf-8"?>' . "\n";
+		$xmlReq      .= '<'.$verb.'Request xmlns="urn:ebay:apis:eBLBaseComponents">' . "\n";
+		$xmlReq      .= "<Version>$version</Version>\n";
+		$xmlReq      .= "<PictureName>$store</PictureName>\n";
+		$xmlReq      .= "<RequesterCredentials><eBayAuthToken>$userToken</eBayAuthToken></RequesterCredentials>\n";
+		$xmlReq      .= '</'.$verb.'Request>';
+		$boundary     = "MIME_boundary";
+		$CRLF         = "\r\n";
+		$firstPart    = '';
+		$firstPart   .= "--" . $boundary . $CRLF;
+		$firstPart   .= 'Content-Disposition: form-data; name="XML Payload"' . $CRLF;
+		$firstPart   .= 'Content-Type: text/xml;charset=utf-8' . $CRLF . $CRLF;
+		$firstPart   .= $xmlReq;
+		$firstPart   .= $CRLF;
+        $secondPart   = '';
+		$secondPart  .= "--" . $boundary . $CRLF;
+		$secondPart  .= 'Content-Disposition: form-data; name="dummy"; filename="dummy"' . $CRLF;
+		$secondPart  .= "Content-Transfer-Encoding: binary" . $CRLF;
+		$secondPart  .= "Content-Type: application/octet-stream" . $CRLF . $CRLF;
+		$secondPart  .= $multiPartImageData;
+		$secondPart  .= $CRLF;
+		$secondPart  .= "--" . $boundary . "--" . $CRLF;
+		
+		$fullPost     = $firstPart . $secondPart;
+		$session      = new eBaySession($this->userToken, $this->devID, $this->appID, $this->certID, $serverUrl, $version, $siteID, $verb, $boundary);
+		$respXmlStr   = $session->sendHttpRequest($fullPost,1);
+		
+		if(stristr($respXmlStr, 'HTTP 404') || $respXmlStr == '')
+			die('<P>Error sending request');
+			$respXmlObj   = simplexml_load_string($respXmlStr);
+			$ack          = $respXmlObj->Ack;
+			$picNameOut   = $respXmlObj->SiteHostedPictureDetails->PictureName;
+			//$picURL     = $respXmlObj->SiteHostedPictureDetails->FullURL;
+			$picURL       = $respXmlObj->SiteHostedPictureDetails->PictureSetMember[3];
+			return $picURL;
+	}
+	
+	/**
+	 * 上传产品到ebay 
+	 * @param unknown $data
+	 * @return unknown
+	 */
+	public function addEbayProduct(array $data)
+	{		
+		if(!empty($data)){
+			
+			Loader::import('trading.EbatNs_Session') ;
+			Loader::import('trading.EbatNs_ServiceProxy') ;
+			//Loader::import('Trading.EbatNs_DataConverter') ;
+						
+			$session = new \EbatNs_Session();
+			$session->setSiteId($this->siteID);
+			$session->setUseHttpCompression(1);
+			$session->setAppMode(1); // 1 是测试环境   ，0 是正式环境
+			$session->setDevId($this->devID);
+			$session->setAppId($this->appID);
+			$session->setCertId($this->certID);
+			$session->setRequestToken($this->userToken);
+			$session->setTokenUsePickupFile(false);
+			$session->setTokenMode(true);
+			//$this->compatLevel
+			
+			$proxy = new EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+			
+			Loader::import('Trading.AddFixedPriceItemRequestType') ;
+			
+			$req                   = new \AddFixedPriceItemRequestType();
+			$item                  = new \ItemType();
+			$item->SKU             = trim($data['sku']);
+			//$item->AutoPay       = true;
+			$item->Description     = $data['description'];
+			$item->ListingDuration = $data['days'];         //"Days_30";
+			$item->Title           = $data['title'];  
+			$item->Currency        = $data['currency'];     //'USD';"AUD";
+			$item->ListingType     = $data['listingtype'];  //'FixedPriceItem';
+			
+			if($data['country'] == "US"){
+				$item->StartPrice = $data['startprice'];
+			}elseif($data['country'] == "UK"){
+				$item->StartPrice = $data['startpriceUK'];
+			}elseif($data['country'] == "AU"){
+				$item->StartPrice = $data['startpriceAustralia'];
+			}elseif($data['country'] == "DE"){
+				$item->StartPrice = $data['startpriceDE'];
+			}elseif($data['country'] == "FR"){
+				$item->StartPrice = $data['startpriceFR'];
+			}elseif($data['country'] == "CA"){
+				$item->StartPrice = $data['startpriceCA'];
+			}
+			
+			
+			$item->BestOfferDetails = new \BestOfferDetailsType();
+			
+			$item->BestOfferDetails->BestOfferEnabled = true;
+			
+			$item->ListingDetails = new \ListingDetailsType();
+			//$item->ListingDetails->BestOfferAutoAcceptPrice = new \AmountType(array('value' => 17.99));
+			//$item->ListingDetails->MinimumBestOfferPrice    = new \AmountType(array('value' => 5.19));
+			 
+		    
+			$item->ConditionID = 1000;
+			$item->Quantity    = $data['quantity'] ;
+			if($data['location']=='CN'){
+				$item->Country    = "CN";
+				$item->Location   ="ShenZhen";
+				$item->PostalCode = '90210';
+			}
+			
+			$item->DispatchTimeMax              = '2';
+			$item->PaymentMethods               = 'PayPal';
+			$item->PayPalEmailAddress           =  $data['paypalemailaddress'];
+	
+			$pdts                               = new \PictureDetailsType();
+			$pdts->GalleryType                  = "Gallery";
+			$p                                  = $data['picture'];
+			
+			foreach($p as $k=>$v){
+				if($v!='' && $k<12){
+					$pdts->setPictureURL($v,$k);
+				}
+			}
+			
+			$item->PictureDetails                 = $pdts;
+			$pg                                   = new \ProductListingDetailsType();
+			$pg->UPC                              = "Does not apply";
+			$pg->EAN                              = "Does not apply";
+			$item->ProductListingDetails          = $pg;
+			
+			$item->ItemSpecifics                  = new \NameValueListArrayType();
+			$specific                             = new \NameValueListType();
+			$specific->Name                       = 'Brand';
+			$specific->Value[]                    = 'Unbranded';
+			$item->ItemSpecifics->NameValueList[] = $specific;
+			
+			
+				$specific                             = new \NameValueListType();
+				$specific->Name                       = 'MPN';
+				$specific->Value[]                    = 'Does Not Apply';
+				
+				$item->ItemSpecifics->NameValueList[] = $specific;
+			
+			
+			$item->PrimaryCategory                = new \CategoryType();
+			$item->PrimaryCategory->CategoryID    = $data['categoryid'];
+			$item->Site                           = $data['site'];             //'US';"Australia";//
+	
+			$sdt    = new \ShippingDetailsType();
+			$ssot   = new \ShippingServiceOptionsType();
+			$issot  = new \InternationalShippingServiceOptionsType();
+				
+			//$stt    = new \SalesTaxType();			
+			//$stt->SalesTaxPercent = "12f";
+			//$stt->SalesTaxState = "MH";				
+			//$stt->ShippingIncludedInTax = true;
+			//$stt->ShippingIncludedInTaxSpecified = true;
+				
+			$sdt->setShippingType ('Flat');
+			//$sdt->SalesTax = $stt;
+						
+		    //国内运输 
+			$ssot->ShippingServicePriority = 1;
+			if ($data['country'] == "US") {			
+				$ssot->ShippingService = "StandardShippingFromOutsideUS";		
+			}
+			$ssot->ShippingServiceCost            = 2;
+			$ssot->ShippingServiceAdditionalCost  =1;
+			$ssot->ShippingTimeMin                = 5;
+			$ssot->ShippingTimeMax                = 10;
+			//$ssot->FreeShipping                 = TRUE;
+			$ssot->LocalPickup                    = true;
+			$sdt->setShippingServiceOptions($ssot);
+						
+			//国际运输
+			$issot->ShippingServicePriority      = 1;
+			if ($data['country'] == "US") {
+				
+				$issot->ShippingService = "StandardInternational";
+			} elseif ($data['country'] == "UK") {
+				$issot->ShippingService = "UK_IntlTrackedPostage";
+			} elseif ($data['country'] == "AU") {
+				$issot->ShippingService = "AU_StandardInternational";
+			}elseif($data['country'] == "DE"){
+				$issot->ShippingService = "DE_PaketInternational";
+			} elseif ($data['country'] == "FR") {
+				$issot->ShippingService = "FR_LaPosteInternationalEconomyCourier";
+			} elseif ($data['country'] == "CA") {
+				$issot->ShippingService = "CA_PostTrackedPacketsInternational";
+			}
+			if ($data['location']=='CN') {
+				$issot->ShippingServiceCost            = 0;
+				$issot->ShippingServiceAdditionalCost  = 0;
+				
+			} else {
+				$issot->ShippingServiceCost            = 15;
+				$issot->ShippingServiceAdditionalCost  = 10;
+			}			
+			//$issot->ShipToLocation = "Worldwide";
+			$issot->ShipToLocation  = array('Americas',
+								            'CA',
+								            'AU',
+								            'Europe',
+								            'JP',
+											"US"
+										);
+			$issot->ExcludeShipToLocation = array("CN");
+			
+			$sdt->InternationalShippingServiceOption[] = $issot ;
+			
+			$item->ShippingDetails = $sdt;						
+			
+			$rpt  = new \ReturnPolicyType();
+			$rpt->ReturnsAcceptedOption = "ReturnsAccepted";
+			$rpt->ReturnsAccepted = "ReturnsAccepted";
+			if($data['country'] == "US"){
+				$rpt->RefundOption = "MoneyBack";
+			}elseif($data['country'] == "UK"){
+				//$rpt->RefundOption = "MoneyBack";
+			}elseif($data['country'] == "AU"){
+				// $rpt->RefundOption = "MoneyBack";
+			}
+			$rpt->ReturnsWithinOption      = "Days_30";
+			$rpt->Description              = "Text description of return policy details"; //退货政策文字说明
+			$rpt->ShippingCostPaidByOption = "Buyer";
+			
+			$item->ReturnPolicy    = $rpt;
+			//$item->ShipToLocations = "Worldwide" ;
+			
+			$req->Item = $item;
+			$res       = $proxy->AddFixedPriceItem($req);
+			return $res;
+		}
+	}
+	
+		
+	/**
+	 * 下架ebay上的产品
+	 * @param unknown $data
+	 */
+	function endFixedPriceItem($data)
+	{			
+		Loader::import('trading.EbatNs_Session') ;
+		Loader::import('trading.EbatNs_ServiceProxy') ;
+		Loader::import('trading.EndFixedPriceItemRequestType') ;
+				
+		$session = new \EbatNs_Session();
+		$session->setSiteId($this->siteID);
+		$session->setUseHttpCompression(1);
+		$session->setAppMode(1); // 1 是测试环境   ，0 是正式环境
+		$session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+		$session->setTokenUsePickupFile(false);
+		$session->setTokenMode(true);
+		
+			
+		$proxy = new EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');	    
+		$endfixedpriceitemrequest = new \EndFixedPriceItemRequestType();
+        $endfixedpriceitemrequest->setEndingReason("OtherListingError");
+		$endfixedpriceitemrequest->setItemID($data['ItemID']);
+		$endfixedpriceitemrequest->setWarningLevel("High");
+		$endfixedpriceitemrequest->setVersion("981");		
+		$res                     = $proxy->EndFixedPriceItem($endfixedpriceitemrequest);
+		return $res;				
+	}
+	
+	
+	function setUserPreferences()
+	{	
+		Loader::import('trading.EbatNs_Session');
+		Loader::import('trading.EbatNs_ServiceProxy');
+		Loader::import('trading.SetUserPreferencesRequestType');
+		
+		$session = new \EbatNs_Session();
+		$session->setSiteId($this->siteID);
+		$session->setUseHttpCompression(1);
+		$session->setAppMode(1); // 1 是测试环境   ，0 是正式环境
+		$session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+		$session->setTokenUsePickupFile(false);
+		$session->setTokenMode(true);
+		
+		$proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');	
+		$setuserpreferencesrequest = new \SetUserPreferencesRequestType();
+		$setuserpreferencesrequest->setOutOfStockControlPreference("true");
+		$setuserpreferencesrequest->setWarningLevel("High");
+		$setuserpreferencesrequest->setVersion("981");
+		$response = $proxy->SetUserPreferences($setuserpreferencesrequest);
+		
+		return $response;
+		
+	}
+	
+	/**
+	 * 只能relist 一次，否则是重新刊登一条 listing 
+	 * @param unknown $data
+	 * @return RelistFixedPriceItemResponseType
+	 */
+	function relistFixedPriceItem($data)
+	{	
+		Loader::import('trading.EbatNs_Session');
+		Loader::import('trading.EbatNs_ServiceProxy');
+		Loader::import('trading.RelistFixedPriceItemRequestType');
+	    		
+		$session = new \EbatNs_Session();
+		$session->setSiteId($this->siteID);
+		$session->setUseHttpCompression(1);
+		$session->setAppMode(1); // 1 是测试环境   ，0 是正式环境
+		$session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+		$session->setTokenUsePickupFile(false);
+		$session->setTokenMode(true);
+				
+		$proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+		$relistfixedpriceitemrequest = new \RelistFixedPriceItemRequestType();
+		
+		$item = new \ItemType();
+		$item->setItemID($data['ItemID']);
+		$relistfixedpriceitemrequest->setItem($item);
+		
+		$relistfixedpriceitemrequest->setWarningLevel("High");
+		$relistfixedpriceitemrequest->setVersion("981");
+		$res                     = $proxy->RelistFixedPriceItem($relistfixedpriceitemrequest);
+		return $res;
+	}
+	
+	
+	/**
+	 * 更新产品的库存和价格  
+	 * @param unknown $data
+	 * @return RelistFixedPriceItemResponseType
+	 */
+	function reviseInventoryStatus($data)
+	{		
+		Loader::import('trading.EbatNs_Session') ;
+		Loader::import('trading.EbatNs_ServiceProxy') ;
+		Loader::import('trading.ReviseInventoryStatusRequestType') ;
+	    
+		$session = new \EbatNs_Session();
+		$session->setSiteId($this->siteID);
+		$session->setUseHttpCompression(1);
+		$session->setAppMode(1); // 1 是测试环境   ，0 是正式环境
+		$session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+		$session->setTokenUsePickupFile(false);
+		$session->setTokenMode(true);
+		
+		$proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+		$reviseinventorystatusrequest = new \ReviseInventoryStatusRequestType();		
+		$inventorystatus = new \InventoryStatusType();		
+		$reviseinventorystatusrequest->addInventoryStatus($inventorystatus);
+		
+		$inventorystatus->setItemID($data['ItemID']);
+		$inventorystatus->setQuantity($data['quantity']);
+				
+		$amount = new \AmountType();		
+		$amount->setTypeValue($data['amount']);
+		$inventorystatus->setStartPrice($amount);
+		
+		$reviseinventorystatusrequest->setWarningLevel("High");
+		$reviseinventorystatusrequest->setVersion("981");
+		$res                     = $proxy->ReviseInventoryStatus($reviseinventorystatusrequest);
+		return $res;
+	    
+	}
+	
+	
+	/**
+	 * 获取运输方式 
+	 * @param unknown $data
+	 * @return GeteBayDetailsResponseType
+	 */
+	function geteBayDetails($data)
+	{	
+		Loader::import('trading.EbatNs_Session') ;
+		Loader::import('trading.EbatNs_ServiceProxy') ;
+		Loader::import('trading.GeteBayDetailsRequestType') ;
+		 
+		$session = new \EbatNs_Session();
+		$session->setSiteId($this->siteID);
+		$session->setUseHttpCompression(1);
+		$session->setAppMode(0); // 1 是测试环境   ，0 是正式环境
+		$session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+		$session->setTokenUsePickupFile(false);
+		$session->setTokenMode(true);
+	
+		$proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+		
+		$getebaydetailsrequest = new \GeteBayDetailsRequestType();
+		$getebaydetailsrequest->addDetailName("ShippingServiceDetails"); //运输方式
+		$getebaydetailsrequest->setWarningLevel("High");
+		$getebaydetailsrequest->setVersion("981");
+		
+		$response = $proxy->GeteBayDetails($getebaydetailsrequest);
+		return $response;		 
+	}	
+	
+	
+  /**
+   * 设置ebay 的通知
+   */
+   function ebaySetNotification($type){
+    	       
+       
+    	Loader::import('trading.EbatNs_Session') ;
+		Loader::import('trading.EbatNs_ServiceProxy') ;
+		Loader::import('trading.SetNotificationPreferencesRequestType') ;
+		 
+		$session = new \EbatNs_Session();
+		$session->setSiteId($this->siteID);
+		$session->setUseHttpCompression(1);
+		$session->setAppMode($type); // 1 是测试环境   ，0 是正式环境
+		$session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+		$session->setTokenUsePickupFile(false);
+		$session->setTokenMode(true);
+    	$proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+    	
+    	    	
+    	$setnotificationpreferencesrequest = new \SetNotificationPreferencesRequestType();
+    	$applicationdeliverypreferences    = new \ApplicationDeliveryPreferencesType();
+    	$setnotificationpreferencesrequest->setApplicationDeliveryPreferences($applicationdeliverypreferences);
+    	$applicationdeliverypreferences->setApplicationEnable("Enable");
+    	$applicationdeliverypreferences->setApplicationURL("http://47.90.53.65:8080/api/index/index?app=api&sign=72991dd51302c0d653a289f1ffc581e3&version=1.0&mark=rondaful");
+    	$applicationdeliverypreferences->setDeviceType("Platform");
+    	
+    	$notificationenablearray           = new \NotificationEnableArrayType();
+    	//$setnotificationpreferencesrequest->setUserDeliveryPreferenceArray($notificationenablearray);
+    	
+    	$notificationenable                = new \NotificationEnableType();    	
+    	$notificationenable->setEventEnable("Enable");
+    	$notificationenable->setEventType("BidReceived");
+    	$notificationenablearray->addNotificationEnable($notificationenable);
+    	
+    	$notificationenable                = new \NotificationEnableType();    	
+    	$notificationenable->setEventEnable("Enable");
+    	$notificationenable->setEventType("FixedPriceTransaction");
+    	$notificationenablearray->addNotificationEnable($notificationenable);
+    	
+    	$notificationenable                = new \NotificationEnableType();    	
+    	$notificationenable->setEventEnable("Enable");
+    	$notificationenable->setEventType("ItemRevised");
+    	$notificationenablearray->addNotificationEnable($notificationenable);
+    	
+    	//$notificationenable                = new \NotificationEnableType();    	
+    	//$notificationenable->setEventEnable("Enable");
+    	//$notificationenable->setEventType("PaymentDetailChanged");
+    	//$notificationenablearray->addNotificationEnable($notificationenable);
+    	
+    	$notificationenable = new \NotificationEnableType();
+    	$notificationenable->setEventEnable("Enable");
+    	$notificationenable->setEventType("ItemRevised");
+    	$notificationenablearray->addNotificationEnable($notificationenable);
+    	
+    	$notificationenable = new \NotificationEnableType();
+    	$notificationenable->setEventEnable("Enable");
+    	$notificationenable->setEventType("ItemListed");
+    	$notificationenablearray->addNotificationEnable($notificationenable);
+    	
+    	
+    	$setnotificationpreferencesrequest->setUserDeliveryPreferenceArray($notificationenablearray);
+    	
+    	$setnotificationpreferencesrequest->setWarningLevel("High");
+    	$setnotificationpreferencesrequest->setVersion("981");
+    	$setnotificationpreferencesrequest->setErrorLanguage("en_US");
+    	
+    	$response = $proxy->SetNotificationPreferences($setnotificationpreferencesrequest);
+    	return $response;
+    }
+   	
+	/**
+	 * xml  转成数组 
+	 * @param unknown $xml
+	 * @return unknown[]
+	 */
+	function xmlToArray($xml)
+	{	
+		return $xml ? $this->xmlToArrayElement(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)) : array();
+	}
+	
+	/**
+	 * 
+	 * @param unknown $xmlobject
+	 * @return unknown[]|unknown[][]
+	 */
+	function xmlToArrayElement($xmlobject) 
+	{	
+		$data = array();
+		foreach ((array) $xmlobject as $key => $value) {
+			$data[$key] = !is_string($value) ?$this->xmlToArrayElement($value) : $value;
+		}
+		return $data;
+	}
+	
+	
+	/**	sendHttpRequest
+	 Sends a HTTP request to the server for this session
+	 Input:	$requestBody
+	 Output:	The HTTP Response as a String
+	 */
+	public function sendHttpRequest($requestBody)
+	{   
+	    //build eBay headers using variables passed via constructor
+	    $headers = $this->buildEbayHeaders();
+	    
+	    //initialise a CURL session
+	    $connection = curl_init();
+	    //set the server we are using (could be Sandbox or Production server)
+	    curl_setopt($connection, CURLOPT_URL, $this->serverUrl);
+	    
+	    //stop CURL from verifying the peer's certificate
+	    curl_setopt($connection, CURLOPT_SSL_VERIFYPEER, 0);
+	    curl_setopt($connection, CURLOPT_SSL_VERIFYHOST, 0);
+	    
+	    //set the headers using the array of headers
+	    curl_setopt($connection, CURLOPT_HTTPHEADER, $headers);
+	    
+	    //set method as POST
+	    curl_setopt($connection, CURLOPT_POST, 1);
+	    
+	    //set the XML body of the request
+	    curl_setopt($connection, CURLOPT_POSTFIELDS, $requestBody);
+	    
+	    //set it to return the transfer as a string from curl_exec
+	    curl_setopt($connection, CURLOPT_RETURNTRANSFER, 1);
+	    
+	    //Send the Request
+	    $response = curl_exec($connection);
+	    
+	    //close the connection
+	    curl_close($connection);
+	    
+	    //return the response
+	    return $response;
+	    
+	}
+	
+	
+	
+	/**	buildEbayHeaders
+	 Generates an array of string to be used as the headers for the HTTP request to eBay
+	 Output:	String Array of Headers applicable for this call
+	 */
+	private function buildEbayHeaders()
+	{
+	    $headers = array (
+	        //Regulates versioning of the XML interface for the API
+	        'X-EBAY-API-COMPATIBILITY-LEVEL: ' . $this->compatLevel,
+	        	
+	        //set the keys
+	        'X-EBAY-API-DEV-NAME: ' . $this->devID,
+	        'X-EBAY-API-APP-NAME: ' . $this->appID,
+	        'X-EBAY-API-CERT-NAME: ' . $this->certID,
+	        	
+	        //the name of the call we are requesting
+	        'X-EBAY-API-CALL-NAME: ' . $this->verb,
+	        	
+	        //SiteID must also be set in the Request's XML
+	        //SiteID = 0  (US) - UK = 3, Canada = 2, Australia = 15, ....
+	        //SiteID Indicates the eBay site to associate the call with
+	        'X-EBAY-API-SITEID: ' . $this->siteID,
+	    );
+	
+	    return $headers;
+	}
+    		
+	
+	
+	/**
+	 * 取ebay session id
+	 * @return unknown
+	 */
+	function getEbaySessionID($type)
+	{
+	    Loader::import('trading.EbatNs_Session');
+	    Loader::import('trading.EbatNs_ServiceProxy');
+	    Loader::import('trading.GetSessionIDRequestType');
+	    $session = new \EbatNs_Session();
+	    $session->setSiteId($this->siteID);
+	    $session->setUseHttpCompression(1);
+	    $session->setAppMode($type);
+	    $session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+	    $session->setTokenUsePickupFile(false);
+	    $session->setTokenMode(true);
+        $session->setXmlState(1);
+	    $proxy               = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+	    $getsessionidrequest = new \GetSessionIDRequestType();
+	    if($type){
+	        $getsessionidrequest->setRuName("Shen_Yanhong-ShenYanh-FastLi-rwqbaot");
+	    } else {
+	        $getsessionidrequest->setRuName("Shen_Yanhong-ShenYanh-FastLi-qfsdsmi");
+	    }
+	    $getsessionidrequest->setWarningLevel("Low");
+	    $getsessionidrequest->setVersion("557");
+	    $response = $proxy->GetSessionID($getsessionidrequest);
+        $response =  str_ireplace(['soapenv:', 'SOAP:'], '', $response);
+        
+        $re       = Xml::xmlToArray($response );
+	    return $re['Body']->GetSessionIDResponse;
+	}
+	
+	
+	//根据关键字获取10个相关的category
+	public  function GetSuggestedCategories($keyword)
+	{   
+	    Loader::import('trading.EbatNs_Session') ;
+	    Loader::import('trading.EbatNs_ServiceProxy') ;
+	    Loader::import('trading.GetSuggestedCategoriesRequestType') ;
+	    
+	    $session = new \EbatNs_Session();
+	    $session->setSiteId($this->siteID);
+	    $session->setUseHttpCompression(1);
+	    $session->setAppMode(0);
+	    $session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+	    $session->setTokenUsePickupFile(false);
+	    $session->setTokenMode(true);
+	    
+	    $proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+	    	    
+	    $getsuggestedcategoriesrequest = new \GetSuggestedCategoriesRequestType();
+	    $getsuggestedcategoriesrequest->setQuery($keyword);
+	    $getsuggestedcategoriesrequest->setWarningLevel("Low");
+	    $getsuggestedcategoriesrequest->setVersion("981");
+	    
+	    $response = $proxy->GetSuggestedCategories($getsuggestedcategoriesrequest);
+	    return $response;
+	}
+	
+	
+	/**
+	 * 取第三方的token 
+	 */
+	public function  getFetchEbayToken($type,$sessionId)
+	{   	    
+	    Loader::import('trading.EbatNs_Session') ;
+	    Loader::import('trading.EbatNs_ServiceProxy') ;
+	    Loader::import('trading.FetchTokenRequestType') ;
+	    
+	    $session = new \EbatNs_Session();
+	    $session->setSiteId(0);
+	    $session->setUseHttpCompression(1);
+	    $session->setAppMode($type);
+	    $session->setDevId($this->devID);
+		$session->setAppId($this->appID);
+		$session->setCertId($this->certID);
+		$session->setRequestToken($this->userToken);
+	    $session->setTokenUsePickupFile(false);
+	    $session->setTokenMode(true);	    
+
+	    $session->setXmlState(1);
+	    
+	    $proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+	    $fetchtokenrequest = new \FetchTokenRequestType();
+	    $fetchtokenrequest->setVersion("557");
+	    //$fetchtokenrequest->setSecretID("");
+	    $fetchtokenrequest->setSessionID($sessionId);
+	    $response = $proxy->FetchToken($fetchtokenrequest);
+	    $response =  str_ireplace(['soapenv:', 'SOAP:'], '', $response);
+        
+        $re       = Xml::xmlToArray($response );
+	    return $re['Body']->FetchTokenResponse;
+	        
+	}
+	
+	/**
+	 *  取用户ID
+	 * @param unknown $sessionId
+	 * @return ConfirmIdentityResponseType
+	 */
+	public function  getConfirmIdentity($sessionId)
+	{ 	     
+	    Loader::import('trading.EbatNs_Session') ;
+	    Loader::import('trading.EbatNs_ServiceProxy') ;
+	    Loader::import('trading.ConfirmIdentityRequestType') ;
+	     
+	    $session = new \EbatNs_Session();
+	    $session->setSiteId(0);
+	    $session->setUseHttpCompression(1);
+	    $session->setAppMode(1);
+	    $session->setDevId($this->devID);
+	    $session->setAppId($this->appID);
+	    $session->setCertId($this->certID);
+	    $session->setRequestToken($this->userToken);
+	    $session->setTokenUsePickupFile(false);
+	    $session->setTokenMode(true);
+	     
+	    $proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+	     
+	    $confirmidentityrequest = new \ConfirmIdentityRequestType();
+	    $confirmidentityrequest->setSessionID($sessionId);
+	    $confirmidentityrequest->setWarningLevel("High");
+	    $confirmidentityrequest->setVersion("981");
+	    
+	    $response = $proxy->ConfirmIdentity($confirmidentityrequest);
+	    return $response;
+	     
+	}
+	
+	/**
+	 * 验证 ebay 的token 是否有效
+	 * @return GeteBayOfficialTimeResponseType
+	 */
+	public function geteBayOfficialTime($type)
+	{
+	    
+	    Loader::import('trading.EbatNs_Session') ;
+	    Loader::import('trading.EbatNs_ServiceProxy') ;
+	    Loader::import('trading.GeteBayOfficialTimeRequestType') ;
+	    
+	    $session = new \EbatNs_Session();
+	    $session->setSiteId(0);
+	    $session->setUseHttpCompression(1);
+	    $session->setAppMode($type);
+	    $session->setDevId($this->devID);
+	    $session->setAppId($this->appID);
+	    $session->setCertId($this->certID);
+	    $session->setRequestToken($this->userToken);
+	    $session->setTokenUsePickupFile(false);
+	    $session->setTokenMode(true);
+	    
+	    $proxy = new \EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+	    
+	    
+	    $getebayofficialtimerequest = new \GeteBayOfficialTimeRequestType();
+	    $getebayofficialtimerequest->setVersion("981");
+	    
+	    $response = $proxy->GeteBayOfficialTime($getebayofficialtimerequest);
+	    return $response;
+	    
+	}
+	
+	
+	
+}

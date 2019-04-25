@@ -1,0 +1,13 @@
+<?php
+
+
+namespace service\brandslink\operation;
+
+
+class Goods extends Common
+{
+    public function push($data){
+        $url = '/common/commodity/add';
+        return $this->post($url,$data);
+    }
+}

@@ -1,0 +1,15 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: huangweijie
+ * Date: 2018/12/27
+ * Time: 16:23
+ */
+
+namespace Logistics\Exceptions;
+
+
+class NoQueryAvailableException extends Exception
+{
+
+}

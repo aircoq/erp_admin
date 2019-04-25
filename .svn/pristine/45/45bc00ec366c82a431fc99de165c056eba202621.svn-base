@@ -1,0 +1,715 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: laiyongfeng
+ * Date: 2018-05-19
+ * Time: 15:45
+ */
+
+namespace service\shipping\operation;
+
+
+use think\Exception;
+use app\common\model\WarehouseGoodsForecast as WarehouseGoodsForecastModel;
+use app\common\service\ChannelAccountConst;
+use app\common\cache\Cache;
+use app\goods\service\GoodsHelp;
+use app\goods\service\GoodsSkuAlias as GoodsSkuAliasService;
+use app\warehouse\service\WarehouseGoods;
+use org\Curl;
+use app\common\service\Encryption;
+use app\warehouse\service\WarehouseGoodsForecast;
+use app\common\model\WarehouseGoodsForecast as ForecastModel;
+use app\warehouse\service\Warehouse;
+
+
+/**
+ * Created by phpStorm
+ * User: laiyongfeng
+ * Date: 2019/01/22
+ * Time: 16:53
+ */
+class Goten
+{
+    private $_service = null;
+    private $_timeout = 10;
+    // 配置信息
+    private $_config = [
+//        'url'   => '202.104.134.94:60313',//测试
+        'url' => 'https://www.goten.com:60081/',//线上
+        'token' => '',
+        'key' => '',
+        'version' => '1.0.0.0',
+        'header' => ["content-type: application/json;charset=utf-8; charset=UTF-8"],
+    ];
+    protected $result = [
+        'data' => [],
+        'error' => [],
+        'success' => false
+    ];
+
+    /**
+     * 组装header信息
+     * @param array $config
+     * @throws Exception
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_secret']) || empty($config['accessToken'])) {
+            throw new Exception('账号授权信息缺失');
+        }
+        $this->_config['token'] = $config['accessToken'];
+        $this->_config['key'] = $config['client_secret'];
+    }
+
+
+    /**
+     * @desc 生成UUID
+     * @return string
+     */
+    public function guid()
+    {
+        if (function_exists('com_create_guid')) {
+            return com_create_guid();
+        } else {
+            mt_srand((double)microtime() * 10000);
+            $charid = strtoupper(md5(uniqid(rand(), true)));
+            $hyphen = chr(45);
+            $uuid = chr(123)
+                . substr($charid, 0, 8) . $hyphen
+                . substr($charid, 8, 4) . $hyphen
+                . substr($charid, 12, 4) . $hyphen
+                . substr($charid, 16, 4) . $hyphen
+                . substr($charid, 20, 12)
+                . chr(125);
+            return $uuid;
+        }
+    }
+
+    /**
+     * @desc 获取请求数据
+     * @param array|null $message
+     * @return array
+     */
+    public function getRequestData($message = null)
+    {
+        $encryption = new Encryption();
+        $request_data = [
+            'Version' => '1.0.0.0',
+            'Token' => stripslashes($this->_config['token']),
+            'Sign' => null,
+            'RequestTime' => date('Y-m-d H:i:s'),
+            'RequestId' => $this->guid(),
+            'Message' => $message,
+        ];
+        //des CBC加密
+        $request_data['Sign'] = $encryption->desEncrypt(
+            json_encode($request_data, JSON_UNESCAPED_SLASHES),
+            $this->_config['key'],
+            'DES-CBC',
+            $this->_config['key']
+        );
+        return $request_data;
+    }
+
+    /**
+     * 取消删除包裹
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function cancel($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+            $message['OrderNoList'][] = $order['process_code'];
+            $request_data = $this->getRequestData(json_encode($message));
+            $response = Curl::curlPost($this->_config['url'] . '/api/Order/QueryOrder', json_encode($request_data, JSON_UNESCAPED_SLASHES), $this->_config['header']);
+            $result = json_decode($response, true);
+            if ($result['Result'] && $result['Message']) {
+                $message = json_decode($result['Message'], true);
+                foreach ($message['Data'] as $item) {
+                    if ($item['OrderNo'] != $order['process_code']) {
+                        continue;
+                    }
+                    if ($item['OrderStatus'] == 50) {
+                        $this->result['success'] = true;
+                    } else {
+                        $this->result['success'] = false;
+                        $this->result['error'] = [
+                            'error_msg' => '订单状态不允许取消',
+                            'error_code' => 1
+                        ];
+                    }
+                }
+            } else {
+                $this->result['success'] = false;
+                $this->result['error'] = [
+                    'error_msg' => '取消失败',
+                    'error_code' => 1
+                ];
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取是否已经发货
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function getPackageStatus($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+            $message['OrderNoList'][] = $order['process_code'];
+            $request_data = $this->getRequestData(json_encode($message));
+            $response = Curl::curlPost($this->_config['url'] . '/api/Order/QueryOrder', json_encode($request_data, JSON_UNESCAPED_SLASHES), $this->_config['header']);
+            $result = json_decode($response, true);
+            if ($result['Result'] && $result['Message']) {
+                $message = json_decode($result['Message'], true);
+                foreach ($message['Data'] as $item) {
+                    if ($item['OrderNo'] != $order['process_code']) {
+                        continue;
+                    }
+                    $this->result['success'] = true;
+                    $this->result['data']['weight'] = 0;
+                    $this->result['data']['is_send'] = in_array($item['OrderStatus'], [30, 40]) ? true : false;
+                    $this->result['data']['shipping_status'] = in_array($item['OrderStatus'], [30, 40]) ? true : false;//0-未发货 1已发货 3 问题单
+                    $this->result['data']['shipping_time'] = 0; //没有返回传0
+                }
+            } else {
+                throw new Exception($result['Error']['LongMessage']);
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+
+    /**
+     * @desc 获取跟踪号
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    function getTrackingNumber($config, $order)
+    {
+        try {
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+            $message['OrderNoList'][] = $order['process_code'];
+            $request_data = $this->getRequestData(json_encode($message));
+            $response = Curl::curlPost($this->_config['url'] . '/api/Order/QueryOrder', json_encode($request_data, JSON_UNESCAPED_SLASHES), $this->_config['header']);
+            $result = json_decode($response, true);
+            if ($result['Result'] && $result['Message']) {
+                $message = json_decode($result['Message'], true);
+                foreach ($message['Data'] as $item) {
+                    if ($item['OrderNo'] != $order['process_code']) {
+                        continue;
+                    }
+                    $this->result['data'] = [
+                        'trackingNumber' => $item['ShippingInformationList'][0]['TrackingNumber'] ?? ''
+                    ];
+                    $this->result['success'] = true;
+                }
+            } else {
+                throw new Exception($result['Error']['LongMessage']);
+            }
+
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 组装库存返回格式
+     * @param array $lists
+     * @return array
+     */
+    private function buildReturnInventory($lists, &$data)
+    {
+
+        foreach ($lists as $item) {
+            foreach ($item['ProductInventoryList'] as $v) {
+                if (!isset($data[$item['Sku']])) {
+                    $data[$item['Sku']]['thirdparty_goods_sku'] = $item['Sku'];
+                    $data[$item['Sku']]['warehouse_code'] = $v['StockCode'];
+                    $data[$item['Sku']]['third_intransit_quantity'] = 0; //在途=调拨
+                    $data[$item['Sku']]['third_defects_quantity'] = 0; //故障品=不合格
+                    $data[$item['Sku']]['third_avaliable_quantity'] = 0; //可用=可售
+                    $data[$item['Sku']]['third_quantity'] = 0; //实际库存
+                }
+                $data[$item['Sku']]['third_avaliable_quantity'] += $v['Qty']; //可用=可售
+                $data[$item['Sku']]['third_quantity'] += $v['Qty']; //实际库存
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * @desc 获取库存
+     * @param array $config
+     * @param array $params
+     * @return array
+     */
+    public function getProductInventory(array $config, $params = [])
+    {
+        set_time_limit(0);
+        try {
+            $config['accessToken'] = 'p9ypg9KEdAXptsiOwcM0+g==';
+            $config['client_secret'] = 'tB5FMflm';
+            $this->formatHeader($config);
+            if (isset($params['skus'])) {
+                $message = $params['skus'];
+                $request_data = $this->getRequestData(json_encode($message));
+                $response = Curl::curlPost(
+                    $this->_config['url'] . '/api/Product/QueryProductInventory',
+                    json_encode($request_data, JSON_UNESCAPED_SLASHES),
+                    $this->_config['header']
+                );
+                $result = json_decode($response, true);
+                if ($result['Result'] && $result['Message']) {
+                    $message = json_decode($result['Message'], true);
+                    $this->result['success'] = true;
+                    $data = $this->buildReturnInventory($message, $data);
+                    $this->result['data'] = $data;
+                } else {
+                    throw new Exception($result['Error']['LongMessage']);
+                }
+            } else {
+                $data = [];
+                $service = new WarehouseGoodsForecast();
+                $count = $service->getCountByType(WarehouseGoodsForecast::TYPE_GOTEN);
+                $page_size = 100; //每次最多执行1000条数据
+                $loop = ceil($count/$page_size);
+                for($i = 0; $i<$loop; $i++) {
+                    $message = $service->getProductList(WarehouseGoodsForecast::TYPE_GOTEN,  $i+1, $page_size);
+                    $request_data = $this->getRequestData(json_encode($message));
+                    $response = Curl::curlPost(
+                        $this->_config['url'] . '/api/Product/QueryProductInventory',
+                        json_encode($request_data, JSON_UNESCAPED_SLASHES),
+                        $this->_config['header']
+                    );
+                    $result = json_decode($response, true);
+                    if ($result['Result'] && $result['Message']) {
+                        $message = json_decode($result['Message'], true);
+                        $this->buildReturnInventory($message, $data);
+                    } else {
+                        throw new Exception($result['Error']['LongMessage']);
+                    }
+                }
+                $this->result['success'] = true;
+                $this->result['data'] = $data;
+                $this->result['count'] = count($data);
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取省份信息
+     * @param string $country_code
+     * @param string $province
+     * @return string
+     */
+    public function getStateCode($country_code, $province)
+    {
+        $state_code = '';
+        $message['TwoLetterIsoCode'] = $country_code;
+        $request_data = $this->getRequestData(json_encode($message));
+        $response = Curl::curlPost(
+            $this->_config['url'] . '/api/Product/GetCountry',
+            json_encode($request_data, JSON_UNESCAPED_SLASHES),
+            $this->_config['header']
+        );
+        $result = json_decode($response, true);
+        $message = json_decode($result['Message'], true);
+        foreach ($message as $item) {
+            if ($item['TwoLetterIsoCode'] != $country_code) {
+                continue;
+            }
+            foreach ($item['ProvinceList'] as $value) {
+                if ($value['ProvinceName'] == $province || $value['StateCode'] == $province) {
+                    $state_code = $value['StateCode'];
+                }
+            }
+        }
+        return $state_code;
+    }
+
+    /**
+     * @desc 组装创建订单信息
+     * @param array $order
+     * @return array
+     * @throws Exception
+     */
+    private function buildOrderData($order)
+    {
+        $phone = $order['phone'] ? $order['phone'] : $order['tel'];
+        if ($phone == 'Invalid Request') {
+            $phone = '';
+        }
+        $request['CustomOrderNumber'] = $order['number'];
+//        $shipping_method = explode('_', $order['shipping_method_code']);
+//        $request['StockCode'] = Cache::store('warehouse')->getWarehouseCodeById($order['warehouse_id']);
+        $request['StockCode'] = '';
+        //防止代码本身有_
+//        if (count($shipping_method) != 2) {
+//            throw new Exception("邮寄代码有误，请联系it处理");
+//        }
+        $request['LogProCode'] = ''; //派送方式
+        $request['CurrencyCode'] = 'USD';
+        $request['Receiver'] = $order['name'];//收件人
+        $request['PhoneNumber'] = $phone; //收件人电话
+        $request['Address1'] = $order['street'];
+        $request['address2'] = $order['street2'];
+        $request['City'] = $order['city'];
+        $request['StateCode'] = $this->getStateCode($order['country_code'], $order['province']); //省份
+        $request['ZipPostalCode'] = $order['zip']; //邮编
+        $request['CountryCode'] = $order['country_code'];
+        $warehouseGoods = new WarehouseGoods();
+        foreach ($order['product'] as $sku_id => $item) {
+            $temp['Sku'] = $warehouseGoods->getThirdSku($order['warehouse_id'], $sku_id); //第三方sku$item['sku'];
+            $temp['Qty'] = $item['qty'];
+            $request['ProductDetailList'][] = $temp;
+        }
+        return $request;
+    }
+
+
+    /**
+     * @desc 获取库存
+     * @param array $config
+     * @param array $order
+     * @return array
+     */
+    public function createOrder(array $config, array $order)
+    {
+        set_time_limit(0);
+        try {
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            $this->formatHeader($config);
+            //获取请求数据
+            $message = $this->buildOrderData($order);
+            $request_data = $this->getRequestData(json_encode($message));
+            $response = Curl::curlPost(
+                $this->_config['url'] . '/api/order/CreateOrdersRequest',
+                json_encode($request_data, JSON_UNESCAPED_SLASHES),
+                $this->_config['header']
+            );
+            $result = json_decode($response, true);
+            //错误日志记录
+            $arr_log = [
+                'url' => '',
+                'header' => '',
+                'request' => $request_data,
+                'response' => $response
+            ];
+            Cache::store('LogisticsLog')->setLogisticsLog($order['number'], $arr_log);
+            if (!is_array($result)) {
+                throw new Exception("返回报文解析错误！");
+            }
+            //组装数据
+            if ($result['Result'] && $result['Message']) {
+                $this->result['data']['number'] = $order['number'];   // 客户订单号
+                $this->result['data']['package_code'] = $result['Message'];    // One World包裹处理号
+                $this->result['data']['trackingNumber'] = '';                  // 跟踪号
+                $this->result['data']['has_trackingNumber'] = true;              // 是否有跟踪号
+                $this->result['data']['confirm'] = true;               // 是否交运
+                $this->result['data']['label'] = false;              // 是否有pdf
+                $this->result['data']['label_url'] = '';                 // 是否有pdf
+                $this->result['data']['is_weight'] = false;              // 是否能查询实际重量
+                $this->result['data']['is_fee'] = false;               // 是否能查询实际费用
+                $this->result['data']['send'] = false;               // 是否能查询物流订单状态
+                $this->result['success'] = true;
+            } else {
+                throw new Exception($result['Error']['LongMessage']);
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取系统仓库
+     * @param array $config
+     * @return array
+     */
+    private function getWarehouse(array $config)
+    {
+        set_time_limit(0);
+        try {
+            $this->formatHeader($config);
+            $request_data = $this->getRequestData();
+            $response = Curl::curlPost(
+                $this->_config['url'] . '/api/Product/GetWarehouse',
+                json_encode($request_data, JSON_UNESCAPED_SLASHES),
+                $this->_config['header']
+            );
+            $result = json_decode($response, true);
+            if ($result['Result'] && $result['Message']) {
+                $message = json_decode($result['Message'], true);
+                $data = [];
+                foreach ($message as $key => $item) {
+                    $data[$key]['code'] = $item['StockCode'];
+                    $data[$key]['name'] = $item['StockName'];
+                }
+                $this->result['success'] = true;
+                $this->result['data'] = $data;
+            } else {
+                throw new Exception($result['Error']['LongMessage']);
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取所有物流渠道
+     * @param array $config
+     * @return array
+     */
+    public function getExpress(array $config)
+    {
+        try {
+            $this->formatHeader($config);
+            $request_data = $this->getRequestData();
+            $response = Curl::curlPost(
+                $this->_config['url'] . '/api/Product/GetLogisticsProduct',
+                json_encode($request_data, JSON_UNESCAPED_SLASHES),
+                $this->_config['header']
+            );
+            $result = json_decode($response, true);
+            if ($result['Result'] && $result['Message']) {
+                $message = json_decode($result['Message'], true);
+                $data = [];
+                foreach ($message as $item) {
+                    $data[] = [
+                        'name' => $item['LogProName'] . '_' . $item['LogComName'],
+                        'code' => $item['LogProCode'] . '_' . $item['LogComCode'],
+                    ];
+                }
+                $this->result['data'] = $data;
+                $this->result['success'] = true;
+            } else {
+                throw new Exception($result['Error']['LongMessage']);
+            }
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 递归组装分类
+     * @param array $message
+     * @param int $parent_category_code 上级分类代码
+     * @param int $level 分类等级
+     * @return array
+     */
+    private function assembleCategory($message, $parent_category_code = 0, $level = 0)
+    {
+        $categories = [];
+        foreach ($message as $item) {
+            $temp = [];
+            $temp['parent_category_id'] = $parent_category_code;
+            $temp['category_name'] = $item['Name'];
+            $temp['category_level'] = $level;
+            $temp['category_id'] = $item['Code'];
+            $temp['level'] = $level;
+            $categories[] = $temp;
+            if ($item['ChildCategoryList']) {
+                $child_category = $this->assembleCategory($item['ChildCategoryList'], $item['Code'], ($level + 1));
+                $categories = array_merge($categories, $child_category);
+            }
+        }
+        return $categories;
+    }
+
+    /**
+     * @desc 获取品类
+     * @param array $config
+     * @return array
+     */
+    public function getCategory(array $config)
+    {
+        try {
+            $this->formatHeader($config);
+            $request_data = $this->getRequestData();
+            $response = Curl::curlPost(
+                $this->_config['url'] . '/api/Product/GetCategory',
+                json_encode($request_data, JSON_UNESCAPED_SLASHES),
+                $this->_config['header']
+            );
+            $result = json_decode($response, true);
+            if ($result['Result'] && $result['Message']) {
+                $message = json_decode($result['Message'], true);
+                $this->result['success'] = true;
+                $this->result['data'] = $this->assembleCategory($message);
+            } else {
+                throw new Exception($result['Error']['LongMessage']);
+            }
+            return $this->result;
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取品类
+     * @param array $params
+     * @param int $page
+     * @param array $data
+     * @param int $count
+     * @return array
+     * @throws Exception
+     */
+    public function cycleQueryProduct($params, $page = 1, &$data, $count = 1000)
+    {
+        $message = [
+            'Skus' => isset($params['skus']) && !empty($params['skus']) ? $params['skus'] : null,
+            'EndTime' => date("Y-m-d"),
+            'StartTime' => null,
+            'PageIndex' => $page,
+        ];
+        $request_data = $this->getRequestData(json_encode($message));
+        $response = Curl::curlPost(
+            $this->_config['url'] . '/api/Product/QueryProductDetail',
+            json_encode($request_data, JSON_UNESCAPED_SLASHES),
+            $this->_config['header']
+        );
+        $result = json_decode($response, true);
+        if ($result['Result'] && $result['Message']) {
+            $return_message = json_decode($result['Message'], true);
+            foreach ($return_message['ProductInfoList'] as $item) {
+                $temp['third_sku'] = $item['Sku']; //第三方sku
+                $temp['status'] = ForecastModel::STATUS_AVALILABLE;;
+                $temp['title'] = $item['CnName'];//名称
+                $temp['weight'] = $item['SpecWeight'];//cm
+                $temp['length'] = $item['SpecLength'];//cm
+                $temp['width'] = $item['SpecWidth'];//cm
+                $temp['height'] = $item['SpecHeight']; //cm
+                $temp['contain_battery'] = 0; //没有这个属性
+                $temp['declared_value'] = 0;//没有价钱
+                $temp['third_category_id'] = $item['CategoryThirdCode'] ?? ($item['CategorySecondCode'] ?? $item['CategoryFirstName']);
+                $temp['declared_name'] = ''; //没有申报名称
+                $data[] = $temp;
+            }
+            $count = $count ? $count : $return_message['TotalCount'];
+            if (count($data) >= $count || !$return_message['ProductInfoList']) {
+                return;
+            } else {
+                $this->cycleQueryProduct($params, $page + 1, $data, $count);
+            }
+        } else {
+            throw new Exception($result['Error']['LongMessage']);
+        }
+    }
+
+
+    /**
+     * @desc 获取商品信息
+     * @param array $config
+     * @param array $params
+     * @return array
+     */
+    public function getProductList(array $config, array $params = [])
+    {
+        set_time_limit(0);
+        $config['accessToken'] = 'p9ypg9KEdAXptsiOwcM0+g==';
+        $config['client_secret'] = 'tB5FMflm';
+        try {
+            $page = param($params, 'page', 1);
+            if (isset($params['pageSize'])) {
+                $page = ($params['pageSize']*($page-1))/50+1;
+            }
+            $count = param($params, 'pageSize', 0);
+            $this->formatHeader($config);
+            $data = [];
+            $this->cycleQueryProduct([], $page, $data, $count);
+            $this->result['count'] = count($data);
+            $this->result['success'] = true;
+            $this->result['data'] = $data;
+            return $this->result;
+        } catch (Exception $ex) {
+            $this->result['success'] = false;
+            $this->result['error'] = [
+                'error_msg' => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * @desc 获取新建产品
+     * @params array $config
+     * @param array $params
+     * @return array
+     */
+    public function createProduct(array $config, $params)
+    {
+
+    }
+
+    /**
+     * 获取真实重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config, $order)
+    {
+
+    }
+
+}

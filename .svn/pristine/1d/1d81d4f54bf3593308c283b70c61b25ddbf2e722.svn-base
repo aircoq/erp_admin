@@ -1,0 +1,74 @@
+<?php
+
+namespace service\shopee\operation;
+
+use app\common\cache\Cache;
+use think\Exception;
+use org\Curl;
+
+/**
+ * @title shopee
+ * @module 请输入模块
+ * @url 输入url
+ * @author starzhan <397041849@qq.com>
+ */
+class Common
+{
+//    const PARTNER_ID = 18020;
+//    const KEY = 'a42ed72acc59cf4ff0762eed180e1404cf4de3337940100d7200e7f650fa3ba0';
+
+    protected $shop_id;
+    protected $key;
+    protected $partner_id;
+
+    public function __construct($config)
+    {
+        $this->partner_id = $config['partner_id'];
+        $this->shop_id = $config['shop_id'];
+        $this->key = $config['key'];
+    }
+
+    protected function getBaseConfig($data = [])
+    {
+        $postData['partner_id'] = (int)$this->partner_id;
+        $postData['shopid'] = (int)$this->shop_id;
+        $postData['timestamp'] = time();
+        $postData = array_merge($postData, $data);
+        return $postData;
+    }
+
+
+    protected function getHeader($data, $url,$isObj=true)
+    {
+        $header = ["Content-Type:application/json"];
+        if($isObj){
+            $postData = json_encode($data,JSON_FORCE_OBJECT);
+        }else{
+            $postData = json_encode($data);
+        }
+        $baseStr = $url . "|" . $postData;
+        $Auth_signature = hash_hmac('sha256', $baseStr, $this->key);
+        $header[] = "Authorization:" . $Auth_signature;
+        return $header;
+    }
+
+    protected function doPost($url, $data, $header=[],$isObj=true)
+    {
+        if($isObj){
+            $postData = json_encode($data,JSON_FORCE_OBJECT);
+        }else{
+            $postData = json_encode($data);
+        }
+        $result = Curl::curlPost($url, $postData, $header);
+        return json_decode($result,true);
+    }
+    protected function curlPost($url, $data, $header=[])
+    {
+        $data = $this->getBaseConfig($data);
+        $header = $this->getHeader($data,$url,false);
+        $postData = json_encode($data);
+        $result = Curl::curlPost($url, $postData, $header);
+        return json_decode($result,true);
+
+    }
+}

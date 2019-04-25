@@ -1,0 +1,71 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+use think\Exception;
+
+class ShiHang extends Base
+{
+    protected $is_open_water = 1;
+
+    public function createLabel($code, $order)
+    {
+        //var_dump($order);die;
+        $code = str_replace('-', '_', $code);
+        $strFun = "label_" . $code;
+        if (!in_array($strFun, get_class_methods(self::class))) {
+            throw new Exception('当前物流方式，无此方法' . $strFun);
+        }
+        $tmpList = $order['list'];
+        $sort = [];
+        if (count($tmpList) > 3) {
+            foreach ($tmpList as $v) {
+                $sort[] = $v['declared_value'];
+            }
+            array_multisort($sort, SORT_DESC, SORT_NUMERIC, $tmpList);
+            $tmpList = array_slice($tmpList, 0, 3);
+        }
+        $order['list'] = $tmpList;
+        return $this->$strFun($order);
+    }
+
+
+
+    //author by lan  英国纯电——E电宝
+    private function label_GBCD_EDB($order){
+        return $this->display('GBCD_EDB',$order);
+    }
+    //加拿大纯电-E电宝
+    private function label_CACD_EDB($order){
+        return $this->display('CACD_EDB',$order);
+    }
+    private function label_CACD_EDB_one($order){
+        return $this->display('CACD_EDB_one',$order);
+    }
+    //美国本土纯电-E电宝
+     private function label_USBTCD_EDB($order){
+        return $this->display('USBTCD_EDB',$order);
+    }
+    //日本纯电-E电宝
+     private function label_JPCD_EDB($order){
+        return $this->display('JPCD_EDB',$order);
+    }
+    //澳洲纯电-E电宝
+     private function label_AUCD_EDB($order){
+        return $this->display('AUCD_EDB',$order);
+    }
+    //澳洲纯电-EUCd
+    private function label_EUCD_EDB($order){
+        return $this->display('EUCD_EDB',$order);
+    }
+
+
+
+
+
+
+
+
+
+}

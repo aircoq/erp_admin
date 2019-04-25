@@ -1,0 +1,105 @@
+<?php
+/**
+ * author:kevin
+ * date:2019.4.18
+ */
+
+namespace app\publish\controller;
+
+use think\Request;
+use think\Exception;
+use app\common\controller\Base;
+use app\publish\service\LazadaPublishHelper;
+use app\publish\helper\lazada\LazadaHelper;
+use app\publish\service\LazadaListingService;
+
+/**
+ * @module LAZADA刊登系统
+ * @title LAZADA刊登
+ * @author KEVIN
+ * Class LazadaListing
+ * @package app\publish\controller
+ */
+class LazadaPublish extends Base
+{
+    private $helpers;
+
+    public function __construct(Request $request = null)
+    {
+        parent::__construct($request);
+        $this->helpers = new LazadaPublishHelper();
+    }
+    /**
+     * @title 获取lazada待刊登商品列表
+     * @url /publish/lazada/unpublishedList
+     * @method get
+     * @access public
+     * @return \think\response\Json
+     */
+    public function unpublishedList(Request $request)
+    {
+        try {
+            $params = $request->param();
+
+            $data = $this->helpers->getUnpublishedListByChannelId($params,$params['page'], $params['pageSize']);
+
+            return json($data);
+
+        } catch (Exception $e) {
+
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 获取lazada选中产品刊登的详情
+     * @url /publish/lazada/productInfo
+     * @method get
+     * @access public
+     * @throws \Exception
+     */
+    public function GetProductInfo(Request $request)
+    {
+        try
+        {
+            $goodsId = $request::instance()->get('goods_id');
+            if(empty($goodsId))throw new \Exception('产品ID不能为空！');
+            $lazadaHelper = new LazadaPublishHelper();
+            return json($lazadaHelper->GetProductInfoByGoodId($goodsId));
+        }
+        catch (\Exception $e)
+        {
+            return json($e->getMessage(),400);
+        }
+    }
+
+    public function removeProducts(Request $request)
+    {
+        $skus_arr = $request->get('seller_sku_list');
+        $reslut =  (new LazadaPublishHelper())->removeProducts($skus_arr);
+    }
+
+
+
+
+
+    public function test(Request $request)
+    {
+//        $wh = [
+//            'platform_status' => 1,
+//            'app_key' => ['neq', ''],
+//            'status' => 1,
+//        ];
+//        $accounts = (new \app\common\model\lazada\LazadaAccount())->where($wh)->select();
+//        foreach ($accounts as $k => $v) {
+//            $accountId = $v['id'];
+//            $offset = 40000;
+//            $pageSize = 1000;
+//            $updateTime = '';
+//            $response  = (new LazadaHelper())->syncBrands($accountId, $offset, $pageSize, $updateTime);//数组
+//            return $response;
+//        }
+    }
+
+
+}

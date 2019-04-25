@@ -1,0 +1,49 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-12
+ * Time: 上午10:28
+ */
+
+namespace swoole;
+
+
+class SwooleCmdResult
+{
+    private $cmd;
+    private $result = '';
+    private $code = 'ok';
+    public function __construct(SwooleCmd $cmd)
+    {
+        $this->cmd = $cmd;
+    }
+
+    public function setCode($code = 'ok')
+    {
+        $this->code = $code;
+    }
+    public function setResult($result)
+    {
+        $this->result = $result;
+    }
+
+    public function getResult()
+    {
+        return $this->result;
+    }
+
+    public function getCode()
+    {
+        return $this->code;
+    }
+
+    public function __toString()
+    {
+        return json_encode([
+            'cmd'=>static::class,
+            'code'=>$this->code,
+            'result'=>$this->result,
+        ]);
+    }
+}

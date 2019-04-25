@@ -1,0 +1,315 @@
+<?php
+
+namespace app\index\service;
+
+use app\common\model\DepartmentTag;
+use app\common\cache\Cache;
+
+
+class DepartmentTagService
+{
+
+    protected $departmentTagModel = null;
+    protected $departmentTagCacheKey = 'cache:dept_tag_id_';
+    protected $departmentTagListCacheKey = 'cache:dept_tag_list';
+    protected $departmentTagNameCacheKey = 'cache:dept_tag_names';
+
+    public function __construct()
+    {
+        if (is_null($this->departmentTagModel)) {
+            $this->departmentTagModel = new DepartmentTag();
+        }
+    }
+
+    /**
+     * 获取单个标签详细信息
+     * @param int $id 标签id
+     * @return array
+     */
+    public function get($id)
+    {
+        $tag = Cache::handler()->get($this->departmentTagCacheKey . $id);
+        if ($tag) {
+            return json_decode($tag, true);
+        }
+
+        $tag = $this->departmentTagModel->where('id', $id)->find();
+        if (!empty($tag)) {
+            $tag['status'] = (int)$tag['status'];
+            $tag['statusText'] = $this->departmentTagModel->getStatusTxt($tag['status']);
+            $tag['typeText']   = $this->departmentTagModel->getTypeTxt($tag['type']);
+            $tag['create_time'] = date('Y-m-d H:i:s', $tag['create_time']);
+            $tag['update_time'] = date('Y-m-d H:i:s', $tag['update_time']);
+            $tag['isBind'] = (new DepartmentTagMapService())->isExists($tag['id']); // 标签是否已经绑定
+
+            Cache::handler()->set($this->departmentTagCacheKey . $id, json_encode($tag));
+        }
+
+        return $tag;
+    }
+
+    /**
+     * 获取单个标签名称
+     * @param int $id 标签id
+     * @return string
+     */
+    public function getNameById($id)
+    {
+        $tagInfo = $this->get($id);
+        return $tagInfo['name'];
+    }
+
+
+    /**
+     * 标签是否存在
+     * @param int $id 标签id
+     * @return boolean
+     */
+    public function isExists($id)
+    {
+        $tag = $this->departmentTagModel->where('id', $id)->count();
+        return $tag && true;
+    }
+
+
+    /**
+     * 标签名称是否存在并且不是当前id本身的名称
+     * @param string $name 标签名称
+     * @param int $id 标签id
+     * @return boolean
+     */
+    public function tagNameIsExists($name, $id = null)
+    {
+        $where['name'] = ['eq', $name];
+        $id && $where['id'] = ['neq', $id];
+
+        $count = $this->departmentTagModel->where($where)->count();
+        return $count && true;
+    }
+
+    /**
+     * code是否存在
+     * @param int $code 标签code
+     * @param int $id   标签id
+     * @return boolean
+     */
+    public function codeIsExists($code, $id = null)
+    {
+        $where['code'] = ['eq', $code];
+        $id && $where['id'] = ['neq', $id];
+        $tag = $this->departmentTagModel->where($where)->count();
+        return $tag && true;
+    }
+
+    /**
+     * 新增部门标签
+     * @param string $name 标签名称
+     * @param array $params 请求参数
+     * @return int
+     */
+    public function add($params)
+    {
+        $re = $this->departmentTagModel->save($this->saveData($params));
+        $re && $this->clearCache();
+        return ($re ? $this->departmentTagModel->getLastInsID() : 0);
+    }
+
+    /**
+     * 保存的数据
+     * @param array $params 请求参数
+     * @return array
+     */
+    private function saveData($params, $type = 'insert')
+    {
+        $data = [
+            'name' => trim(strip_tags($params['name'])),
+            'code' => trim(strip_tags($params['code'])),
+            'type' => $params['type'] ?? $this->departmentTagModel::TYPE_DEFAULT,
+            'status' => $params['status'] ?? $this->departmentTagModel::STATUS_DEFAULT,
+            'description' => trim(strip_tags($params['description'])),
+            'update_time' => $_SERVER['REQUEST_TIME'],
+        ];
+
+        switch($type){
+            case 'insert':
+                $data['creator_id']  = $params['creator_id'];
+                $data['create_time'] = $_SERVER['REQUEST_TIME'];
+                break;
+            case 'update':
+                $data['update_time'] = $_SERVER['REQUEST_TIME'];
+                break;
+        }
+
+        return $data;
+    }
+
+    /**
+     * 修改部门标签
+     * @param int $id 标签id
+     * @param string $name 标签名称
+     * @return integer|string
+     */
+    public function update($id, $params)
+    {
+        $data = $this->saveData($params, 'update');
+        $re = $this->departmentTagModel->where('id', $id)->update($data);
+        $re && $this->clearCache($id);
+        return $re;
+    }
+
+
+    /**
+     * 更新标签状态
+     * @param int $id 标签id
+     * @param int $status 标签状态（0, 1）
+     * @return integer|string
+     */
+    public function updateStatus($id, $status)
+    {
+        $re = $this->departmentTagModel->where('id', $id)->update(['status' => $status]);
+        $re && $this->clearCache($id);
+        return $re;
+    }
+
+    /**
+     * 删除部门标签
+     * @param int $id 标签ID
+     * @return boolean
+     */
+    public function del($id)
+    {
+        $re = $this->departmentTagModel->where('id', $id)->delete();
+        $re && $this->clearCache($id);
+        return $re;
+    }
+
+
+    /**
+     * 删除标签缓存
+     */
+    private function clearCache($id = null)
+    {
+        $id && Cache::handler()->del($this->departmentTagCacheKey . $id);
+        Cache::handler()->del($this->departmentTagListCacheKey);
+        Cache::handler()->del($this->departmentTagNameCacheKey);
+    }
+
+
+    /**
+     * 获取部门所有标签列表
+     * @return array
+     */
+    public function getAllList()
+    {
+        $jsonList = Cache::handler()->get($this->departmentTagListCacheKey);
+        if ($jsonList) {
+            return json_decode($jsonList, true);
+        }
+
+        $tagList = $this->departmentTagModel->order('id DESC')->select();
+        if (!empty($tagList)) {
+            $tagList = $this->returnText($tagList);
+            Cache::handler()->set($this->departmentTagListCacheKey, json_encode($tagList));
+        }
+        return $tagList;
+    }
+
+    /**
+     * 获取所有标签名称列表
+     * @return array
+     */
+    public function getNameList()
+    {
+        $jsonList = Cache::handler()->get($this->departmentTagNameCacheKey);
+        if ($jsonList) {
+            return json_decode($jsonList, true);
+        }
+
+        $tagNameList = $this->departmentTagModel->field('id,name')->order('id DESC')->select();
+        if (!empty($tagNameList)) {
+            Cache::handler()->set($this->departmentTagNameCacheKey, json_encode($tagNameList));
+        }
+        return $tagNameList;
+    }
+
+    /**
+     * 获取用户分页的指定字段信息
+     * @param array $params 请求参数：
+     *              $params = [
+     *                  status   =>  用户状态，可选参数
+     *                  page     =>  当前页数，默认值：1
+     *                  pageSize =>  总条数，默认值：20
+     *              ];
+     * @return array
+     */
+    public function getPageList($params)
+    {
+        $tagList = $this->departmentTagModel
+            ->where($params['where'])
+            ->page($params['page'], $params['pageSize'])
+            ->order($params['order'])
+            ->select();
+
+        return [
+            'page' => $params['page'],
+            'data' => $this->returnText($tagList),
+            'count' => $this->departmentTagModel->field(false)->count(),
+            'pageSize' => $params['pageSize'],
+        ];
+    }
+
+    /**
+     * 返回状态、类型名称
+     */
+    private function returnText($tagList)
+    {
+        foreach ($tagList as $key => &$val) {
+            $val['status'] = (int)$val['status'];
+            $val['statusText'] = $this->departmentTagModel->getStatusTxt($val['status']);
+            $val['typeText']   = $this->departmentTagModel->getTypeTxt($val['type']);
+            $val['create_time'] = date('Y-m-d H:i:s', $val['create_time']);
+            $val['update_time'] = date('Y-m-d H:i:s', $val['update_time']);
+        }
+        return $tagList;
+    }
+
+    /**
+     * 根据标签名称|状态，搜索标签列表
+     * @param string $name 标签名称
+     * @param array $status 标签状态
+     * @return array
+     */
+    public function searchByName($name, $status)
+    {
+        $tags = $this->getAllList();
+
+        $result = [];
+        foreach ($tags as $key => $val) {
+            if (false !== mb_strrpos($val['name'], $name) && in_array($val['status'], $status)) {
+                array_push($result, $val);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * 根据标签名称，搜索标签列表
+     * @param string $field 字段名称
+     * @param int $value 字段值
+     * @return array
+     */
+    public function getListByField($field, $value)
+    {
+        $tags = $this->getAllList();
+
+        $result = [];
+        foreach ($tags as $key => $val) {
+            if ($val[$field] == $value) {
+                array_push($result, $val);
+            }
+        }
+
+        return $result;
+    }
+}

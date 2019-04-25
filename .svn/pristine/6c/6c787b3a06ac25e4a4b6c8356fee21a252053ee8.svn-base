@@ -1,0 +1,40 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-3-22
+ * Time: 下午4:14
+ */
+
+namespace erp;
+
+
+abstract class AbsErpExpose
+{
+    private $model = null;
+    protected function field($field)
+    {
+        $this->model->field($field);
+        return $this;
+    }
+
+    protected function order($order, $desc = 'ASC')
+    {
+        $this->model->order($order, $desc);
+        return $this;
+    }
+
+    protected function group($group)
+    {
+        $this->model->group($group);
+        return $this;
+    }
+
+    public function model($model = null)
+    {
+        $this->model = $model?:$this->model;
+        return $this->model;
+    }
+
+    abstract public function expose();
+}

@@ -1,0 +1,62 @@
+<?php
+namespace aliy1688;
+
+use aliy1688\AbsBase;
+use aliy1688\exception\RefreshTokenException;
+use think\Cache;
+
+class GetToken extends  AbsBase
+{
+    protected $apiServer = 'https://gw.api.alibaba.com/openapi/';
+    protected $apiPath = 'param2/1/system.oauth2/getToken/';
+
+    protected $maxFailedTimes = 3; //最大失败请求次数，如果超过该次数未能获取到token则跑出异常
+    protected $failedTimes    = 0; //当前失败次数
+    public function __construct()
+    {
+        $this->params = [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $this->refreshToken,
+            'client_id' => $this->appKey,
+            'client_secret' => $this->secretKey,
+        ];
+    }
+
+
+    /**
+     * @return mixed
+     * @throws \Exception
+     */
+    public function request()
+    {
+        $resp =  parent::request();
+        if(isset($resp['access_token'])) {
+            Cache::set(\aliy1688\AbsBase::TOKEN_CACHE_NAME , $resp['access_token'],$resp['expires_in']);
+            return $resp['access_token'];
+        }else{
+            if ($this->failedTimes == $this->maxFailedTimes) {
+                throw new RefreshTokenException('1688 access_token获取失败');
+            }else{
+                $this->failedTimes++;
+                $this->request();
+            }
+        }
+    }
+
+    /**
+     * @return bool|string
+     */
+    protected function createQueryStr()
+    {
+        $paramToSign = "";
+        foreach ( $this->params as $k => $v ) {
+            $paramToSign = $paramToSign . $k . "=" . urlencode($v) . "&";
+        }
+        $paramLength = strlen ( $paramToSign );
+        if ($paramLength > 0) {
+            $paramToSign = substr ( $paramToSign, 0, $paramLength - 1 );
+        }
+        return $paramToSign;
+    }
+}
+

@@ -1,0 +1,60 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-20
+ * Time: 下午5:00
+ */
+
+namespace rpc;
+
+
+use Hprose\Socket\Client;
+use think\Config;
+
+class CentralServer
+{
+    private $host;
+    private $port;
+    private $link;
+
+    public function init()
+    {
+        $this->host = Config::get('central.host');
+        $this->port = Config::get('central.port');
+        $this->link = new Client('tcp://'.$this->host.':'.$this->port, false);
+        $this->notifyModuleState();
+    }
+
+    private function notifyModuleState()
+    {
+        $this->link->moduleRegister([
+            'serverid'=>Config::get('module.sid'),
+            'key'=>Config::get('module.key'),
+            'host' => Config::get('module.host'),
+            'port'=>Config::get('module.port'),
+            'module'=>Config::get('module.name')
+        ]);
+    }
+
+    public function checkCentralServer()
+    {
+
+    }
+
+    /**
+     * @doc 模块服务器向中心服务器验证
+     * @param $sid
+     * @param $auth
+     * @return mixed
+     */
+    public function checkModuleServer($sid, $auth)
+    {
+        return $this->link->serverCheck(['sid'=>$sid,'auth'=>$auth]);
+    }
+
+    protected function getModuleServer($module)
+    {
+        return $this->link->findModule($module);
+    }
+}

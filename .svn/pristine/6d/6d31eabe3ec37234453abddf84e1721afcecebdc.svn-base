@@ -1,0 +1,96 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2018/12/27
+ * Time: 16:27
+ */
+
+namespace Logistics\Query;
+
+
+use Logistics\Exceptions\HttpException;
+
+class IckdQuery extends Query
+{
+    public function __construct()
+    {
+        $this->url = 'https://biz.trace.ickd.cn/auto/';
+    }
+
+    /**
+     * 生成随机码
+     *
+     * @return string
+     */
+    private function randCode(): string
+    {
+        $letterOfAlphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        $code = '';
+        for ($i = 0; $i < 5; $i++) {
+            $index = mt_rand(0, strlen($letterOfAlphabet) - 1);
+            $code .= $letterOfAlphabet[$index];
+        }
+        return $code;
+    }
+
+    /**
+     * 调用爱查快递查询接口
+     *
+     * @param string $code
+     * @return array
+     * @throws HttpException
+     */
+    public function callInterface(string $code): array
+    {
+        try {
+            $urlParams = [
+                'mailNo' => $code,
+                'spellName' => '',
+                'exp-textName' => '',
+                'tk' => $this->randCode(),
+                'tm' => time() - 1,
+                'callback' => '_jqjsp',
+                '_'.time(),
+            ];
+            $response = $this->curl($this->url.$code, $urlParams, 0, ['referer: https://biz.trace.ickd.cn']);
+            $this->format($response);
+            return $this->response;
+        } catch (\Exception $exception) {
+            throw new HttpException($exception->getMessage());
+        }
+    }
+
+    /**
+     * 优化接口返回数据
+     *
+     * @param string $response
+     * @return void
+     */
+    protected function format(string $response): void
+    {
+        $pattern = '/(\_jqjsp\()({.*})\)/i';
+        if (preg_match($pattern, $response, $match)) {
+            $response = \json_decode($match[2], true);
+            $this->response = [
+                'status'  => $response['status'],
+                'message' => $response['message'],
+                'error_code' => $response['errCode'] ?? '',
+                'data' => $response['data'] ?? '',
+                'logistics_company' => $response['expTextName'] ?? '',
+                'logistics_bill_no' => $response['mailNo']
+            ];
+        } else {
+            $this->response = [
+                'status' => -1,
+                'message' => '查询不到数据',
+                'error_code' => -1,
+                'data' => '',
+                'logistics_company' => ''
+            ];
+        }
+        if (!empty($this->response['data'])) {
+            $this->response['data'] = array_reverse($this->response['data']);;
+        }
+    }
+}

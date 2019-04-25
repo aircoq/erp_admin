@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.14818135562030665 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="font-weight:bold;padding:2pt;width:270pt;font-family:Arial;font-size:10pt;overflow-x:hidden;font-size:10pt;line-height:12pt;page-break-after:always">
+        <div style="width:260pt;font-size:8pt;line-height:11pt;word-wrap:break-word;min-height:100pt;margin-top:20pt;padding-left:3pt;">
+            <span style="display:inline-block;font-size:10pt;">PO Box 737,Southall,YDH
+UB3 9RE,UK</span>
+            <br>
+            <br>
+            <span style="display:inline-block;padding-left:200pt;font-size:24pt;">GB</span>
+            <br>
+            <span style="display:inline-block;font-size:15pt;padding-left:50pt;">联邮通挂号TR48标准服务</span>
+            <br>
+            <br>
+            <span style="padding-left:5pt;display:inline-block;font-size:12pt; "> To: <?php echo $name;?> </span> <br>
+            <span style="padding-left:5pt;display:inline-block;font-size:10pt;"><strong>Tel:</strong> <?php echo $phone;?> </span><br>
+            <span style="padding-left:5pt;display:inline-block;">  <?php echo $street.$street2;?> </span><br>
+             <span style="padding-left:5pt;display:inline-block;">  <?php echo $city?><br>   <?php echo $province?>  </span><br>
+            <span
+                style="padding-left:5pt;font-size:12pt;display:inline-block;"><?php echo $country_en_name?></span> <br>
+        </div>
+        <span style="width:150pt;font-size:9pt;padding-left:80pt;padding-bottom:2pt;overflow-y:hidden;display:inline-block;line-height:35pt;font-weight:normal">
+            <?php echo $shipping_number;?>
+        </span>
+            <div ><span
+                    style="">
+                    <img  style="margin-bottom:5pt;width:200pt;padding-left:30pt;height:35pt;" width="80%" src="<?php echo $this->imgSrc($shipping_number);?>" /> </span> <br>
+            </div>
+            <div style=" ">
+                <span style="display:inline-block;padding-left:10pt;font-size:8pt;float:left;border:1pt solid;width:240pt;">
+                   【755856403】  RefNO: <?php echo $number;?><br>
+                </span>
+                <br>
+            </div>
+
+
+
+        <div>
+        <span style="display:inline-block;padding-left:10pt;font-size:8pt;float:left;border:1pt solid;border-top:none;width:240pt;">
+                   CS: S7251   SD: S2896 (X011)<br>
+                </span>
+        </div>
+        <div style="width:268pt;margin:7pt 0;"><span style="display:inline-block;width:125pt;text-align:center"></span>
+            <span style="display:inline-block;width:120pt;text-align:center"></span></div>
+    </div> <!--报关单-->
+
+</div>
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<?php
+/**
+ * 亚马逊上传数据 API 基础服务类
+ * @author wangwei 2019-3-6 13:48:40
+ */
+namespace service\amazon\Feed\Base;
+
+use service\amazon\AmazonLib;
+
+defined('DATE_FORMAT') || define ('DATE_FORMAT', 'Y-m-d H:i:s');
+class FeedBaseService
+{
+    protected $_service = null;//服务对象
+    protected $_serviceUrl = '';//服务地址
+    protected $_MarketplaceId = '';//商城代码
+    protected $_config = array();//配置信息
+    protected $_tokenConfig = array();//授权信息
+    protected $_amazonConfig = array();//亚马逊基础信息
+    
+    /**
+     * 加载自定义类，主要是放在models下的类
+     * @param string $class
+     */
+    protected static function autoload($class) {
+        $file = preg_replace("/_/", "/", $class) . '.php';
+//         echo $file;exit;
+        // 自动加载自定义类
+        if (preg_match('/^(MarketplaceWebService\/.*)/i', $file)) {
+            $load_file = dirname(__DIR__) .'/../'. $file;
+//             var_dump($load_file);
+            require_once ($load_file);
+        }
+    }
+    
+    /**
+     * 构造器
+     * @param string $token_id  amazon_account.access_key_id
+     * @param string $token  amazon_account.secret_key
+     * @param string $seller_id  amazon_account.merchant_id
+     * @param string $site  amazon_account.site
+     * @param string $mws_auth_token  amazon_account.auth_token
+     */
+    public function __construct($token_id, $token, $seller_id, $site,$mws_auth_token=null){
+        //自定义加载
+        spl_autoload_register(array( __CLASS__,'autoload'));
+        // 访问秘钥ID
+        $this->_tokenConfig['AWS_ACCESS_KEY_ID'] = $token_id;
+        // 访问秘钥
+        $this->_tokenConfig['AWS_SECRET_ACCESS_KEY'] = $token;
+        // 销售ID
+        $this->_tokenConfig['MERCHANT_ID'] = $seller_id;
+        // 站点
+        $this->_tokenConfig['SITE'] = $site;
+        //第三方授权token
+        $this->_tokenConfig['MWS_AUTH_TOKEN'] = empty($mws_auth_token)?null:$mws_auth_token;
+        // 应用名称
+        $this->_tokenConfig['APPLICATION_NAME'] = AmazonLib::APPLICATION_NAME;
+        // 应用版本
+        $this->_tokenConfig['APPLICATION_VERSION'] = AmazonLib::APPLICATION_VERSION;
+        
+        //设置服务对象
+        $this->setService();
+    }
+    
+    /**
+     * 设置服务对象
+     */
+    public function setService(){
+    	//设置亚马逊基础信息
+    	if(empty($this->_amazonConfig)){
+    		$this->setAmazonConfig($this->_tokenConfig['SITE']);
+    	}
+    	//设置商城代码
+    	$this->_MarketplaceId = $this->_amazonConfig['marketplace_id'];
+    	//服务地址
+    	if(empty($this->_serviceUrl)){
+    		$serviceUrl = $this->_amazonConfig['service_url'];
+    		$this->setServiceUrl($serviceUrl);
+    	}
+    	$config = array(
+    			'ServiceURL' => $this->_serviceUrl,
+    			'ProxyHost' => null,
+    			'ProxyPort' => - 1,
+    			'MaxErrorRetry' => 3
+    	);
+    	$this->_config = $config;
+    	$service = new \MarketplaceWebService_Client(
+    			$this->_tokenConfig['AWS_ACCESS_KEY_ID'],
+    			$this->_tokenConfig['AWS_SECRET_ACCESS_KEY'],
+    			$config,
+    			$this->_tokenConfig['APPLICATION_NAME'],
+    			$this->_tokenConfig['APPLICATION_VERSION']
+    	);
+    	$this->_service = $service;
+    }
+    
+    /**
+     * 获取服务对象
+     */
+    public function getService(){
+    	return $this->_service;
+    }
+    
+    /**
+     * 设置服务地址
+     */
+    public function setServiceUrl($url){
+    	$this->_serviceUrl = $url;
+    }
+    
+    /**
+     * 设置亚马逊基础信息
+     * @param string $site  站点
+     */
+    public function setAmazonConfig($site){
+    	if(empty($site)){
+    		throw new \Exception("获取亚马逊服务地址及商城编号失败，站点不能为空");
+    	}
+    	$amazonConfig = AmazonLib::getAmazonConfig();
+    	if(empty($amazonConfig[$site])){
+    		throw new \Exception("amzon站点： $site ，未能找到对应的亚马逊服务地址及商城编号.");
+    	}
+    	$this->_amazonConfig = $amazonConfig[$site];
+    }
+    
+    /**
+     * 获取亚马逊基础信息
+     * @param string $site  站点
+     */
+    public function getAmazonConfig(){
+    	return $this->_amazonConfig;
+    }
+    
+    /**
+     * 执行请求
+     * @param MarketplaceWebService_Interface $service 请求服务对象
+     * @param object $request 请求参数对象
+     * @param string $method  请求方法
+     * @return multitype:number string NULL Ambigous <string, NULL> Ambigous <string, NULL, unknown>
+     */
+    public function executeRequest(\MarketplaceWebService_Client $service, $request,$method)
+    {
+    	$return = array(
+    			'ask'=>0,
+    			'resultObj'=>null,//返回的结果对象
+    			'message'=>'',
+    			'requestId'=>'',//请求id
+    			'statusCode'=>'',
+    			'errorCode'=>'',
+    			'errorType'=>'',
+    			'XML'=>'',
+    			'responseHeaderMetadata'=>'',
+    	);
+    	try {
+    		if(empty($method)){
+    			throw new \MarketplaceWebService_Exception(array('Message'=>'方法名不能为空'));
+    		}
+    		if(method_exists($service,$method)){
+    			$response = $service->$method($request);
+    		}else{
+    			throw new \MarketplaceWebService_Exception(array('Message'=>"方法->{$method},不存在"));
+    		}
+    		$ucMethod = ucfirst($method);//首字母大写
+    		$isResultObjStr = 'isSet'.$ucMethod.'Result';
+    		$resultObjStr = 'get'.$ucMethod.'Result';
+    		//判断方法是否存在
+    		if(method_exists($response,$isResultObjStr)){
+    			if($response->$isResultObjStr()){
+    				if(method_exists($response,$resultObjStr)){
+    					$return['ask'] = 1;
+    					$return['message'] = 'success';
+    					$return['resultObj'] = $response->$resultObjStr();
+    				}else{
+    					throw new \MarketplaceWebService_Exception(array('Message'=>"获取返回结果对象的方法->{$resultObjStr},不存在"));
+    				}
+    			}
+    		}else{
+    			throw new \MarketplaceWebService_Exception(array('Message'=>"判断返回结果对象的方法->{$isResultObjStr},不存在"));
+    		}
+    		//获取请求id
+    		if($response->isSetResponseMetadata()){
+    			$responseMetadata = $response->getResponseMetadata();
+    			if ($responseMetadata->isSetRequestId()){
+    				$return['requestId'] = $responseMetadata->getRequestId();
+    			}
+    		}
+    		$return['responseHeaderMetadata'] = $response->getResponseHeaderMetadata();
+    	} catch (\MarketplaceWebService_Exception $ex) {
+    		$return['message'] = $ex->getMessage();
+    		$return['statusCode'] = $ex->getStatusCode();
+    		$return['errorCode'] = $ex->getErrorCode();
+    		$return['errorType'] = $ex->getErrorType();
+    		$return['requestId'] = $ex->getRequestId();
+    		$return['XML'] = $ex->getXML();
+    		$return['responseHeaderMetadata'] = $ex->getResponseHeaderMetadata();
+    	}
+    	return $return;
+    }
+    
+    /**
+     * 解析MarketplaceWebService_Model_FeedSubmissionInfo 对象，返回数组
+     * @param srray $feedSubmissionInfoList  
+     */
+   public  function resolveFeedSubmissionInfoListObj($feedSubmissionInfoList){
+    	$feedSubmissionInfoArr = array();
+    	foreach ($feedSubmissionInfoList as $feedSubmissionInfo) {
+    		$item = array();
+    		if(is_object($feedSubmissionInfo) && $feedSubmissionInfo instanceof \MarketplaceWebService_Model_FeedSubmissionInfo){
+    			if ($feedSubmissionInfo->isSetFeedSubmissionId()){
+    				$item['FeedSubmissionId'] = $feedSubmissionInfo->getFeedSubmissionId();
+    			}
+    			if ($feedSubmissionInfo->isSetFeedType()){
+    				$item['FeedType'] = $feedSubmissionInfo->getFeedType();
+    			}
+    			if ($feedSubmissionInfo->isSetSubmittedDate()){
+    				$item['SubmittedDate'] = $feedSubmissionInfo->getSubmittedDate()->format(DATE_FORMAT);
+    			}
+    			if($feedSubmissionInfo->isSetFeedProcessingStatus()){
+    				$item['FeedProcessingStatus'] = $feedSubmissionInfo->getFeedProcessingStatus();
+    			}
+    			if($feedSubmissionInfo->isSetStartedProcessingDate()){
+    				$item['StartedProcessingDate'] = $feedSubmissionInfo->getStartedProcessingDate()->format(DATE_FORMAT);
+    			}
+    			if($feedSubmissionInfo->isSetCompletedProcessingDate()){
+    				$item['CompletedProcessingDate'] = $feedSubmissionInfo->getCompletedProcessingDate()->format(DATE_FORMAT);
+    			}
+    			$feedSubmissionInfoArr[] = $item;
+    		}
+    	}
+    	return $feedSubmissionInfoArr;
+    }
+    
+    /**
+     * 数组转XML
+     * @param array $info  要装换的数组数组
+     * @param object $xml  XML对象
+     */
+    protected function array2xml($info, &$xml){
+    	foreach($info as $key => $value){
+    		if(is_array($value)){
+    		    if(isNumericArray($value)){
+    		        foreach ($value as $kk=>$vv){
+    		            $subnode = $xml->addChild("{$key}");
+    		            if(is_array($vv)){
+    		                $this->array2xml($vv, $subnode);
+    		            }else{
+    		                $subnode->addChild("{$kk}", htmlspecialchars("$vv"));
+    		            }
+    		        }
+    		    }else{
+    		        if(!is_numeric($key)){
+    		            $subnode = $xml->addChild("{$key}");
+    		        }else{
+    		            $subnode = $xml;
+    		        }
+    		        $this->array2xml($value, $subnode);
+    		    }
+    		}else{
+    			if(preg_match('/\s+/', $key)){ // 针对这种格式做特殊处理==========='SalePrice currency=USD' => 19.99
+    				$split = preg_split('/\s+/', $key);
+    				$key = array_shift($split);
+    				$subnode = $xml->addChild("{$key}", htmlspecialchars("$value"));
+    				foreach($split as $v){
+    					$arr = explode('=', $v);
+    					$subnode->addAttribute($arr[0], $arr[1]);
+    				}
+    			}else{
+    				$subnode = $xml->addChild("{$key}", htmlspecialchars("$value"));
+    			}
+    		}
+    	}
+    }
+    
+    /**
+     * 获取XML文本
+     * @param array $arr
+     * @return string
+     */
+    public function getXmlContent($arr){
+    	//创建XML对象
+        $xml = new \SimpleXMLElement("<?xml version=\"1.0\" encoding=\"UTF-8\"?><AmazonEnvelope xsi:noNamespaceSchemaLocation=\"amzn-envelope.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"></AmazonEnvelope>");
+        //数组转XML
+        $this->array2xml($arr, $xml);
+        //输出XML文本
+        $xml = $xml->asXML();
+        $xml = trim($xml);
+        return $xml;
+    }
+    
+    /**
+     * 格式化一维数组的键
+     * @param array $arr
+     * @return array
+     */
+    public static function formatArr($arr) {
+    	if (! is_array ( $arr )) {
+    		return $arr;
+    	}
+    	foreach ( $arr as $k => $v ) {
+    		$replace = preg_replace ( '/[A-Z]+/', '_$0', $k );
+    		$replace = trim ( $replace, '_' );
+    		$replace = trim ( $replace );
+    		$replace = strtolower ( $replace );
+    		unset ( $arr [$k] );
+    		$arr [$replace] = $v . '';
+    	}
+    	return $arr;
+    }
+    
+}

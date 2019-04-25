@@ -1,0 +1,556 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: XPDN
+ * Date: 2017/6/20
+ * Time: 11:04
+ */
+
+namespace service\shipping\operation;
+
+use app\carrier\service\PackageLabelFileService;
+use app\common\cache\Cache;
+use org\Curl;
+use think\Exception;
+use app\common\model\Order;
+use app\common\model\OrderSourceDetail;
+use app\common\model\ OrderPackage;
+use app\common\service\ChannelAccountConst;
+use app\common\model\OrderDetail;
+use app\common\service\UniqueQueuer;
+use app\carrier\queue\UploadHtmlLabelQueue;
+use app\order\service\PackageService;
+/**
+ * 17feia物流
+ * Class Feia
+ * @package service\shipping\operation
+ */
+class Flytexpress
+{
+    private $client;
+    // 配置信息
+    private $_config = [
+        'url'   => 'http://exorderwebapi.flytcloud.com/',
+        'header' => [
+            'Content-type:application/json;charset=utf-8'
+        ],
+        'UAccount'=>'', //物流账号
+        'Pwd'=>'',//物流密码
+        'username'=>'', //面单账号
+        'password'=>'', //面单密码
+        'token'=>'',    //订单token
+        'syncPlatformFlag'=>'',//标识
+    ];
+
+    private $result        = [
+        'data'    => [],
+        'error'   => [],
+        'success' => false
+    ];
+    //下单返回的ConsignCode直接是跟踪号
+    private $hasTrackingNumber = [
+        'GSMR','GSMS','JPZX'
+    ];
+
+    /**
+     * 获取下单报文信息在(/packages-error/error下调用)
+     * @param array $order
+     * @param $funName 方法名
+     */
+    public function message($order, $funName)
+    {
+        $result= $this->$funName($order);
+        return  $result;
+    }
+    /**
+     * 组装header信息
+     * @param array $config
+     * @return boolean
+     */
+    private function formatHeader(array $config)
+    {
+        if (empty($config['client_secret'])||empty($config['client_id'])) {
+            $this->result['error'] = [
+                'error_msg'  => '账号授权信息缺失',
+                'error_code' => 1
+            ];
+            return false;
+        }
+        $this->_config['username'] = $config['client_id'];
+        $this->_config['password'] = $config['client_secret'];
+        $this->_config['token'] =$config['accessToken'];
+
+
+        /*$this->_config['syncPlatformFlag'] = $config['customer_code'];
+        libxml_disable_entity_loader(false);
+        $this->client = new \SoapClient($this->_config['url']);*/
+        return true;
+    }
+
+    /*
+     *获取授权token
+     */
+    public function getToken($config)
+    {
+        if(!$this->formatHeader($config)){
+            return $this->result;
+        }
+        $token_header = array_merge($this->_config['header'], ['token:'.$this->_config['token']]);
+        $token_param['grant_type'] = 'password';
+        $token_param['username'] = $this->_config["username"];
+        $token_param['password'] = md5($this->_config["password"]);
+        $tokenData = Curl::curlPost('http://exapi.flytcloud.com/api/auth/Authorization/GetAccessToken', json_encode($token_param),$token_header);
+        $tokenData_arr  = json_decode($tokenData, true);
+        $token=$tokenData_arr['access_token'];
+        return $token;
+    }
+
+    private function getFlag($order_id)
+    {
+        $order_data = (new Order())->field('channel_order_number, channel_id')->where('id', $order_id)->find();
+        if(empty($order_data)){
+            throw new Exception('找不到订单信息');
+        }
+        $salesPlatformFlag = 0;
+        switch ($order_data['channel_id']) {
+            case ChannelAccountConst::channel_ebay:
+                $salesPlatformFlag = 1;
+                break;
+            case ChannelAccountConst::channel_amazon:
+                $salesPlatformFlag = 2;
+                break;
+            case ChannelAccountConst::channel_wish:
+                $salesPlatformFlag = 4;
+                break;
+            case ChannelAccountConst::channel_aliExpress:
+                $salesPlatformFlag = 3;
+                break;
+        }
+        return $salesPlatformFlag;
+    }
+
+
+
+    /**
+     * 准备物流订单数据
+     * @param array $order
+     * @return bool
+     */
+    private function bulidData(array $order)
+    {
+        $order['country_code'] = $order['country_code']=='SRB' ? 'RS' : $order['country_code'];//SRB特殊处理
+        $referenceID = isset($order['customer_number']) && $order['customer_number'] ? $order['customer_number']: $order['number'];
+        $orderInfo = [];
+        $orderInfo['Address1'] = $order['street']; //地址1
+        $orderInfo['Address2'] = $order['street2']; //地址2
+        $orderInfo['ApiOrderId'] = $referenceID; //第三方平台订单号(平台唯一)
+        $orderInfo['City'] = $order['city']; //城市
+        $orderInfo['CiId'] = $order['country_code']=='UK'?'GB':$order['country_code']; //国家简码
+        $orderInfo['County'] = $order['province']; //州/省
+        $orderInfo['Email'] = $order['email']; //收件人Email
+        /*$orderInfo['OnlineShippingType'] = ''; //线上货运方式名称(走线上渠道时必填) ??
+        $orderInfo['OnlineShopName'] = ''; //线上店铺名(走线上渠道时必填) ??*/
+        $orderInfo['PackType'] = 2; //	包装类型（1：信封，2：文件，3：包裹）(默认包裹)
+        $orderInfo['Phone'] = $order['phone']; //	电话
+        $orderInfo['PtId'] = $order['shipping_method_code']; //	货运方式(邮递方式简码)
+        $orderInfo['ReceiverName'] = $order['name']; //	收件人姓名
+        $orderInfo['SalesPlatformFlag'] = $this->getFlag($order['order_id']); // 销售平台标识
+        $orderInfo['SyncPlatformFlag'] = $this->_config['syncPlatformFlag']; //	订单同步平台标识
+        $orderInfo['Zip'] = (new \service\shipping\operation\Cloudway())->getZipFormat($order['country_code'], $order['zip']);  //邮编
+        $orderInfo['OrderDetailList'] = [];  //订单明细集合
+
+        $orderInfo['OrderVolumeWeights'] = [];  //预报重量明细集合
+        //$orderInfo['ExtendData1'] = '';  //	亚马逊仓库编号（寄往FBA亚马逊仓库的时候必填）??
+
+        //订单明细集合报关明细集合
+        $OrderDetailList = [];
+        $orderSourceDetail = new OrderSourceDetail();
+        $orderModel = new Order();
+        foreach($order['product'] as $key=> $sku) {
+            $orderSource = $orderSourceDetail->where('id', $sku['order_source_detail_id'])->field('order_id,channel_sku_price,transaction_id,channel_item_id')->find();
+
+            $channel_order_number = $orderModel->where('id', $order['order_id'])->Value('channel_order_number');
+            $orderDetail['ItemName'] = $sku['title_cn'];//物品名称
+            $orderDetail['ItemId'] = $orderSource['channel_item_id'];//物品id
+            $orderDetail['ItemTransactionId'] = $orderSource['transaction_id'];//物品交易号
+            $orderDetail['OriginalPlatformOrderId'] = $channel_order_number;//销售平台订单号
+            $orderDetail['Price'] = $sku['price'];//价格（单价） ??
+            $orderDetail['Quantities'] = $sku['qty'];//数量
+            $OrderDetailList[] = $orderDetail;
+            if(isset($order['declared_info'][$key])){
+                $order['declared_info'][$key]['channel_item_id'] = $orderSource['channel_item_id'];
+            }
+            /*$order['declared_info'][$key]['transaction_id'] = $orderSource['transaction_id'];*///物品交易号;
+        }
+        $orderInfo['OrderDetailList'] = $OrderDetailList;
+        //报关明细集合
+        $haikwanDetail  = [];
+        foreach($order['declared_info'] as $key=> $declare) {
+            $declareItem['ItemCnName'] = $declare['declared_name_cn'];//物品中文名称
+            $declareItem['ItemEnName'] = $declare['declared_name_en'];//物品英文名称
+            $declareItem['ItemId'] = $declare['channel_item_id'];//物品ID（平台物品标示，平台必填）
+            $declareItem['ProducingArea'] = 'CN';//原产地（默认值：CN）
+            $declareItem['Quantities'] = $declare['qty'];//物品数量
+            $declareItem['UnitPrice'] = $declare['declared_value'];//报关单价
+            $declareItem['Weight'] = $declare['declared_weight']/1000;//重量(kg)
+            $declareItem['BtId'] ='';//带电类型(带电池货物必填，非电池类可否为空)
+            $declareItem['CCode'] =param($declare, 'declared_value_currency');//货币代码(默认为USD美元)
+            $haikwanDetail[] = $declareItem;
+        }
+        $orderInfo['HaikwanDetialList'] = $haikwanDetail;
+        return $orderInfo;
+    }
+
+    /**
+     * 得到加密密码MD5大写32
+     */
+    private function getPassword()
+    {
+        //先得到密码的密文
+        $password = md5($this->_config['Pwd']);
+        //再把密文中的英文母全部转为大写
+        $password = strtoupper($password);
+        return $password;
+    }
+
+    /**
+     * 新增物流订单
+     * @param $config
+     * @param $order
+     * @param bool $confirm
+     * @return array
+     */
+    public function createOrder($config,$order,$confirm=true)
+    {
+
+        try{
+            if (!isset($order['number'])) {
+                $order = $order[0];
+            }
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $this->_config['syncPlatformFlag'] = $config['customer_code'];
+            $this->_config['UAccount'] =$config['pickup_account_id'];
+            $this->_config['Pwd'] =$config['interface_user_password'];
+
+            $package['Token'] = $this->_config['token'];
+            $package['UAccount'] = $this->_config['UAccount'];
+            $package['Password'] = $this->getPassword();
+
+            $orderList = $this->bulidData($order);
+            $package['OrderList'][] = $orderList;
+            $response = Curl::curlPost($this->_config['url'].'api/OrderSyn/ErpUploadOrder',json_encode($package), $this->_config['header']);
+            //日志记录
+            $arr_log = [
+                'url'=>$this->_config['url'],
+                'header'=>'',
+                'request'=>$package,
+                'response'=>$response
+            ];
+            $result = json_decode($response, true);
+
+            if(is_array($result)){
+                if(isset($result['Success']) && $result['Success']){
+                    $remark = param($result['ErpSuccessOrders'][0], 'Remark');
+                    $this->result['data']['number']             = $result['ErpSuccessOrders'][0]['ApiOrderId'];      // 参考号
+                    $this->result['data']['package_code']       = $result['ErpSuccessOrders'][0]['OrderId'];  //  飞特订单号F214121805090006
+                    $this->result['data']['trackingNumber']     = $result['ErpSuccessOrders'][0]['TraceId'] ?? '';  // 跟踪号
+                    $this->result['data']['has_trackingNumber'] = (!isset($result['ErpSuccessOrders'][0]['TraceId']) && strpos($remark,'该邮寄方式不需要跟踪号')===false)  ? false : true; //部分邮寄方式无跟踪号
+                    $this->result['data']['confirm']            = true;                              // 是否交运
+                    $this->result['data']['label']              = true;                              // 是否有pdf
+                    $this->result['data']['label_url']          = '';                              // 是否有pdf
+                    $this->result['data']['is_weight']          = false;                              // 是否能查询实际重量
+                    $this->result['data']['is_fee']             = false;                              // 是否能查询实际费用
+                    $this->result['data']['send']               = false;                              // 是否能查询物流订单状态
+                    $this->result['success']                    = true;
+                }else{
+                    Cache::store('LogisticsLog')->setLogisticsLog($order['number'],$arr_log);
+
+                    $error_msg =param($result, 'Remark');
+                    if(isset($result['ErpFailOrders']) && isset($result['ErpFailOrders'][0]['Remark'])){
+                        $error_msg .= $result['ErpFailOrders'][0]['Remark'];
+                    }
+                    $this->result['error'] = [
+                        'error_msg'  => $error_msg,
+                        'error_code' => 1
+                    ];
+                }
+            }else{
+                $this->result['error'] = [
+                    'error_msg'  => '未知错误',
+                    'error_code' => 1
+                ];
+            }
+
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+
+        return $this->result;
+    }
+
+
+    /**
+     * 获取跟踪号
+     * @param array $config 账号信息
+     * @param array $order
+     * @return array
+     */
+    public function getTrackingNumber(array $config, array $order)
+    {
+        try{
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $response_data['Token'] = $this->_config['token'];
+            $OrderIds[] = $order['process_code'];
+            $response_data['OrderIds'] = $OrderIds;
+            $response = Curl::curlPost($this->_config['url'].'api/OrderSyn/ErpQueryTraceId',json_encode($response_data), $this->_config['header']);
+            $result = json_decode($response, true);
+            if ($result['Success']==true && $result['ErpTraceIds'][0]['TraceIdResultStatus']==1) {
+                $this->result['data']['trackingNumber'] = $result['ErpTraceIds'][0]['TraceId'];  // 跟踪号
+                $this->result['success']                = true;
+            }else{
+                $this->result['error'] = [
+                    'error_msg'=>$result['ErpTraceIds'][0]['Remark'],
+                    'error_code'=>1
+                ];
+            }
+
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'  => $ex->getMessage(),
+                'error_code' => 1
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 获取真实重量和运费
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getWeightFee($config,$order)
+    {
+
+
+    }
+
+
+    /**
+     * 取消删除包裹
+     * @param type $config
+     * @param type $order
+     * @return type
+     */
+    public function cancel($config,$order)
+    {
+        $this->result['number'] = $order['number'];
+        $this->result['error'] = [
+            'error_msg'=>'物流订单不支持取消操作',
+            'error_code'=>1
+        ];
+        return $this->result;
+    }
+
+
+    /**
+     * 获取运输方式详细信息
+     */
+    public function getExpress($config)
+    {
+        try {
+            $response = Curl::curlGet($this->_config['url'].'/BaseInfo/GetPostTypes');
+            $result = json_decode($response,true);
+
+            if (isset($result['status']) && $result['status']==1) {
+                $this->result['success'] = true;
+                if(!empty($result['datas'])){
+                    foreach($result['datas'] as $item){
+                        $this->result['data'][] = [
+                            'name'=>$item['posttypeName'],
+                            'code'=>$item['code'],
+                        ];
+                    }
+                }
+            }else{
+                $this->result['success'] = false;
+                $this->result['error'] = [
+                    'error_msg'=>(isset($result['msg'])&& !empty($result['msg']))?$result['msg']:'未知错误',
+                    'error_code'=>1
+                ];
+            }
+        } catch (Exception $e) {
+            $this->result['error'] = [
+                'error_msg'=>$e->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+
+    /**
+     * 获取标签
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getLabel($config, $order)
+    {
+
+        try{
+            $this->result['number'] = $order['number'];
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            if($order['label_source_type']=='1'  && !empty($order['process_code']) ){
+                if(isset($order['package_id'])){
+                    (new UniqueQueuer(UploadHtmlLabelQueue::class))->push($order['package_id']);  //自画面单加入队列生成静态html
+                }
+                $this->result['error'] = [
+                    'error_code' => 1,
+                    'error_msg'  => '自画面单不需要api获取，自动生成静态html文件'
+                ];
+                return $this->result;
+            }
+            $token=$this->getToken($config);
+            $response_data['Format'] = 0;//	0 (10*10), 1 (A4)
+            /*$order['process_code']='F3254418052200G1';*/
+            $OrderIdlst[] = $order['process_code']; //test运单号F3254418052200G1
+            $response_data['OrderIdlst'] = $OrderIdlst;
+            $response_data['IsPrintSkuInfo'] = '';
+            $config = [
+                'header' => ['Content-Type:application/json'],
+            ];
+            /*$token='MjAxODA1MTUyMDI1MTMyMDI0OTNFNkUzOUExQjREN0ExQThDOTU0MDA3RDNFNDVFNw==';*/
+            $header = array_merge($this->_config['header'], ['token:'.$token]);
+            $response = Curl::curlPost('http://exapi.flytcloud.com/api/label/LabelProvider/GetLabelBatchExt', json_encode($response_data), $header);
+            $arr_response = json_decode($response, true);
+            /*$responseString=base64_decode($arr_response['Data']['Label']);
+            $path = ROOT_PATH.'public/upload/DHL';
+            if (!is_dir($path)){
+                mkdir($path,0777);  // 创建文件夹test,并给777的权限（所有权限）
+            }
+            $filename = $path . '/test444.pdf';
+            file_put_contents($filename, $responseString);
+            die;*/
+            if(!empty($arr_response) && $arr_response['Status']==1){
+                if(strpos(base64_decode($arr_response['Data']['Label']),'%PDF')===false){
+                    throw new Exception('面单下载失败');
+                }
+                //Cache::handler()->set('label:data', $response);
+                $service = new PackageLabelFileService();
+                $label_url = $service->uploadLabelFile($order['number'], $arr_response['Data']['Label'],'pdf');
+                $this->result['data']['src'] = $label_url;
+                $this->result['data']['type'] = 'pdf';
+                $this->result['success']     = true;
+
+            }else{
+                $this->result['error'] = [
+                    'error_msg'=>(is_array($arr_response) && isset($arr_response['ErrMsg']) && $arr_response['ErrMsg'])? $arr_response['ErrMsg']:'获取标签失败',
+                    'error_code'=>1
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result['error'] = [
+                'error_msg'=>$ex->getMessage(),
+                'error_code'=>1
+            ];
+        }
+        return $this->result;
+    }
+
+    /**
+     * 获取国家信息
+     * @param $config
+     * @return array
+     */
+    public function getCountry($config)
+    {
+        try {
+            if($result = Cache::store('ShippingApi')->feiaGetCountry()){
+                return $result;
+            }
+            if(!$this->formatHeader($config)){
+                return $this->result;
+            }
+            $response = $this->client->ReadValidTerminalRegionsJson(['appid'=>$this->_config['appid'],'token'=>$this->_config['token']]);
+            $result = obj2Array($response);
+            $countrys = [];
+            if(isset($result['ReadValidTerminalRegionsJsonResult'])){
+                $datas = json_decode($result['ReadValidTerminalRegionsJsonResult'],true);
+                foreach($datas['RegionList'] as $item){
+                    $countrys[$item['RegionCode']] = $item['RegionId'];
+                }
+                Cache::store('ShippingApi')->feiaSetCountry($countrys);
+                return $countrys;
+            }
+        }catch (Exception $e) {
+            return [];
+        }
+    }
+
+
+    /**
+     * 获取物流包裹状态
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageStatus($config,$order)
+    {
+
+        $this->result['number'] = $order['number'];
+        $result = $this->getPackageDetails($config,$order);
+        if(isset($result['success']) && $result['success']){
+            $status = ['3', '10', '20','30','35','40','41'];
+            $this->result['data'] = [
+                'is_send'=>in_array($result['data'], $status) ? true : false
+            ];
+        }
+        return $this->result;
+    }
+    /**
+     * 获取物流订单信息
+     * @param $config
+     * @param $order
+     * @return array
+     */
+    public function getPackageDetails($config,$order)
+    {
+        try{
+            $url='http://tracking.flytcloud.com/Trackingod/TrackOrder';
+            $param=
+                [
+                    'key'=>'DD636703093F43AA734DB37A6A4491FB', //物流商申请的key 跟其token不一样
+                    'tracking_number'=>$order['shipping_number'] //测试
+                ];
+            $response = Curl::curlPost($url,json_encode($param), $this->_config['header']);
+            $result = json_decode($response, true);
+            if (isset($result['ret']) && $result['ret'] == 1 && isset($result['dat']) ) {
+                $this->result['data'] = $result['dat'][0]['track']['e'];
+                $this->result['success'] = true;
+            }else {
+                $this->result = [
+                    'error_msg' => '请求失败',
+                ];
+            }
+        }catch(Exception $ex){
+            $this->result= [
+                'error_code' => 1,
+                'error_msg'  => $ex->getMessage()
+            ];
+        }
+        return  $this->result;
+
+    }
+
+}

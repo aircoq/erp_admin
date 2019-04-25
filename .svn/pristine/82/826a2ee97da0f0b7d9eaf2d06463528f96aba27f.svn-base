@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0075)http://lilangda.tongtool.com/process/new/warehouse/print?0.9579235085990616 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tr style="border:solid 1pt #000;border-bottom: none">
+                <td   colspan="3" style="width:70pt; font-size: 8pt;font-weight: bold;">
+                    <?php echo $fSername?><br>
+                    P.O.Box <?php echo $box?> <br> Suvarnabhumi Airport Post Office <br> Bangkok 10543 THAILAND
+                    <div style="font-weight: bold;font-size: 10pt;margin-bottom: 5pt">
+                        Deliver To:</div>
+                </td>
+                <td style="width: 50pt;text-align: center">
+                    <div style="width:100pt;margin:2pt;border:1pt solid #000;text-align:center;font-size:7pt;line-height:9pt;font-weight: bold">
+                        Postage Paid <br> Special Permit No <?php echo $ppi?> <br> Suvarnabhumi Airport Post
+                    </div>
+                </td>
+
+
+            </tr>
+            <tr style="border:solid 1pt #000;border-bottom: none;border-top: none;font-size: 6pt">
+                <td   colspan="3">
+                    <?php echo $name;?>
+                    <br> <?php echo $street.' '.$street2;?>
+                </td>
+                <td   style="text-align: center;vertical-align: top;font-weight: bold;font-size: 10pt" >
+                    <?php echo $country_code ?>
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;border-bottom: none;border-top: none">
+                <td   colspan="2" rowspan="3"  style="width:100pt;font-size: 6pt">
+                    <div style="margin-top: 10pt">
+                        <?php echo $city?> ,<?php echo $province?><br>
+                        <?php echo $country_en_name?><br>
+                        Zip: <?php echo $zip?> Tel:<?php echo $phone?>
+                    </div>
+
+                </td>
+                <td   colspan="2"  style="text-align: right;vertical-align: top;font-weight: bold">
+
+
+                </td>
+
+            </tr>
+            <tr style="border-right:solid 1pt #000; ">
+                <td  colspan="2" style="text-align: center;font-size: 8pt;font-weight: bold">
+                    <img style="width:130pt;" src="<?php echo $this->imgSrc($shipping_number);?>"><br>
+                    <?php echo $shipping_number?>
+                </td>
+
+
+            </tr>
+            <tr style="border-right:solid 1pt #000;">
+                <td>
+                    <font style="font-weight: bold;font-size: 15pt"> R</font>
+                </td>
+                <td >
+
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;">
+                <td colspan="3">
+                    <font style="font-weight: bold;font-size: 8pt">CUSTOMS DECLARATION </font><br>
+                    <font style="font-weight: bold;font-size: 6pt">Postal administration(May be opened officially)</font>
+                </td>
+                <td >
+                    <div style="font-weight: bold;font-size: 8pt;text-align: right;margin-right: 10pt">CN22</div>
+                    <div style="font-weight: bold;font-size: 8pt;text-align: right;margin-right: 10pt">Important !</div>
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;font-size: 5pt">
+                <td colspan="4">
+                    <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAANCAIAAAAmMtkJAAAAjElEQVQoFWP8//8/A7mABVnjwYMHHz58iCyCzGZmZo6OjkYWYUS2OSQkZO3atbq6usgqIOw7d+58//4dWTFIHMiHg+Dg4NraWjgXmXHixAl2dnZkESCbCdMS4kVGNRMfVmCVFAUYlkQiIyOD6YInT54ABYFxiyyFovns2bPPnj1DlkZmA5Onl5cXsggABJ9huP96iX0AAAAASUVORK5CYII=">
+                    Gift &nbsp;&nbsp;&nbsp;
+                    <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAANCAIAAAAmMtkJAAAAjElEQVQoFWP8//8/A7mABVnjwYMHHz58iCyCzGZmZo6OjkYWYUS2OSQkZO3atbq6usgqIOw7d+58//4dWTFIHMiHg+Dg4NraWjgXmXHixAl2dnZkESCbCdMS4kVGNRMfVmCVFAUYlkQiIyOD6YInT54ABYFxiyyFovns2bPPnj1DlkZmA5Onl5cXsggABJ9huP96iX0AAAAASUVORK5CYII=">
+                    Commercial sample&nbsp;&nbsp;
+
+                    <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAANCAIAAAAmMtkJAAAAjElEQVQoFWP8//8/A7mABVnjwYMHHz58iCyCzGZmZo6OjkYWYUS2OSQkZO3atbq6usgqIOw7d+58//4dWTFIHMiHg+Dg4NraWjgXmXHixAl2dnZkESCbCdMS4kVGNRMfVmCVFAUYlkQiIyOD6YInT54ABYFxiyyFovns2bPPnj1DlkZmA5Onl5cXsggABJ9huP96iX0AAAAASUVORK5CYII=">
+                    Documents&nbsp;&nbsp;
+                    <img style="width: 10pt" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAQCAIAAACdjxhxAAABT0lEQVQ4EWP8//8/A2WAiTLtIN0saEZs27btzZs3aIIg7r9PZ/ddcgr29vf3R5NlRPOIgYHBxYsXdXV10dQBjbh89aGcnNzDhw/RpYBGIAMTE5PZs2cji0DYPw/V+uTMVVNTw5QiMiz+3j3xRUiNG91+MJ84I/69PvaMV00Eu2Lsoui2fTt2ldlEHj3ooapwGPHt/p5J2YEpc+7+Ban7dfbMXx1zVnSD8Rnx5/KG1XdUfU3udVevev6P4c+tY5/lLIVx2IaRLsAms+hGlQFj9Rt/gFVSw073usdP+S0UmZ9dwu4MHP4DK+ayKKkzs6hqEDFjMYtmY3iG3QQGBrR41tfXB6qUgQFpCQF2RkYOAUlpGRmgODBpoakHctFdMXny5A8fPiDZ9/v2illXbDICZZiBgjw8PEhSUCZ6AsdUwfDz5092dnYsEsQbgVszRAYAYdu7acCnvnUAAAAASUVORK5CYII=">
+                    Other(Tick one or more boxes)
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;font-size: 5pt;border-bottom: none;">
+                <td colspan="3" style="border:solid 1pt #000;font-size: 5pt;border-bottom: none;width: 150pt">
+                    Detailed description of Contents
+                </td>
+                <td>
+                    Value
+                </td>
+
+            </tr>
+            <?php foreach ($list as $k=>$v):?>
+                <tr style="border:solid 1pt #000;font-size: 5pt;border-bottom: none">
+                    <td colspan="3" style="border:solid 1pt #000;border-bottom: none;font-size: 5pt">
+                        <?php echo $v['declared_name_en'];?>  <?php echo $v['qty'];?> Weight: <?php echo number_format($v['declared_weight']/1000,2,'.','');?>kg
+
+                    </td>
+                    <td>
+                        USD <?php echo number_format($v['declared_value'],2,'.','');?>
+                    </td>
+
+                </tr>
+            <?php endforeach;?>
+            <tr style="border:solid 1pt #000;font-size: 5pt;border-bottom: none">
+                <td colspan="1" style="border:solid 1pt #000;border-bottom: none;font-size: 7pt">
+                    Origin:TH
+                </td>
+                <td colspan="2" style="border:solid 1pt #000;border-bottom: none;font-size: 5pt">
+                    TotalWeight &nbsp;&nbsp;&nbsp;<?php echo number_format($total_weight/1000,3,'.','');?>kg
+                </td>
+                <td>
+                    Total Value &nbsp;&nbsp;&nbsp;USD &nbsp;<?php echo number_format($total_value,2,'.','');?>
+                </td>
+
+            </tr>
+
+            <tr style="border:solid 1pt #000;font-size: 5pt;border-bottom: none">
+                <td colspan="4" style="border:solid 1pt #000;border-bottom: none;font-size: 5pt">
+                    the undersingned,certify the particulars given in this declaration are correct and this this
+                    item does not contain any dangerous artickes prohibited by legislation or by postal customs
+                    regulations.<br> <span style="font-size:6pt;line-height:7pt;">Date and sender Signature: <?php echo date('Y-m-d') ?></span>
+                    <span style="margin-left:20pt;font-size:6pt;line-height:7pt;"></span>
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;font-size: 5pt;border-bottom: none;border-top:none;">
+
+                <td colspan="4" style="text-align:right;font-weight: bold">
+                    <span style="text-align: right;margin-right:30pt"> 32544</span>
+                </td>
+
+            </tr>
+            <tr style="border:solid 1pt #000;font-size: 5pt;border-bottom: none;border-top:none;">
+                <td style="border:solid 1pt #000;border-top:none;border-right:none;position:relative;">
+
+                </td>
+                <td colspan="3" style="text-align:right;border:solid 1pt #000;border-top:none;border-left:none;font-weight: bold">
+
+                    <span style="display:inline-block;height:30pt;line-height:32pt;overflow-y:hidden;margin-right: 10pt">
+                           </span>
+                </td>
+
+            </tr>
+        </table>
+
+
+
+
+
+
+    </div>
+</div>
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.02451277344572933 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+    <!-- 地址标签 -->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;font-size:10pt;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0"
+               style="border:solid 1pt #000;width:265pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;margin: 0 auto">
+            <tr style="border: solid 1pt #000;border-bottom: none">
+                <td style="width: 100pt">
+                    <div style="margin-left:10pt;border: solid 1pt #000;font-size: 12pt;font-weight:bold;width: 30pt;height:20pt;text-align: center;line-height: 20pt">
+                        <?php echo $label_code ?>
+                    </div>
+                </td>
+                <td style="">
+                    <div style="margin-left:10pt;font-size: 6pt;margin-top: 5pt">
+                        <img style="width:90pt" src="<?php echo $this->imgSrc($number); ?>"> <br>
+                        <?php echo $number; ?>
+                    </div>
+                </td>
+            </tr>
+            <tr style="height: 5pt">
+                <td colspan="2">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sku：
+                    <div style="width:130pt;height:50pt;font-size: 6pt;border: dotted 1pt #000;text-align: left;margin: 0 auto ;margin-top: 10pt">
+                        <?php foreach ($list as $k => $v): ?>
+                            <?php echo $v['sku'] ?> *  <?php echo $v['qty'] ?>
+                        <?php endforeach; ?>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: center">
+                    <div style="font-size: 6pt;margin: 0 auto;">
+                        <img style="width:150pt;margin-top:20pt" src="<?php echo $this->imgSrc($process_code); ?>">
+                        <br>
+                        <?php echo $process_code; ?>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div style="float: right;font-size: 7pt;height: 20pt;margin-right: 5pt;margin-top: 10pt">
+                        <?php echo $content ?>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.954596966369661 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!-- 地址标签 -->
+    <div id="page1" style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;page-break-after:always;">
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr style="width:270pt;">
+                <td colspan="2" style="border:solid 1pt #000;font-weight: bold;border-right:0;border-bottom:0;float:right;width:190pt;text-align:center;padding:2pt 0;"><span> <img
+                                style="width:150pt;height:35pt;"
+                                src="<?php echo $this->imgSrc($shipping_number,'self');?>"> </span><br>
+                    <?php echo $shipping_number;?>
+
+                </td>
+                <td style="width:78pt;border:solid 1pt #000;border-bottom:0;border-left:0;font-size:16pt;height:35pt;text-align:center;">
+                    <div style="border:solid 2pt #000;width:60pt;height:16pt;font-weight:bold;">
+                        <!--需要仔细多看几张欧洲面单上截取邮编前几位--->
+                        <?php echo substr($zip,0,1);?>
+                    </div>
+                    <div style="border:solid 2pt #000;width:60pt;height:16pt;font-weight:bold;border-top:0;">
+                        <?php echo $country_code?>
+                    </div>
+                </td>
+
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;">
+            <tbody>
+            <tr style="width:270pt;">
+                <td  colspan="2" style="width:120pt;border:solid 1pt;border-bottom:0;border-right:0;font-size:10pt;font-weight:bold;">
+                    <img src="data:image/png;base64,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">
+                    <br>
+
+
+                </td>
+                <td colspan="2" style="width:148pt;border:solid 1pt;border-left:0;border-bottom:0;font-size:8pt;font-weight:bold;">
+                    <span style="font-size:15pt;text-align:center;">欧洲纯电- E电宝</span>
+                    <span style="width:100pt;"><img width="90%" src="<?php echo $this->imgSrc($shipping_number,'self');?>"</span>
+                    <span style="padding-left:70pt;">SHDS-LLD</span>
+
+                </td>
+            </tr>
+            <tr style="width:270pt;">
+                <td  colspan="2" style="border:solid 1pt;padding-left:10pt;border-top:0;font-size:8pt;font-weight:bold;border-right:0;">
+                    <span>Order NO.<?php echo $number?></span>
+                    <span>TO:<?php echo $name?><br>
+                        <?php echo $zip?><br>
+                       / <?php echo $phone?><br>
+                        <?php echo $street.$street2;?><br>
+                        <br>
+                        <br>
+                    </span>
+                <td  colspan="2" style="border:solid 1pt;border-top:0;border-left:0;" >
+
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table cellpadding="0" cellspacing="0"
+               style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:9pt;">
+            <tbody>
+
+            <?php foreach ($list as $k=>$v); ?>
+            <tr style="width:270pt;font-weight:bold;">
+                <td style="width:180pt;height:20pt;border:1pt solid #000;border-top:0;font-size:8pt;">
+                    Total Weight:<?php echo number_format($total_weight/1000,3,'.','');?>KG
+                </td>
+                <td style="width:88pt;height:20pt;border:1pt solid #000;border-top:0;font-size:8pt;">
+                    QTY:
+
+                </td>
+
+            </tr>
+            <tr style="width:270pt;height:20pt;font-weight:bold;">
+                <td style="width:180pt;border:1pt solid #000;font-size:8pt;">
+                    Details Of Contents                </td>
+                <td style="width:88pt;border:1pt solid #000;font-size:8pt;">
+                    Total Value(USD$)
+
+                </td>
+
+            </tr>
+            <tr style="width:270pt;height:30pt;">
+                <td  style="width:180pt;border:solid 1pt #000;padding-top:5pt;font-size:8pt;line-height:7pt;">
+                    *<?php echo $v['qty'];?>/ <?php echo $v['declared_name_cn'];?><br>
+                    <br>
+
+                    <?php echo $v['declared_name_en'];?><br>
+                    <br>
+
+
+                </td>
+                <td  style="width:88pt;border:solid 1pt #000;text-align:center;font-size:8pt;line-height:7pt;">
+                    <?php echo number_format($total_value,2,'.','');?>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

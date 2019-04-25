@@ -1,0 +1,238 @@
+<?php
+namespace service\amazon;
+
+use think\Loader;
+use think\Exception;
+use app\common\cache\Cache;
+
+Loader::import('service.amazon.MarketplaceWebService.Client');
+Loader::import('service.amazon.MarketplaceWebService.Model.SubmitFeedRequest');
+Loader::import('service.amazon.MarketplaceWebService.Model.GetFeedSubmissionListRequest');
+Loader::import('service.amazon.MarketplaceWebService.Model.GetFeedSubmissionListByNextTokenRequest');
+Loader::import('service.amazon.MarketplaceWebService.Model.GetFeedSubmissionResultRequest');
+
+
+class SubmitFeedApi 
+{
+    private $client; 
+    private $accessKey;           // amazon awsAccessKeyId
+    private $accessKeyId;         // amazon awsSecretAccessKey
+    private $authToken;         // amazon awsAuthToken
+    private $merchantId;          // 商户Id
+    private $applicationName;     // 应用名
+    private $applicationVersion;  // 应用版本
+    private $serviceUrl;            // serviceUrl
+
+    /**
+     * 构造函数
+     * @param string $accessKeyId
+     * @param string $accessKey
+     * @param string $merchant_id
+     * @param string $serviceUrl
+     * @param string $applicationName
+     * @param string $applicationVersion
+     */
+    public function __construct($accessKeyId, $accessKey, $merchant_id, $serviceUrl, $applicationName, $applicationVersion,$authToken='') 
+    {        
+        $this->accessKeyId = $accessKeyId;
+        $this->accessKey = $accessKey;
+        $this->authToken = $authToken;
+        $this->merchantId = $merchant_id;
+        $this->serviceUrl = $serviceUrl;
+        $this->applicationName = $applicationName;
+        $this->applicationVersion = $applicationVersion;
+        $config = array(
+            'ServiceURL' => $this->serviceUrl,
+            'ProxyHost' => null,
+            'ProxyPort' => -1,
+            'MaxErrorRetry' => 3,
+        );
+        $this->client = new \MarketplaceWebService_Client(
+                $this->accessKeyId, 
+                $this->accessKey, 
+                $config, 
+                $this->applicationName, 
+                $this->applicationVersion
+        );
+    }
+    
+    /**
+     * 上传物流跟踪号
+     * @param array $data
+     * @return \MarketplaceWebService_Model_FeedSubmissionInfo
+     * @throws Exception
+     */
+    public function uploadTrackingNumber(array $data, $marketplaceIdArray = null)
+    {
+        $feedHandle = @fopen('php://temp', 'rw+');
+        fwrite($feedHandle, $data['content']);
+        rewind($feedHandle);
+        $request = new \MarketplaceWebService_Model_SubmitFeedRequest();
+        $request->setMerchant($data['merchant_id']);
+        $marketplaceIdArray ? $request->setMarketplaceIdList($marketplaceIdArray) : '';
+        $request->setFeedType('_POST_ORDER_FULFILLMENT_DATA_');
+        $request->setContentMd5(base64_encode(md5(stream_get_contents($feedHandle), true)));
+        rewind($feedHandle);
+        $request->setPurgeAndReplace(false);
+        $request->setFeedContent($feedHandle);
+        if($this->authToken){
+            $request->setMWSAuthToken($this->authToken);
+        }
+        rewind($feedHandle);
+        try {
+            $dateFormat = 'Y-m-d H:i:s';
+            $response = $this->client->submitFeed($request); // 上传
+            fclose($feedHandle);
+            $submitFeedResult = $response->getSubmitFeedResult();
+            $feedSubmissionInfo = $submitFeedResult->getFeedSubmissionInfo();
+            $info['feedSubmissionId'] = $feedSubmissionInfo->getFeedSubmissionId();
+            $info['feedType']         = $feedSubmissionInfo->getFeedType();
+            $info['submittedDate']    = $feedSubmissionInfo->getSubmittedDate()->format($dateFormat);
+            $info['feedProcessStatus']       = $feedSubmissionInfo->getFeedProcessingStatus();
+            // $info['startedProcessingDate']   = $feedSubmissionInfo->getStartedProcessingDate()->format($dateFormat);
+            // $info['completedProcessingDate'] = $feedSubmissionInfo->getCompletedProcessingDate()->format(DATE_FORMAT);\think\Log::write($info);
+            return $info;
+        } catch (\Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+    
+   
+    /**
+     * 退款
+     * @param array $data
+     * @return \MarketplaceWebService_Model_FeedSubmissionInfo
+     * @throws Exception
+     */
+    public function orderRefund(array $data, $marketplaceIdArray = null)
+    {
+        if(empty(param($data, 'content')) || empty(param($data, 'merchant_id'))){
+            return [];
+        }
+        
+        $feedHandle = @fopen('php://temp', 'rw+');
+        fwrite($feedHandle, $data['content']);
+        rewind($feedHandle);
+        $request = new \MarketplaceWebService_Model_SubmitFeedRequest();
+        $request->setMerchant($data['merchant_id']);
+        $marketplaceIdArray ? $request->setMarketplaceIdList($marketplaceIdArray) : '';
+        $request->setFeedType('_POST_PAYMENT_ADJUSTMENT_DATA_');
+        $request->setContentMd5(base64_encode(md5(stream_get_contents($feedHandle), true)));
+        rewind($feedHandle);
+        $request->setPurgeAndReplace(false);
+        $request->setFeedContent($feedHandle);
+        if($this->authToken){
+            $request->setMWSAuthToken($this->authToken);
+        }
+        rewind($feedHandle);
+        try {
+            $dateFormat = 'Y-m-d H:i:s';
+            $response = $this->client->submitFeed($request);
+            // 上传
+            fclose($feedHandle);
+            $submitFeedResult = $response->getSubmitFeedResult();
+            $feedSubmissionInfo = $submitFeedResult->getFeedSubmissionInfo();
+            $info['feedSubmissionId'] = $feedSubmissionInfo->getFeedSubmissionId();
+            $info['feedType']         = $feedSubmissionInfo->getFeedType();
+            $info['submittedDate']    = $feedSubmissionInfo->getSubmittedDate()->format($dateFormat);
+            $info['feedProcessStatus']       = $feedSubmissionInfo->getFeedProcessingStatus();
+            // $info['startedProcessingDate']   = $feedSubmissionInfo->getStartedProcessingDate()->format($dateFormat);
+            // $info['completedProcessingDate'] = $feedSubmissionInfo->getCompletedProcessingDate()->format(DATE_FORMAT);\think\Log::write($info);
+            
+            //***********s 写入缓存日志********************
+            $logs = [
+                'time' => date('Y-m-d H:i:s'),
+                'data' => $data,
+                'response' => $response,
+                'info' => $info
+            ];
+            $cache_key = time();
+            Cache::store('AmazonOrder')->addOrderRefundLogs($cache_key, $logs);
+            //***********e 写入缓存日志********************
+            
+            return $info;
+            
+            
+        } catch (\Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+    
+    
+    /**
+     * 获取feed 上传任务
+     * @param array $data
+     * @return array
+     * @throws Exception
+     */
+    public function GetFeedSubmissionList(array $data)
+    {
+        $parameters = array(
+            'Merchant' => $data['merchant_id']
+        );
+        if(isset($data['feedSubmissionIdList'])) {
+            $parameters['FeedSubmissionIdList']['Id'] = $data['feedSubmissionIdList'];
+        }
+        isset($data['maxCount']) ? $parameters['MaxCount'] = $data['MaxCount'] : 10;
+        isset($data['feedTypeList']) ? $parameters['FeedTypeList']['Type'] = $data['feedTypeList'] : '';
+        isset($data['feedProcessingStatusList']) ? $parameters['FeedProcessingStatusList']['Status'] = $data['feedProcessingStatusList'] : '';
+        isset($data['submittedFromDate']) ? $parameters['SubmittedFromDate'] = $data['submittedFromDate'] : '';
+        isset($data['submittedToDate']) ? $parameters['SubmittedToDate'] = $data['SubmittedToDate'] : '';
+        if($this->authToken){
+            $parameters['MWSAuthToken'] = $this->authToken;
+        }
+        $request = new \MarketplaceWebService_Model_GetFeedSubmissionListRequest($parameters);
+        try {
+            $response = $this->client->getFeedSubmissionList($request);
+            $feedResult = $response->getGetFeedSubmissionListResult();
+            $result = $feedResult->getFeedSubmissionInfoList();
+            $hasNext = $feedResult->Hasnext;
+            while($hasNext) {
+                $params = [
+                    'Merchant'  => $data['merchant_id'],
+                    'NextToken' => $feedResult->getNextToken()
+                ];         
+                if($this->authToken){
+                    $params['MWSAuthToken'] = $this->authToken;
+                }
+                $request = new \MarketplaceWebService_Model_GetFeedSubmissionListByNextTokenRequest($params);
+                $response = $this->client->getFeedSubmissionListByNextToken($request);
+                $feedResult = $response->getGetFeedSubmissionListByNextTokenResult();
+                foreach($feedResult->getFeedSubmissionInfoList() as $list) {
+                    $result[] = $list;
+                }
+                $hasNext = $feedResult->getHasNext();
+            }
+            return $result;
+        } catch (\Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+    
+    /**
+     * 获取feed上传执行结果
+     * @param array $data
+     * @return array
+     * @throws Exception
+     */
+    public function GetFeedSubmissionResult(array $data)
+    {
+        $parameters = array(
+            'Merchant' => $data['merchant_id'],
+            'FeedSubmissionId' => $data['feedSubmissionId']
+        );
+        if($this->authToken){
+            $parameters['MWSAuthToken'] = $this->authToken;
+        }
+        $request = new \MarketplaceWebService_Model_GetFeedSubmissionResultRequest($parameters);
+        $request->setFeedSubmissionResult(@fopen('php://memory', 'rw+'));
+        
+        try {
+            $result = [];
+            $response = $this->client->getFeedSubmissionResult($request);         
+            return $result;
+        } catch (\Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+}

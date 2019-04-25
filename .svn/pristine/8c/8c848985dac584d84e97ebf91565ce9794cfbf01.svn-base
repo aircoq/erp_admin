@@ -1,0 +1,73 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-20
+ * Time: 下午5:11
+ */
+
+namespace rpc;
+
+use Hprose\Socket\Client;
+use think\Config;
+
+class ModuleClient extends CentralServer
+{
+    private $module;
+    private $fromModule;
+    private $sid;
+    public function __construct($module)
+    {
+        $this->init();
+        $this->fromModule = Config::get('module.name');
+        $this->sid = Config::get('module.sid');
+        $this->module = $module;
+    }
+
+    public function remoteCall($api, ...$params)
+    {
+        return $this->callModule2($this->module, $api, ...$params);
+    }
+
+    public function remoteHttp($url, $method, $body)
+    {
+
+    }
+
+    /**
+     * @doc for test
+     * @param $module
+     * @param $api
+     * @param array ...$params
+     * @return mixed
+     */
+    private function callModule($module, $api, ...$params)
+    {
+        $port = Config::get('module.port');
+        $client = new Client('tcp://127.0.0.1:'.$port, false);
+        $result = $client->moduleApi($this->fromModule, $api, $params);
+        return unserialize($result);
+    }
+
+    private function callModule2($module, $api, ...$params)
+    {
+        $moduleState = $this->getModuleServer($module);
+        if(200 === $moduleState['code']){
+            $moduleState = $moduleState['result'];
+            $moduleHost = $moduleState['host'];
+            $modulePort = $moduleState['port'];
+            $client = new Client("tcp://{$moduleHost}:{$modulePort}", false);
+            $moduleApi = new ModuleApi(
+                $this->sid,
+                $moduleState['auth'],
+                $this->fromModule,
+                $api,
+                $params
+            );
+            return unserialize($client->moduleApi($moduleApi));
+        }else{
+            return $moduleState;
+        }
+
+    }
+}

@@ -1,0 +1,69 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-4-10
+ * Time: 下午2:51
+ */
+
+namespace erp;
+
+
+class FilterParam implements \JsonSerializable
+{
+    private $name;
+    private $title;
+    private $type ='input';
+    private $opts = [];
+    private $validates = [];
+    private $childs = [];
+
+    /**
+     * @return mixed
+     */
+    public function getName()
+    {
+        return $this->name;
+    }
+
+    public function __construct($key, $title)
+    {
+        $this->name = $key;
+        $this->title = $title;
+    }
+
+    public function setOpts($opts, $multiple = false)
+    {
+        $this->opts = $opts;
+        $this->type = !$multiple ? 'select' : 'muiSelect';
+    }
+
+    public function isRequire($boolean = true)
+    {
+        $this->validates['require'] = $boolean;
+        return $this;
+    }
+
+    public function addChild($parentValue, FilterParam $child)
+    {
+        $this->childs[$parentValue] = [$child];
+        return $this;
+    }
+
+    public function jsonSerialize()
+    {
+        return [
+            'title' => $this->title,
+            'name' => $this->name,
+            'type' => $this->type,
+            'opts' => $this->opts,
+            'validates' => $this->validates,
+            'subs' => $this->childs,
+        ];
+    }
+
+    public function __toString()
+    {
+        return json_encode($this);
+    }
+}

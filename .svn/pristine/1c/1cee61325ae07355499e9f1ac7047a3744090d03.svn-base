@@ -1,0 +1,52 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: rondaful-min
+ * Date: 2018/7/19
+ * Time: 20:41
+ */
+
+namespace recognition;
+
+
+/**
+ * 识别技术 Recognition
+ */
+class RecognitionApi
+{
+    private static $instance = null;
+
+    /**
+     * 开放接口
+     * @param  array $config [description]
+     * @return [type]         [description]
+     */
+    public static function instance()
+    {
+        if (is_null(self::$instance)) {
+            self::$instance = new RecognitionApi();
+        }
+
+        return self::$instance;
+    }
+
+    /**
+     * 实例化
+     * @param $type
+     * @return mixed
+     * @throws Exception
+     */
+    public function loader($type)
+    {
+        try {
+            $class = __NAMESPACE__ . '\\operation\\' . ucwords($type);
+            if (class_exists($class)) {
+                return new $class();
+            } else {
+                throw new Exception("The api type file is not found", 1);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error Processing Request " . $e->getMessage(), 1);
+        }
+    }
+}

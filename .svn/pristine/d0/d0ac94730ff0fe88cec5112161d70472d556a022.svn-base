@@ -1,0 +1,536 @@
+<?php
+/**
+ * Created by Phpstom.
+ * User: YangJiafei
+ * Date: 2019/4/12
+ * Time: 18:33
+ */
+
+
+namespace app\finance\service;
+
+use app\common\cache\Cache;
+use app\common\model\FinancePurchaseRecord as FinancePurchaseRecordModel;
+use app\common\model\FinancePurchase as FinancePurchaseModel;
+use app\common\model\Supplier;
+use app\common\model\User;
+use app\finance\validate\FinancePurchaseRecord as FinancePurchaseRecordValidate;
+use think\Collection;
+use think\Db;
+use think\db\Query;
+use think\Exception;
+use think\Request;
+
+class FinancePurchaseRecord
+{
+    /**
+     * 请求对象
+     * @var Request
+     */
+    private $request;
+
+    public $page = 1;
+    public $pageSize = 50;
+
+    /**
+     * 检查核算单列表页传参是否正确，保存错误信息
+     * @var string
+     */
+    public $indexSelectValidateErrorMsg = '';
+
+    /**
+     * 检查核算单详情页传参是否正确，保存错误信息
+     * @var string
+     */
+    public $detailValidateErrorMsg = '';
+
+    public function __construct()
+    {
+        $this->request = Request::instance();
+        $this->page = $this->request->param('page', 1);
+        $this->pageSize = $this->request->param('page_size', 50);
+    }
+
+    public function detailValidate()
+    {
+        /*$data = [
+            'supplier_id'             => $this->request->param('supplier_balance_type'),
+            'supplier_balance_type'   => $this->request->param('supplier_balance_type'),
+            'currency_code'           => $this->request->param('currency_code'),
+        ];*/
+
+        $validate = new FinancePurchaseRecordValidate();
+        //check 返回值 boolean
+        $bool = $validate->scene('detail')->check($this->request->param());
+        $this->detailValidateErrorMsg = $validate->getError();
+
+        return $bool;
+    }
+
+
+    public function indexSelectValidate()
+    {
+        $data = [
+            'supplier_id'                   => $this->request->param('supplier_id'),
+            'supplier_balance_type'         => json_decode($this->request->param('supplier_balance_type'), true),
+            'purchase_order_id'             => json_decode($this->request->param('purchase_order_id'), true),
+            'warehouse_id'                  => $this->request->param('warehouse_id'),
+            'purchaser_id'                 => json_decode($this->request->param('purchaser_id'), true),
+            'supply_chain_specialist_id'   => json_decode($this->request->param('supply_chain_specialist_id'), true),
+            'date_b'                        => $this->request->param('date_b'),
+            'date_e'                        => $this->request->param('date_e'),
+            'page'                          => $this->request->param('page', 1),
+            'page_size'                     => $this->request->param('page_size', 20),
+        ];
+
+        $validate = new FinancePurchaseRecordValidate();
+        //check 返回值 boolean
+        $bool = $validate->scene('index')->check($data);
+        $this->indexSelectValidateErrorMsg = $validate->getError();
+
+        return $bool;
+    }
+
+    /**
+     * 获得 where 条件数组
+     * @return array
+     */
+    public function getWhere()
+    {
+        $where = [];
+        //获得供应商
+        $this->condition($where, 'supplier_id', 'pr.');
+        //获得结算方式
+        $this->idsCondition($where, 'supplier_balance_type', 'pr.');
+        //获得采购单号
+        $this->idsCondition($where, 'purchase_order_id', 'pr.');
+        //获得采购仓库
+        $this->condition($where, 'warehouse_id', 'pr.');
+        //获得采购员
+        $this->idsCondition($where, 'purchaser_id', 'pr.');
+        //获得供应链专员
+        $this->idsCondition($where, 'supply_chain_specialist_id', 's.');
+        //获得日期
+        $this->dateCondition($where, 'pr.');
+
+        return $where;
+    }
+
+    private function condition(array &$where, string $field, string $tableAlias = '')
+    {
+        if (is_numeric($this->request->param($field))) {
+            $where[$tableAlias.$field] = $this->request->param($field);
+        }
+    }
+
+    private function idsCondition(array &$where, string $field, string $tableAlias = '')
+    {
+        $value = $this->request->param($field);
+        $value = json_decode($value, true);
+        if (is_array($value) && count($value) > 0) {
+            $where[$tableAlias . $field] = ['in', $value];
+        }
+    }
+
+    private function dateCondition(array &$where, string $tableAlias = '')
+    {
+        $timeB = strtotime($this->request->param('date_b'));
+        $timeE = strtotime($this->request->param('date_e'));
+
+        if ($timeB && $timeE) {
+            $timeE = $timeE + 86400 - 1;
+            $where[$tableAlias.'create_time'] = ['between time', [$timeB, $timeE]];
+        }
+    }
+
+    /**
+     * 获得 order by 子句
+     * @param string $tableAlias
+     * @return string
+     */
+    private function orderByClause(string $tableAlias = '')
+    {
+        $sortField = $this->request->param('sort_field');
+        $sortType = $this->request->param('sort_type');
+
+        if ($sortField && $sortType) {
+            return $tableAlias . $sortField . ' ' . $sortType;
+        }
+    }
+
+    /**
+     * 分页
+     * @param Query $query
+     * @return Query
+     */
+    public function limitClause(Query $query)
+    {
+        $offset = ($this->page-1)*$this->pageSize;
+        return $query->limit($offset, $this->pageSize);
+    }
+
+    /**
+     * 增加完善一些字段给前端显示
+     * @param $result
+     * @return mixed
+     * @throws Exception
+     */
+    public function listCompleteField($result)
+    {
+        foreach ($result as &$item) {
+            //增加字段
+            $item['supplier_name'] = Cache::store('supplier')->getSupplierName($item['supplier_id']);
+            //\app\purchase\service\SupplierBalanceType::TYPE_TEXT 别的方式
+            $item['supplier_balance_type_name'] = Cache::store('supplier')->getBalanceTypeText($item['supplier_balance_type']);
+            $item['payment_status_name'] = Cache::store('purchaseOrder')->getPaymentStatusText($item['payment_status']);
+
+            //金额全部保留两位小数
+            $item['sum_shipping_cost']  = number_format($item['sum_shipping_cost'], '2', '.', '');
+            $item['sum_amount']         = number_format($item['sum_amount'], '2', '.', '');
+            $item['sum_payable_amount'] = number_format($item['sum_payable_amount'], '2', '.', '');
+            $item['sum_returned_money'] = number_format($item['sum_returned_money'], '2', '.', '');
+            $item['sum_returned_goods_money'] = number_format($item['sum_returned_goods_money'], '2', '.', '');
+            $item['sum_mark_payed_money'] = number_format($item['sum_mark_payed_money'], '2', '.', '');
+            $item['sum_in_stock_money'] = number_format($item['sum_in_stock_money'], '2', '.', '');
+        }
+
+        return $result;
+    }
+
+    /**
+     * 完善核算单详情字段
+     * @param $result
+     * @return mixed
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function detailCompleteField($result)
+    {
+        //获得采购员
+        $purchaserNames = [];
+        $purchaerIds = array_column($result, 'purchaser_id');
+        $purchaserNames = User::whereIn('id', $purchaerIds)->column('id, realname');
+
+        //获得供应链专员
+        $supplyChainSpecialistNames = [];
+        $supplierIds = array_column($result, 'supplier_id');
+        $supplyChainSpecialistNames = Supplier::whereIn('s.id', $supplierIds)
+            ->alias('s')
+            ->join('user u', 'u.id = s.supply_chain_specialist_id', 'left')
+            ->column('s.id, u.realname');
+
+        //\app\purchase\service\PurchaseOrder::getPurchaseTimesBySku;
+
+        //批量获得付款时间
+        $purchaseOrderIds = array_column($result, 'purchase_order_id');
+        $financePaymentTimes = $this->getFinancePaymentTimeBatch($purchaseOrderIds);
+
+        foreach ($result as &$item) {
+            //增加字段
+            $item['supplier_name'] = Cache::store('supplier')->getSupplierName($item['supplier_id']);
+            $item['warehouse_name'] = Cache::store('warehouse')->getWarehouseNameById($item['warehouse_id']);
+            $item['payment_status_name'] = Cache::store('purchaseOrder')->getPaymentStatusText($item['payment_status']);
+
+            //所有金额四舍五入，保留两位小数
+            $item['shipping_cost']          = number_format($item['shipping_cost'], 2, '.', '');
+            $item['amount']                 = number_format($item['amount'], 2, '.', '');
+            $item['payable_amount']         = number_format($item['payable_amount'], 2, '.', '');
+            $item['returned_money']         = number_format($item['returned_money'], 2, '.', '');
+            $item['returned_goods_money']   = number_format($item['returned_goods_money'], 2, '.', '');
+            $item['mark_payed_money']       = number_format($item['mark_payed_money'], 2, '.', '');
+            $item['in_stock_money']         = number_format($item['in_stock_money'], 2, '.', '');
+
+            //采购员，供应链专员
+            $item['purchaser_name'] = isset($purchaserNames[$item['purchaser_id']]) ? $purchaserNames[$item['purchaser_id']] : '--';
+            $item['supply_chain_specialist_name'] = isset($supplyChainSpecialistNames[$item['supplier_id']]) ? $supplyChainSpecialistNames[$item['supplier_id']] : '--';
+
+            //采购时间转格式
+            $item['purchase_time'] = $item['purchase_time'] ? date('Y-m-d', $item['purchase_time']) : '--';
+            //付款日期转格式
+            $item['finance_payment_time'] = $financePaymentTimes[$item['purchase_order_id']] ? date('Y-m-d', $financePaymentTimes[$item['purchase_order_id']]) : '--';
+            //入库日期转格式
+            $item['in_time'] = $item['in_time'] ? date('Y-m-d', $item['in_time']) : '--';
+
+        }
+
+        return $result;
+    }
+
+    /**
+     * 对字段排序，和删减，和前端展示一样
+     * @param array $result
+     * @return array
+     */
+    private function detailFieldSortFilter(array $result)
+    {
+        foreach ($result as &$item) {
+            $item = [
+                //'purchase_order_id' => $item['purchase_order_id'],
+                'purchase_order_code' => $item['purchase_order_code'],
+                'warehouse_name' => $item['warehouse_name'],
+                'payment_status_name' => $item['payment_status_name'],
+                //'warehouse_id' => $item['warehouse_id'],
+                //'payment_status' => $item['payment_status'],
+                'shipping_cost' => $item['shipping_cost'],
+                'amount' => $item['amount'],
+                'payable_amount' => $item['payable_amount'],
+                'returned_money' => $item['returned_money'],
+                'returned_goods_money' => $item['returned_goods_money'],
+                'mark_payed_money' => $item['mark_payed_money'],
+                'in_stock_money' => $item['in_stock_money'],
+                'purchaser_id' => $item['purchaser_id'],
+                //'supplier_id' => $item['supplier_id'],
+                'purchaser_name' => $item['purchaser_name'],
+                'supply_chain_specialist_name' => $item['supply_chain_specialist_name'],
+                'supplier_name' => $item['supplier_name'],
+                'purchase_time' => $item['purchase_time'],
+                'finance_payment_time' => $item['finance_payment_time'],
+                'in_time' => $item['in_time'],
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * 批量获得采购单（财务）付款时间
+     * @param array $purchaseOrderIds 一维数组
+     * @return false|\PDOStatement|string|\think\Collection
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    private function getFinancePaymentTimeBatch(array $purchaseOrderIds)
+    {
+        //参考：select FROM_UNIXTIME(max(finance_payment_time), '%Y-%m-%d') from finance_purchase fp where fp.purchase_order_id = pr.purchase_order_id
+        $model = new FinancePurchaseModel();
+        $subQuery = $model->whereIn('purchase_order_id', $purchaseOrderIds)
+            ->order('purchase_order_id, finance_payment_time desc')
+            ->field('purchase_order_id, finance_payment_time')
+            ->buildSql();
+        $result = DB::table($subQuery)->alias('f')->group('purchase_order_id')->column('purchase_order_id, finance_payment_time');
+
+        return $result;
+    }
+
+    /**
+     * 总记录
+     * @param $where
+     * @return int|string
+     * @throws \think\exception\DbException
+     */
+    public function getCount($where)
+    {
+        $query = $this->getListQuery($where);
+        return $query->count();
+    }
+
+    /**
+     * 获得核算单列表
+     * @param $where
+     * @return array|false|mixed|\PDOStatement|string|\think\Collection
+     * @throws Exception
+     */
+    public function getList($where)
+    {
+
+        try {
+
+            $result = [];
+
+            $query = $this->getListQuery($where);
+            $query = $this->limitClause($query);
+            $sql = $query->buildSql();
+
+            $result = DB::query($sql);
+
+            //整型值转换为具体的名字
+            $result = $this->listCompleteField($result);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * 获得列表查询对象
+     * @param $where
+     * @return \think\db\Query
+     * @throws \think\exception\DbException
+     */
+    public function getListQuery($where)
+    {
+        $field = <<<FIELD
+pr.supplier_id,
+pr.supplier_balance_type,
+pr.currency_code,
+
+p.payment_status,
+sum(p.shipping_cost) sum_shipping_cost,
+sum(p.amount) sum_amount,
+sum(p.payable_amount) sum_payable_amount,
+sum(pr.returned_money) sum_returned_money,
+sum(pr.returned_goods_money) sum_returned_goods_money,
+sum(pr.mark_payed_money) sum_mark_payed_money,
+sum(pr.in_stock_money) sum_in_stock_money
+FIELD;
+
+        $model = new FinancePurchaseRecordModel();
+        //子查询
+        $subQuery = $model->alias('pr')
+            ->where($where)
+            ->join('purchase_order p','pr.purchase_order_id = p.id','left')
+            ->join('supplier s', 'pr.supplier_id = s.id', 'left')
+            ->field($field)
+            ->group('pr.supplier_id, pr.supplier_balance_type, pr.currency_code')
+            ->buildSql();
+
+        //排序
+        $query = DB::table($subQuery)
+            ->alias('tb')
+            ->order($this->orderByClause('tb.'))
+            ->field(true);
+
+        return $query;
+    }
+
+    /**
+     * 导出表格使用到，用于连表
+     * @return string
+     * @throws Exception
+     * @throws \think\exception\DbException
+     */
+    public function getListSqlForExport()
+    {
+        if ($this->indexSelectValidate() === false) {
+            throw new Exception($this->indexSelectValidateErrorMsg);
+        }
+        $where = $this->getWhere();
+        return $this->getListQuery($where)->buildSql();
+    }
+
+    /**
+     * 导出表格方法使用
+     * @return string
+     * @throws \think\exception\DbException
+     */
+    public function getDetailSqlForExport()
+    {
+        /**
+         * 这里的连表和列表页查询一样，where和列表页也一样，其实就是字段查询不一样，其他都应该一样
+         * 增加两个字段，用于关联
+         */
+        $query = $this->baseDetailSql()
+            ->join('supplier s', 'pr.supplier_id = s.id', 'left')
+            ->field('pr.supplier_balance_type, pr.currency_code');
+
+        /**
+         * 列表页做了查询过滤，那么详情也需要过滤，然后连表才没错误
+         */
+        $where = $this->getWhere();
+        $query = $query->where($where);
+
+        return $query->buildSql();
+    }
+
+    /**
+     * 获得核算单详情
+     */
+    public function getDetail()
+    {
+        $result = [];
+
+        $sql = $this->getDetailSql();
+
+        $result = DB::query($sql);
+
+        //完善增加数据，比如 int 改为具体代表的值
+        $result = $this->detailCompleteField($result);
+
+        $result = $this->detailFieldSortFilter($result);
+
+        return $result;
+    }
+
+    /**
+     * 应对逐条查询
+     * @return string
+     * @throws \think\exception\DbException
+     */
+    public function getDetailSql()
+    {
+        $where = [
+            'pr.supplier_id' => ':supplier_id',
+            'pr.supplier_balance_type' => ':supplier_balance_type',
+            'pr.currency_code' => ':currency_code',
+        ];
+        $bind = [
+            'supplier_id' => $this->request->param('supplier_id'),
+            'supplier_balance_type' => $this->request->param('supplier_balance_type'),
+            'currency_code' => $this->request->param('currency_code'),
+        ];
+
+        $sql = $this->baseDetailSql()->where($where)->bind($bind)->buildSql();
+
+        return $sql;
+    }
+
+    /**
+     * 基础的查询语句
+     * @return FinancePurchaseRecordModel
+     */
+    public function baseDetailSql()
+    {
+        $field = <<<FIELD
+pr.purchase_order_id,
+concat('PO', p.id) purchase_order_code, 
+pr.warehouse_id,
+p.payment_status,
+p.shipping_cost,
+p.amount,
+p.payable_amount,
+pr.returned_money,
+pr.returned_goods_money,
+pr.mark_payed_money,
+pr.in_stock_money,
+pr.purchaser_id,
+pr.supplier_id,
+p.create_time purchase_time,
+p.in_time in_time
+FIELD;
+
+        $model = new FinancePurchaseRecordModel();
+        $model->alias('pr')
+            ->join('purchase_order p', 'pr.purchase_order_id = p.id', 'left')
+            ->field($field);
+        return $model;
+    }
+
+    /**
+     * 插入数据
+     *
+     * @param array $data
+     */
+    public function insertAction(array $data)
+    {
+        $matchOperate = [1 => 'in_stock_money', 'mark_payed_money', 'returned_money', 'returned_goods_money'];
+        $data['create_time'] = $data['operate_time'] = time();
+        $data[$matchOperate[$data['operate_type']]] = $data['amount'];
+        FinancePurchaseRecordModel::create($data, true);
+    }
+
+    /**
+     * 更新数据(采购单修改结算方式)
+     *
+     * @param array $orderIds
+     * @param int   $balanceType
+     */
+    public function updateAction(array $orderIds, int $balanceType)
+    {
+        FinancePurchaseRecordModel::where('purchase_order_id', 'IN', $orderIds)
+            ->update(['operate_time' => time(), 'supplier_balance_type' => $balanceType]);
+    }
+}

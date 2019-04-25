@@ -1,0 +1,650 @@
+<?php
+
+
+namespace app\index\service;
+
+use app\common\model\Email as EmailModel;
+use app\common\service\Common;
+use app\common\model\Account as ModelAccount;
+use app\common\model\Account\AccountApplyDetail as ModelAccountApplyDetail;
+use app\common\service\Encryption;
+use app\index\validate\Email as ValidateEmail;
+use think\Exception;
+use think\Db;
+use app\common\model\AccountUserMap as AccountUserMapModel;
+use app\common\model\Server as ServerModel;
+use app\common\cache\Cache;
+use app\common\model\ChannelNode;
+use app\common\model\User;
+
+class Email
+{
+    protected $model;
+
+    public function __construct()
+    {
+        if (is_null($this->model)) {
+            $this->model = new EmailModel();
+        }
+    }
+
+    private function getWhere($param)
+    {
+        if (isset($param['account_count_nd']) && $param['account_count_nd'] !== '') {
+            if ($param['account_count_st'] === '') {
+                $param['account_count_st'] = 0;
+            }
+        }
+        $o = new EmailModel();
+        $o = $o->join(' (SELECT  email_id,count(*) as num FROM account where email_id > 0  GROUP BY email_id) as t ', 't.email_id=e.id', 'left');
+        if (isset($param['status'])) {
+            if ($param['status'] == '0') {
+                $o = $o->where('e.status', 0);
+            } else if ($param['status']) {
+                $o = $o->where('e.status', $param['status']);
+            }
+        }
+        if (isset($param['email']) && $param['email'] != '') {
+            $o = $o->where('e.email', 'like', $param['email'] . "%");
+        }
+        if (isset($param['phone']) && $param['phone']) {
+            $o = $o->join('phone p', "p.id=e.phone_id", 'left')
+                ->where('p.phone', 'like', $param['phone'] . "%");
+        }
+
+        $is_null = false;
+        if (isset($param['account_count_st']) && $param['account_count_st'] !== '') {
+            $o = $o->where('t.num', '>=', intval($param['account_count_st']));
+            if (!$param['account_count_st']) {
+                $o = $o->whereOr('t.num', 'exp', 'is null');
+                $is_null = true;
+            }
+        }
+        if (isset($param['account_count_nd']) && $param['account_count_nd'] !== '') {
+            $o = $o->where('t.num', '<=', intval($param['account_count_nd']));
+            if (!$param['account_count_nd']) {
+                if (!$is_null) {
+                    $o = $o->whereOr('t.num', 'exp', 'is null');
+                }
+            }
+        }
+        if (isset($param['reg_time_st']) && $param['reg_time_st']) {
+            $time = strtotime($param['reg_time_st']);
+            $o = $o->where('e.reg_time', '>=', $time);
+        }
+        if (isset($param['reg_time_nd']) && $param['reg_time_nd']) {
+            $time = strtotime($param['reg_time_nd'] . " 23:59:59");
+            $o = $o->where('e.reg_time', '<=', $time);
+        }
+        if (isset($param['is_error'])) {
+            if ($param['is_error'] == '0') {
+                $o = $o->where('e.error_time', 0);
+            } else if ($param['is_error']) {
+                $o = $o->where('e.error_time', '>', 0);
+            }
+        }
+        $o = $o->alias('e');
+        return $o;
+    }
+
+    private function getOrder($param)
+    {
+        if (isset($param['is_error']) && $param['is_error']) {
+            return 'e.error_time asc,e.id desc';
+        } else if (isset($param['sort_field']) && $param['sort_field'] !== '' && isset($param['sort_value']) && $param['sort_value'] !== '') {
+
+            if ($param['sort_field'] == 'account_count') {
+                $param['sort_field'] = 't.num';
+            }
+            return $param['sort_field'] . " " . $param['sort_value'];
+        } else {
+            return 'e.id desc';
+        }
+    }
+
+    public function index($page, $pageSize, $param)
+    {
+        $result = ['list' => []];
+        $result['page'] = $page;
+        $result['pageSize'] = $pageSize;
+        $result['count'] = $this->getWhere($param)->count();
+        if ($result['count'] == 0) {
+            return $result;
+        }
+        $o = $this->getWhere($param);
+        $sort = $this->getOrder($param);
+        $ret = $o->page($page, $pageSize)
+            ->field("e.id,e.email,e.phone_id,t.num as account_count,e.status,e.is_receive,e.is_send,e.error_msg,e.error_time,e.reg_id,e.reg_time")
+            ->order($sort)->select();
+        if ($ret) {
+            $result['list'] = $this->indexList($ret);
+        }
+        return $result;
+    }
+
+
+    private function indexList($ret)
+    {
+        $result = [];
+        foreach ($ret as $v) {
+            $row = $this->row($v);
+            $result[] = $row;
+        }
+        return $result;
+    }
+
+    private function row($v)
+    {
+        $row = [];
+        isset($v['id']) && $row['id'] = $v['id'];
+        isset($v['password']) && $row['password'] = $v['password'];
+        isset($v['email']) && $row['email'] = $v['email'];
+        isset($v['post_id']) && $row['post_id'] = $v['post_id'];
+        if (isset($v['phone_id'])) {
+            $row['phone_id'] = $v['phone_id'];
+            $row['phone'] = $v->phone->phone ?? '';
+        }
+        if (isset($v['account_count'])) {
+            $row['is_reg'] = $v->is_reg;
+            $row['is_reg_txt'] = $v->is_reg_txt;
+            $v['account_count'] = (int)$v['account_count'];
+        }
+        if (isset($v['status'])) {
+            $row['status'] = $v['status'];
+            $row['status_txt'] = $v->status_txt;
+        }
+        if (isset($v['is_receive'])) {
+            $row['is_receive'] = $v['is_receive'];
+            $row['is_receive_txt'] = $v->is_receive_txt;
+        }
+        if (isset($v['is_send'])) {
+            $row['is_send'] = $v['is_send'];
+            $row['is_send_txt'] = $v->is_send_txt;
+        }
+        if (isset($v['reg_id'])) {
+            $row['reg_id'] = $v['reg_id'];
+            $row['reg_txt'] = $v->reg_txt;
+            $row['reg_department_name'] = $v->reg_department_name;
+        }
+        if (isset($v['reg_time'])) {
+            $row['reg_time'] = $v['reg_time'];
+            $row['reg_time_date'] = $v->reg_time_date;
+        }
+        if (isset($v['channel'])) {
+            $row['channel_ids'] = $v->channel_ids;
+        }
+        if (isset($v['error_msg'])) {
+            $row['error_msg'] = $v->error_msg;
+        }
+        if (isset($v['error_time'])) {
+            $row['error_time'] = $v->error_time;
+            $row['error_time_txt'] = $v->error_time_txt;
+        }
+        if (isset($v['account_count'])) {
+            $row['account_count'] = $v->account_count;
+        }
+        return $row;
+    }
+
+    public function read($id)
+    {
+        $model = new EmailModel();
+        $ret = $model->field('id,post_id,email,password,phone_id,reg_id,reg_time,status,is_receive,is_send,channel')
+            ->where('id', $id)->find();
+        return $this->row($ret);
+    }
+
+    public function update($id, $param, $user_id)
+    {
+        $model = new EmailModel();
+        $info = $model->where('id', $id)->find();
+        if (!$info) {
+            throw new Exception('该记录不存在，无法修改');
+        }
+        $old = $info->toArray();
+        $param['update_time'] = time();
+        $param['updater_id'] = $user_id;
+        isset($param['channel_ids']) && $param['channel'] = json_decode($param['channel_ids'], true);
+        if (isset($param['email']) && $param['email']) {
+            if (empty($param['post_id'])) {
+                throw new Exception('post_id不能为空');
+            }
+            $postService = new Postoffice();
+            $postInfo = $postService->read($param['post_id']);
+            if (!$postInfo) {
+                throw new Exception('该邮局不存在');
+            }
+            $param['email'] = $param['email'] . "@" . $postInfo['post'];
+        }
+        $validate = new ValidateEmail();
+        $flag = $validate->scene('update')->check($param);
+        if ($flag === false) {
+            throw new Exception($validate->getError());
+        }
+        Db::startTrans();
+        try {
+            $flag = $info->allowField(true)->save($param);
+            if ($flag) {
+                if (isset($param['post_id'])) {
+                    $PostofficeService = new Postoffice();
+                    if ($old['post_id'] != $param['post_id']) {
+                        if ($param['post_id']) {
+                            $PostofficeService->incCount($param['post_id']);
+                        }
+                        if ($old['post_id']) {
+                            $PostofficeService->decCount($old['post_id']);
+                        }
+                    }
+                }
+            }
+            Db::commit();
+            return ['message' => '修改成功!'];
+        } catch (Exception $ex) {
+            Db::rollback();
+            throw $ex;
+        }
+    }
+
+    public function save($param, $user_id)
+    {
+        $model = new EmailModel();
+        $param['create_time'] = time();
+        $param['creator_id'] = $user_id;
+        isset($param['channel_ids']) && $param['channel'] = json_decode($param['channel_ids'], true);
+        if (isset($param['reg_time_date']) && $param['reg_time_date']) {
+            $param['reg_time'] = strtotime($param['reg_time_date']);
+        }
+        if (isset($param['email']) && $param['email']) {
+            if (empty($param['post_id'])) {
+                throw new Exception('post_id不能为空');
+            }
+            $postService = new Postoffice();
+            $postInfo = $postService->read($param['post_id']);
+            if (!$postInfo) {
+                throw new Exception('该邮局不存在');
+            }
+            $param['email'] = $param['email'] . "@" . $postInfo['post'];
+        }
+        $validate = new ValidateEmail();
+        $flag = $validate->scene('insert')->check($param);
+        if ($flag === false) {
+            throw new Exception($validate->getError());
+        }
+        Db::startTrans();
+        try {
+            $model->allowField(true)->isUpdate(false)->save($param);
+            $PostofficeService = new Postoffice();
+            $PostofficeService->incCount($param['post_id']);
+            Db::commit();
+            return ['message' => '保存成功!'];
+        } catch (Exception $ex) {
+            Db::rollback();
+            throw $ex;
+        }
+    }
+
+    public function viewPassword($id, $password)
+    {
+        $user = Common::getUserInfo();
+        if (empty($user)) {
+            throw new Exception('非法操作');
+        }
+        $model = new EmailModel();
+        $userModel = new User();
+        $userInfo = $userModel->where(['id' => $user['user_id']])->find();
+        if (empty($userInfo)) {
+            throw new Exception('外来物种入侵', 500);
+        }
+        if ($userInfo['password'] != User::getHashPassword($password, $userInfo['salt'])) {
+            throw new Exception('登录密码错误', 500);
+        }
+        $encryption = new Encryption();
+        //查看邮箱号信息
+        $emailInfo = $model->field('password')->where(['id' => $id])->find();
+        if (empty($emailInfo)) {
+            throw new Exception('账号记录不存在', 500);
+        }
+        $enablePassword = $encryption->decrypt($emailInfo['password']);
+        return $enablePassword;
+    }
+
+    public function clearError($ids, $user_id)
+    {
+        try {
+            $model = new EmailModel();
+            $update = [
+                'updater_id' => $user_id,
+                'update_time' => time(),
+                'error_msg' => '',
+                'error_time' => 0
+            ];
+            $model->where('id', 'in', $ids)->update($update);
+            return ['message' => '处理成功'];
+        } catch (Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    private function getCanUseEmailWhere($param)
+    {
+        $o = new EmailModel();
+        $o = $o->where('status', 1);
+        if (isset($param['email']) && $param['email']) {
+            $o = $o->where('email', 'like', $param['email'] . '%');
+        }
+        if (isset($param['channel_id']) && $param['channel_id']) {
+            $o = $o->where(" channel & (1 <<({$param['channel_id']} - 1)) or channel=0", '<>');
+            switch ($param['channel_id']) {
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                    $o = $o->where('id', 'exp',
+                        'not in ( select email_id from account where status != 6 and email_id>0  UNION ALL select d.email_id from account_apply_detail d  left join account_apply a on d.account_apply_id = a.id   where  d.email_id>0 and a.status not in (4,5,6) )');
+                    break;
+                default:
+                    $o = $o->where('id', 'exp',
+                        'not in ( select email_id from account where status != 6 and email_id>0 and channel_id in (1,2,3,4,' . $param['channel_id'] . ') UNION ALL select d.email_id from account_apply_detail d  left join account_apply a on d.account_apply_id = a.id   where  d.email_id>0 and a.status not in (4,5,6) and a.channel_id in (1,2,3,4,' . $param['channel_id'] . ') )  ');
+                    break;
+            }
+
+        }
+        return $o;
+    }
+
+    /**
+     * @title 让基础资料使用的邮箱
+     * @param $page
+     * @param $pageSize
+     * @param $param
+     * @return array
+     * @author starzhan <397041849@qq.com>
+     */
+    public function getCanUseEmail($page, $pageSize, $param)
+    {
+        $result = ['list' => []];
+        $result['page'] = $page;
+        $result['pageSize'] = $pageSize;
+        $result['count'] = $this->getCanUseEmailWhere($param)->count();
+        if ($result['count'] == 0) {
+            return $result;
+        }
+        $o = $this->getCanUseEmailWhere($param);
+        $ret = $o->page($page, $pageSize)
+            ->field("id,email,phone_id,reg_id,reg_time")
+            ->order('id desc')->select();
+        if ($ret) {
+            $result['list'] = $this->indexList($ret);
+        }
+        return $result;
+    }
+
+    private function getUsedEmailWhere($param)
+    {
+        $o = new EmailModel();
+        $o = $o->where('status', 1)->where('account_count', '<>', 0);
+        if (isset($param['email']) && $param['email']) {
+            $o = $o->where('email', 'like', $param['email'] . '%');
+        }
+        return $o;
+    }
+
+    public function getUsedEmail($page, $pageSize, $param)
+    {
+        $result = ['list' => []];
+        $result['page'] = $page;
+        $result['pageSize'] = $pageSize;
+        $result['count'] = $this->getUsedEmailWhere($param)->count();
+        if ($result['count'] == 0) {
+            return $result;
+        }
+        $o = $this->getUsedEmailWhere($param);
+        $ret = $o->page($page, $pageSize)
+            ->field("id,email")
+            ->order('id desc')->select();
+        if ($ret) {
+            $result['list'] = $this->indexList($ret);
+        }
+        return $result;
+    }
+
+    public function errorlog($email, $error_msg)
+    {
+        $model = new EmailModel();
+        $emailInfo = $model->where('email', $email)->find();
+        if (!$emailInfo) {
+            throw new Exception('邮箱号不存在');
+        }
+        $userInfo = Common::getUserInfo();
+        $data['updater_id'] = $userInfo['user_id'];
+        $data['update_time'] = time();
+        $data['error_msg'] = $error_msg;
+        $data['error_time'] = time();
+        $emailInfo->allowField(true)->save($data);
+        return true;
+    }
+
+    public function checkEmail($id, $channel_id = 0, $old_account_id = 0, $old_apply_detail_id = 0)
+    {
+        $model = new EmailModel();
+        $old = $model->where('id', $id)->find();
+        if (!$old) {
+            throw new Exception('邮箱号不存在,无法绑定');
+        }
+        if ($old['status'] != 1) {
+            throw new Exception('邮箱号未启用,无法绑定');
+        }
+        if ($channel_id) {
+            if (in_array($channel_id, [1, 2, 3, 4])) {
+                //是否是4大平台
+                $ModelAccount = new ModelAccount();
+                $count = $ModelAccount
+                    ->where('email_id', $id)
+                    ->where('status', 'not in', [6])
+                    ->where('id', '<>', $old_account_id)
+                    ->count();
+                if ($count > 0) {
+                    $Email = new Email();
+                    $info = $Email->read($id);
+                    throw new Exception("当前邮箱[{$info['email']}]已被使用，无法绑定");
+                }
+                $ModelAccountApplyDetail = new ModelAccountApplyDetail();
+                $count = $ModelAccountApplyDetail->alias('d')
+                    ->join('account_apply a', 'a.id=d.account_apply_id', 'left')
+                    ->where('d.email_id', $id)
+                    ->where('a.status', 'not in', [4, 5, 6])
+                    ->where('a.id', '<>', $old_apply_detail_id)
+                    ->count();
+                if ($count > 0) {
+                    $Email = new Email();
+                    $info = $Email->read($id);
+                    throw new Exception("当前邮箱[{$info['email']}]已被使用，无法选用");
+                }
+            } else {
+                //是否是4大平台
+                $ModelAccount = new ModelAccount();
+                $count = $ModelAccount
+                    ->where('email_id', $id)
+                    ->where('status', 'not in', [6])
+                    ->where('channel_id', 'in', [1, 2, 3, 4, $channel_id])
+                    ->where('id', '<>', $old_account_id)
+                    ->count();
+                if ($count > 0) {
+                    $Email = new Email();
+                    $info = $Email->read($id);
+                    throw new Exception("当前邮箱[{$info['email']}]已被使用，无法绑定");
+                }
+                $ModelAccountApplyDetail = new ModelAccountApplyDetail();
+                $count = $ModelAccountApplyDetail->alias('d')
+                    ->join('account_apply a', 'a.id=d.account_apply_id', 'left')
+                    ->where('d.email_id', $id)
+                    ->where('a.channel_id', 'in', [1, 2, 3, 4, $channel_id])
+                    ->where('a.status', 'not in', [4, 5, 6])
+                    ->where('a.id', '<>', $old_apply_detail_id)
+                    ->count();
+                if ($count > 0) {
+                    $Email = new Email();
+                    $info = $Email->read($id);
+                    throw new Exception("当前邮箱[{$info['email']}]已被使用，无法选用");
+                }
+            }
+
+        }
+
+    }
+
+    public function bind($id)
+    {
+        $model = new EmailModel();
+        return $model->where('id', $id)
+            ->where('status', 1)
+            ->where('account_count', 0)
+            ->update(['account_count' => 1]);
+    }
+
+    public function unbind($id)
+    {
+        $model = new EmailModel();
+        return $model->where('id', $id)
+            ->update(['account_count' => 0]);
+    }
+
+
+    private function randomkeys($min, $max)
+    {
+        $length = mt_rand($min, $max);
+        $key = '';
+        $pattern = 'abcdefghijklmnopqrstuvwxyz';
+        for ($i = 0; $i < $length; $i++) {
+            $key .= $pattern{mt_rand(0, 25)};
+        }
+        return $key;
+    }
+
+    /**
+     * @title 生成邮箱前缀
+     * @param $min 最小长度
+     * @param $max 最大长度
+     * @return string
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function createEmailPrefix($min, $max)
+    {
+        $key = $this->randomkeys($min, $max);
+        $emailInfo = $this->model->where(['email' => ['like', '%' . $key]])->find();
+
+        if ($emailInfo) {
+            $key = $this->createEmailPrefix($min, $max);
+        }
+
+        return $key;
+    }
+
+    private function getAccountsWhere($id)
+    {
+        $ModelAccount = new ModelAccount();
+        $ModelAccount->where('email_id', $id);
+        return $ModelAccount;
+    }
+
+    private function getAccountsRow($ret)
+    {
+        $result = [];
+        $ChannelService = new ChannelService();
+        foreach ($ret as $v) {
+            $row = [];
+            $row['id'] = $v['id'];
+            $tmp = $ChannelService->getInfoById($v['channel_id']);
+            $row['channel_name'] = $tmp['name'];
+            $row['site_code'] = $v['site_code'];
+            $row['account_code'] = $v['account_code'];
+            $row['company_name'] = $v['company_name'];
+            $result[] = $row;
+        }
+        return $result;
+    }
+
+    public function getAccounts($page, $pageSize, $id)
+    {
+        $result = ['data' => []];
+        $result['page'] = $page;
+        $result['pageSize'] = $pageSize;
+        $result['count'] = $this->getAccountsWhere($id)->count();
+        if ($result['count'] == 0) {
+            return $result;
+        }
+        $ModelAccount = $this->getAccountsWhere($id);
+        $ret = $ModelAccount->page($page, $pageSize)
+            ->field("id,channel_id,site_code,account_code,company_id")
+            ->order('id desc')->select();
+        if ($ret) {
+            $result['data'] = $this->getAccountsRow($ret);
+        }
+        return $result;
+    }
+
+    /**
+     * @title 获取用户绑定的邮箱
+     * @param $userId
+     * @author starzhan <397041849@qq.com>
+     */
+    public function getBaseListByUserId($userId, $where = [])
+    {
+        $reData = [];
+        $serverId = [];
+        $accountIds = (new AccountUserMapModel())->where('user_id', $userId)->column('account_id');
+        if ($where) {
+            $where['status'] = 0;
+            $serverId = (new ServerModel())->where($where)->value('id');
+            if (!$serverId) {
+                throw new Exception('服务器错误');
+            }
+        }
+        if ($accountIds) {
+            $join[] = ['server s', 'a.server_id = s.id', 'left'];
+            $where = [
+                'a.id' => ['in', $accountIds],
+                's.type' => 3,
+                's.status' => 0
+            ];
+            if ($serverId) {
+                $where['a.server_id'] = $serverId;
+                $where['s.type'] = 0;
+            }
+
+            $EmailModel = new EmailModel();
+            $list = $EmailModel->alias('e')
+                ->join('account a','a.email_id = e.id','left')
+                ->join("server s","a.server_id = s.id",'left')
+                ->field("e.id,e.email")
+                ->where($where)
+                ->select();
+
+           // $list = (new ModelAccount())->alias('a')->join($join)->field($field)->where($where)->select(false);
+            foreach ($list as $v) {
+                $one = $v->toArray();
+                $one['channel'] = "邮箱";
+                $one['site'] = '';
+                $one['account_name_true'] = $v['email'];
+                $one['account_name'] = $v['email'];
+                $one['relation_module'] = ChannelNode::module_email;
+
+                $one['channel_id'] = 'email';
+                if (isset($reData[$one['channel_id']])) {
+                    $reData[$one['channel_id']]['accounts'][] = $one;
+                } else {
+                    $reData[$one['channel_id']] = [
+                        'channel_id' => $one['channel_id'],
+                        'channel_name' => $one['channel'],
+                        'accounts' => [$one],
+                    ];
+                }
+            }
+            $reData = array_values($reData);
+        }
+        return $reData;
+    }
+
+}

@@ -1,0 +1,658 @@
+<?php
+
+namespace app\index\service;
+
+
+use think\Db;
+use think\Request;
+use think\Exception;
+use app\common\exception\JsonErrorException;
+use app\common\model\Account;
+use app\common\model\AccountApply;
+use app\common\model\AccountCompany;
+use app\common\traits\ConfigCommon;
+use app\common\model\AccountCompanyLog;
+use app\common\service\Common as CommonService;
+use app\purchase\service\SupplierService;
+use app\index\service\AccountApplyService;
+
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/11/21
+ * Time: 17:46
+ */
+class AccountCompanyService
+{
+    use ConfigCommon;
+    protected $accountCompany;
+
+    public function __construct()
+    {
+        if (is_null($this->accountCompany)) {
+            $this->accountCompany = new AccountCompany();
+        }
+    }
+
+
+    private function getSort($param)
+    {
+        if (isset($param['sort_field']) && $param['sort_field'] !== '' && isset($param['sort_value']) && $param['sort_value'] !== '') {
+
+            if ($param['sort_field'] == 'account_count') {
+                $param['sort_field'] = 't.num';
+            }
+            return $param['sort_field'] . " " . $param['sort_value'];
+        } else {
+            return 'id desc';
+        }
+    }
+
+    /** 公司资料列表
+     * @param Request $request
+     * @return array
+     * @throws \think\Exception
+     */
+    public function lists(Request $request)
+    {
+        $params = $request->param();
+        $page = $request->get('page', 1);
+        $pageSize = $request->get('pageSize', 10);
+        $field = 'c.*,t.num as account_count';
+        $count = $this->getWhere($params)->count();
+        $accountList = $this->getWhere($params)->field($field)
+            ->page($page, $pageSize)
+            ->order($this->getSort($params))
+            ->select();
+        if ($accountList) {
+            foreach ($accountList as $k => &$v) {
+                $v['collection_account'] = json_decode($v['collection_account'], true);
+                $v['sum'] = AccountApply::getCompanyCount($v['id']);
+                $v['type'] = AccountCompany::TYPE[$v['type']];
+                $v['account_count'] = (int)$v['account_count'];
+                $v['source'] = AccountCompany::SOURCE[$v['source']];
+                $v['status_txt'] = $v->status_txt;
+            }
+        } else {
+            $accountList = [];
+        }
+
+
+        $result = [
+            'data' => $accountList,
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'count' => $count,
+        ];
+        return $result;
+    }
+
+    /**
+     * @title 获取查询条件
+     * @param $params
+     * @return AccountCompany
+     */
+    public function getWhere($params)
+    {
+        $ModelAccountCompany = new AccountCompany();
+        $ModelAccountCompany->join('(SELECT  company_id,count(*) as num FROM account where company_id > 0  GROUP BY company_id) as t ', 't.company_id=c.id', 'left');
+        $ModelAccountCompany->alias('c');
+        if (isset($params['company']) && $params['company'] !== '') {
+            $ModelAccountCompany->where('c.company', 'like', $params['company'] . '%');
+        }
+        if (isset($params['corporation']) && $params['corporation'] !== '') {
+            $ModelAccountCompany->where('c.corporation', 'like', $params['corporation'] . '%');
+        }
+        if (isset($params['id']) && $params['id'] !== '') {
+            $ModelAccountCompany->where('c.id', '=', $params['id']);
+        }
+
+        if (isset($params['status']) && $params['status'] !== '') {
+            $ModelAccountCompany->where('c.status', '=', $params['status']);
+        }
+
+        if (isset($params['type']) && $params['type'] !== '') {
+
+            $ModelAccountCompany->where('c.type', '=', $params['type']);
+        }
+
+        if (isset($params['source']) && $params['source'] !== '') {
+            $ModelAccountCompany->where('c.source', '=', $params['source']);
+        }
+        $is_null = false;
+        if (isset($params['account_count_st']) && $params['account_count_st'] !== '') {
+            $ModelAccountCompany->where('t.num', '>=', intval($params['account_count_st']));
+            if (!$params['account_count_st']) {
+                $ModelAccountCompany->whereOr('t.num', 'exp', 'is null');
+                $is_null = true;
+            }
+        }
+        if (isset($params['account_count_nd']) && $params['account_count_nd'] !== '') {
+            $ModelAccountCompany->where('t.num', '<=', intval($params['account_count_nd']));
+            if (empty($params['account_count_nd']) || empty($params['account_count_st'])) {
+                if (!$is_null) {
+                    $ModelAccountCompany->whereOr('t.num', 'exp', 'is null');
+                }
+            }
+        }
+        if (isset($params['time_start']) && $params['time_start']) {
+            $time = strtotime($params['time_start']);
+            $ModelAccountCompany->where('c.create_time', '>=', $time);
+        }
+        if (isset($params['time_end']) && $params['time_end']) {
+            $time = strtotime($params['time_end'] . " 23:59:59");
+            $ModelAccountCompany->where('c.create_time', '<=', $time);
+        }
+        return $ModelAccountCompany;
+    }
+
+    /**
+     * @title 保存公司资料
+     * @param $data
+     * @param string $message
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws Exception
+     */
+    public function save($data, $message = '')
+    {
+        try {
+            if ($this->accountCompany->isHas(['company' => $data['company']])) {
+                throw new Exception('公司名称已经存在', 500);
+            }
+            $time = time();
+            $userInfo = CommonService::getUserInfo();
+            $data['creator_id'] = $data['updater_id'] = $userInfo['user_id'] ?? 0;
+            $data['create_time'] = $time;
+            $data['update_time'] = $time;
+            $data['company_time'] = strtotime($data['company_time'])??0;
+
+            if (!isset($params['vat_data'])) {
+                $data['vat_data'] = json_encode([]);
+            }
+            if (!isset($params['vat_attachment'])) {
+                $data['vat_attachment'] = json_encode([]);
+            }
+            if (isset($data['channel']) && $data['channel']) {
+                $data['channel'] = json_decode($data['channel'], true);
+                $data['channel'] = $this->channelToplace($data['channel']);
+            }
+            $imagesArr = (new AccountApplyService())->saveCompanyImages($data);
+            $data['images'] = json_encode($imagesArr);
+            unset($data['charter_url']);
+            unset($data['corporation_id_front']);
+            unset($data['corporation_id_contrary']);
+            unset($data['open_licence']);
+            Db::startTrans();
+            $this->accountCompany->isUpdate(false)->save($data);
+            //获取最新的数据返回
+            $new_id = $this->accountCompany->id;
+            AccountCompanyLog::addLog($new_id, AccountCompanyLog::add, $data, '', $message);
+            Db::commit();
+        } catch (Exception $e) {
+            Db::rollback();
+            throw $e;
+        }
+
+        return $this->read($new_id);
+    }
+
+    /**
+     * @title 更新公司资料
+     * @param $id
+     * @param $data
+     * @param string $message
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws Exception
+     */
+    public function update($id, $data, $message = '')
+    {
+        try {
+            $oldData = $this->accountCompany->isHas(['id' => $id]);
+            if (!$oldData) {
+                throw new JsonErrorException('公司资料不存在', 500);
+            }
+            if (isset($data['company'])) {
+                $oldData = $this->accountCompany->isHas(['company' => $data['company']]);
+                if ($oldData && $oldData['id'] != $id) {
+                    throw new JsonErrorException('公司名称已经存在', 500);
+                }
+            }
+
+            $userInfo = CommonService::getUserInfo();
+            $data['update_time'] = time();
+            $data['updater_id'] = $userInfo['user_id'];
+            $data['company_time'] = strtotime($data['company_time'])??0;
+            if (isset($data['channel']) && $data['channel']) {
+                $data['channel'] = json_decode($data['channel'], true);
+                $data['channel'] = $this->channelToplace($data['channel']);
+            }
+
+            $imagesArr = (new AccountApplyService())->saveCompanyImages($data);
+            $data['images'] = json_encode($imagesArr);
+            unset($data['charter_url']);
+            unset($data['corporation_id_front']);
+            unset($data['corporation_id_contrary']);
+            unset($data['open_licence']);
+            Db::startTrans();
+            $this->accountCompany->save($data, ['id' => $id]);
+            AccountCompanyLog::addLog($id, AccountCompanyLog::update, $data, $oldData, $message);
+            Db::commit();
+
+        } catch (JsonErrorException $e) {
+            Db::rollBack();
+            throw new JsonErrorException($e->getMessage());
+        }
+
+        return $this->read($id);
+
+    }
+
+
+    /**
+     * @title 公司资料信息
+     * @param $id
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws \think\Exception
+     */
+    public function read($id)
+    {
+        $accountInfo = $this->accountCompany->where(['id' => $id])->find();
+        if (empty($accountInfo)) {
+            throw new JsonErrorException('公司资料不存在', 500);
+        }
+        $accountInfo['collection_account'] = json_decode($accountInfo['collection_account'], true);
+        $accountInfo['channel'] = $this->placeToChannel($accountInfo['channel']);
+        $accountInfo['channel_count'] = AccountApply::getCompanyCount($id, true);
+        $accountInfo['url_prefix'] = $this->getUrlPrefix();
+        $accountInfo['vat_data'] = $this->getOldVat($accountInfo['vat_data']);
+        $accountInfo['vat_attachment'] = $this->getVatAttachmentAttr($accountInfo['vat_attachment']);
+        $accountInfo['type_name'] = AccountCompany::TYPE[$accountInfo['type']];
+        $accountInfo['source_name'] = AccountCompany::SOURCE[$accountInfo['source']];
+
+        return $accountInfo;
+    }
+
+
+    public function getUrlPrefix()
+    {
+        $this->setConfigIdentification('api_ip');
+        return $this->getConfigData();
+    }
+
+    private function getVatAttachmentAttr($vat_attachment)
+    {
+        $result = $this->getOldVat($vat_attachment);
+        foreach ($result as &$v) {
+            if (!empty($v['file_content'])) {
+                $v['file_content'] = $this->getUrlPrefix() . '/' . $v['file_content'];
+            }
+        }
+        return $result;
+    }
+
+
+    private function getOldVat($old)
+    {
+        if (!$old) {
+            return [];
+        }
+        $oldData = json_decode($old, true);
+        if (is_array($oldData)) {
+            return $oldData;
+        }
+        return [];
+    }
+
+    /**
+     * @title 更新VAT资料
+     * @param $id
+     * @param $data
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws Exception
+     */
+    public function updateVat($id, $data)
+    {
+        try {
+            $oldData = $this->accountCompany->isHas(['id' => $id]);
+            if (!$oldData) {
+                throw new Exception('公司资料不存在', 500);
+            }
+
+            if (!empty($data['vat_data'])) {
+                $newVatData = json_decode($data['vat_data'], true);
+                if (!is_array($newVatData)) {
+                    throw new Exception('vat_data数据有误');
+                }
+                $update['vat_data'] = json_encode($newVatData);
+            }
+
+            if (!empty($data['vat_attachment'])) {
+
+                $newVatAttachment = json_decode($data['vat_attachment'], true);
+                if (!is_array($newVatAttachment)) {
+                    throw new Exception('vat_attachment数据有误');
+                }
+
+                $oldMap = [];
+                $oldVatAttachment = $this->getOldVat($oldData['vat_attachment']);
+
+                foreach ($oldVatAttachment as $v) {
+                    foreach ($v['file'] as $key => $value) {
+                        $oldMap[$value['file_name']] = $value;
+                    }
+                }
+
+                $suplierService = new SupplierService();
+                $accountApplyService = new AccountApplyService();
+
+                foreach ($newVatAttachment as &$val) {
+                    foreach ($val['file'] as &$item) {
+                        if ($item['file_content']) {
+                            if (strpos($item['file_content'], 'data:image') !== false) {
+                                $fileResult = $suplierService->base64DecImg($item['file_content'], 'upload/baseaccount/' . date('Y-m-d'), time() . rand(0, 100));
+                                $item['file_content'] = $fileResult['filePath'];
+
+                            } else if (strpos($item['file_content'], 'data:application/pdf') !== false) {
+                                $fileResult = $accountApplyService->base64DecPdf($item['file_content'], 'upload/baseaccount/' . date('Y-m-d'), time() . rand(0, 100));
+                                $item['file_content'] = $fileResult['filePath'];
+
+                            } else {
+                                $item['file_content'] = $oldMap[$item['file_name']]['file_content'];
+                            }
+                        } else {
+                            if (!isset($oldMap[$item['file_name']])) {
+                                throw new Exception('文件内容不能为空');
+                            }
+                            $item['file_content'] = $oldMap[$item['file_name']]['file_content'];
+                        }
+                    }
+                }
+                $update['vat_attachment'] = json_encode($newVatAttachment);
+            }
+
+            $userInfo = CommonService::getUserInfo();
+            $update['update_time'] = time();
+            $update['updater_id'] = $userInfo['user_id'];
+            Db::startTrans();
+            $this->accountCompany->save($update, ['id' => $id]);
+            AccountCompanyLog::addLog($id, AccountCompanyLog::update, $update, $oldData, '');
+            Db::commit();
+        } catch (Exception $e) {
+            Db::rollBack();
+            throw $e;
+        }
+
+        return $this->read($id);
+
+    }
+
+    /**
+     * 删除信息
+     * @param $id
+     * @return int
+     */
+    public function delete($id)
+    {
+        return $this->accountCompany->where('id', $id)->delete();
+    }
+
+    public function getCompany($params)
+    {
+        $where = [];
+        $whereOr = '';
+        if (isset($params['status']) && $params['status'] != '') {
+            $where['status'] = $params['status'];
+        }
+        $whereOrAnd = '';
+        if (isset($params['type']) && $params['type'] != '') {
+            $where['type'] = $params['type'];
+            $whereOrAnd .= '  and type=' . $where['type'];
+        }
+        if (isset($params['channel_id']) && $params['channel_id'] > 0) {
+            $where['status'] = 0;
+            $where['channel'] = 0;
+            $whereOr = "channel & (1 << " . ($params['channel_id'] - 1) . " ) and status = 0 " . $whereOrAnd;
+        }
+
+        $field = 'id,company,company_type,source,corporation,account_count';
+        $list = $this->accountCompany->where($where)->whereOr($whereOr)->field($field)->order('id desc')->select();
+
+        // 根据公司名称搜索
+        if (isset($params['name']) && !empty($params['name'])) {
+            $result = [];
+            foreach ($list as $key => $val) {
+                if (false !== mb_strrpos($val['company'], $params['name'])) {
+                    $val['sourceText'] = AccountCompany::SOURCE[$val['source']];
+                    array_push($result, $val);
+                }
+            }
+            return $result;
+        }
+
+        foreach ($list as &$val){
+            $val['sourceText'] = AccountCompany::SOURCE[$val['source']];
+        }
+
+        return $list;
+    }
+
+    public function getLog($id)
+    {
+        return AccountCompanyLog::getLog($id);
+    }
+
+    public function channelToplace($channels)
+    {
+        $place = 0;
+        if (is_array($channels)) {
+            foreach ($channels as $channel) {
+                $place += (1 << ($channel - 1));
+            }
+        }
+        return $place;
+    }
+
+    public function placeToChannel($place, $max = 40)
+    {
+        if (!$place) {
+            return 0;
+        }
+        $channels = [];
+        for ($i = 0; $i < $max; $i++) {
+            if ($place & (1 << $i)) {
+                $channels[] = $i + 1;
+            }
+        }
+        return $channels;
+    }
+
+    /**
+     * 从账号基础资料拉取 公司资料
+     */
+    public function addCompanyByAccount()
+    {
+        $where = [];
+        $list = (new Account())->where($where)->select();
+        $error = [];
+        foreach ($list as $v) {
+            $add = [
+                'company' => $v['company'],
+                'company_type' => '',
+                'company_registration_number' => $v['company_registration_number'],
+                'corporation' => $v['corporation'],
+                'credit_card' => '',
+                'collection_account' => $v['collection_account'],
+                'vat' => $v['vat'],
+                'company_time' => $v['company_time'],
+                'company_address_zip' => $v['company_address'],
+                'corporation_address_zip' => '',
+                'create_time' => time(),
+                'creator_id' => 0,
+                'update_time' => time(),
+                'updater_id' => 0,
+                'charter_url' => '',
+                'corporation_id_front' => '',
+                'corporation_id_contrary' => '',
+                'status' => 0,
+                'channel' => 0,
+                'corporation_id' => $v['corporation_identification'],
+            ];
+            try {
+                $old = $this->accountCompany->isHas(['company' => $add['company']]);
+                if ($old) {
+                    (new AccountCompanyService())->update($old['id'], $add, '[系统推送更新]');
+                } else {
+                    $old = (new AccountCompanyService())->save($add, '[系统推送]');
+                }
+                (new Account())->save(['company_id' => $old['id']], ['id' => $v['id']]);
+            } catch (Exception $e) {
+                $error[] = $add['company'] . $e->getMessage() . 'id=>[' . $v['id'] . ']';
+            }
+        }
+        return $error;
+    }
+
+
+    /**
+     * 公司类型
+     * @return array
+     */
+    public function getType()
+    {
+        $status = [];
+        $statusList = AccountCompany::TYPE;
+        foreach ($statusList as $key => $name) {
+            $status[] = [
+                'value' => $key,
+                'label' => $name,
+            ];
+        }
+        return $status;
+    }
+
+    /**
+     * 资料来源
+     * @return array
+     */
+    public function getSource()
+    {
+        $status = [];
+        $statusList = AccountCompany::SOURCE;
+        foreach ($statusList as $key => $name) {
+            if ($key == 0) {
+                continue;
+            }
+            $status[] = [
+                'value' => $key,
+                'label' => $name,
+            ];
+        }
+        return $status;
+    }
+
+    public function checkCompany($company_id)
+    {
+        $model = new AccountCompany();
+        $old = $model->where('id', $company_id)
+            ->find();
+        if (!$old) {
+            throw new Exception('当前公司不存在，无法绑定');
+        }
+        if ($old['status'] != 0) {
+            throw new Exception('当前公司无法绑定');
+        }
+    }
+
+    public function getCanUseWhere($param)
+    {
+        $o = new AccountCompany();
+        $o = $o->where('status', 0);
+        if (isset($param['channel_id']) && $param['channel_id']) {
+            $o->where('id', 'exp', 'not in ( select company_id from account where status != 6 and company_id>0 and channel_id= ' . $param['channel_id'] . ' UNION ALL select company_id from account_apply   where  company_id >0 and status not in (4,5,6) and channel_id = ' . $param['channel_id'] . ' )  ');
+        }
+        return $o;
+    }
+
+    public function getCanUse($page, $pageSize, $param)
+    {
+        $result = ['list' => []];
+        $result['page'] = $page;
+        $result['pageSize'] = $pageSize;
+        $result['count'] = $this->getCanUseWhere($param)->count();
+        if ($result['count'] == 0) {
+            return $result;
+        }
+        $o = $this->getCanUseWhere($param);
+        $ret = $o->page($page, $pageSize)
+            ->field("id,company")
+            ->order('id desc')->select();
+        if ($ret) {
+            $result['list'] = $ret;
+        }
+        return $result;
+    }
+
+    /**
+     * @title 同步四个图片字段的数据到 images
+     * @return bool
+     * @throws Exception
+     */
+    public function imagesSyn()
+    {
+        try {
+            Db::startTrans();
+            $result = $this->accountCompany->field('id,charter_url,corporation_id_front,corporation_id_contrary,open_licence')->select();
+            foreach ($result as $val => $item) {
+                $images = [
+                    'charter_url' => [],
+                    'corporation_id_front' => [],
+                    'corporation_id_contrary' => [],
+                    'open_licence' => [],
+                ];
+
+                if (!empty($item['charter_url'])) {
+                    $images['charter_url'][] = [
+                        'fileName' => $item['charter_url'],
+                        'filePath' => $item['charter_url']
+                    ];
+                }
+                if (!empty($item['corporation_id_front'])) {
+                    $images['corporation_id_front'][] = [
+                        'fileName' => $item['corporation_id_front'],
+                        'filePath' => $item['corporation_id_front']
+                    ];
+                }
+                if (!empty($item['corporation_id_contrary'])) {
+                    $images['corporation_id_contrary'][] = [
+                        'fileName' => $item['corporation_id_contrary'],
+                        'filePath' => $item['corporation_id_contrary']
+                    ];
+                }
+                if (!empty($item['open_licence'])) {
+                    $images['open_licence'][] = [
+                        'fileName' => $item['open_licence'],
+                        'filePath' => $item['open_licence']
+                    ];
+                }
+
+                $update = $this->accountCompany->isUpdate('true')->update(['images' => json_encode($images)], ['id' => $item['id']]);
+
+                if (!$update) {
+                    throw new Exception('更新失败-ID-'.$item['id']);
+                }
+
+            }
+            Db::commit();
+
+        } catch (Exception $e) {
+            Db::rollback();
+            throw new Exception($e->getMessage());
+
+        }
+
+        return true;
+
+    }
+
+}

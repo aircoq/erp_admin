@@ -1,0 +1,372 @@
+<?php
+/**
+ * 付款 API服务类
+ * @author wangwei
+ * @date 2018-11-16 13:42:36
+ */
+namespace service\amazon\Finances;
+
+use service\amazon\Finances\FinancesBaseService;
+use org\XmlHandle;
+
+define('AMAZON_DATE_FORMAT', 'Y-m-d\TH:i:s.B\Z');
+class  FinancesService extends FinancesBaseService{
+	
+    /**
+     * 返回“付款 API”部分的运行状态
+     * GetServiceStatus
+     */
+    public function getServiceStatus(){
+        $return = array(
+            'ask' => 0,
+            'message'=>'getServiceStatus_error',
+            'data'=>array(),
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        );
+        
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MWSFinancesService_Model_GetServiceStatusRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'getServiceStatus');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $return['ask'] = 1;
+            $return['data'] = $data['GetServiceStatusResponse']['GetServiceStatusResult'];
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 返回给定日期范围的财务事件组 
+     * ListFinancialEventGroups
+     * 最大请求限额为30，恢复速率为每两秒一个请求
+     * @param date $FinancialEventGroupStartedAfter  Y 打开的财务事件组的日期开始时间，如:2018-11-16 14:19:10(北京时间，下同)
+     * @param date $FinancialEventGroupStartedBefore  N 打开的财务事件组的日期开始时间结束时间(默认值：当前时间减去两分钟)，如:2018-11-16 14:19:14
+     * @param int $MaxResultsPerPage  N 每页返回的最大结果数
+     */
+    public function listFinancialEventGroups(
+        $FinancialEventGroupStartedAfter, 
+        $FinancialEventGroupStartedBefore='', 
+        $MaxResultsPerPage = 100){
+        $return = [
+            'ask' => 0,
+            'message'=>'listFinancialEventGroups_error',
+            'data'=>[
+                'NextToken'=>'',
+                'FinancialEventGroupList'=>[]
+            ],
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        ];
+        
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MWSFinancesService_Model_ListFinancialEventGroupsRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        //设置用于选择在指定时间之后（或之后）打开的财务事件组的日期
+        $dateTime = new \DateTime($FinancialEventGroupStartedAfter);
+        $dateTime->setTimezone(new \DateTimeZone('UTC'));
+        $request->setFinancialEventGroupStartedAfter($dateTime->format(AMAZON_DATE_FORMAT));
+        //设置用于选择在指定时间之前（但不是在）指定时间之前打开的财务事件组的日期
+        if($FinancialEventGroupStartedBefore){
+            $dateTime = new \DateTime($FinancialEventGroupStartedBefore);
+            $dateTime->setTimezone(new \DateTimeZone('UTC'));
+            $request->setFinancialEventGroupStartedBefore($dateTime->format(AMAZON_DATE_FORMAT));
+        }
+        //设置每页返回的最大结果数
+        if($MaxResultsPerPage){
+            $request->setMaxResultsPerPage($MaxResultsPerPage);
+        }
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'listFinancialEventGroups');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['ListFinancialEventGroupsResponse']['ListFinancialEventGroupsResult'];
+            $FinancialEventGroupList = [];
+            if($groupList = paramNotEmpty($result, 'FinancialEventGroupList', [])){
+                $FinancialEventGroupList = paramNotEmpty($groupList,'FinancialEventGroup');
+                $FinancialEventGroupList = isNumericArray($FinancialEventGroupList) ? $FinancialEventGroupList : [$FinancialEventGroupList]; 
+            }
+            $return['ask'] = 1;
+            $return['data'] = [
+                'NextToken'=>paramNotEmpty($result, 'NextToken', ''),
+                'FinancialEventGroupList'=>$FinancialEventGroupList
+            ];
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 返回给定日期范围的财务事件组下一页
+     * ListFinancialEventGroupsByNextToken
+     * 此操作的最大请求限额为30，恢复速率为每两秒一个请求
+     * @param date $NextToken  Y 在您之前的请求的响应中返回的字符串标记
+     */
+    public function listFinancialEventGroupsByNextToken($NextToken){
+        $return = [
+            'ask' => 0,
+            'message'=>'listFinancialEventGroupsByNextToken_error',
+            'data'=>[
+                'NextToken'=>'',
+                'FinancialEventGroupList'=>[]
+            ],
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        ];
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MWSFinancesService_Model_ListFinancialEventGroupsByNextTokenRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        $request->setNextToken($NextToken);
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'listFinancialEventGroupsByNextToken');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['ListFinancialEventGroupsByNextTokenResponse']['ListFinancialEventGroupsByNextTokenResult'];
+            $FinancialEventGroupList = [];
+            if($groupList = paramNotEmpty($result, 'FinancialEventGroupList', [])){
+                $FinancialEventGroupList = paramNotEmpty($groupList,'FinancialEventGroup');
+                $FinancialEventGroupList = isNumericArray($FinancialEventGroupList) ? $FinancialEventGroupList : [$FinancialEventGroupList];
+            }
+            $return['ask'] = 1;
+            $return['data'] = [
+                'NextToken'=>param($result, 'NextToken', ''),
+                'FinancialEventGroupList'=>$FinancialEventGroupList
+            ];
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 返回给定订单，财务事件组或日期范围的财务事件。
+     * ListFinancialEvents
+     * 此操作的最大请求限额为30，恢复速率为每两秒一个请求
+     * $AmazonOrderId、$FinancialEventGroupId、$PostedAfter 三个字段必须有一个不为空
+     * 
+     * @param string $AmazonOrderId
+     * @param string $FinancialEventGroupId
+     * @param date $PostedAfter
+     * @param date $PostedBefore 
+     * @param int $MaxResultsPerPage N
+     * @return number[]|string[]|string[][]|array[][]|unknown[]|unknown[][]|array[][][]
+     */
+    public function listFinancialEvents(
+        $AmazonOrderId='',
+        $FinancialEventGroupId='',
+        $PostedAfter='',
+        $PostedBefore='',
+        $MaxResultsPerPage=100
+        ){
+        $return = [
+            'ask' => 0,
+            'message'=>'listFinancialEvents_error',
+            'data'=>[
+                'NextToken'=>'',
+                'FinancialEvents'=>[]
+            ],
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        ];
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MWSFinancesService_Model_ListFinancialEventsRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        if($AmazonOrderId){
+            $request->setAmazonOrderId($AmazonOrderId);
+        }
+        if($FinancialEventGroupId){
+            $request->setFinancialEventGroupId($FinancialEventGroupId);
+        }
+        if($PostedAfter){
+            $dateTime = new \DateTime($PostedAfter);
+            $dateTime->setTimezone(new \DateTimeZone('UTC'));
+            $request->setPostedAfter($dateTime->format(AMAZON_DATE_FORMAT));
+        }
+        if($PostedBefore){
+            $dateTime = new \DateTime($PostedBefore);
+            $dateTime->setTimezone(new \DateTimeZone('UTC'));
+            $request->setPostedBefore($dateTime->format(AMAZON_DATE_FORMAT));
+        }
+        if($MaxResultsPerPage){
+            $request->setMaxResultsPerPage($MaxResultsPerPage);
+        }
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'listFinancialEvents');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['ListFinancialEventsResponse']['ListFinancialEventsResult'];
+            $return['ask'] = 1;
+            $return['data'] = [
+                'NextToken'=>paramNotEmpty($result, 'NextToken', ''),
+                'FinancialEvents'=>paramNotEmpty($result, 'FinancialEvents', []),
+            ];
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+    
+    /**
+     * 返回给定订单，财务事件组或日期范围的财务事件 下一页
+     * listFinancialEventsByNextToken
+     * 此操作的最大请求限额为30，恢复速率为每两秒一个请求
+     * @param string $NextToken Y
+     * @return number[]|string[]|string[][]|array[][]|unknown[]|unknown[][]|array[][][]
+     */
+    public function listFinancialEventsByNextToken($NextToken){
+        $return = [
+            'ask' => 0,
+            'message'=>'listFinancialEventsByNextToken_error',
+            'data'=>[
+                'NextToken'=>'',
+                'FinancialEvents'=>[]
+            ],
+            'requestId'=>'',
+            'errorCode'=>'',
+            'errorType'=>'',
+            'xml'=>'',
+        ];
+        /**
+         * 1、设置服务类
+         */
+        $this->setService();
+        $service = $this->getService();
+        
+        /**
+         * 2、构建请求对象
+         */
+        $request = new \MWSFinancesService_Model_ListFinancialEventsByNextTokenRequest();
+        //卖家的销售ID
+        $request->setSellerId($this->_tokenConfig['MERCHANT_ID']);
+        //设置三方授权Token
+        if(!empty($this->_tokenConfig['MWS_AUTH_TOKEN'])){
+            $request->setMWSAuthToken($this->_tokenConfig['MWS_AUTH_TOKEN']);
+        }
+        $request->setNextToken($NextToken);
+        
+        /**
+         * 3、调用公共的执行请求方法
+         */
+        $re = $this->executeRequest($service, $request,'listFinancialEventsByNextToken');
+        if($re['ask']){
+            $data = XmlHandle::unserialize($re['data']);
+            $result = $data['ListFinancialEventsByNextTokenResponse']['ListFinancialEventsByNextTokenResult'];
+            $return['ask'] = 1;
+            $return['data'] = [
+                'NextToken'=>paramNotEmpty($result, 'NextToken', ''),
+                'FinancialEvents'=>paramNotEmpty($result, 'FinancialEvents', []),
+            ];
+            $return['xml'] = $re['data'];
+            $return['message'] = 'success';
+        }else{
+            $return['errorCode'] = $re['errorCode'];
+            $return['errorType'] = $re['errorType'];
+            $return['message'] = $re['message'];
+            $return['xml'] = $re['XML'];
+        }
+        $return['requestId'] = $re['requestId'];
+        return $return;
+    }
+	
+}

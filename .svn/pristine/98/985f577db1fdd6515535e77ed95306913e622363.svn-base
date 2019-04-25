@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.23545854727437066 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;font-size:10pt;page-break-after:always;">
+        <div style="width:248pt;padding-right:20pt;border:1pt solid #000;border-bottom:0;text-align:right;font-size:14pt;line-height:28pt;font-weight:bold;">
+            JFK
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-top:0;border-bottom:0;text-align:center;font-size:14pt;line-height:28pt;font-weight:bold;">
+            USZXR
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-bottom:0pt;text-align:center;font-size:9pt;line-height:10pt;padding-top: 20pt;padding-bottom: 10pt;">
+            <span style="display:inline-block;height:40pt;line-height:40pt;overflow-y:hidden;"><img  style="margin-bottom:5pt" width="80%" src="<?php echo $this->imgSrc($shipping_number);?>" /> </span><br><strong><?php echo $shipping_number; ?></strong>
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-top:0;border-bottom:0;text-align:center;font-size:9pt;line-height:10pt;padding-top: 10pt; padding-bottom: 5pt;">
+            <span style="display:inline-block;height:30pt;line-height:30pt;overflow-y:hidden;"> <img  width="80%" src="<?php echo $this->imgSrc('P'.$number);?>" /> </span> <strong>P<?php echo $number; ?></strong>
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-top:0;padding-top:10pt;">
+            <!--   JB0002200(&#22823;&#22411;&#25340;&#35013;&#31215;&#26408;&#20891;&#20107;&#36965;&#25511;&#22374;&#20811;&#36710;&#27169;&#22411;&#65288;&#32440;&#30418;&#21253;&#35013;&#65289; )*1   -->
+            <?php foreach ($list as $k=>$v):?>
+                <?php echo $v['declared_name_en'];?> *<?php echo $v['qty'];?>
+                <?php break;?>
+            <?php endforeach;?>
+        </div>
+
+</div>
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

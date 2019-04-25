@@ -1,0 +1,229 @@
+<?php
+namespace aliy1688;
+
+
+use aliy1688\GetToken;
+use think\Cache;
+use think\Response;
+
+abstract class AbsBase
+{
+    protected $apiServer = 'https://gw.open.1688.com/openapi/';
+    protected $appKey = '4509450';
+    protected $secretKey = 'rVzJLQqPFfF';
+    protected $refreshToken = '004304fc-51b4-4122-a578-72c43df30c87';
+    protected $accessToken = '';
+    protected $requestType = 'get';
+    protected $apiPath   = '';
+    protected $params = [];
+    protected $aliyResponseType = 'json';
+    const TOKEN_CACHE_NAME   = 'aliy1688_token';
+    protected $unSigned = true;
+
+    /**
+     * @param $name
+     * @param $value
+     */
+    public function __set($name, $value)
+    {
+        $this->params[$name] = $value;
+    }
+
+
+    /**
+     * @return mixed
+     */
+    public function getToken()
+    {
+        $token = Cache::get(AbsBase::TOKEN_CACHE_NAME);
+        return $token ?: (new GetToken())->request();
+    }
+
+    /**
+     * @return string
+     */
+    public function sign()
+    {
+        $apiInfo = $this->apiPath . $this->appKey;
+        $aliParams = array();
+        foreach ($this->params as $key => $val) {
+            $aliParams[] = $key . $val;
+        }
+        sort($aliParams);
+        $sign_str = join('', $aliParams);
+        $sign_str = $apiInfo . $sign_str;
+        return strtoupper(bin2hex(hash_hmac("sha1", $sign_str, $this->secretKey, true)));
+    }
+
+    /**
+     * @return string
+     */
+    protected function createApiUrl()
+    {
+        return $this->apiServer . $this->apiPath .$this->appKey;
+    }
+
+
+    /**
+     * @return bool|string
+     */
+    protected function createQueryStr()
+    {
+        $paramToSign = "";
+        $this->params['access_token']  = $this->accessToken;
+        if($this->unSigned) {
+            $this->unSigned =  false;
+            $this->params['_aop_signature'] = $this->sign();
+        }
+        foreach ( $this->params as $k => $v ) {
+            $paramToSign = $paramToSign . $k . "=" . urlencode($v) . "&";
+        }
+        $paramLength = strlen ( $paramToSign );
+        if ($paramLength > 0) {
+            $paramToSign = substr ( $paramToSign, 0, $paramLength - 1 );
+        }
+        return $paramToSign;
+    }
+
+    /**
+     * 默认返回一个包含阿里响应解析和curl_getinfo返回的信息合并数组
+     * 可以在具体api类中添加requestCallBack方法，则会将ch的引用传入该方法，
+     * 注意需要在该方法中进行curl_close($ch);
+     * @return array
+     * @throws \Exception
+     */
+    public function request()
+    {
+        $ch = curl_init ();
+        $url = $this->createApiUrl();
+        $paramToSign = $this->createQueryStr();
+
+        if (strtoupper($this->requestType) === "GET") {
+            $urlRequest = $url . "?" . $paramToSign;
+            curl_setopt ( $ch, CURLOPT_URL, $urlRequest );
+            curl_setopt ( $ch, CURLOPT_HEADER, false );
+            curl_setopt ( $ch, CURLOPT_RETURNTRANSFER, true );
+            curl_setopt ( $ch, CURLOPT_CONNECTTIMEOUT, 120 );
+            curl_setopt ( $ch, CURLOPT_POST, 0 );
+            curl_setopt ( $ch, CURLOPT_SSL_VERIFYHOST, false );
+            curl_setopt ( $ch, CURLOPT_SSL_VERIFYPEER, false );
+        } else {
+            curl_setopt ( $ch, CURLOPT_URL, $url );
+            curl_setopt ( $ch, CURLOPT_HEADER, false );
+            curl_setopt ( $ch, CURLOPT_RETURNTRANSFER, true );
+            curl_setopt ( $ch, CURLOPT_CONNECTTIMEOUT, 120 );
+            curl_setopt ( $ch, CURLOPT_POST, 1 );
+            curl_setopt ( $ch, CURLOPT_POSTFIELDS, $paramToSign );
+            curl_setopt ( $ch, CURLOPT_SSL_VERIFYHOST, false );
+            curl_setopt ( $ch, CURLOPT_SSL_VERIFYPEER, false );
+        }
+        if(method_exists($this,'requestCallBack')){
+            return $this->requestCallBack($ch);
+        }else{
+            $response = curl_exec($ch);
+            if (false === $response) {
+                throw new \Exception(curl_error($ch));
+            }
+            switch ($this->aliyResponseType) {
+                case 'json':
+                        $respInfo = json_decode($response);
+                        if(is_null($respInfo)) {
+                            $respInfo = ['request_success' => false,'response' => $response];
+                        }else{
+                            $respInfo = $this->iterable2Array($respInfo);
+                            $respInfo = array_merge(['request_success' => true],$respInfo);
+                        }
+                    break;
+                default : throw new \Exception('Unsupported Aliy response data type.');
+            }
+            $res = array_merge($respInfo, curl_getinfo($ch));
+            curl_close($ch);
+            if($res['http_code'] == 401) {
+                Cache::rm(AbsBase::TOKEN_CACHE_NAME);
+                $this->unSigned = true;
+                return $this->request();
+            }else{
+                return $res;
+            }
+        }
+    }
+
+
+    /**
+     * @param $data
+     * @return array
+     * @throws \Exception
+     */
+    protected function iterable2Array($data)
+    {
+        $arr = [];
+        if(is_object($data) || is_array($data)) {
+            foreach($data as $k => $v){
+                $arr[$k] = (is_object($v) || is_array($v)) ? $this->iterable2Array($v) : $v;
+            }
+        }else{
+            throw new \Exception('Funtion iterable2Array must have an iterable parameter.');
+        }
+        return $arr;
+    }
+
+
+    /**
+     * @param $aliyTime
+     * @return string
+     */
+    public function timeFomat($aliyTime)
+    {
+        return substr($aliyTime,0,4).'-'.
+                substr($aliyTime,4,2).'-'.
+                substr($aliyTime,6,2).' '.
+                substr($aliyTime,8,2).':'.
+                substr($aliyTime,10,2).':'.
+                substr($aliyTime,12,2);
+    }
+
+
+    /**
+     * 只有200表示正确执行完成
+     * @var array
+     */
+    protected $result = ['status' =>200, 'message' => ''];
+
+    /**
+     * 设置执行返回信息
+     * @param int $status 200:正确执行并完成目标任务,其他皆为未能正确执行完成或未能完成目标
+     * @param string $message
+     * @param array $append
+     * @return array
+     */
+    protected function setResult($status =200,$message = '',$append = array())
+    {
+        $this->result['status'] = $status;
+        $this->result['message'] = $message;
+        if(!empty($append)) {
+            $this->result = array_merge($this->result ,['data' => $append]);
+        }
+    }
+
+    /**
+     *
+     * @param int|number $status
+     * @param string $message
+     * @param array $append
+     * @return array
+     */
+    protected function setReturnResult($status =200,$message = '',$append = array())
+    {
+        $this->setResult($status,$message,$append);
+        return $this->result;
+    }
+
+    /**
+     * 重置result数组
+     */
+    protected function resetResult()
+    {
+        $this->result = ['status' =>200, 'message' => ''];
+    }
+    
+}

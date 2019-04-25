@@ -1,0 +1,18 @@
+{
+    "name": "cdiscount/sdkphpapi",
+    "description": "PHP SDK for the Cdiscount Marketplace API",
+    "type": "project",
+    "autoload": {
+        "files": ["sdk/autoload.php"]
+    },
+    "require": {
+        "zendframework/zend-authentication": "^2.5",
+        "zendframework/zend-db": "^2.8",
+        "zendframework/zend-soap": "^2.6",
+        "zendframework/zend-http": "^2.5",
+        "zendframework/zend-log": "^2.9",
+        "zendframework/zend-config": "^2.6"
+    },
+    "license": "GPL-3.0",
+    "version": "1.0.8"
+}

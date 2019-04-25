@@ -1,0 +1,91 @@
+<?php
+
+
+namespace service\shipping\label\Dao;
+
+
+use think\Exception;
+use barcode1\Png128;
+use app\common\model\PackageCollection as ModelPackageCollection;
+use app\common\model\PackageCollectionDetail as ModelPackageCollectionDetail;
+
+class Base
+{
+
+    protected $is_open_water = 0;
+    protected $isCanDeclare = 0;
+
+    //使用的条码图片方式  net 为网络图 self为自己制作
+    private static $IMG_TYPE = 'self';
+
+    public function isOpenWater()
+    {
+        return $this->is_open_water;
+    }
+
+    public function isCanDeclare($code)
+    {
+        return $this->isCanDeclare;
+    }
+
+    public function createChangeLabel($code, $order)
+    {
+        throw new Exception('该包裹没有转化面单');
+    }
+
+    public function createDeclareLabel($code, $order)
+    {
+        throw new Exception('该包裹没有报关单');
+    }
+
+
+    protected function display($template, $data)
+    {
+        $calledClass = explode("\\", get_called_class());
+        $calledClassName = end($calledClass);
+        $file = dirname(dirname(__FILE__)) . "/template/" . ucwords($calledClassName) . "/" . $template . ".php";
+        if (is_file($file)) {
+            extract($data);
+            ob_start();
+            include $file;
+            $contents = ob_get_contents();
+            ob_end_clean();
+            return $contents;
+        }
+
+        throw new Exception('无此模板文件' . $file);
+    }
+
+    public function img($number, $type = '', $thickness = 27, $scale = 2)
+    {
+        $type = $type ? $type : self::$IMG_TYPE;
+        if ($type == 'net') {
+            return $this->networkImg($number, $thickness, $scale);
+        } else if ($type == 'self') {
+            $this->selfImg($number, $thickness, $scale);
+        }
+    }
+
+    public function networkImg($number, $thickness, $scale)
+    {
+        return 'http://b.wwei.cn/html/image.php?filetype=PNG&dpi=72&scale=' . $scale . '&rotation=0&font_family=0&font_size=8&text=' . $number . '&thickness=' . $thickness . '&start=NULL&code=BCGcode128';
+    }
+
+    public function selfImg($number, $thickness = 27, $scale = 2)
+    {
+        $Png128 = new Png128();
+        echo 'data:image/png;base64,';
+        $number = "" . $number . "";
+        $Png128->createImg($number, $scale, $thickness);
+    }
+
+    public function imgSrc($number, $type = '')
+    {
+        return $this->img($number, $type);
+    }
+
+    public function imgLittle($number, $type = '')
+    {
+        return $this->img($number, $type, 12, 1);
+    }
+}

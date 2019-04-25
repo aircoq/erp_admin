@@ -1,0 +1,230 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: rondaful_user
+ * Date: 2019/1/3
+ * Time: 15:36
+ */
+
+namespace service\ebay;
+
+
+use app\common\model\ebay\EbayAccount;
+use org\Curl;
+use think\Exception;
+
+class EbayRestApi
+{
+    private $marketPlaceId = [
+        0 => 'EBAY_US',
+        16 => 'EBAY_AT',
+        15 => 'EBAY_AU',
+        123 => 'EBAY_BE',
+        23 => 'EBAY_BE',
+        2 => 'EBAY_CA',
+        210 => 'EBAY_CA',
+        193 => 'EBAY_CH',
+        77 => 'EBAY_DE',
+        186 => 'EBAY_ES',
+        71 => 'EBAY_FR',
+        3 => 'EBAY_GB',
+        201 => 'EBAY_HK',
+        205 => 'EBAY_IE',
+        203 => 'EBAY_IN',
+        101 => 'EBAY_IT',
+        207 => 'EBAY_MY',
+        146 => 'EBAY_NL',
+        211 => 'EBAY_PH',
+        212 => 'EBAY_PL',
+        216 => 'EBAY_SG',
+        100 => 'EBAY_MOTORS_US'
+    ];
+    private const MARKETING_BASE_URL = 'https://api.ebay.com/sell/marketing/v1';
+    private const GCCBT_BASE_URL = 'https://gccbtapi.ebay.com.hk/gccbtapi/v1';
+
+    private $type = [
+        'marketing' => [
+            'createCampaign' => [
+                'url' => self::MARKETING_BASE_URL.'/ad_campaign',
+                'method' => 'POST'
+            ],
+            'getCampaigns' => [
+                'url' => self::MARKETING_BASE_URL.'/ad_campaign',
+                'method' => 'GET'
+            ],
+            'getCampaignByName' => [
+                'url' =>   self::MARKETING_BASE_URL.'/ad_campaign/get_campaign_by_name',
+                'method' => 'GET'
+            ],
+        ],
+        //大中华卖家API
+        //大中华账户政策状态接口
+        'gccbt' => [
+            //总览
+            'accountOverview' => [//获取卖家账户的所有12项政策状态，但不包含详细数据。
+                'url' => self::GCCBT_BASE_URL.'/dashboard/account_overview',
+                'method' => 'GET',
+            ],
+            //综合表现
+            'ltnp' => [//获取综合表现状态及详细数据
+                'url' => self::GCCBT_BASE_URL.'/dashboard/ltnp',
+                'method' => 'GET',
+            ],
+            //非货运表现
+            'tci' => [//获取非货运表现状态及详细数据
+                'url' => self::GCCBT_BASE_URL.'/dashboard/tci',
+                'method' => 'GET',
+            ],
+            //非货运问题刊登列表
+            'nonShipping' => [//导致非货运表现问题的刊登列表
+                'url' => self::GCCBT_BASE_URL.'/dashboard/defectListings/nonShipping',
+                'method' => 'GET',
+            ],
+            //货运表现
+            'ship1to8' => [//获取货运表现（1-8周）的状态及详细数据
+                'url' => self::GCCBT_BASE_URL.'/dashboard/ship1to8',
+                'method' => 'GET',
+            ],
+            'ship5to12' => [//获取货运表现（5-12周）的状态及详细数据
+                'url' => self::GCCBT_BASE_URL.'/dashboard/ship5to12',
+                'method' => 'GET',
+            ],
+            //货运问题
+            'defectListingsShip1to8' => [//导致货运表现问题的刊登列表 （1-8周表现）
+                'url' => self::GCCBT_BASE_URL.'/dashboard/defectListings/ship1to8',
+                'method' => 'GET',
+            ],
+            'defectListingsShip5to12' => [//导致货运表现问题的刊登列表 （5-12周表现）
+                'url' => self::GCCBT_BASE_URL.'/dashboard/defectListings/ship5to12',
+                'method' => 'GET',
+            ],
+            //物流标准
+            'epacketShippingPolicy' => [//获取物流标准政策--美国>$5交易的物流使用状态及详细数据。
+                'url' => self::GCCBT_BASE_URL.'/dashboard/epacket_shipping_policy',
+                'method' => 'GET',
+            ],
+            'edsShippingPolicy' => [// 获取物流标准政策--美国小于5美金及其他25个主要国家的物流使用合规比例状态及详细数据
+                'url' => self::GCCBT_BASE_URL.'/dashboard/eds_shipping_policy',
+                'method' => 'GET',
+            ],
+            //SpeedPAK物流
+            'SPAKlistData' => [//获取SpeedPAK 物流管理方案及其他符合政策要求的物流服务使用状态数据
+                'url' => self::GCCBT_BASE_URL.'/speedPak/list_data',
+                'method' => 'GET',
+            ],
+            'SPAKlistDownload' => [//获取SpeedPAK 物流管理方案及其他符合政策要求的物流服务使用状态相关交易下载数据
+                'url' => self::GCCBT_BASE_URL.'/speedPak/list_download',
+                'method' => 'GET',
+            ],
+            'SPAKmisuseData' => [//买家选择SpeedPAK物流选项时卖家正确使用SpeedPAK物流管理方案表现数据
+                'url' => self::GCCBT_BASE_URL.'/speedPak/misuse_data',
+                'method' => 'GET',
+            ],
+            'SPAKmisuseDownload' => [//买家选择SpeedPAK物流选项时卖家正确使用SpeedPAK物流管理方案表现相关交易下载数据
+                'url' => self::GCCBT_BASE_URL.'/speedPak/misuse_download',
+                'method' => 'GET',
+            ],
+            //海外仓标准
+            'acctList' => [//获取海外仓服务标准政策的状态及详细数据
+                'url' => self::GCCBT_BASE_URL.'/newwarehouse/acct_list',
+                'method' => 'GET',
+            ],
+            'transactionDownload' => [//获取海外仓服务标准政策相关交易数据下载
+                'url' => self::GCCBT_BASE_URL.'/newwarehouse/transaction_download',
+                'method' => 'GET',
+            ],
+            //商业计划追踪评估
+            'pgcTracking' => [//获取商业计划追踪表现的状态及详细数据
+                'url' => self::GCCBT_BASE_URL.'/dashboard/pgc_tracking',
+                'method' => 'GET',
+            ],
+            //待处理刊登列表
+            'qclist' => [//获取待处理刊登列表的信息
+                'url' => self::GCCBT_BASE_URL.'/dashboard/qclist',
+                'method' => 'GET',
+            ],
+            //买家未收到物品提供列表
+            'sellerInr' => [//获取买家未收到物品提醒信息列表
+                'url' => self::GCCBT_BASE_URL.'/dashboard/seller_inr',
+                'method' => 'GET',
+            ],
+        ]
+    ];
+
+    private $header;
+    private $url;
+    private $method;
+
+    public function __construct($config, $type, $action)
+    {
+        $oauthToken = EbayAccount::where('id',$config['account_id'])->value('oauth_token');
+        $header['Authorization'] = 'Authorization: Bearer '.$oauthToken;
+        if ($type != 'gccbt') {
+            $header['X-EBAY-C-MARKETPLACE-ID'] = 'X-EBAY-C-MARKETPLACE-ID: ' . $this->marketPlaceId[$config['site_id'] ?? 0];
+        }
+        $this->header = $header;
+        $this->url = $this->type[$type][$action]['url'];
+        $this->method = $this->type[$type][$action]['method'];
+        return $this;
+    }
+
+    /**
+     * 发送请求
+     * @param $param
+     * @param array $extraParam
+     * @return mixed
+     * @throws Exception
+     */
+    public function sendRequest($param = [], $extraParam = [])
+    {
+        try {
+            if ($extraParam) {
+                $this->dealUrl($extraParam);
+            }
+            $res = '';
+            switch ($this->method ) {
+                case 'GET':
+                    if ($param) {
+                        $query = http_build_query($param);
+                        $this->url .= '?'.$query;
+//                        $url = $this->url.'?';
+//                        foreach ($param as $name => $value) {
+//                            $url .= $name.'='.$value.'&';
+//                        }
+//                        $url = substr($url,0, -1);
+//                        $this->url = $url;
+                    }
+                    $res = Curl::curlGet($this->url, $this->header);
+                    break;
+                case 'POST':
+                    $this->header['Content-Type'] = 'Content-Type: application/json';
+                    $res = Curl::curlPost($this->url, json_encode($param), $this->header);
+                    break;
+            }
+            return json_decode($res, true);
+        } catch (\Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * 将url里面的参数替换为实际的值,适用于参数嵌在url中的形式，例如/goods/:id/images,其中的id是变动的，需要在打包组装时替换为实际的值
+     * @param $param
+     */
+    private function dealUrl($param)
+    {
+        $url = $this->url;
+        $matches = [];
+        preg_match_all('/{[0-9a-zA-Z-_\.]*}/', $url, $matches);
+        if ($matches) {
+            foreach ($matches[0] as $k => $match) {//第一组是完整模式的所有匹配
+                $url = str_replace($match, $param[$k], $url);
+            }
+        }
+        $this->url = $url;
+    }
+
+
+
+
+}

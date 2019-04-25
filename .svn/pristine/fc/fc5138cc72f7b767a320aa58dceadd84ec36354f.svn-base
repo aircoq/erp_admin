@@ -1,0 +1,78 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Dave
+ * Date: 2018/8/9
+ * Time: 13:46
+ */
+
+namespace service\shopee\operation;
+
+use think\exception;
+
+class Returns extends Common
+{
+
+    /**
+     * 退货确认
+     * @param string $returnsn
+     * @return mixed
+     * @throws exception
+     */
+    public function confirmReturn($returnsn)
+    {
+        $data = $this->getBaseConfig();
+        $data['returnsn'] = $returnsn;
+        $url = 'https://partner.shopeemobile.com/api/v1/returns/confirm';
+        $header =  $this->getHeader($data,$url);
+        return $this->doPost($url, $data, $header);
+    }
+
+
+    /**
+     * 退货争议
+     * @param string $returnsn
+     * @param string $email
+     * @param string $dispute_reason
+     * @param string $dispute_text_reason
+     * @param array $images
+     * @return mixed
+     * @throws exception
+     */
+    public function disputeReturn($returnsn, $email, $dispute_reason, $dispute_text_reason, $images)
+    {
+        $data = $this->getBaseConfig();
+        $data['returnsn'] = $returnsn;
+        $data['email'] = $email;
+        $data['dispute_reason'] = $dispute_reason;
+        $data['dispute_text_reason'] = $dispute_text_reason;
+        $data['images'] = $images;
+
+        $url = 'https://partner.shopeemobile.com/api/v1/returns/dispute';
+        $header =  $this->getHeader($data,$url, false);
+        return $this->doPost($url, $data, $header, false);
+    }
+
+    /**
+     * 退货清单
+     * @param int $pagination_offset
+     * @param int $pagination_entries_per_page
+     * @param int $create_time_from
+     * @param int $create_time_to
+     * @return mixed
+     * @throws exception
+     */
+    public function getReturnList($pagination_offset = 0, $pagination_entries_per_page = 40, $create_time_from = 0, $create_time_to = 0)
+    {
+        $data = $this->getBaseConfig();
+        $data['pagination_offset'] = $pagination_offset;
+        $data['pagination_entries_per_page'] = $pagination_entries_per_page;
+        $create_time_from && $data['create_time_from'] = $create_time_from;
+        $create_time_to && $data['create_time_to'] = $create_time_to;//3600*24*15
+
+        $url = 'https://partner.shopeemobile.com/api/v1/returns/get';
+        $header =  $this->getHeader($data,$url);
+        return $this->doPost($url, $data, $header);
+    }
+
+}

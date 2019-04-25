@@ -1,0 +1,89 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2018/12/28
+ * Time: 18:04
+ */
+
+namespace Logistics;
+
+
+use Logistics\Exceptions\Exception;
+use Logistics\Exceptions\InvalidArgumentException;
+use Logistics\Exceptions\NoQueryAvailableException;
+
+class Logistics
+{
+
+    protected $queryFactory;
+
+    public function __construct(QueryFactory $queryFactory)
+    {
+        $this->queryFactory = $queryFactory;
+    }
+
+    /**
+     * 获取物流跟踪信息
+     *
+     * @param string $code
+     * @param array $queryList
+     * @return array
+     * @throws Exception
+     * @throws InvalidArgumentException
+     * @throws NoQueryAvailableException
+     */
+    public function getLogistics(string $code, array $queryList = ['ickd', 'kuaidi100']): array
+    {
+        if (empty($code)) {
+            throw new InvalidArgumentException('code argument cannot be empty!');
+        }
+        $results = [];
+        $isSuccessful = false;
+        foreach ($queryList as $item) {
+            try {
+                $results[$item] = [
+                    'info' => $this->queryFactory->query($item)->callInterface($code),
+                ];
+                $isSuccessful = true;
+                break;
+            } catch (\Exception $e) {
+                $results[$item] = [
+                    'exception' => $e->getMessage(),
+                ];
+            }
+        }
+        if (!$isSuccessful) {
+            throw new NoQueryAvailableException('查询失败, 接口发生错误');
+        }
+        return $results;
+    }
+
+    /**
+     * 获取发货时间
+     *
+     * @param string $code
+     * @return string
+     * @throws \Exception
+     */
+    public function getSendTime(string $code)
+    {
+       $results = $this->getLogistics($code);
+       foreach ($results as $result) {
+           if (isset($result['info'])) {
+               $len = count($result['info']['data']);
+               if ($len == 0) {
+                   throw new \Exception($result['info']['message']);
+               }
+               $lastInfo = $result['info']['data'][$len - 1];
+               if (preg_match('/(\d{4})\-(\d{2})\-(\d{2})/', $lastInfo['time'])) {
+                   return strtotime($lastInfo['time']);
+               }
+               return $lastInfo['time'];
+           }
+           if (!empty($result['exception'])) {
+               throw new \Exception($result['exception']);
+           }
+       }
+    }
+}

@@ -1,0 +1,232 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)http://lilangda.tongtool.com/process/new/warehouse/print?0.45092694875537176 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>打印页面</title>
+</head>
+<body style="padding:0;margin:0;background-color:gray">
+
+<!--2 美国-->
+<!--1 开始-->
+<div id="page1" style="width:270pt;padding:2pt;font-size:10pt;line-height:12pt;font-family:Arial;margin:0 auto;background:white;page-break-after:always;">
+    <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;word-wrap:break-word;border-collapse:collapse;">
+        <tbody>
+        <tr style="font-size: 9pt;line-height: 9pt;text-align:center;">
+            <td colspan="6" style="text-align:left;border: 0;">
+                <div style="padding-left: 3pt;">
+                    Form:Mr Yuan <br>
+                    TEL:37088973 <br>
+                    Unit B, 8/F., First Group Centre, <br>
+                    14 Wang Tai Road, Kowloon Bay, Kln, H.K <br><br>
+                </div>
+            </td>
+            <td colspan="1" style="font-size: 16pt;line-height: 16pt;border: 0;border: 2pt solid #000;">
+                E
+            </td>
+            <td colspan="3" style=" border:2pt solid #000;">
+                POSTAGE PAID<br>
+                HONG KONG<br>
+                PORT PAYE
+            </td>
+            <td colspan="2" style=" border:2pt solid #000;">
+                PERMIT<br>
+                NO.7328<br>
+                平郵專用
+            </td>
+        </tr>
+        <tr>
+            <td colspan="12" style="line-height: 9pt;">
+                &nbsp;<strong>HONG KONG</strong>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="12" style="height:50pt;width:150pt;padding:2pt 0;border-top:2pt solid #000;font-size:9pt;line-height:10pt;word-wrap:break-word;vertical-align:top;">
+                <div style="margin-bottom: 5pt;padding-left: 6pt;">
+                    <span>To:</span><?php echo $name;?><br>
+                    <span>TEL:</span><?php echo $phone;?>
+                    <div style="margin-top:5pt;font-size: 10pt;font-weight: bold;">
+                        <?php echo $street.$street2;?> <br>
+                        <?php echo $city?> ,<?php echo $province?> <?php echo $zip?> <br>
+                        <?php echo $country_en_name?>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <tr style="line-height: 16pt">
+            <td colspan="8">
+                &nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size:16pt;"><?php echo $country_en_name?></span>
+            </td>
+            <td colspan="2" style="border: 2pt solid #000;text-align: center;font-size: 14pt;">
+                Z-<?php echo $fenqu;?>
+            </td>
+            <td colspan="2" style="border: 2pt solid #000;text-align: center;font-size: 14pt;">
+                <?php echo $country_code;?>
+            </td>
+        </tr>
+        <tr style="line-height: 16pt">
+            <td colspan="8">
+                &nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size:16pt;"><?php echo $country_name?></span>
+            </td>
+            <td colspan="2" style="border: 2pt solid #000;text-align: center;font-size: 14pt;">
+                &nbsp;
+            </td>
+            <td colspan="2" style="border: 2pt solid #000;text-align: center;font-size: 14pt;">
+                &nbsp;<?php echo $kouan;?>
+            </td>
+        </tr>
+        <tr style="text-align: center;font-size: 11pt;font-weight: bold;line-height: 20pt;">
+            <td colspan="8">
+                <span><?php echo $shipping_number?></span>
+                <div style="border-bottom: 1.5pt solid #000;width: 120pt;margin-left: 15pt;"></div>
+            </td>
+            <td colspan="4">
+                <div style="border: 1.5pt solid #000;border-radius: 50%;width: 20pt;height:20pt;margin-top: 3pt;margin-left: 35pt">E</div>
+            </td>
+        </tr>
+        <tr style="text-align: center;font-size: 10pt;line-height: 14pt;">
+            <td colspan="8">
+                <img width="220" src="<?php echo $this->imgSrc($shipping_number);?>">
+            </td>
+            <td colspan="4"style="border: 2pt solid #000;">
+                BY AIR MAIL<br>
+                航&nbsp;&nbsp;PAR AVION&nbsp;&nbsp;空
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<!--1 结束-->
+<!--2 开始-->
+<div id="page2" style="width:270pt;padding:2pt;font-size:10pt;line-height:12pt;font-family:Arial;margin:0 auto;background:white;page-break-after:always;">
+    <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;word-wrap:break-word;border-collapse:collapse;">
+        <tbody>
+        <tr style="font-size: 9pt;line-height: 9pt;text-align:center;">
+            <td colspan="12" style="text-align:center;border: 0;">
+                <div style="padding-left: 3pt;">
+                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAVoAAAA4CAIAAAAzeKfEAAAACXBIWXMAAAsTAAALEwEAmpwYAAAF7mlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEzLTAxOjA2OjM5ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIiB4bWxuczpwaG90b3Nob3A9Imh0dHA6Ly9ucy5hZG9iZS5jb20vcGhvdG9zaG9wLzEuMC8iIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTggKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAxOC0wNy0yMVQxNzozMDo1MSswODowMCIgeG1wOk1vZGlmeURhdGU9IjIwMTgtMDctMjFUMTc6NDA6NDArMDg6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMTgtMDctMjFUMTc6NDA6NDArMDg6MDAiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6MTQ5MjY3ODUtMTY5Zi00YjQ1LWJlMmItNzQ1MzY4ODU3NDk3IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjkwQTY4RkY0OENDOTExRTg4RTIyOEQ0QTAwQTQ5MEU0IiB4bXBNTTpPcmlnaW5hbERvY3VtZW50SUQ9InhtcC5kaWQ6OTBBNjhGRjQ4Q0M5MTFFODhFMjI4RDRBMDBBNDkwRTQiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiBwaG90b3Nob3A6SUNDUHJvZmlsZT0ic1JHQiBJRUM2MTk2Ni0yLjEiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo5MEE2OEZGMThDQzkxMUU4OEUyMjhENEEwMEE0OTBFNCIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo5MEE2OEZGMjhDQzkxMUU4OEUyMjhENEEwMEE0OTBFNCIvPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJzYXZlZCIgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDoxNDkyNjc4NS0xNjlmLTRiNDUtYmUyYi03NDUzNjg4NTc0OTciIHN0RXZ0OndoZW49IjIwMTgtMDctMjFUMTc6NDA6NDArMDg6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFkb2JlIFBob3Rvc2hvcCBDQyAyMDE4IChXaW5kb3dzKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz5FtoJIAAAgGElEQVR4nO1dX2gT2f4/98d9a++duKCWrQ92FiosZCURLjYYRKHU5MG6hBYW7k3aGx9EoU2zQlmuu3XqLku53iYVXPbhhmnxQbAZtD60d1NQSiW5LKiYoNCyTuRSpY3gVpk8z+/hQ76cnplMY911uzqfhzBz5vybk3O+8z3ff+cPpmkyFy5cuGDs/2xTq9XqW+6HCxcurCgUCuFw2OPx+P1+TdOQWC6XPR5PoVCgbB6Pp1Qq4bpUKlERPk+99A0wXbhwsS2Rz+clScpms7qu5/P5RCJh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">
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="6" style="border-top:2pt solid #000;font-size:8pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                <div style="padding-left: 6pt;">
+                    <img style="float: left" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAOFJREFUOE9j/A8EDATBD4b3r/8zCIhyMjDC1II0EgQfpv4vEJvyf8cfhEoGgpr+//3/Zb/Xf/7GY//fIilG0Qh0BcjZeDFML4ZGDBd8WfS/XrTp/+Kv/8AGEqnx7/+vRwL/i9ZDnEmCxsf/j1Zq/fc7/B5sEV6Nu3LM/nvtew4MEiBAciYejW/BJq5YF/nfgzP9f8WtL0BnBvznrzz0/w3UYwSc+u7/nXm6/1kcy/83pyv+d9j5GhEgBAPn17H/a5P5/jNIVv6f+gHsaMJ+JCseUePw7/8fP37jTFhEJDnsegG3TFfu8ePCiwAAAABJRU5ErkJggg=="> <div style="float: left;padding-top: 1.5pt">禮物Gift</div><div style="clear: both;"></div>
+                </div>
+                <div style="padding-left: 6pt;">
+                    <img style="float:left;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAADlJREFUOE9j/A8EDOQAkEZyAAM5msCuRNYIdDHI2XgxTD2GRnwuABk6qhFHCNEmcMiKR1JSEdlJDgBGtnmkgY6C2wAAAABJRU5ErkJggg=="><div style="float:left;padding-top: 1.5pt">文件Documents</div><div style="clear: both;"></div>
+                </div>
+            </td>
+            <td colspan="6" style="border-top:2pt solid #000;font-size:9pt;line-height:8pt;word-wrap:break-word;vertical-align:top;">
+                <div style="padding-left: 6pt;">
+                    <img style="float:left;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAADlJREFUOE9j/A8EDOQAkEZyAAM5msCuRNYIdDHI2XgxTD2GRnwuABk6qhFHCNEmcMiKR1JSEdlJDgBGtnmkgY6C2wAAAABJRU5ErkJggg=="><div style="float:left;padding-top: 1.5pt">商用樣本Commercial sample</div><div style="clear: both;"></div>
+                </div>
+                <div style="padding-left: 6pt;">
+                    <img style="float:left;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAADlJREFUOE9j/A8EDOQAkEZyAAM5msCuRNYIdDHI2XgxTD2GRnwuABk6qhFHCNEmcMiKR1JSEdlJDgBGtnmkgY6C2wAAAABJRU5ErkJggg=="><div style="float:left;padding-top: 1.5pt">其他Other</div><div style="clear: both;"></div>
+                    <div style="float: right;margin-top: -6pt;">
+                        <img src="data:image/png;base64,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">
+                    </div>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <table style="width:270pt;margin-top:1pt;font-size:8pt;line-height:8pt;table-layout:fixed;border-collapse:collapse;" cellpadding="0" cellspacing="0">
+        <tbody>
+        <tr>
+            <td colspan="6" style="border:solid 1pt #000;border-bottom:0;padding:0;text-align:left">
+                (1)內載物品詳情及(2)數量
+                Quantity (2) and detailed description of contents(1)
+            </td>
+            <td colspan="3" style="border:solid 1pt #000;border-bottom:0;text-align:left;">
+                (3)重量 <br>
+                Weight(千克 kg)
+            </td>
+            <td colspan="3" style="border:solid 1pt #000;border-bottom:0;padding:0;text-align:left;">
+                (5)價值<br>
+                Value
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <table cellpadding="0" cellspacing="0" style="width:270pt;font-size:8pt;line-height:8pt;table-layout:fixed;border-collapse:collapse;">
+        <tbody>
+        <?php foreach ($list as $v):?>
+        <tr>
+            <td colspan="6" style="vertical-align: top; border:solid 1pt #000;word-break:break-all;padding:0 2pt;text-align: left;">
+                <?php echo $v['declared_name_en'];?> <br>
+                Qty:<?php echo $v['qty'];?>
+            </td>
+            <td colspan="3" style="vertical-align: top; border:solid 1pt #000;word-break:break-all;padding:0 2pt;text-align: left;">
+                <?php echo number_format($v['declared_weight']/1000,3,".",'');?>
+            </td>
+            <td colspan="3" style="vertical-align: top; border:solid 1pt #000;padding:0 2pt;word-wrap:break-word;text-align: left;">
+                <?php echo $v['declared_value_currency']?> <?php echo number_format($v['declared_value']*$v['qty'],2,'.','');?>
+            </td>
+        </tr>
+        <?php endforeach;?>
+        <tr>
+            <td colspan="6" style="vertical-align: top; border:solid 1pt #000;word-break:break-all;padding:0 2pt;text-align: left;">
+                只使用於商品For commercial items only
+                (7)協定編號及(8)物品原產地（如有）if known HS tariff number(7) and country of origin of goods(8)
+            </td>
+            <td colspan="3" style="vertical-align: top; border:solid 1pt #000;word-break:break-all;padding:0 2pt;text-align: left;">
+                (4)總重量 Total <br>
+                Weight(千克 kg) <br>
+                <?php echo number_format($total_weight/1000,3,'.','');?>
+            </td>
+            <td colspan="3" style="vertical-align: top; border:solid 1pt #000;padding:0 2pt;word-wrap:break-word;text-align: left;">
+                (6)總共價值<br>
+                Total Value<br>
+                <?php echo $declared_currency;?> <?php echo number_format($total_value,2,'.','');?>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="12" style="font-size: 8pt;line-height: 8.5pt;">
+                <div style="padding-left: 2pt;padding-top: 1pt;">
+                    在下面簽署，以證明此報關單上列資料全屬正確，以及郵件並不載有任何法例或郵政規例或海
+                    關條例所禁寄的危險物品。本人的姓名及地址已載於郵件上。<br>
+                    I, the undersigned, whose name and address are given on the item, certify that the
+                    particulars given in this declaration are correct and that this item does not contain any
+                    dangerous article or articles. Prohibited by legislation or by postal or customs regulations.
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="12" style="text-align: right;">
+                <span>10002514</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <table cellpadding="0" cellspacing="0" style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:8pt;line-height:8.5pt;">
+        <tbody>
+        <tr>
+            <td colspan="5" style="border-top:2pt solid #000;padding:0 2pt;text-align:left;vertical-align: top;">
+                <div style="padding-top: 1pt;">
+                    (15)日期及寄件人簽署<br>
+                    Date and sender’s signature
+                    <div style="margin-top: 3pt;"><?php echo $shipping_number;?></div>
+                </div>
+            </td>
+            <td colspan="6" style="border-top:2pt solid #000;padding:0 2pt;text-align:left;vertical-align: top;">
+                <div style="padding-top: 1pt;">
+                    卖家订单号:<?php echo $number;?>
+                    <div style="margin-top: 3pt;">
+                        <?php foreach ($list as $v):?>
+                            <?php echo $v['declared_name_cn'];?>|<?php echo $v['declared_name_en'];?>*<?php echo $v['qty'];?>
+                        <?php endforeach;?>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<!--2 结束-->
+
+
+
+<!--2 澳大利亚-->
+
+</body>
+</html>

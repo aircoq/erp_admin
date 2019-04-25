@@ -1,0 +1,262 @@
+<?php
+
+namespace app\common\model;
+
+use app\common\model\account\CreditCard;
+use app\common\service\Common;
+use app\index\service\AccountApplyService;
+use think\Cache;
+use think\Model;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/12/14
+ * Time: 11:47
+ */
+class AccountLog extends Model
+{
+    const add = 0;
+    const update = 1;
+    const delete = 2;
+    const user = 3;
+    const nothing = 4;
+
+
+    const allMeg = [
+        'channel_id' => '平台',
+        'site_code' =>      '站点',
+        'account_name' =>      '主账号全称【店铺名】',
+        'password' =>      '主账号密码【店铺密码】',
+        'account_name_minor' =>      '子账号全称',
+        'password_minor' =>      '子账号密码',
+        'account_code' =>      '账号简称',
+        'server_id' =>      '服务器id',
+        'phone' =>      '手机号码',
+        'email' =>      '注册邮箱',
+        'email_password' =>      '邮箱密码',
+        'email_server_id' =>      '邮箱服务器ID',
+        'email_allowed_receive' =>      '收取邮件',
+        'email_allowed_send' =>      '发送邮寄',
+        'company_id' =>     '公司资料',
+        'account_creator' =>     '账号创建人',
+        'account_create_time' =>      '账号创建时间',
+        'status' =>     '状态',
+        'collection_msg' => '收款账号数组',
+        'credit_card' => '信用卡',
+        'collection_account' => '收款账号',
+        'collection_type' => '收款账号平台',
+        'collection_email' => '收款账号邮箱',
+        'collection_user' => '收款方',
+        'fulfill_time' => '完成[交接]时间',
+        'phone_id' => '手机号',
+        'email_id' => '邮箱',
+        'shop_name'=>'店铺名',
+        'remark'=>'备注',
+        'credit_card_id'=>'信用卡',
+    ];
+
+
+    /**
+     * 初始化
+     */
+    protected function initialize()
+    {
+        parent::initialize();
+    }
+
+    public static function getLog($id)
+    {
+        $list = (new AccountLog())->where('account_id', $id)->order('id desc')->select();
+        foreach ($list as &$v) {
+            $v['remark'] = json_decode($v['remark'], true);
+        }
+        return $list;
+    }
+
+    /**
+     * 新增日志
+     * @param $account_id
+     * @param $type
+     * @param $newData
+     * @param  $oldData
+     * @param  $msg
+     * @return false|int
+     */
+    public static function addLog($account_id, $type, $newData = [], $oldData = [], $msg = '',$userInfo = [])
+    {
+
+        if(!$userInfo){
+            $userInfo = Common::getUserInfo();
+        }
+        $temp['account_id'] = $account_id;
+        $temp['type'] = $type;
+        $temp['operator_id'] = $userInfo['user_id'] ?? 0;
+        $temp['operator'] = $userInfo['realname'] ?? '';
+        $remark = [];
+        unset($newData['phone']);
+        unset($newData['email']);
+        unset($newData['update_time']);
+        unset($newData['updater_id']);
+        unset($newData['create_time']);
+        unset($newData['creator_id']);
+        switch ($type) {
+            case self::add:
+                $remark = self::getRemark($newData, $oldData);
+                break;
+            case self::update:
+                $remark = self::getRemark($newData, $oldData);
+                break;
+            case self::delete:
+                $remark[] = '删除资料';
+                break;
+            case self::user:
+                $newData = $newData ? $newData : [];
+                $oldData = $oldData ? $oldData : [];
+                $remark = self::getRemarkUser($newData, $oldData);
+                break;
+        }
+        if ($msg) {
+            if(is_array($msg)){
+               foreach ($msg as $v){
+                   $remark[] = $v;
+               }
+            }else{
+                $remark[] = $msg;
+            }
+
+        }
+        if(!$remark){
+            return false;
+        }
+        $temp['remark'] = json_encode($remark, JSON_UNESCAPED_UNICODE);
+        $temp['data'] = json_encode($newData, JSON_UNESCAPED_UNICODE);
+        $temp['create_time'] = time();
+        return (new AccountLog())->allowField(true)->isUpdate(false)->save($temp);
+    }
+
+
+    public static function getRemarkUser($newIds = [], $oldIds = [])
+    {
+        $remarks = [];
+        foreach ($newIds as $id) {
+            if (!in_array($id, $oldIds)) {
+                $remarks[] = '【新增成员】' . self::getUserName($id);
+            }
+        }
+        foreach ($oldIds as $id) {
+            if (!in_array($id, $newIds)) {
+                $remarks[] = '【移除成员】' . self::getUserName($id);
+            }
+        }
+        return $remarks;
+    }
+
+    public static function getUserName($userId)
+    {
+        $userInfo = \app\common\cache\Cache::store('User')->getOneUser($userId);
+        return $userInfo['realname'] ?? '';
+    }
+
+    public static function getRemark($newData, $oldData)
+    {
+        $remarks = [];
+        foreach ($newData as $key => $new) {
+            $remark = '';
+            if($key == 'collection_msg') {
+                $newData[$key] = json_decode($newData[$key], true);
+                if(isset($oldData[$key]) ) {
+                    $oldData[$key] = json_decode($oldData[$key] , true);
+                }
+            }
+            if (isset($oldData[$key])) {
+
+                if ($oldData[$key] != $newData[$key]) {
+                    $remark .= '修改:' . self::getValue($key, $oldData[$key]) . '-->' . self::getValue($key, $newData[$key]);
+                }
+            } elseif ($new || ( $new == 0 && ($key == 'email_allowed_receive' || $key == 'email_allowed_send'))) {
+                $remark .= '增加:' . self::getValue($key, $newData[$key]);
+            }
+            if ($remark) {
+                $remarks[] = "【" . self::allMeg[$key] . "】" . $remark;
+            }
+
+        }
+        return $remarks;
+    }
+
+    public static function getValue($key, $vlave)
+    {
+        $msg = '';
+        switch ($key) {
+            case 'status':
+                $allStatus = Account::STATUS;
+                $msg = $allStatus[$vlave] ?? $vlave;
+                break;
+            case 'fulfill_time':
+                $msg = self::showTime($vlave);
+                break;
+            case 'account_create_time':
+                $msg = self::showTime($vlave);
+                break;
+            case 'initiate_time':
+                $msg = self::showTime($vlave);
+                break;
+            case 'account_creator':
+                $msg = self::getUserName($vlave);
+                break;
+            case 'email_allowed_send':
+                $all = ['启用','停用'];
+                $msg = $all[$vlave];
+                break;
+            case 'email_allowed_receive':
+                $all = ['启用','停用'];
+                $msg = $all[$vlave];
+                break;
+            case 'email_server_id':
+                $msg = (new EmailServer())->where('id' ,$vlave)->value('imap_url') ?? $vlave;
+                break;
+            case 'server_id':
+                $msg = (new Server())->where('id' ,$vlave)->value('ip') ?? $vlave;
+                break;
+            case 'company_id':
+                $msg = (new AccountCompany())->where('id' ,$vlave)->value('company') ?? $vlave;
+                break;
+            case 'email_id':
+                $msg = (new Email())->where('id' ,$vlave)->value('email') ?? $vlave;
+                break;
+            case 'phone_id':
+                $msg = (new Phone())->where('id' ,$vlave)->value('phone') ?? $vlave;
+                break;
+            case 'channel_id':
+                $msg = \app\common\cache\Cache::store('Channel')->getChannelName($vlave);
+                break;
+            case 'credit_card_id':
+                $msg = (new CreditCard())->where('id' ,$vlave)->value('card_number') ?? $vlave;
+                break;
+            case 'collection_msg':
+                $msg = AccountApplyLog::getCollectionMsg($vlave);
+                break;
+            case 'password' :
+            case 'password_minor':
+            case 'email_password':
+                $msg = '***';
+                break;
+            default:
+                $msg = $vlave;
+        }
+        return $msg;
+    }
+
+    public static function showTime($time)
+    {
+        $msg = 0;
+        if ($time) {
+            $msg = date('Y-m-d H:i:s', $time);
+        }
+        return $msg;
+    }
+
+
+    
+}

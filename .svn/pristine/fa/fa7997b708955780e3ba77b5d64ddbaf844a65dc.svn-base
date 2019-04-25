@@ -1,0 +1,157 @@
+<?php
+
+namespace service\aliexpress\operation;
+
+use service\aliexpress\operation\Common;
+
+/**
+ * Doc: Aliexpress纠纷处理
+ * User: Tom
+ * Date: 17-3-20
+ * Time: 下午6:11
+ */
+class Issue extends Common
+{
+    private $baseUrl = 'http://gw.api.alibaba.com:80/openapi/param2/1/aliexpress.open/';
+    
+    /**
+     * 查询纠纷列表信息
+     * @param int $currentPage      当前页数
+     * @param string $issueStatus   纠纷状态：WAIT_SELLER_CONFIRM_REFUND 买家提起纠纷,SELLER_REFUSE_REFUND 卖家拒绝纠,
+     * ACCEPTISSUE 卖家接受纠纷,WAIT_BUYER_SEND_GOODS 等待买家发货,WAIT_SELLER_RECEIVE_GOODS 买家发货，等待卖家收货,
+     * ARBITRATING 仲裁中,SELLER_RESPONSE_ISSUE_TIMEOUT 卖家响应纠纷超时
+     * @param string $orderNo       订单ID
+     * @param string $buyerName     买家名称
+     * @return array
+     */
+    public function queryIssueList($currentPage,$issueStatus='',$orderNo='',$buyerName='')
+    {
+        $url = $this->baseUrl."api.queryIssueList/".$this->client_id;
+        $data = [      
+            'currentPage'   =>  $currentPage,
+            'issueStatus'   =>  $issueStatus,
+            'orderNo'       =>  $orderNo,   
+            'buyerName'     =>  $buyerName,           
+            'access_token'  =>  $this->accessToken,    
+        ];
+        $data['_aop_datePattern'] = 'yyyy-MM-dd HH:mm:ss';
+        //$signature = $this->apiSign($data, $this->getUrlPath($url), $this->client_secret);
+        //$data['_aop_signature'] = $signature;
+        $newResult = $this->requestAliexpress($url,$data);
+        //$result = $this->curlPost($url, $data);
+        //$newResult = json_decode($result, true);//print_r($newResult);//exit;
+        if(isset($newResult['success'])&&$newResult['success']){
+            $countPage = ceil($newResult['totalItem']/$newResult['pageSize']);
+            return ['msg'=>'','response'=>$newResult['dataList'],'status'=>1,'countPage'=>$countPage];
+        }
+        return ['msg'=>$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    /**
+     * 根据纠纷ID，获取协商数据
+     * @param string $issueId   纠纷ID
+     * @return array
+     */
+    public function findIssueDetailByIssueId($issueId)
+    {
+        $url = $this->baseUrl."alibaba.ae.issue.findIssueDetailByIssueId/".$this->client_id;
+        $data = [        
+            'issueId'       =>  $issueId,           
+            'access_token'  =>  $this->accessToken,    
+        ];
+        $data['_aop_datePattern'] = 'yyyy-MM-dd HH:mm:ss';
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['success'])&&$newResult['success']){
+            return ['msg'=>$newResult['resultMemo'],'response'=>$newResult['resultObject'],'status'=>1];
+        }
+        return ['msg'=>  isset($newResult['resultMemo'])?$newResult['resultMemo']:$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    /**
+     * 纠纷中卖家新增订单留言，留言内容同订单留言
+     * @param string $orderId   订单ID
+     * @param string $content   留言内容
+     * @return array
+     */
+    public function leaveOrderMessage($orderId,$content)
+    {
+        $url = $this->baseUrl."api.leaveOrderMessage/".$this->client_id;
+        $data = [        
+            'orderId'       =>  $orderId,
+            'content'       =>  $content,
+            'access_token'  =>  $this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url, $data);
+        if(isset($newResult['success'])&&$newResult['success']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>$newResult['msg']?$newResult['msg']:$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    /**
+     * 卖家提交纠纷仲裁申请
+     * @param string $issueId   纠纷ID
+     * @param string $reason    纠纷原因(有两个值，一个是noMatchDesc（货不对版），另外一个是notReceived（未收到货）
+     * @param string $content   卖家提交仲裁描述
+     * @return array
+     */
+    public function sellerSubmitArbi($issueId,$reason,$content)
+    {
+        $url = $this->baseUrl."api.sellerSubmitArbi/".$this->client_id;
+        $data = [        
+            'issueId'       =>  $issueId,
+            'reason'       =>  $reason,
+            'content'       =>  $content,
+            'access_token'  =>  $this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url, $data);print_r($newResult);exit;
+        if(isset($newResult['success'])&&$newResult['success']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>$newResult['msg']?$newResult['msg']:$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    /**
+     * 卖家确认收货 
+     * @param string $issueId   纠纷ID
+     * @return array
+     */
+    public function sellerConrimReceiveGoods($issueId)
+    {
+        $url = $this->baseUrl."api.sellerConrimReceiveGoods/".$this->client_id;
+        $data = [        
+            'issueId'       =>  $issueId,
+            'access_token'  =>  $this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url, $data);print_r($newResult);exit;
+        if(isset($newResult['success'])&&$newResult['success']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>$newResult['msg']?$newResult['msg']:$newResult['error_message'],'response'=>'','status'=>0];
+    }
+    
+    /**
+     * 卖家放弃退货申请（退货）
+     * @param string $issueId   纠纷ID
+     * @return array
+     */
+    public function sellerAbandonReceiveGoods($issueId)
+    {
+        $url = $this->baseUrl."api.sellerAbandonReceiveGoods/".$this->client_id;
+        $data = [        
+            'issueId'       =>  $issueId,
+            'access_token'  =>  $this->accessToken,    
+        ];
+
+        $newResult = $this->requestAliexpress($url, $data);print_r($newResult);exit;
+        if(isset($newResult['success'])&&$newResult['success']){
+            return ['msg'=>'','response'=>'','status'=>1];
+        }
+        return ['msg'=>$newResult['msg']?$newResult['msg']:$newResult['error_message'],'response'=>'','status'=>0];
+    }
+   
+}
+

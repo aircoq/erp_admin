@@ -1,0 +1,60 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-5-29
+ * Time: 下午12:23
+ */
+
+namespace service\shopee\operation;
+
+
+class Discount extends Common
+{
+    private $baseUrl="https://partner.shopeemobile.com/api/v1/discount/";
+    public function add($params){
+        $url=$this->baseUrl.__FUNCTION__;
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    public function update($params){
+        $url=$this->baseUrl.__FUNCTION__;
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    public function get($params){
+        $url="https://partner.shopeemobile.com/api/v1/discounts/get";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    public function detail($params)
+    {
+        $url=$this->baseUrl.__FUNCTION__;
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    public function updateDiscountItems($params)
+    {
+        $url=$this->baseUrl."item/update";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    public function deleteDiscountItem($params)
+    {
+        $url=$this->baseUrl."item/delete";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+
+    public function addDiscountItem($params){
+        $url=$this->baseUrl."items/add";
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+    public function delete($params){
+        $url=$this->baseUrl.__FUNCTION__;
+        $response = $this->curlPost($url,$params);
+        return $response;
+    }
+}

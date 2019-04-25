@@ -1,0 +1,14 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-17
+ * Time: 上午11:46
+ */
+
+namespace swoole\wsClient;
+
+
+class WebSocketException extends \Exception
+{
+}

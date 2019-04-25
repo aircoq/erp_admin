@@ -1,0 +1,35 @@
+<?php
+namespace swoole;
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-4-24
+ * Time: 下午9:16
+ */
+abstract class SwooleCmd
+{
+    protected $data;
+    public static $globalDebug = false;
+
+    /**
+     * SwooleCmd constructor.
+     * @param $cmd
+     * @param $data
+     */
+    public function __construct($data = [])
+    {
+        $this->data = $data;
+    }
+
+    public abstract function execute(\swoole_websocket_server $server) :SwooleCmdResult;
+
+    public function __toString()
+    {
+        return json_encode([
+            'cmd' => static::class,
+            'type'=>'phpcmd',
+            'data' => serialize($this->data)
+        ]);
+    }
+
+}

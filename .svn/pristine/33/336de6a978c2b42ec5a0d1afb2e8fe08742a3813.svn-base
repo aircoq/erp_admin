@@ -1,0 +1,88 @@
+<?php
+
+namespace paytm;
+
+use app\common\cache\Cache;
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/5/21
+ * Time: 14:15
+ */
+class PaytmCatalogApi extends PaytmBaseApi
+{
+    public function __construct($params = []) {
+        parent::__construct($params);
+    }
+
+    /**
+     * 上传商品
+     * @return mixed
+     */
+    public function pushCatalog($data) {
+        $url = $this->hostUrl.'/asgard/v1/push';
+        $result = $this->authcall($url, 'GET',$data);
+        return $result;
+    }
+
+    /**
+     * 获取类目列表
+     * @return mixed
+     */
+    public function getCategories() {
+        $url = $this->hostUrl.'/asgard/v1/categories';
+        $result = $this->authcall($url, 'GET');
+        return $result;
+    }
+
+    /**
+     * 获取类目
+     * @return mixed
+     */
+    public function getCategoryAttributes($category_code) {
+        $url = $this->hostUrl.'/asgard/v1/category/attributes='.$category_code;
+        $result = $this->authcall($url, 'GET');
+        return $result;
+    }
+
+    /**
+     * 获得受支持的货币列表
+     * @return mixed
+     */
+    public function getCurrencies() {
+        $url = $this->hostUrl.'/asgard/v1/currencies';
+        $result = $this->authcall($url, 'GET');
+        return $result;
+    }
+
+    /**
+     * 获取支持的语言列表
+     * @return mixed
+     */
+    public function getLanguages() {
+        $url = $this->hostUrl.'/asgard/v1/languages';
+        $result = $this->authcall($url, 'GET');
+        return $result;
+    }
+
+    /**
+     * 获取支持的语言列表
+     * @return mixed
+     */
+    public function getBrands() {
+        $url = $this->hostUrl.'/asgard/v1/brands';
+        $result = $this->authcall($url, 'GET');
+        return $result;
+    }
+
+    /**
+     * 获取支持的语言列表
+     * @return mixed
+     */
+    public function getReturnPolicies() {
+        $url = $this->hostUrl.'/asgard/v1/returnpolicies';
+        $result = $this->authcall($url, 'GET');
+        return $result;
+    }
+
+}

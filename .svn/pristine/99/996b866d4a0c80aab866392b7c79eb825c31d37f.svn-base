@@ -1,0 +1,90 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-7-11
+ * Time: 下午8:39
+ */
+
+namespace swoole;
+use swoole_websocket_server;
+use swoole_http_server;
+use swoole_server;
+
+
+abstract class Swoole
+{
+    protected $swoole;
+    protected $host = 0;
+    protected $port = 0;
+    protected $mode = 0;
+    protected static $instance;
+    const DEFAULT_OPTIONS = [
+
+    ];
+
+    public function __construct($serverType = SWOOLE_SOCK_TCP)
+    {
+        self::$instance = $this;
+        $this->mode = SWOOLE_PROCESS;
+        // 实例化 Swoole 服务
+        switch ($serverType) {
+            case 'socket':
+                $this->swoole = new swoole_websocket_server($this->host, $this->port);
+                $eventList    = ['Open', 'Message', 'Close', 'HandShake'];
+                break;
+            case 'http':
+                $this->swoole = new swoole_http_server($this->host, $this->port);
+                $eventList    = ['Request'];
+                break;
+            case 'server':
+                $this->swoole = new swoole_server($this->host, $this->port);
+                $eventList    = ['Start', 'ManagerStart', 'ManagerStop', 'PipeMessage', 'Task', 'Packet', 'Finish', 'Receive', 'Connect', 'Close', 'Timer', 'WorkerStart', 'WorkerStop', 'Shutdown', 'WorkerExit', 'WorkerError'];
+                break;
+            default:
+            case 'websocket':
+                $this->swoole = new swoole_websocket_server($this->host, $this->port);
+                $eventList    = ['Open', 'Message', 'Close', 'HandShake','Start', 'ManagerStart', 'ManagerStop', 'PipeMessage', 'Task', 'Packet', 'Finish', 'Receive', 'Connect', 'Close', 'Timer', 'WorkerStart', 'WorkerStop', 'Shutdown','WorkerExit', 'WorkerError'];
+
+        }
+        // 设置参数
+        $setting = array_merge_recursive($this->getOptions(), self::DEFAULT_OPTIONS);
+        $this->swoole->set($setting);
+        // 设置回调
+        foreach ($eventList as $event) {
+            if (method_exists($this, 'on' . $event)) {
+                $this->swoole->on($event, [$this, 'on' . $event]);
+            }
+        }
+    }
+
+    public abstract function getOptions() : array ;
+
+
+    public function start()
+    {
+        // Run worker
+        $this->swoole->start();
+    }
+
+    public function stop()
+    {
+        $this->swoole->stop();
+    }
+
+    public function sendPipeMessage(PipeMessageAction $messageAction, $distWorkID = -1)
+    {
+        $this->swoole->sendMessage(serialize($messageAction), $distWorkID);
+    }
+    /**
+     * 魔术方法 有不存在的操作的时候执行
+     * @access public
+     * @param string $method 方法名
+     * @param array $args 参数
+     * @return mixed
+     */
+    public function __call($method, $args)
+    {
+        call_user_func_array([$this->swoole, $method], $args);
+    }
+}

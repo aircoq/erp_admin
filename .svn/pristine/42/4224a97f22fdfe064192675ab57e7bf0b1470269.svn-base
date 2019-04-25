@@ -1,0 +1,204 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/6/5
+ * Time: 18:16
+ */
+
+namespace walmart;
+
+use org\Xml;
+
+class WalmartBaseApi
+{
+    protected $client_id = '';
+
+    protected $client_secret = '';
+
+    protected $code = '';
+
+    protected $error = '';
+
+    protected $channel_type = '';
+
+    public function __construct($params = [])
+    {
+        $this->client_id = $params['client_id'] ?? '';
+        $this->client_secret = $params['client_secret'] ?? '';
+        $this->code = $params['code'] ?? '';
+        $this->channel_type = $params['channel_type'] ?? $params['channel_type'] ?? '';
+    }
+
+
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * 得到私密的Key资源
+     * @param string $url 沃尔玛API URL以及path和查询参数
+     * @param string $method 请求方式【大写】
+     * @param string $timestemp 时间戳【毫秒】
+     * @return string sign 加密后的签名
+     */
+    public function getSign($url, $method, $timestemp)
+    {
+        $needStr = $this->client_id . "\n";
+        $needStr .= $url . "\n";
+        $needStr .= $method . "\n";
+        $needStr .= $timestemp . "\n";
+
+        $sign = '';
+//        dump($this->client_secret);die;
+        $penKey = $this->getPemKey($this->client_secret);
+        $hash = defined("OPENSSL_ALGO_SHA256") ? OPENSSL_ALGO_SHA256 : "sha256";
+
+        openssl_sign($needStr, $sign, $penKey, $hash);
+
+        return base64_encode($sign);
+
+    }
+
+    /**
+     * 得到私密的Key资源
+     * @param string $der 私密
+     * @return mixed key
+     */
+    protected function getPemKey($der)
+    {
+        static $BEGIN_MARKER = "-----BEGIN PRIVATE KEY-----";
+        static $END_MARKER = "-----END PRIVATE KEY-----";
+        $pem = $BEGIN_MARKER . "\n";
+        $pem .= chunk_split($der, 64, "\n");
+        $pem .= $END_MARKER . "\n";
+        return openssl_pkey_get_private($pem);
+    }
+
+    /**
+     * 获取当前时间戳
+     * @return int timestamp
+     */
+    public function getTimestamp()
+    {
+        return round(microtime(true) * 1000);
+    }
+
+    /**
+     * Xml转化为数组
+     * @param string $xml
+     * @return array
+     */
+    public function xmlToArray($xml)
+    {
+        $xml = str_replace('ns3:', '', $xml);
+        $xml = str_replace('ns4:', '', $xml);
+        $xml = str_replace('ns2:', '', $xml);
+        //禁止引用外部xml实体
+        libxml_disable_entity_loader(true);
+        $values = json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
+        return $values;
+    }
+
+    /**
+     * Xml转化为数组
+     * @param string $array
+     * @param string $head
+     * @param string $headStr
+     * @param string $name
+     * @param string $key_name 如果key是数字是替换的字符串
+     * @return array
+     */
+    public function arrayToXml($array, $head = true, $headStr = '', $name = '', $key_name = '')
+    {
+        $xml = '';
+        $xml .= $head ? '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "<$name$head $headStr>" : '' ."\n";
+        foreach ($array as $key => $val) {
+
+            if (is_array($val)) {
+                if (is_numeric($key)) {
+                    $key = $key_name ?? $key;
+                }
+                $xml .= "<$name" . $key . ">" . $this->arrayToXml($val, false, $headStr, $name, $key_name) . "</$name" . $key . ">" ."\n";
+            } else {
+                $xml .= "<$name" . $key . ">" . $val . "</$name" . $key . ">" ."\n";
+            }
+        }
+        $xml .= $head ? "</$name$head>" : '' ."\n";
+        $xml = str_replace("</ns3:>",'',$xml);
+        $xml = str_replace("<ns3:>",'',$xml);
+        return $xml;
+    }
+
+
+    /**
+     * 发起请求
+     * @param $url
+     * @param array $headers
+     * @param array $bodyData
+     * @param $method 访问方法'GET'， 'POST'
+     * @param bool $httpCode 是否返回状态码
+     * @return mixed
+     */
+    public function httpCurl($url, $headers = [], $method = 'GET', $bodyData = [], $httpCode = false)
+    {
+        $curl = curl_init();
+        $header_array = [];
+        $method = strtoupper($method);
+        if($method == 'POST'){
+            $headers['Content-Type'] = 'application/xml';
+        }
+        foreach ($headers as $k => $v) {
+            $header_array[] = $k . ': ' . $v;
+        }
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 300,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_HTTPHEADER => $header_array,
+        ));
+
+        switch ($method) {
+            case 'GET':
+                if (!empty($bodyData)) {
+                    if (is_array($bodyData)) {
+                        $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($bodyData);
+                    } else {
+                        curl_setopt($curl, CURLOPT_POSTFIELDS, $bodyData);
+                    }
+                }
+                break;
+            case 'POST':
+                curl_setopt($curl, CURLOPT_POST, true);
+                if (!empty ($bodyData)) {
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, $bodyData);
+                }
+                break;
+
+        }
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false); //不验证证书
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false); //不验证证书
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($httpCode) {
+            return $code;
+        }
+        if ($err) {
+            return "cURL Error #:" . $err;
+        } else {
+            return $response;
+        }
+        return true;
+
+    }
+
+
+}

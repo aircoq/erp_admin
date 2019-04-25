@@ -1,0 +1,218 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: panguofu
+ * Date: 2018/10/24
+ * Time: 下午5:54
+ */
+
+namespace cd;
+
+use cd\CdBaseApi;
+use think\Cache;
+use think\Loader;
+
+
+class CdProductApi extends CdBaseApi
+{
+    public function __construct(array $params = [])
+    {
+        parent::__construct($params);
+        Loader::import('autoload', EXTEND_PATH . '/cd/sdk/vendor');
+        Loader::import('autoload', EXTEND_PATH . '/cd/sdk/sdk');
+    }
+
+
+    public function submitProductPackage($zipURL)
+    {
+
+        error_reporting(-1);
+
+        $client = new \Sdk\ApiClient\CDSApiClient($this->client_id, $this->client_secret);
+        $token = $client->init();
+        if ($token == null || !$client->isTokenValid()) {
+            $this->error = "CD token bad";
+            return false;
+        }
+
+
+        $productPoint = $client->getProductPoint();
+
+
+//        $getProductPackageSubmissionResultResponse = $productPoint->getProductPackageSubmissionResult($token,/* Package ID */
+//            264655);
+//
+//        if ($getProductPackageSubmissionResultResponse->hasError()) {
+//            echo $getProductPackageSubmissionResultResponse->getErrorMessage();
+//            die;
+//        }
+//
+//        if ($getProductPackageSubmissionResultResponse->isPackageImportHasErrors()) {
+//            /** @var Sdk\Product\ProductReportLog $reportLog */
+//            foreach ($getProductPackageSubmissionResultResponse->getProductLogList() as $reportLog) {
+//
+//                echo "------------------------------------------------<br/>";
+//
+//                echo "LogDate : " . $reportLog->getLogDate() . "<br/>";
+//                echo "ProductIntegrationStatus : " . $reportLog->getProductIntegrationStatus() . "<br/>";
+//                echo "SKU : " . $reportLog->getSKU() . "<br/>";
+//                echo "Validated : " . ($reportLog->isValidated() ? 'true' : 'false') . "<br/>";
+//
+//                /** @var \Sdk\Product\ProductReportPropertyLog $productReportPropertyLog */
+//                foreach ($reportLog->getPropertyList() as $productReportPropertyLog) {
+//                    echo "-- ProductReportPropertyLog - ErrorCode : " . $productReportPropertyLog->getErrorCode() . "<br/>";
+//                    echo "-- ProductReportPropertyLog - LogMessage : " . $productReportPropertyLog->getLogMessage() . "<br/>";
+//                    echo "-- ProductReportPropertyLog - Name : " . ($productReportPropertyLog->getName() == null ? 'null' : $productReportPropertyLog->getName()) . "<br/>";
+//                    echo "-- ProductReportPropertyLog - PropertyError : " . $productReportPropertyLog->getPropertyError() . "<br/>";
+//                }
+//                echo "<br/><br/>";
+//            }
+//        } else {
+//            echo "------------------------------------------------<br/>";
+//
+//            echo "PackageId : " . $getProductPackageSubmissionResultResponse->getPackageId() . "<br/>";
+//            echo "PackageIntegrationStatus : " . $getProductPackageSubmissionResultResponse->getPackageIntegrationStatus() . "<br/>";
+//        }
+
+
+//        $submitProductPackageResponse = $productPoint->submitProductPackage($token,$zipURL);
+//
+//        if ($submitProductPackageResponse->hasError()) {
+//            echo $submitProductPackageResponse->getErrorMessage();
+//            die;
+//        }
+//
+//        echo "Package ID : " . $submitProductPackageResponse->getPackageId();//1670355
+
+
+//        $getProductPackageProductMatchingFileDataResponse = $productPoint->getProductPackageProductMatchingFileData($token,/* Package ID */1670355);
+//
+//        if ($getProductPackageProductMatchingFileDataResponse->hasError()) {
+//            foreach ($getProductPackageProductMatchingFileDataResponse->getErrorList() as $error) {
+//                echo $error . "<br/>";
+//            }
+//            die;
+//        }
+//
+//        echo "SellerLogin::" . $getProductPackageProductMatchingFileDataResponse->getSellerLogin() . "<br/>";
+//        echo "TokenId::" . $getProductPackageProductMatchingFileDataResponse->getTokenID() . "<br/>";
+//        echo "PackageId::" . $getProductPackageProductMatchingFileDataResponse->getPackageId() . "<br/>";
+//
+//        if ($getProductPackageProductMatchingFileDataResponse->getProductMatchingList() != null) {
+//            /** @var \Sdk\Product\ProductMatching $productmatching */
+//            foreach ($getProductPackageProductMatchingFileDataResponse->getProductMatchingList() as $productmatching) {
+//                echo "Color : " . $productmatching->getColor() . "<br/>";
+//                echo "Comment : " . $productmatching->getComment() . "<br/>";
+//                echo "Ean : " . $productmatching->getEan() . "<br/>";
+//                echo "MatchingStatus : " . $productmatching->getMatchingStatus() . "<br/>";
+//                echo "Name : " . $productmatching->getName() . "<br/>";
+//                echo "SellerProductId : " . $productmatching->getSellerProductId() . "<br/>";
+//                echo "Size : " . $productmatching->getSize() . "<br/>";
+//                echo "Sku : " . $productmatching->getSKU() . "<br/>";
+//            }
+//        }
+
+
+//        $modelFilter = new \Sdk\Product\ModelFilter(/* CategoryCode */ '04010101');
+//
+//        $productPoint = $client->getProductPoint();
+//
+//        $getModelListResponse = $productPoint->getModelList($token,$modelFilter);
+//
+//        /** @var \Sdk\Product\ProductModel $productModel */
+//        foreach ($getModelListResponse->getModelList() as $productModel) {
+//
+//            echo "<br/>CategoryCode : " . $productModel->getCategoryCode() . "<br/>";
+//            echo "ModelId : " . $productModel->getModelId() . "<br/>";
+//            echo "Name : " . $productModel->getName() . "<br/>";
+//            echo "Struct XML : " . $productModel->getProductXmlStructure() . "<br/>";
+//
+//            // @var \Sdk\Product\KeyValueProperty $property
+//            foreach ($productModel->getValueProperties() as $property) {
+//                echo "Key : " . $property->getKey() . "<br/>";
+//
+//                foreach ($property->getValues() as $value) {
+//                    echo " -- value : " . $value . "<br/>";
+//                }
+//            }
+//
+//            echo "<br/>MandatoryModelProperties : <br/>";
+//
+//            foreach ($productModel->getMandatoryModelProperties() as $mandatoryModelProperty) {
+//                echo " -- " . $mandatoryModelProperty . "<br/>";
+//            }
+//
+//        }
+
+
+//        $productFilter = new \Sdk\Product\ProductFilter(/* CategoryCode */ '04010101');
+//        $getProductListResponse = $productPoint->getProductList($token,$productFilter);
+//
+//        if ($getProductListResponse->hasError()) {
+//            echo "Error : " . $getProductListResponse->getErrorMessage();
+//        }
+//        else {
+//
+//            /**
+//             * Display all products
+//             */
+//            /** @var \Sdk\Product\Product $product */
+//            foreach ($getProductListResponse->getProductList() as $product) {
+//                echo "BrandName : " . $product->getBrandName() .
+//                    " - Name : " . $product->getName() .
+//                    " - EAN : " . $product->getEANList() .
+//                    " - SKU : " . $product->getSKU() . "<br/>";
+//            }
+//
+//            /**
+//             * Get product by SKU
+//             */
+//            $product = $getProductListResponse->getProductBySku('DOU2009868119440');
+//            echo "BrandName : " . $product->getBrandName() . " - Name : " . $product->getName() . " - EAN : " . $product->getEANList() . " - SKU : " . $product->getSKU() . "<br/>";
+//
+//
+//            /**
+//             * Get products by brand
+//             */
+//            $productList = $getProductListResponse->getProductsByBrand('DOUDOU ET COMPAGNIE');
+//            /** @var \Sdk\Product\Product $product */
+//            foreach ($productList as $product) {
+//                echo "BrandName : " . $product->getBrandName() . " - Name : " . $product->getName() . " - EAN : " . $product->getEANList() . " - SKU : " . $product->getSKU() . "<br/>";
+//            }
+//        }
+
+
+        $getAllowedCategoryTreeResponse = $productPoint->getAllowedCategoryTree($token);
+
+        if ($getAllowedCategoryTreeResponse->hasError()) {
+            echo "Error : " . $getAllowedCategoryTreeResponse->getErrorMessage();
+        }
+        else {
+
+            $categoryTreeRoot = $getAllowedCategoryTreeResponse->getRootCategoryTree();
+
+            /**
+             * Display category tree
+             */
+            displayCategoryTree($categoryTreeRoot, 0, $client, $productPoint);
+        }
+
+
+//        $brandListMessageResponse = $productPoint->getBrandList($token);
+//
+//        if ($brandListMessageResponse->hasError()) {
+//            foreach ($brandListMessageResponse->getErrorList() as $error) {
+//                echo $error . "<br/>";
+//            }
+//        }
+//        else {
+//            foreach ($brandListMessageResponse->getBrandList() as $brand) {
+//                echo "Brand : " . $brand . "<br/>";
+//            }
+//        }
+
+
+    }
+
+
+}

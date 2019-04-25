@@ -1,0 +1,106 @@
+<?php
+namespace service\oberlo;
+
+/**
+ * Oberlo异常处理类
+ * @author wangwei 2019-3-1 11:34:48
+ */
+class OberloException extends \Exception{
+    /** @var string */
+    private $_message = null;
+    /** @var string */
+    private $_reason = null;
+    /** @var string */
+    private $_requestUrl = null;
+    /** @var int */
+    private $_httpStatu = null;
+    /** @var string */
+    private $_org = null;
+
+    /**
+     * 构造方法
+     * @param array $errorInfo
+     * @example
+     * $errorInfo = array(
+     * 			'Exception'=>Object,
+     * 			'Message'=>'',
+     * 			'RequestUrl'=>'',
+     * 			'HttpStatu'=>'',
+     * 			'ORG'=>''
+     * );
+     */
+    public function __construct(array $errorInfo = array()){
+        if (array_key_exists("Exception", $errorInfo)) {
+        	$exception = $errorInfo["Exception"];
+        	if ($exception instanceof OberloException) {
+        		$this->_message = $exception->getErrorMessage();
+        		$this->_reason = $exception->getErrorReason();
+        		$this->_requestUrl  = $exception->getRequestUrl();
+        		$this->_httpStatu  = $exception->getHttpStatu();
+        		$this->_org= $exception->getORG();
+        	}
+        } else {
+        	$this->_message = $this->arr_val($errorInfo, 'Message');
+        	$this->_reason = $this->arr_val($errorInfo, 'Reason');
+        	$this->_requestUrl  = $this->arr_val($errorInfo, 'RequestUrl');
+        	$this->_httpStatu  = $this->arr_val($errorInfo, 'HttpStatu');
+        	$this->_org= $this->arr_val($errorInfo, 'ORG');
+        }
+        parent::__construct($this->_message);
+    }
+
+    /**
+     * 从数组里取值
+     * @param array $arr
+     * @param string $key
+     * @return unknown|NULL
+     */
+    private function arr_val($arr, $key) {
+        if(array_key_exists($key, $arr)) {
+            return $arr[$key];
+        } else {
+            return null;
+        }
+    }
+   
+    /**
+     * 获取错误信息
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getErrorMessage() {
+    	return $this->_message;
+    }
+    
+    /**
+     * 获取错误原因
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getErrorReason() {
+        return $this->_reason;
+    }
+    
+    /**
+     * 获取请求地址
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getRequestUrl(){
+    	return $this->_requestUrl;
+    }
+    
+    /**
+     * 获取http请求状态码
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getHttpStatu(){
+    	return $this->_httpStatu;
+    }
+    
+    /**
+     * 获取返回的原始数据
+     * @return Ambigous <unknown, NULL, array>
+     */
+    public function getORG() {
+        return $this->_org;
+    }
+
+}

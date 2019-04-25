@@ -1,0 +1,736 @@
+<?php
+
+namespace app\report\service;
+
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\filter\DevelopmentFilter;
+use app\common\filter\PurchaserFilter;
+use app\common\model\GoodsSku;
+use app\common\model\OrderLack;
+use app\common\model\OrderOos;
+use app\common\model\OrderSourceLack;
+use app\common\service\Common;
+use app\common\service\CommonQueuer;
+use app\common\service\Excel;
+use app\common\service\Filter;
+use app\goods\service\GoodsHelp;
+use app\purchase\service\PurchaseOrder;
+use app\report\model\ReportExportFiles;
+use app\report\queue\OrderLackExportQueue;
+use think\Db;
+use think\Exception;
+use think\Loader;
+use app\common\model\OrderOos as LackModel;
+use app\common\model\Goods as GoodsModel;
+use app\warehouse\service\WarehouseGoods as WarehouseGoodsService;
+use app\common\traits\Export;
+
+Loader::import('phpExcel.PHPExcel', VENDOR_PATH);
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/6/14
+ * Time: 20:12
+ */
+class OrderLackService
+{
+    use Export;
+
+    protected $PCardRate = [
+        'amazon' => 0.006,
+        'wish' => 0.005,
+    ];
+    protected $colMap = [
+        'order' => [
+            'title' => [
+                'A' => ['title' => 'SKU', 'width' => 30],
+                'B' => ['title' => '别名', 'width' => 10],
+                'C' => ['title' => '商品名称', 'width' => 10],
+                'D' => ['title' => '商品状态', 'width' => 10],
+                'E' => ['title' => '在途库存', 'width' => 10],
+                'F' => ['title' => '可用库存', 'width' => 10],
+                'G' => ['title' => '待发库存', 'width' => 10],
+                'H' => ['title' => '缺货数量', 'width' => 10],
+                'I' => ['title' => '缺货订单数量', 'width' => 30],
+                'J' => ['title' => '最早缺货时间', 'width' => 30],
+                'K' => ['title' => '开发员', 'width' => 30],
+                'L' => ['title' => '采购员', 'width' => 15],
+
+                'M' => ['title' => '采购单号', 'width' => 15],
+                'N' => ['title' => '供应商', 'width' => 15],
+                'O' => ['title' => '结算方式', 'width' => 15],
+                'P' => ['title' => '采购单供应链专员', 'width' => 15],
+                'Q' => ['title' => '采购单采购员', 'width' => 15],
+            ],
+            'data' => [
+                'sku' => ['col' => 'A', 'type' => 'str'],
+                'alias' => ['col' => 'B', 'type' => 'str'],
+                'name' => ['col' => 'C', 'type' => 'str'],
+                'sales_status' => ['col' => 'D', 'type' => 'int'],
+                'instransit_qty' => ['col' => 'E', 'type' => 'str'],
+                'available_qty' => ['col' => 'F', 'type' => 'str'],
+                'shipping_qty' => ['col' => 'G', 'type' => 'str'],
+                'lack_qty' => ['col' => 'H', 'type' => 'str'],
+                'counts_order_id' => ['col' => 'I', 'type' => 'str'],
+                'create_time' => ['col' => 'J', 'type' => 'time'],
+                'developer_id' => ['col' => 'K', 'type' => 'str'],
+                'purchaser_id' => ['col' => 'L', 'type' => 'str'],
+
+                'purchaser_order_id' => ['col' => 'M', 'type' => 'str'],
+                'supplier' => ['col' => 'N', 'type' => 'str'],
+                'balance_text' => ['col' => 'O', 'type' => 'str'],
+                'supply_chain_specialist' => ['col' => 'P', 'type' => 'str'],
+                'purchaser' => ['col' => 'Q', 'type' => 'str'],
+            ]
+        ],
+    ];
+
+
+
+    public function title()
+    {
+        $title = [
+            [
+                'title' => 'SKU',
+                'key'   => 'sku',
+                'need_merge' => '1',
+                'main_need_merge_key' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '别名',
+                'key'   => 'alias',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '商品名称',
+                'key'   => 'name',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '商品状态',
+                'key'   => 'sales_status',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '在途库存',
+                'key'   => 'instransit_qty',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '可用库存',
+                'key'   => 'available_qty',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '待发库存',
+                'key'   => 'shipping_qty',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '缺货数量',
+                'key'   => 'lack_qty',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '缺货订单数量',
+                'key'   => 'counts_order_id',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '最早缺货时间',
+                'key'   => 'create_time',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '开发员',
+                'key'   => 'developer_id',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '采购员',
+                'key'   => 'purchaser_id',
+                'need_merge' => '1',
+                'width'=>20
+            ],
+            [
+                'title' => '采购单号',
+                'key'   => 'purchaser_order_id',
+                'need_merge' => '0',
+                'width'=>20
+            ],
+            [
+                'title' => '供应商名称',
+                'key'   => 'supplier',
+                'need_merge' => '0',
+                'width'=>20
+            ],
+            [
+                'title' => '结算方式',
+                'key'   => 'balance_text',
+                'need_merge' => '0',
+                'width'=>20
+            ],
+            [
+                'title' => '采购单供应链专员',
+                'key'   => 'supply_chain_specialist',
+                'need_merge' => '0',
+                'width'=>20
+            ],
+            [
+                'title' => '采购单采购员',
+                'key'   => 'purchaser',
+                'need_merge' => '0',
+                'width'=>20
+            ]
+        ];
+        return $title;
+    }
+
+    /**
+     * 查询相关goods_id
+     * @param $key
+     * @param $val
+     * @return array
+     */
+    public function getGoodIds($key, $val)
+    {
+        $goods = new GoodsModel();
+        $where = [];
+        if(is_array($val)){
+            $where[$key] = ['in',$val];
+        }else{
+            $where[$key] = $val;
+        }
+        $goodsIds = $goods->where($where)->column('id');
+        return $goodsIds;
+    }
+
+    /**
+     * 列表详情
+     * @param $page
+     * @param $pageSize
+     * @param $params
+     * @return array
+     */
+    public function getStockLacks($params)
+    {
+
+
+        $page = param($params, 'page', 1);
+        $pageSize = param($params, 'pageSize', 20);
+        $where = [];
+
+        $sort = "";
+        $sort_type = param($params, 'sort_type');
+        $sort_field = param($params, 'sort_field');
+        //排序刷选
+        if ($sort_type && $sort_field) {
+            $sort = $sort_field . " " . $sort_type;
+        }
+
+        $join = $this->getJoin($params);
+        $this->getWhere($params, $where,$join);
+        $count = $this->getCount($where ,$join);
+        $returnArr = $this->assemblyData($where ,$join, $page, $pageSize, $sort);
+        return [
+            'count' => $count,
+            'data' => $returnArr,
+            'page' => $page,
+            'pageSize' => $pageSize
+        ];
+    }
+
+
+    /**
+     * 缺货列表供应链专员
+     * @return array
+     */
+    public function getSupplyChainSpecialist()
+    {
+        $orderOos = new OrderOos();
+        $map['oo.lock'] = ['neq', 2];
+        $map['s.supply_chain_specialist_id'] = ['gt', 0];
+        $supply_chain_specialist_ids = $orderOos->alias('oo')
+            ->join('goods g', 'g.id = oo.goods_id', 'left')
+            ->join('supplier s', 'g.supplier_id = s.id', 'left')
+            ->where($map)
+            ->column('s.supply_chain_specialist_id');
+        $supply_chain_specialist_ids = array_unique($supply_chain_specialist_ids);
+
+        $list = [];
+        foreach ($supply_chain_specialist_ids as $id){
+            $user = Cache::store('user')->getOneUser($id, 'id,realname');
+            $list[] = ['supply_chain_specialist_id'=>$user['id'],'realname'=>$user['realname']];
+        }
+        return $list;
+    }
+
+
+    /**
+     * 导出申请
+     * @param $params
+     * @return bool
+     * @throws Exception
+     * @throws \Exception
+     */
+    public function exportApply($params)
+    {
+        $userId = Common::getUserInfo()->toArray()['user_id'];
+        $cache = Cache::handler();
+        $lastApplyTime = $cache->hget('hash:export_lack_apply', $userId);
+        if ($lastApplyTime && time() - $lastApplyTime < 5) {
+            throw new JsonErrorException('请求过于频繁', 400);
+        } else {
+            $cache->hset('hash:export_apply', $userId, time());
+        }
+        try{
+            //搜索条件
+            if(!isset($params['fields'])) {
+                throw new JsonErrorException("请选择导出字段！");
+            }
+            $export_type = param($params, 'export_type');
+            if(!$export_type){
+                throw new JsonErrorException('请选择导出类型');
+            }
+            if($export_type == 2){
+                if(param($params, 'sku') && !is_array(json_decode($params['sku'],true))){
+                    throw new JsonErrorException('勾选项格式错误');
+                }
+            }
+            $result = $this->doExport($params);
+            return json($result);
+        } catch (Exception $ex) {
+            return json(['message' =>$ex->getMessage()], 400);
+        }
+    }
+
+    public function doExport($params)
+    {
+        $where = [];
+        $join = $this->getJoin();
+        $this->getWhere($params, $where,$join);
+        $where = is_null($where) ? [] : $where;
+        $count = $this->getCount($where,$join);
+        if($count > 500){
+            //记录信息
+            $userId = Common::getUserInfo()->toArray()['user_id'];
+            $model = new ReportExportFiles();
+            $data['applicant_id'] = $userId;
+            $data['apply_time'] = time();
+            //设置导出文件名
+            $fileName = $this->newExportFileName($params);
+            if($fileName != ''){
+                $data['export_file_name'] = $fileName . '库存管理_缺货列表.xls';
+            }else{
+                $data['export_file_name'] = $this->createExportFileName($userId);
+            }
+
+            $data['status'] = 0;
+            $data['applicant_id'] = $userId;
+            $model->allowField(true)->isUpdate(false)->save($data);
+            $params['file_name'] = $data['export_file_name'];
+            $params['apply_id'] = $model->id;
+            (new CommonQueuer(OrderLackExportQueue::class))->push($params);
+            return ['message'=> '申请成功', 'join_queue' => 1];
+        }else{
+            return $this->export($params);
+        }
+    }
+
+    /**
+     * @title 生成导出用户名
+     * @param $params
+     * @return string
+     */
+    public function newExportFileName($params)
+    {
+        $fileName = '';
+        // 仓库ID
+        if ($warehouse_id = param($params, 'warehouse_id')) {
+            $warehouse_name = Cache::store('warehouse')->getWarehouseNameById($warehouse_id);
+            $fileName .= '仓库' . $warehouse_name . '|';
+        }
+        // 开发人员
+        if ($purchaser_id = param($params, 'purchaser_id')) {
+            $cache = Cache::store('user');
+            $user = $cache->getOneUser($purchaser_id ?? '') ?? '';
+            $fileName .= '开发员：' . $user['realname'] . '|';
+        }
+        // 采购人员
+        if ($developer_id = param($params, 'developer_id')) {
+            $cache = Cache::store('user');
+            $user = $cache->getOneUser($developer_id ?? '') ?? '';
+            $fileName .= '采购员：' . $user['realname'] . '|';
+        }
+        // 商品状态
+        if ($goodsStatus = param($params, 'goodsStatus')) {
+            if ($goodsStatus != 0) {
+                $GoodsHelp = new GoodsHelp();
+                $goodsStatus = $GoodsHelp->getStatusAttr($goodsStatus);
+                $fileName .= '商品状态' . $goodsStatus . '|';
+            }
+        }
+        return $fileName;
+    }
+
+    /**
+     * 创建导出文件名
+     * @param $userId
+     * @return string
+     */
+    protected function createExportFileName($userId)
+    {
+        $fileName = '库存管理_缺货列表导出队列_' . $userId . '_' . date("Y_m_d_H_i_s") . '.xls';
+        return $fileName;
+    }
+
+    /**
+     * 导出数据至excel文件
+     * @param array $params
+     * @return bool
+     * @throws Exception
+     */
+    public function export(array $params, $fileName = '', $isQueue = 0)
+    {
+        try {
+            //统计需要导出的数据行
+            $where = [];
+            $join = $this->getJoin();
+            $this->getWhere($params, $where,$join);
+            $where = is_null($where) ? [] : $where;
+            $count = $this->getCount($where,$join);
+            $pageSize = 5000;
+            $loop = ceil($count / $pageSize);
+            if (empty($loop)) {
+                $loop = 1;
+            }
+            $goodsHelp = new GoodsHelp();
+            //分批导出
+            for ($i = 0; $i < $loop; $i++) {
+                $data = $this->assemblyData($where, $join,$i + 1, $pageSize);
+                foreach ($data as $a => $r) {
+                    if (isset($r['purchaser_order_id']) && is_array($r['purchaser_order_id'])){
+                        $rowCount = count($r['purchaser_order_id']);
+                        for ($j=0;$j<$rowCount;$j++){
+                            $row['id'] = $r['sku'];
+                            $row['sku'] = $r['sku'];
+                            $row['alias'] = $r['alias'];
+                            $row['name'] = $r['name'];
+                            $row['sales_status'] = $goodsHelp->getStatusAttr($r['sales_status']);
+                            $row['instransit_qty'] = $r['instransit_qty'];
+                            $row['available_qty'] = $r['available_qty'];
+                            $row['shipping_qty'] = $r['shipping_qty'];
+                            $row['lack_qty'] = $r['lack_qty'];
+                            $row['counts_order_id'] = $r['counts_order_id'];
+                            $row['create_time'] = date('Y-m-d H:i:s',$r['create_time']);
+                            $row['developer_id'] = $r['developer_id'];
+                            $row['purchaser_id'] = $r['purchaser_id'];
+                            $row['purchaser_order_id'] = 'PO'.$r['purchaser_order_id'][$j];
+                            $row['supplier'] = $r['supplier'][$j];
+                            $row['balance_text'] = $r['balance_text'][$j];
+                            $row['supply_chain_specialist'] = $r['supply_chain_specialist'][$j];
+                            $row['purchaser'] = $r['purchaser'][$j];
+                            $rows[] = $row;
+                        }
+                    }else{
+                        $r['id'] = $r['sku'];
+                        $r['purchaser_order_id'] = '';
+                        $r['supplier'] = '';
+                        $r['balance_text'] = '';
+                        $r['supply_chain_specialist'] = '';
+                        $r['purchaser'] = '';
+                        $r['sales_status'] = $goodsHelp->getStatusAttr($r['sales_status']);
+                        $r['create_time'] = date('Y-m-d H:i:s',$r['create_time']);
+                        $rows[] = $r;
+                    }
+                }
+                unset($data);
+            }
+            $file = [
+                'name' => $fileName ?: '缺货导出列表' . date('YmdHis'),
+                'path' => 'purchase_order_export'
+            ];
+            $title = $this->title();
+            $fieldKeys = array_column(json_decode($params['fields'],true),'field_key');
+            foreach ($title as $key=>$value){
+                if (in_array($value['key'], $fieldKeys)){
+                    $header[] = $title[$key];
+                }
+            }
+            $result = Excel::exportExcel2007($header, $rows, $file, $isQueue);
+            if ($isQueue == 1){
+                $applyRecord = ReportExportFiles::get($params['apply_id']);
+                $applyRecord['exported_time'] = time();
+                $applyRecord['download_url'] = $result['download_url'];
+                $applyRecord['status'] = 1;
+                $applyRecord->isUpdate()->save();
+            }
+            return $result;
+        } catch (\Exception $ex) {
+            if ($isQueue == 1){
+                $applyRecord = ReportExportFiles::get($params['apply_id']);
+                $applyRecord['status'] = 2;
+                $applyRecord['error_message'] = $ex->getMessage();
+                $applyRecord->isUpdate()->save();
+                Cache::handler()->hset(
+                    'hash:report_export',
+                    $params['apply_id'].'_'.time(),
+                    '申请id: ' . $params['apply_id'] . ',导出失败:' . $ex->getMessage());
+            }else{
+                throw new JsonErrorException($ex->getMessage());
+            }
+        }
+    }
+
+
+    /**
+     * 组装查询返回数据
+     * @param $records
+     * @return array
+     */
+    protected function assemblyData($where, $join,$page, $pageSize, $sort = '',$title=[])
+    {
+
+        $model = new LackModel();
+        $field = 'min(o.create_time) as create_time,count(o.order_id) as counts_order_id,o.warehouse_id,o.sku_id,o.sku,o.goods_id,(sum(requisition_qty) - sum(alloted_qty) ) as lack_qty,g.status';
+
+        $list = $model->alias('o')->join($join)->field($field)->where($where)
+            ->where('`requisition_qty` > `alloted_qty`')
+            ->order($sort)
+            ->group('o.sku')
+            ->having('lack_qty > 0')
+            ->page($page, $pageSize)->select();
+        $returnArr = [];
+        $warehouseGoodsServer = new WarehouseGoodsService();
+
+        $cache = Cache::store('user');
+        foreach ($list as $data) {
+            $one = [];
+            $goods = Cache::store('goods')->getGoodsInfo($data['goods_id']);
+            $sku = Cache::store('Goods')->getSkuInfo($data['sku_id']);
+            $one['name'] = $goods['name'] ?? '';
+            $one['thumb'] = $sku['thumb'] ?? '';
+            $one['alias'] = $goods['alias'] ?? '';
+            $one['spu'] = $goods['spu'] ?? '';
+            $user = $cache->getOneUser($goods['developer_id'] ?? '') ?? '';
+            $one['developer_id'] = $user['realname'] ?? '';
+            $one['sales_status'] = $data['status'] ?? ''; //sku状态
+            $user = $cache->getOneUser($goods['purchaser_id'] ?? '') ?? '';
+            $one['purchaser_id'] = $user['realname'] ?? '';
+            $one['sku'] = $data['sku'];
+            $one['create_time'] = $data['create_time'];
+            $one['counts_order_id'] = $data['counts_order_id'];
+            $one['lack_qty'] = $data['lack_qty'];//$data['requisition_qty'] - $data['alloted_qty']; //缺货数量 在途库存  可用库存 待发货库存
+            $qty = $warehouseGoodsServer->getWarehouseGoods($data['warehouse_id'], $data['sku_id'], ['instransit_quantity', 'available_quantity', 'waiting_shipping_quantity']);
+            $one['shipping_qty'] = $qty['waiting_shipping_quantity']; //待发货库存
+            $one['instransit_qty'] = $qty['instransit_quantity']; //在途库存
+            $one['available_qty'] = $qty['available_quantity']; //可用库存
+            //采购信息
+            if ($one['instransit_qty'] > 0){
+                //在途库存大于0则查找对应单号
+                $PurchaseOrderService = new PurchaseOrder();
+                $purchaseOrder = $PurchaseOrderService->getInTransitOrderBySku($data['sku_id'],$data['warehouse_id']);
+                if (!empty($purchaseOrder)){
+                    $map = [];
+                    $purchaseOrderId = array_column($purchaseOrder,'id');//采购单ID
+                    $map[] = ['exp','id in ('.implode(',',$purchaseOrderId).')'];
+                    $purchaseInfo = $PurchaseOrderService->getList($map,'*');
+                    foreach ($purchaseInfo as $info){
+                        $one['purchaser_order_id'][] = $info['id'];//采购单号
+                        $one['supplier'][] = $info['supplier'];//供应商
+                        $one['balance_text'][] = $info['balance_text'];//结算方式
+                        $one['purchaser'][] = $info['purchaser'];//采购员
+                        $one['supply_chain_specialist'][] = $info['supply_chain_specialist'];//供应链专员
+                    }
+                }
+            }
+            if($title){
+                $temp = [];
+                foreach ($title as $k => $v) {
+                    $temp[$v] = $one[$v] ?? '';
+                }
+                array_push($returnArr, $temp);
+            }else{
+                $returnArr[] = $one;
+            }
+        }
+        unset($list);
+        return $returnArr;
+    }
+
+    /**
+     * 查询条件
+     * @param $params
+     * @param $where
+     * @return \think\response\Json
+     */
+    private function getWhere($params, &$where ,&$join)
+    {
+
+        $gGoodsIds = [];
+
+
+
+        //采购过滤器
+        $contents = false;
+        $targetFillter = new Filter(PurchaserFilter::class,true);
+        if($targetFillter->filterIsEffective()) {
+            $contents = $targetFillter->getFilterContent();
+            if(in_array(-1,$contents)){
+                $contents = false;
+            }
+        }
+        //采购人
+        if ($purchaser_id = param($params, 'purchaser_id') ) {
+            $gGoodsIds[] = $this->getGoodIds('purchaser_id', $purchaser_id);
+            if($contents && !in_array($purchaser_id,$contents)){
+                $where['o.id'] = ['=', -1];
+            }
+        }else{
+            if($contents){
+                $goods = new GoodsModel();
+                $gGoodsIds[] = $goods->where('purchaser_id','in',$contents)->column('id');
+            }
+        }
+
+        //开发过滤器
+        $targetFillter = new Filter(DevelopmentFilter::class,true);
+        $contents = false;
+        if($targetFillter->filterIsEffective()) {
+            $contents = $targetFillter->getFilterContent();
+            if(in_array(-1,$contents)){
+                $contents = false;
+            }
+        }
+        // 开发人员
+        if ($developer_id = param($params, 'developer_id')) {
+            $gGoodsIds[] = $this->getGoodIds('developer_id', $developer_id);
+            if ($contents && !in_array($developer_id, $contents)) {
+                $where['o.id'] = ['=', -1];
+            }
+        }else{
+            if($contents){
+                $goods = new GoodsModel();
+                $gGoodsIds[] = $goods->where('developer_id', 'in', $contents)->column('id');
+            }
+        }
+
+
+        $where['o.lock'] = ['<>', 2];
+        // 仓库ID
+        if ($warehouse_id = param($params, 'warehouse_id')) {
+            $where['o.warehouse_id'] = $warehouse_id;
+        }
+        // 商品SKU状态
+        if ($goodsStatus = param($params, 'goodsStatus')) {
+            if ($goodsStatus != 0) {
+                $where['g.status'] = $goodsStatus;
+            }
+        }
+
+        // 供应链专员
+        if ($supplyChainSpecialistId = param($params, 'supply_chain_specialist_id')) {
+            if ($supplyChainSpecialistId != 0) {
+                $where['s.supply_chain_specialist_id'] = $supplyChainSpecialistId;
+            }
+        }
+
+        if (isset($params['skus']) && !empty($params['skus'])){
+            $params['snType'] = 'sku';
+            $params['snText'] = $params['skus'];
+        }
+
+        $snType = param($params, 'snType');
+        $snText = param($params, 'snText');
+        if ($snType && $snText) {
+            $snText = is_json($snText) ? json_decode($snText, true) : (array)$params['snText'];
+            switch ($snType) {
+                case 'alias':
+                    $gGoodsIds[] = $this->getGoodIds('alias', $snText);
+                    break;
+                case 'spu':
+                    $gGoodsIds[] = $this->getGoodIds('spu', $snText);
+                    break;
+                case 'sku':
+                    $where['o.sku'] = ['in', $snText];
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if($gGoodsIds){
+            $str = $gGoodsIds[0];
+            if(count($gGoodsIds) > 1){
+                foreach ($gGoodsIds as $k=>$v){
+                    if($k == 0){
+                        continue;
+                    }
+                    $str = array_intersect($str,$v);
+                }
+            }
+            $where['o.goods_id'] = ['in', $str];
+        }
+
+        //平台过滤器
+
+        if ($channelId = param($params, 'channel_id') ) {
+            if($channelId > 0){
+                $join['order'] = ['order','o.order_id = order.id','left'];
+                $where['order.channel_id'] = $channelId;
+            }
+        }
+    }
+
+    public function getCount($where,$join){
+        $model = new OrderOos();
+        $count = $model->alias('o')->join($join)->where($where)->where('`requisition_qty` > `alloted_qty`')->group('o.sku')->count();
+        return $count;
+    }
+
+    public function getJoin($params = ''){
+        $join['goods_sku'] = ['goods_sku g', 'o.sku_id = g.id', 'left'];
+        if (param($params, 'supply_chain_specialist_id')){
+            $join['goods'] = ['goods gd', 'gd.id = o.goods_id', 'left'];
+            $join['supplier'] = ['supplier s', 'gd.supplier_id = s.id', 'left'];
+        }
+        return $join;
+    }
+
+    /**
+     * 根据sku_id 获取 最早缺货时间 如果不存在则为0
+     * @param $sku_id
+     * @param int $warehouse_id
+     * @return mixed
+     */
+    public function getShortageEarliestTime($sku_id, $warehouse_id = 0)
+    {
+        $where = [
+            'sku_id' => $sku_id,
+            'lock' => ['<>', 2],
+        ];
+        if($warehouse_id > 0){
+            $where['warehouse_id'] = $warehouse_id;
+        }
+        $time = (new OrderOos())
+            ->where('requisition_qty > alloted_qty ')
+            ->where($where)
+            ->order('create_time asc')
+            ->value('create_time');
+        return $time ? $time : 0;
+    }
+
+}

@@ -1,0 +1,219 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-18
+ * Time: 下午5:29
+ */
+
+namespace swoole\taskExecuter;
+
+
+use app\common\exception\TaskException;
+use app\index\service\Task;
+use Carbon\Carbon;
+use swoole\messageAction\TaskRunResult;
+use swoole\PipeMessageAction;
+use swoole\SwooleTasker;
+use swoole\TaskExecuter;
+use swoole\TaskRunner;
+use think\Db;
+use think\Exception;
+use think\exception\ErrorException;
+use app\common\cache\Cache;
+use app\common\cache\TaskWorker;
+//use swoole\cmd\Reload;
+use think\Config;
+
+class Tasker extends TaskExecuter
+{
+    private $hostType;
+    public static function listenEventTask($event, $callback):void
+    {
+
+    }
+
+    public static function trigerEventTask($event, $params):void
+    {
+
+    }
+
+    public static function init($server)
+    {
+    	if(Config::get('swoole.close_task_manager')){
+    		return null;
+    	}
+        $taskTick = $server->setting['task_tick'];
+        /**
+         * @var $cache \app\common\cache\driver\TaskWorker
+         */
+        $cache = Cache::store('taskWorker');
+        $cache->serverStatus('lastReload', time());
+        $cache->serverStatus('lastTickTime', 1);
+        $workers = TaskWorker::all(function ($worker) {
+            return $worker->deleted_at === '';
+        });
+        $cache->removeall();
+        $now = time();
+        foreach ($workers as $worker) {
+            if ($worker->end > $now) {
+                $workerServer = new \app\index\service\TaskWorker($worker);
+                $workerServer->setRunTag($worker->run_tag);
+            }
+        }
+        $obj = new static([]);
+        $obj->setServer($server);
+        $obj->hostType = Config::get('swoole.current_hosttype') ?? '';
+        $server->tick($taskTick, [$obj, 'onTaskScheduler']);
+    }
+
+    public static function log($log)
+    {
+        $date = date('Y-m-d H:i:s') .': ';
+        $ymd = now('Y-m-d');
+        $file = LOG_PATH."swoole/task-$ymd.log";
+        $handle = fopen($file, 'a');
+        fwrite($handle, $date . $log);
+        fclose($handle);
+    }
+
+    public final function onTaskScheduler($_count)
+    {
+        try{
+            $this->socket_timeout();
+            $max = $this->getTaskMax();
+            $used= $this->getTaskUsed();
+            $taskLeisure =  $max - $used;
+            $workerScopes = \app\common\service\TaskExecuter::tickGetWorkers();
+            if(!empty($workerScopes)){
+                $workers = array_keys($workerScopes);
+                $times = array_values($workerScopes);
+                while ($taskLeisure && ($worker = array_shift($workers))){
+                    $time = array_shift($times);
+                    $workerArr = explode('|',$worker);
+                    $currentHost = $workerArr[2] ?? 'common';
+                    if($currentHost != $this->hostType){
+                    	continue;
+                    }
+                    $tasker = new \swoole\taskExecuter\Tasker(new TaskRunner(
+                    		$workerArr[0], $workerArr[1], $time, 'timer'
+                    		));
+                    $this->server->task(serialize($tasker));
+                    $taskLeisure--;
+                }
+                if(count($workers)){
+                    static::log("not enough TaskProcess do ".var_export($workers, true)."\n");
+                }
+                if(empty($this->hostType)){
+                    throw new \Exception("please configure the local swoole 'current_hosttype'");
+                }
+            }
+        }catch (\Throwable $exception){
+            $msg = $exception->getMessage();
+            $line= $exception->getLine();
+            $file= $exception->getFile();
+            static::log("onTaskScheduler $file $line $msg\n");
+        }
+    }
+
+    /**
+     * @var TaskRunner
+     */
+    protected $data;
+
+    public function before()
+    {
+        defined('SWOOLE_TASK') || define('SWOOLE_TASK', true);
+    }
+
+    public function execute()
+    {
+        $logs = [];
+        if ($this->taskBefore()) {
+            set_error_handler(function ($errNo, $errStr, $errFile, $errLine) {
+                $this->taskError(new ErrorException($errNo, $errStr, $errFile, $errLine));
+                \app\index\service\TaskWorker::logWorker($this->data->getWorkerId(),
+                    \app\index\service\TaskWorker::RUN_STATUS_ERROR,
+                    "f:$errFile;l:$errLine;e:$errStr");
+            });
+            try {
+                $execute = new \app\common\service\TaskExecuter($this->data);
+                $hasNext = $execute->resetNextRuntime();
+                if($hasNext){
+                    $logs = $execute->triger($hasNext);
+                    $taskRunResult = 'ok';
+                }else{
+                    $taskRunResult = 'no next time';
+                }
+            } catch (TaskException $exception) {
+                $this->taskException($exception);
+                $taskRunResult = "taskException";
+            } catch (\PDOException $exception) {
+                Db::setGlobalForce(getmypid());
+                $this->taskError($exception);
+                $taskRunResult = "pdoError";
+            } catch (ErrorException $exception) {
+                $this->taskError($exception);
+                $taskRunResult = "errorException";
+            } catch (Exception $exception) {
+                $this->taskError($exception);
+                $taskRunResult = "exception";
+            } catch (\RedisException $exception) {
+                $this->taskError($exception);
+                $taskRunResult = "redisException";
+            } catch (\Error $exception) {
+                $this->taskError($exception);
+                $taskRunResult = "error";
+            }
+        } else {
+            $taskRunResult = "任务被中断";
+        }
+        try{
+	        $action = new TaskRunResult([
+	            'pid' => getmypid(),
+	            'dotime' => now(),
+	            'time' =>Carbon::createFromTimestamp(floor($this->data->getTime()/1000))->format('Y-m-d H:i:s'),
+	            'result' => $taskRunResult,
+	            'worker' => $this->data->getWorkerId() .'|'. $this->data->getWorkerName() .'|'. (isset($execute) ? $execute->getTaskworkerTaskid() : ''),
+	            'logs' => $logs
+	        ]);
+	        PipeMessageAction::sendMessage($this->server, $action, 1);
+	        $times = Db::transTimes();
+	        if($times > 0){
+	            $taskId = $this->data->getWorkerId();
+	            SwooleTasker::logFile('transaction', "$taskId 事务未提交或回滚 事务数：$times");
+	            do{
+	                $times--;
+	                Db::rollback();
+	            }while($times > 0);
+	        }
+        }catch (\Throwable $e){}
+    }
+
+    private function taskError(\Throwable $error)
+    {
+        $msg = $error->getMessage();
+        $file= $error->getFile();
+        $line= $error->getLine();
+        static::log("taskError:file:$file;line:$line;\n$msg\n");
+    }
+
+    public function taskException(TaskException $exception)
+    {
+        Task::logWorker($this->data->getWorkerId(),
+            \app\index\service\TaskWorker::RUN_STATUS_ERROR,
+            $exception->getMessage());
+        static::log("Expception:{$this->data};{$exception->getMessage()};{$exception->getFile()};{$exception->getLine()}\n");
+    }
+
+    private function taskBefore()
+    {
+        return $this->data->getWorkerId();
+    }
+
+    public function getExecuterName(): string
+    {
+        return "tasker:{$this->data->getWorkerId()}";
+    }
+
+}

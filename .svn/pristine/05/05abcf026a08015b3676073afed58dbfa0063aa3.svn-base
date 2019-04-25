@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0074)http://lilangda.tongtool.com/process/new/warehouse/print?0.028598117902634 -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>打印页面</title>
+
+</head>
+<body style="padding:0;margin:0;background-color:white">
+
+<div id="printMainDiv" style="width:274pt;background-color:white;font-family:Arial;font-size:10pt;margin:0 auto;">
+
+    <!--地址标签-->
+    <div id="page1"
+         style="padding:2pt;width:270pt;font-family:Arial;overflow-x:hidden;font-size:10pt;page-break-after:always;">
+        <div style="width:268pt;border:1pt solid #000;border-bottom:0;text-align:center;font-size:20pt;line-height:24pt;font-weight:bold;">
+            YT-FRZXR
+        </div>
+        <div style="width:268pt;border:1pt solid #000;border-bottom:0;font-size:10pt;line-height:11pt;">
+            <div style="width:220pt;float:left;text-align:center;border-right:1pt solid #000;">
+                <div style="width:100%;text-align:center;font-size:26pt;line-height:26pt;font-weight:bold;border-bottom:1pt solid #000;">
+                    FR
+                </div>
+                <div style="width:100%;text-align:center;font-size:9pt;line-height:10pt;padding-top: 2pt;"><span
+                            style="display:inline-block;height:30pt;line-height:30pt;overflow-y:hidden;"> <img  style="margin-bottom:5pt" width="80%" src="<?php echo $this->imgSrc($shipping_number);?>" /></span><br>
+                    <strong><?php echo $shipping_number; ?></strong></div>
+            </div>
+            <div style="width:40pt;float:left;text-align:center;font-size:60pt;line-height:60pt;font-weight:bold;padding:0 2pt;">
+                R
+            </div>
+            <div style="clear:both;"></div>
+        </div>
+        <div style="width:268pt;border:1pt solid;border-bottom:0pt;font-size:10pt;line-height:12pt;">
+            <div style="width:70pt;float:left;text-align:right;"> SHIP TO:</div>
+            <div style="width:198pt;float:left;word-wrap:break-word;">
+                <strong><?php echo $name;?></strong>
+                <br> <?php echo $street.$street2;?>
+                <br> <?php echo $city?> <?php echo $province?> ,<?php echo $zip?> <br>
+                <strong>France</strong> <br></div>
+            <div style="clear:both"></div>
+            <div style="width:70pt;float:left;text-align:right;"> Tel:</div>
+            <div style="width:198pt;float:left;"> <?php echo $phone?><br></div>
+            <div style="clear:both"></div>
+        </div>
+        <div style="width:268pt;border:1pt solid;border-bottom:0pt;text-align:center;font-size:9pt;line-height:10pt;padding-top:2pt;">
+            <span style="display:inline-block;height:30pt;line-height:30pt;overflow-y:hidden;"> <img style="margin-bottom:5pt" width="80%" src="<?php echo $this->imgSrc('P'.$number);?>" /> </span><br>
+            <strong>P<?php echo $number;?></strong></div>
+        <div style="width:268pt;border:1pt solid;text-align:center;font-size:9pt;line-height:10pt;"> Rondaful</div>
+        <div style="width:270pt; margin-top:2pt;">
+            <table cellpadding="0" cellspacing="0"
+                   style="width:270pt;table-layout:fixed;border-collapse:collapse;font-size:9pt;line-height:10pt;">
+                <tbody>
+                <tr>
+                    <td style="border:solid 1pt #000;border-right:0;width:60pt;padding:0;text-align:center">
+                        <strong>P<?php echo $number;?></strong></td>
+                    <td style="border:solid 1pt #000;border-left:0;border-right:0;text-align:center;">
+                        <strong><?php echo date('Y-m-d');?></strong></td>
+                    <td style="border:solid 1pt #000;border-left:0;padding:0;text-align:center;width:65pt">
+                        <strong>YT-FRZXR</strong></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div style="position: absolute; z-index: 1200; width: 200px; left: 860px; top: 0px;"></div>
+</body>
+</html>

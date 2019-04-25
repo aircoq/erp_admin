@@ -1,0 +1,78 @@
+<?php
+namespace Waimao\AmazonMws;
+
+
+class AmazonReportConfig
+{
+
+    // =========== START:ReportType 常量定义 ============
+    const REPORT_TYPE_OPEN_LISTINGS_DATA         = '_GET_FLAT_FILE_OPEN_LISTINGS_DATA_';		//可售商品报告(库存报告) （包含库存为0）
+    const REPORT_TYPE_LISTINGS_DATA_BACK_COMPAT    = '_GET_MERCHANT_LISTINGS_DATA_BACK_COMPAT_';	//可售商品报告
+    const REPORT_TYPE_CANCELLED_LISTINGS_DATA = '_GET_MERCHANT_CANCELLED_LISTINGS_DATA_'; //已取消的商品报告
+    const REPORT_TYPE_SOLD_LISTINGS_DATA      = '_GET_CONVERGED_FLAT_FILE_SOLD_LISTINGS_DATA_'; //已售商品报告
+    const  REPORT_TYPE_LISTINGS_DATA  = '_GET_MERCHANT_LISTINGS_DATA_';//在售商品报告
+    const REPORT_TYPE_AFN_INVENTORY_DATA     = '_GET_AFN_INVENTORY_DATA_';	//FBA库存报告（包含库存为0，不可售等）
+
+    const REPORT_TYPE_XML_BROWSE_TREE_DATA        = '_GET_XML_BROWSE_TREE_DATA_';	//Amanzon分类树
+    const REPORT_TYPE_SELLER_FEEDBACK_DATA      = '_GET_SELLER_FEEDBACK_DATA_';		//买家的负面和中性反馈
+
+    public static $ReportTypeIndex = [
+        '_GET_SELLER_FEEDBACK_DATA_' => 1,
+        '_GET_XML_BROWSE_TREE_DATA_' => 2,
+        '_GET_MERCHANT_LISTINGS_DATA_' => 3,
+    ];
+    // more ...
+    // =========== END: feedType 常量定义 =============
+
+    // =========== START:报告处理状态 常量定义 ============
+    const REPORT_STATUS_SUBMITTED      = '_SUBMITTED_';		//报告处理状态-已提交
+    const REPORT_STATUS_IN_PROGRESS      = '_IN_PROGRESS_';		//报告处理状态-处理中
+    const REPORT_STATUS_CANCELLED      = '_CANCELLED_';		//报告处理状态-已取消
+    const REPORT_STATUS_DONE      = '_DONE_';		//报告处理状态-已完成
+    const REPORT_STATUS_DONE_NO_DATA = '_DONE_NO_DATA_';    //报告处理状态-已完成但无数据
+    const REPORT_STATUS_DOWNLOADED = '_DOWNLOADED_';    //报告处理状态-已下载（非Amazon传回的状态）
+
+    public static $ProcessingStatusIndex = [
+        '_SUBMITTED_' => 1,
+        '_IN_PROGRESS_' => 2,
+        '_CANCELLED_' => 3,
+        '_DONE_' => 4,
+        '_DONE_NO_DATA_' => 5,
+        '_DOWNLOADED_' => 9,
+    ];
+    // =========== END: 报告处理状态 常量定义 =============
+
+    // =========== START:Listing 常量定义 ============
+    /**
+     *  已取消商品状态
+     * @var unknown
+     */
+    const SELLER_STATUS_CANCEL = 3;
+    /**
+     * 亚马逊发货（下架和上架）FBA
+     * @var unknown
+     */
+    const SELLER_STATUS_FULFILLMENT_AMAZON = 4;
+    /**
+     * 销售状态，下架状态为2
+     * @var unknown
+     */
+    const SELLER_STATUS_OFFLINE = 2;
+    /**
+     * 销售状态，上架状态为1
+     * @var unknown
+     */
+    const SELLER_STATUS_ONLINE = 1;
+    /**
+     * 配送状态，卖家配送（FBM，默认为1）
+     * @var unknown
+     */
+    const FULFILLMENT_STATUS_MERCHANT = 1;
+    /**
+     * 配送状态，amazon配送（FBA）
+     * @var unknown
+     */
+    const FULFILLMENT_STATUS_AMAZON = 2;
+    // =========== END:Listing 常量定义 ============
+
+}

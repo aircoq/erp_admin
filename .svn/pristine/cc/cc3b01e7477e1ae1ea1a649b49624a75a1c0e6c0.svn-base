@@ -1,0 +1,350 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/6/5
+ * Time: 18:16
+ */
+
+namespace jumia;
+
+use jumia\JumiaBaseApi;
+
+
+class JumiaOrderApi extends JumiaBaseApi
+{
+
+    /**
+     * 通过订单ID，拿取订单信息用于更新；
+     * @param $order_id 订单ID
+     */
+    public function getOrderById($order_id)
+    {
+        $data = array(
+            'Action' => 'GetOrder',
+            'OrderId' => $order_id,
+        );
+        $result = $this->authcall($data);
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse'])){
+                $redata['Orders'] = $result['SuccessResponse']['Body']['Orders']['Order'];
+                $redata['OrderItems'] = $this->getOrderItems($order_id)['OrderItems'];
+                return $redata;
+            }
+        }
+        if(isset($result['ErrorResponse']['Head']['ErrorMessage'])){
+            $this->error = $result['ErrorResponse']['Head']['ErrorMessage'];
+        }
+        return false;
+    }
+
+    /**
+     * 抓取一段时间内的订单的列表
+     * @param datetime $startTime
+     * @param datetime $endTime
+     * @param int $offset
+     * @param int $limit
+     * @return array
+     *
+     */
+    public function getOrderLists($startTime = '', $endTime = '', $offset = 0, $limit = 200)
+    {
+        $data = array(
+            'Action' => 'GetOrders',
+            'Offset' => $offset,
+            'Limit' => $limit,
+        );
+
+        if (!empty($startTime)) {
+            $data['CreatedAfter'] = $this->getTimestamp($startTime);
+        }
+        if (!empty($endTime)) {
+            $data['CreatedBefore'] = $this->getTimestamp($endTime);
+        }
+        $result = $this->authcall($data);
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse']) && $result['SuccessResponse']['Head']['TotalCount'] > 0)
+                return $result['SuccessResponse']['Body']['Orders']['Order'];
+        }
+        if(isset($result['ErrorResponse']['Head']['ErrorMessage'])){
+            $this->error = $result['ErrorResponse']['Head']['ErrorMessage'];
+        }
+        return false;
+    }
+
+    /**
+     * 抓取一段时间内的订单的列表
+     * @param datetime $startTime
+     * @param datetime $endTime
+     * @param int $offset
+     * @param int $limit
+     * @return array
+     *
+     */
+    public function getOrdersItem($orderIds)
+    {
+        $str = '[';
+        if (is_array($orderIds) && isset($orderIds[1])) {
+            foreach ($orderIds as $orderId) {
+                $str .= $orderId . ',';
+            }
+            $str = rtrim($str, ',');
+        } else {
+            if(!is_array($orderIds)){
+                $orderIds[] = $orderIds;
+            }
+           return [$this->getOrderItems($orderIds[0])];
+        }
+        $str .= ']';
+        $data = array(
+            'Action' => 'GetMultipleOrderItems',
+            'OrderIdList' => $str,
+        );
+        $result = $this->authcall($data);
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse']))
+                return $result['SuccessResponse']['Body']['Orders']['Order'];
+        }
+        if(isset($result['ErrorResponse']['Head']['ErrorMessage'])){
+            $this->error = $result['ErrorResponse']['Head']['ErrorMessage'];
+        }
+        return false;
+    }
+
+    /**
+     * 抓取某个订单的商品列表
+     * @param int $orderId
+     * @return array
+     */
+    public function getOrderItems($orderId)
+    {
+
+        $data = array(
+            'Action' => 'GetOrderItems',
+            'OrderId' => $orderId,
+        );
+        $result = $this->authcall($data);
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse'])){
+                $redata['OrderId'] = $orderId;
+                $redata['OrderItems'] = $result['SuccessResponse']['Body']['OrderItems'];
+                return $redata;
+            }
+        }
+        if(isset($result['ErrorResponse']['Head']['ErrorMessage'])){
+            $this->error = $result['ErrorResponse']['Head']['ErrorMessage'];
+        }
+        return false;
+    }
+
+
+
+    /** 发货订单
+     * @param $order_id 订单ID
+     * @param $item_nums 订单商品总数量
+     * @param $trackingInfo 跟踪提供商信息【shipDateTime-发货时间,carrier：快递商,methodCode：运输方法，trackingNumber：追踪号，trackingURL：查快递的链接】
+     * @param $serialNumber 是否为jumia平台快递商
+     * @return bool
+     */
+    public function fulfillOne( $orderItemIds = [],$shippingProvider, $trackingNumber = '', $serialNumber = [])
+    {
+        //2.将订单项标记为准备发货。
+        $res3 =  $this->setStatusToReadyToShip($orderItemIds, $shippingProvider,$trackingNumber, $serialNumber);
+        //3.记录订单商品已发货。
+//        foreach ($orderItemIds as $key => $val) {
+//            $res3 = $this->setStatusToShipped($val);
+//        }
+
+        return $res3;
+    }
+
+    /**
+     * 1.将订单商品标记为已包装
+     * @param $order_id 订单ID
+     * @param $orderItemIds 订单商品总数量
+     * @param $trackingInfo 跟踪提供商信息【shipDateTime-发货时间,carrier：快递商,methodCode：运输方法，trackingNumber：追踪号，trackingURL：查快递的链接】
+     * @param $serialNumber 序列号集合
+     * @return bool
+     */
+    public function setStatusToPackedByMarketplace($orderItemIds, $shippingProvider, $trackingNumber = '',$serialNumber = [])
+    {
+
+        $data = array(
+            'Action' => 'SetStatusToPackedByMarketplace',
+            'OrderItemIds' => $this->arrayToStr($orderItemIds),
+            'DeliveryType' => 'dropship',//“dropship”——卖家将自己发送包裹;“pickup”——商店应该从卖家那里取货（交叉对接）;“send_to_warehouse”——卖方将把货物送到仓库（交叉对接）。强制性的
+            'ShippingProvider' => $shippingProvider,
+        );
+        if ($trackingNumber) {
+            $data['TrackingNumber'] = $trackingNumber;
+        }
+        if ($serialNumber) {
+            $data['SerialNumber'] = json_encode($serialNumber);
+        }
+        $result = $this->authcall($data);
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse'])){
+                $result = isset($result['SuccessResponse']['Body']) ? $result['SuccessResponse']['Body'] : $result;
+                $results = isset($result['OrderItems']['OrderItem'][0]) ? $result['OrderItems']['OrderItem'][0] : $result['OrderItems']['OrderItem'];
+                // $redata['OrderItems'] = $result['SuccessResponse']['Body']['OrderItems'];
+                return $results;
+            }
+        }
+        if(isset($result['ErrorResponse']['Head']['ErrorMessage'])){
+            $this->error = $result['ErrorResponse']['Head']['ErrorMessage'];
+        }
+        return false;
+    }
+
+    /**
+     * 2.将订单商品标记为准备发货。
+     * @param $order_id 订单ID
+     * @param $orderItemIds 订单商品总数量
+     * @param $trackingInfo 跟踪提供商信息【shipDateTime-发货时间,carrier：快递商,methodCode：运输方法，trackingNumber：追踪号，trackingURL：查快递的链接】
+     * @param $serialNumber 是否为jumia平台快递商
+     * @return bool
+     */
+    public function setStatusToReadyToShip( $orderItemIds = [],$shippingProvider, $trackingNumber = '', $serialNumber = [])
+    {
+        $data = array(
+            'Action' => 'SetStatusToReadyToShip',
+            'OrderItemIds' => $this->arrayToStr($orderItemIds),
+            'DeliveryType' => 'dropship',//“dropship”——卖家将自己发送包裹;“pickup”——商店应该从卖家那里取货（交叉对接）;“send_to_warehouse”——卖方将把货物送到仓库（交叉对接）。强制性的
+            'ShippingProvider' => $shippingProvider,
+        );
+        if ($trackingNumber) {
+            $data['TrackingNumber'] = $trackingNumber;
+        }
+        if ($serialNumber) {
+            $data['SerialNumber'] = json_encode($serialNumber);
+        }
+        $result = $this->authcall($data);
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse'])){
+                $redata['OrderItems'] = $result['SuccessResponse']['Body']['OrderItems'];
+                return $redata;
+            }
+        }
+        if(isset($result['ErrorResponse']['Head']['ErrorMessage'])){
+            $this->error = $result['ErrorResponse']['Head']['ErrorMessage'];
+        }
+        return false;
+    }
+
+    /**
+     * 3.记录订单商品已发货。
+     * @param $orderItemIds 订单商品总数量
+     * @return bool
+     */
+    public function setStatusToShipped($orderItemId)
+    {
+
+        $data = array(
+            'Action' => 'SetStatusToShipped',
+            'OrderItemId' => $orderItemId,
+        );
+        $result = $this->authcall($data);
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse'])){
+                return true;
+            }
+        }
+        if(isset($result['ErrorResponse']['Head']['ErrorMessage'])){
+            $this->error = $result['ErrorResponse']['Head']['ErrorMessage'];
+        }
+        return false;
+    }
+
+    /**
+     * 查询物流信息
+     * @return array
+     */
+    public function getOrderShipper()
+    {
+        $data = array(
+            'Action' => 'GetShipmentProviders',
+        );
+        $result = $this->authcall($data);
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse']) && isset($result['SuccessResponse']['Body']['ShipmentProviders']))
+                return $result['SuccessResponse']['Body']['ShipmentProviders']['ShipmentProvider'];
+        }
+        return false;
+    }
+
+
+    /**
+     * 查询物流信息
+     * @param $orderItemIds  整数数组  调用者想要获取文档的订单商品的标识符。强制性。
+     * @param $type  'invoice'，'exportInvoice'，'shippingLabel'，'shippingParcel'，'carrierManifest'或“serialNumber”
+     * @return array
+     */
+    public function getDocument($orderItemIds,$type = 'shippingLabel')
+    {
+        $data = array(
+            'Action' => 'GetDocument',
+            'OrderItemIds' => $this->arrayToStr($orderItemIds),
+            'DocumentType' => $type,
+        );
+        $result = $this->authcall($data);
+//        var_dump($result);die;
+        if (is_array($result)) {
+            if (isset($result['SuccessResponse']) && isset($result['SuccessResponse']['Body']['Documents']['Document']['File']))
+                return base64_decode( $result['SuccessResponse']['Body']['Documents']['Document']['File']);
+        }
+        if(isset($result['ErrorResponse']['Head']['ErrorMessage'])){
+            $this->error = $result['ErrorResponse']['Head']['ErrorMessage'];
+        }
+        return false;
+    }
+
+    /**
+     * 发起GET请求
+     * @param $data 请求参数
+     * @return array
+     */
+    public function authcall($data)
+    {
+        $parameters = $this->getParameters($data);
+//        var_dump($parameters);die;\
+        $urlArr = self::getJumiaConfig($this->site);
+        if (!$url = param($urlArr, 'service_url')) {
+            return [];
+        }
+        $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($parameters);
+        $re = $this->httpCurl($url);
+        return json_decode($re, true);
+    }
+
+    /**
+     * 发起POST请求
+     * @param $data 请求参数
+     * @param $root xml根节点
+     * @return array
+     */
+    public function authcallPost($data, $root)
+    {
+        $parameters = $this->getParameters($data);
+        $url = $this->url;
+//        $url .= (stristr($url, '?') === false ? '?' : '&') . http_build_query($parameters);
+        $parameters = $this->arrayToXml($parameters, $root);
+        $re = $this->httpCurl($url, [], 'POST', $parameters);
+        return json_decode($re, true);
+    }
+
+    public function arrayToStr($orderIds){
+        $str = '[';
+        if (is_array($orderIds)) {
+            foreach ($orderIds as $orderId) {
+                $str .= $orderId . ',';
+            }
+            $str = rtrim($str, ',');
+        } else {
+            $str .= $orderIds;
+        }
+        $str .= ']';
+        return $str;
+    }
+
+
+}

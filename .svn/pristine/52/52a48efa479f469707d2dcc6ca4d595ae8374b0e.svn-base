@@ -1,0 +1,58 @@
+<?php
+
+namespace service\ali1688\operation;
+
+use think\Exception;
+use org\Curl;
+
+/**
+ * 公用类
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-01-22 16;32:11
+ */
+class Common
+{
+
+    /**
+     * @desc 生成code url
+     * @param array $data 请求的参数
+     * @param string $state 自定义参数
+     * @return string $url : 返回拼接的url
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-01-22 16:39:11
+     */
+    public function getCodeUrl($data = [], $state = '')
+    {
+        try {
+            if (!isset($data['site'])) {
+                $data['site'] = '1688';
+            }
+            $url = "https://auth.1688.com/oauth/authorize?client_id={$data['client_id']}&site={$data['site']}&redirect_uri={$data['redirect_uri']}&state={$state}";
+            return $url;
+        } catch (Exception $ex) {
+            throw new Exception('Error Processing Request' . $ex->getFile() . $ex->getLine() . $ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 获取token
+     * @param string $data
+     * @return type
+     */
+    public function getToken($data = [])
+    {
+        $url = "https://gw.open.1688.com/openapi/http/1/system.oauth2/getToken/{$data['client_id']}";
+        $postData['grant_type']='authorization_code';
+        $postData['need_refresh_token']='true';
+        $postData['client_id']=$data['client_id'];
+        $postData['client_secret']=$data['client_secret'];
+        $postData['redirect_uri']=$data['redirect_uri'];
+        $postData['code']=$data['code'];
+        $result = Curl::curlPost($url, $postData);
+        if ($result) {
+            $result = json_decode($result, true);
+        }
+        return $result;
+    }
+
+}

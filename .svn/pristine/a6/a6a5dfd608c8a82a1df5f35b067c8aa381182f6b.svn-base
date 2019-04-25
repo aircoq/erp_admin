@@ -1,0 +1,94 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-5-9
+ * Time: 上午10:54
+ */
+
+namespace erp;
+
+
+use app\common\exception\JsonErrorException;
+
+class DateTime
+{
+    public function __construct()
+    {
+
+    }
+
+    public static function getNearbyDay($day, $today = false)
+    {
+        if(!$today){
+            $time = static::dayBegin();
+        }
+        $result = [];
+        for($i=1; $i <= $day; $i++){
+            $btime = static::diff($time, "P{$i}D");
+            $result[$i] = [
+                'btime'=>$btime,
+                'etime'=>$time,
+            ];
+            $time -= TIME_SECS_DAY;
+        }
+        return $result;
+    }
+
+    public static function diff($secs, $interval)
+    {
+        $time = new \DateTime();
+        $time->setTimestamp($secs);
+        $time->sub(new \DateInterval($interval));
+        return $time->getTimestamp();
+    }
+
+    public static function dayBegin($time = false)
+    {
+        if($time){
+            if(is_integer($time)){
+                return static::dayBegin(new \DateTime($time));
+            }
+            if(is_string($time)){
+                return static::dayBegin(new \DateTime($time));
+            }
+            if($time instanceof \DateTime){
+                $his = $time->format('H:i:s');
+                $sub = preg_replace_callback("/(\d+):(\d+):(\d)/", function($match){
+                    return "H$match[1]M$match[2]S$match[3]";
+                },$his);
+                $interval = new \DateInterval("P{$sub}");
+                $time->sub($interval);
+                return $time->getTimestamp();
+            }
+            throw new JsonErrorException("非法的时间格式");
+        }else{
+            return static::dayBegin(new \DateTime());
+        }
+    }
+
+    /**
+     * @param bool $time
+     * @return int
+     */
+    public static function dayEnd($time = null)
+    {
+        if($time){
+            if(is_integer($time)){
+                return static::dayBegin(new \DateTime($time));
+            }
+            if($time instanceof \DateTime){
+                $his = $time->format('H:i:s');
+                $sub = preg_replace_callback("/(\d+):(\d+):(\d)/", function($match){
+                    return "H$match[1]M$match[2]S$match[3]";
+                },$his);
+                $interval = new \DateInterval("P{$sub}");
+                $time->sub($interval);
+                return $time->getTimestamp() + TIME_SECS_DAY - 1;
+            }
+            throw new JsonErrorException("非法的时间格式");
+        }else{
+            return static::dayBegin(new \DateTime());
+        }
+    }
+}

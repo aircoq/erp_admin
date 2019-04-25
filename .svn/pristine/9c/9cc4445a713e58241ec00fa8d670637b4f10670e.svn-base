@@ -1,0 +1,73 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: joy
+ * Date: 18-4-19
+ * Time: 下午2:13
+ */
+namespace service\pandao;
+use think\Exception;
+
+class PandaoApi
+{
+    private static $config = [];
+    private static $instance = null;
+    private static $object = [];
+
+    /** 开放接口
+     * @param array $config
+     * @return null|WishApi
+     * @throws Exception
+     */
+    public static function instance(array $config)
+    {
+        if (!isset($config['access_token']) || empty($config['access_token'])) {
+            throw new Exception("the access_token is not found", 1);
+        }
+        self::$instance = new PandaoApi;
+        self::$config = $config;
+        return self::$instance;
+    }
+
+    /** 执行
+     * @param $type
+     * @return mixed
+     * @throws Exception
+     */
+    public function loader($type)
+    {
+        return self::handler($type);
+    }
+
+    /** 实例
+     * @param $type
+     * @return mixed
+     * @throws Exception
+     */
+    public static function handler($type)
+    {
+        try {
+            $class = false !== strpos($type, '\\') ? $type : '\\service\\pandao\\operation\\' . ucwords($type);
+            if ($class) {
+                if (!isset(self::$object[$type]) || is_null(self::$object[$type])) {
+                    self::$object[$type] = new $class(self::$config);
+                }else{
+                    self::$object[$type]->access_token = self::$config['access_token'];
+                }
+                return self::$object[$type];
+            } else {
+                throw new Exception("The api type file is not found", 1);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error Processing Request", 1);
+        }
+    }
+
+    /** 资源配置
+     * @param array $config
+     */
+    public function config(array $config)
+    {
+        array_merge(self::$config, $config);
+    }
+}

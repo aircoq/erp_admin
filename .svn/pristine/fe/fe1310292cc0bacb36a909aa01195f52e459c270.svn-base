@@ -1,0 +1,30 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: wuchuguang
+ * Date: 17-8-18
+ * Time: 下午5:39
+ */
+
+namespace swoole\messageAction;
+
+
+use swoole\PipeMessageAction;
+use swoole\taskExecuter\Tasker;
+
+class   TaskRunResult extends PipeMessageAction
+{
+    public  function execute($server, $fromWorkerId = null)
+    {
+        /**
+         *  'pid'
+         *  'time'
+         *  'result'
+         *  'worker'
+         *  'logs'
+         */
+        $data = $this->getData();
+        $logs = var_export($data['logs'],true);
+        Tasker::log("taskRunResult:P:{$data['pid']} T:{$data['time']} ID:{$data['worker']} R:{$data['result']} Logs:$logs\n");
+    }
+}

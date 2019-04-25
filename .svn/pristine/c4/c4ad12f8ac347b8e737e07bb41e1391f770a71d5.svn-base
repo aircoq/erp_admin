@@ -1,0 +1,46 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Johnny<1589556545@qq.com>
+ * Date: 2018/5/8
+ * Time: 21:39
+ */
+namespace service\alinew\operation;
+
+use service\alinew\operation\Common;
+
+/**
+ * 上传图片
+ * Class Images
+ * @package service\alinew\operation
+ */
+class Images extends Common{
+    /**
+     * @info 上传图片到临时目录
+     * @param $strUrl
+     * @return mixed
+     */
+    public function uploadTempImage($file_data,$src_file_name)//原来$strUrl
+    {
+        $data = [];
+        //方法参数
+       $data['file_data'] = base64_encode($file_data);
+        $data['src_file_name'] = $src_file_name;
+
+        //功能参数
+        $client = new \QimenCloudClient($this->config['client_id'], $this->config['client_secret']);
+        $request = new \LiliangdaErpOrderproductDataRequest();
+        $request->setAction('uploadTempImageforSDK');
+        $request->setClassName('Images');
+        $request->setModule('images');
+        $request->setClientId($this->config['client_id']);
+        $request->setClientSecret($this->config['client_secret']);
+        //$request->setToken($this->config['token']);
+        $request->setToken($this->config['accessToken']);
+        $request->setRequestParams(json_encode($data,true));
+
+        $res=$client->execute($request);
+        return $res;
+
+    }
+}

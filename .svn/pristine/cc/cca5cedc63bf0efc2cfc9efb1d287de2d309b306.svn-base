@@ -1,0 +1,85 @@
+<?php
+
+namespace umka;
+
+use app\common\cache\Cache;
+use umka\UmkaBaseApi;
+
+/**
+ * Created by PhpStorm.
+ * User: zhaixueli
+ * Date: 2018/10/18
+ * Time: 9:25
+ */
+class UmkaOrdersApi extends UmkaBaseApi
+{
+    protected $error = '';
+    protected $access_token = '';
+    public function __construct($params)
+    {
+        $this->access_token=$params['access_token']??'';
+        parent::__construct($params);
+
+    }
+    public function getError()
+    {
+        return $this->error;
+    }
+    /**
+     * @title 返回当前需要完成的所有订单。
+     * @param $start 开始点最小为0；
+     * @param $limit 每次拉取的个数；
+     * @param $since 开始时间；
+     * @return mixed
+     */
+    public function getOrderList($start_confirm_at,$endTimes,$pageNum=1,$pageSize=100)
+    {
+        $url = 'http://open.wangjigroup.com/api/order/listShouldShip';
+        $getData = [
+            'pageNum' =>$pageNum,
+            'pageSize' => $pageSize,
+            'orderStatus'=>0,
+            'createStartTime'=>date('Y-m-d',$start_confirm_at),
+            'createEndTime'=>date('Y-m-d',$endTimes),
+        ];
+        $result = $this->authcall($url, 'GET', $getData);
+        $response_data=isset($result['data']['result'])?$result['data']['result']:array();
+        if(isset($result['data']) && $result['data']['records']==$pageSize){
+            $pageNum++;
+            $next = $this->getOrderList($start_confirm_at,$endTimes,$pageNum);
+            $response_data = array_merge($response_data,($next) );
+        }
+        return $response_data;
+    }
+
+
+    /** 发货订单
+     * @param $order_id 订单ID
+     * @param $items 订单商品总数量
+     * @param $trackingInfo 跟踪提供商信息【shipDateTime-发货时间,carrier：快递商,methodCode：运输方法，trackingNumber：追踪号，trackingURL：查快递的链接】
+     * @param $isOtherCarrier 是否为cd平台快递商
+     * @return bool
+     */
+    public function fulfillOne($order_id, $trackingNumber, $carrier = '')
+    {
+        error_reporting(-1);
+        if ($this->access_token == null ) {
+            $this->error = "umka token bad";
+            return false;
+        }
+        $url='http://open.wangjigroup.com/api/order/shipping?access_token='.$this->access_token.'&deliveryNumber='.$order_id.'&trackingProvider='.$carrier.'&trackingNumber='.$trackingNumber;
+        $rs = $this->authcall($url, 'POST', '');
+        if($rs && isset($rs['error_description']) && $rs['error_description']=='' ){
+            return true; //成功
+        }else{
+            $this->error = $rs['msg']??'标记发货失败';
+            return false;
+        }
+
+
+    }
+
+
+
+
+}

@@ -1,0 +1,41 @@
+<?php
+namespace PaypalClient;
+/**
+ * PayPal基础数据类
+ * @author Jacky 2017-9-24 22:35:48
+ */
+class PayPalLib{
+	
+	const API_HOST = 'https://api-3t.paypal.com/nvp';//生产环境
+// 	const API_HOST = 'https://tlstest.paypal.com';//TLS测试
+// 	const API_HOST = 'https://api-3t.sandbox.paypal.com/nvp';//测试环境
+
+	const API_VERSION = '57.0';//查询：57.0,退款：51.0
+	
+	/**
+	 * 本地时间转PayPal时间(UTC时间)
+	 * @param datetime $LocalDate 本地时间
+	 * @return datetime
+	 */
+	public static function getPayPalDate($LocalDate){
+		$dateObj = new \DateTime($LocalDate);//第二个时区参数不传，默认当前系统时区
+		$dateObj->setTimezone(new \DateTimeZone('UTC'));
+		return $dateObj->format('Y-m-d\TH:i:s\Z');
+	}
+	
+	/**
+	 * PayPal时间(UTC时间)转本地时间
+	 * @param datetime $PayPalDate PayPal时间
+	 * @return datetime
+	 */
+	public static function getLocalDate($PayPalDate){
+		//PayPal时间加8小时
+		if(empty($PayPalDate)){
+			return '0000-00-00 00:00:00';
+		}
+		$dateObj = new \DateTime($PayPalDate,new \DateTimeZone('UTC'));
+		$dateObj->setTimezone(new DateTimeZone(date_default_timezone_get()));
+		return $dateObj->format('Y-m-d H:i:s');
+	}
+	
+}

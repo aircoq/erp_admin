@@ -1,0 +1,39 @@
+<?php
+namespace GoetasWebservices\XML\XSDReader\Schema\Type;
+
+use GoetasWebservices\XML\XSDReader\Schema\Element\ElementContainer;
+use GoetasWebservices\XML\XSDReader\Schema\Element\ElementItem;
+
+class ComplexType extends BaseComplexType implements ElementContainer
+{
+    protected $elements = array();
+
+    protected $order = '';
+    
+    public function __construct($schema, $name, $order = '')
+    {
+        $order ? $this->setOrder($order) : '';
+        parent::__construct($schema, $name);
+    }
+    
+    public function getElements()
+    {
+        return $this->elements;
+    }
+
+    public function addElement(ElementItem $element)
+    {
+        $this->elements[] = $element;
+    }
+    
+    public function getOrder()
+    {
+        return $this->order;
+    }
+    
+    public function setOrder($order)
+    {
+        return $this->order = $order;
+    }
+}
+

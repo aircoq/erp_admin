@@ -1,0 +1,25 @@
+<?php
+
+namespace paypal;
+
+use app\common\cache\Cache;
+use app\common\model\paypal\PaypalOrder as PaypalOrderModel;
+use think\Exception;
+
+class PaypalRestful extends PaypalRestfulBase
+{
+
+    public function __construct($account_id)
+    {
+        parent::__construct($account_id);
+    }
+
+    public function getEvents() {
+        $url = '';
+        $params = '';
+        $method = '';
+        $events = $this->authCall($url, $params, $method);
+        return $events;
+    }
+
+}

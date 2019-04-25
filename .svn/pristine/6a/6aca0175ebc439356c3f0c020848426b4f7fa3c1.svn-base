@@ -1,0 +1,147 @@
+<?php
+
+namespace service\irobotbox;
+#17-04-22 rocky
+
+class IrobotboxApi
+{
+	private $Customer_ID;
+	private $Username;
+	private $Password;
+	private $client;
+	private $headers;
+	private $url;
+	private $config = array(
+			"trace" => true,
+            "exceptions" => true,
+            "connection_timeout" => 1000,
+            "encoding" => "utf-8" 
+		);
+
+	function __construct($url,$customerID=1319,$username="3444036762@qq.com",$password="rondaful112"){
+		$this->url = $url;
+		$this->Customer_ID = $customerID;
+		$this->Username = $username;
+		$this->Password = $password;
+	}
+
+	#创建客户端连接
+	public function createSoapCli($url=""){
+		if(!$url){
+			$this->client = new \SoapClient($this->url,$this->config);
+		}else{
+			$this->client = new \SoapClient($url,$this->config);
+		}
+		return $this;
+	}
+
+	#创建客户端head信息
+	public function createSoapHeader($nameSpace,$className,$params){
+		$this->headers = new \SoapHeader($nameSpace,$className,$params,true);
+		return $this;
+	}
+
+	#为客户端设置头信息
+	public function setClientHeaders($headers=array()){
+		if(empty($headers)){
+			$this->client->__setSoapHeaders($this->headers);
+		}else{
+			$this->client->__setSoapHeaders($headers);
+		}	
+		return $this;
+	}
+
+	#获取商品数据
+	public function GetProducts($nextToken=1,$start="2016-01-01",$end="2017-01-01"){
+		$post['productRequest']=array(
+				"CustomerID"=>$this->Customer_ID,
+                "UserName"=>$this->Username,
+                "Password"=>$this->Password,
+                "StartTime"=>$start,
+                "EndTime"=>$end,
+                "NextToken"=>$nextToken
+			);
+		return $this->client->GetProducts($post);
+	}
+
+	#获取商品详细信息
+	public function GetProductClass($classParentID){
+		$post['productClassRequest'] = array(
+                    "CustomerID"=>$this->Customer_ID,
+                    "UserName"=>$this->Username,
+                    "Password"=>$this->Password,
+                    "ClassParentID"=>$classParentID
+                );
+		return $this->client->GetProductClass($post);
+	}
+
+	#获取商品图片信息
+	public function GetProductImages($sku="1916017"){
+		$post = array(
+                "SKU"=>$sku
+            );
+		return $this->client->GetProductImages($post);
+	}
+
+	#获取商品库存
+	public function GetProductInventory($sku="1730051",$wareID=175,$nextToken=1){
+		$post['request'] = array(
+                "CustomerID"=>$this->Customer_ID,
+                "UserName"=>$this->Username,
+                "Password"=>$this->Password,
+                "SKU"=>$sku,
+                "WarehouseID"=>$wareID,
+                "NextToken"=>$nextToken
+        );
+        return $this->client->GetProductInventory($post);
+	}
+
+	#获取商品供应商信息
+	public function GetProductSupplierPrice($start="2016-01-01",$end="2017-01-01",$nextToken=445246){
+		$post['request'] = array(
+                    "CustomerID"=>$this->Customer_ID,
+                    "UserName"=>$this->Username,
+                    "Password"=>$this->Password,
+                    "StartTime"=>$start,
+                    "EndTime"=>$end,
+                    "NextToken"=>$nextToken
+                );
+		return $this->client->GetProductSupplierPrice($post);
+	}
+
+	#获取仓库信息
+	public function GetWareHouseList($type=1){
+		$post['request'] = array(
+                    "CustomerID"=>$this->Customer_ID,
+                    "UserName"=>$this->Username,
+                    "Password"=>$this->Password,
+                    "WareHouseType"=>$type
+                );
+		return $this->client->GetWareHouseList($post);
+	}
+
+    #获取订单信息
+    public function GetOrders($OrderCode){
+        $post['orderRequest'] = array(
+            "CustomerID"=>$this->Customer_ID,
+            "UserName"=>$this->Username,
+            "Password"=>$this->Password,
+            "OrderCode"=>$OrderCode
+        );
+        return $this->client->GetOrders($post);
+    }
+
+	public function __set($name,$value){
+		$this->$name = $value;
+		return $this;
+	}
+
+	public function __get($name){
+		if(isset($this->$name)){
+			return $this->$name;
+		}else{
+			return null;
+		}
+	}
+
+}
