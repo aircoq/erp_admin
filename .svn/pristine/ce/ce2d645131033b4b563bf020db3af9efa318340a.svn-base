@@ -1,0 +1,91 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Yu
+ * Date: 2019/4/24
+ * Time: 11:29
+ */
+
+namespace app\goods\controller;
+
+use app\api\controller\Get;
+use app\common\service\UniqueQueuer;
+use app\goods\queue\GoodsWinitLianQueue;
+use app\goods\service\GoodsWinitLian;
+use function PHPSTORM_META\type;
+use think\Exception;
+use Zend\Validator\Date;
+
+/**
+ * @module 商品系统
+ * @title 万邑链商品
+ * @url /goods-winit-lian
+ * @author ZhaiBin
+ * Class Goods
+ * @package app\goods\controller
+ */
+class WinitLianGoods
+{
+    /**
+     * @var GoodsWinitLian
+     */
+    private $winiService;
+    public $params;
+
+    public function __construct()
+    {
+        $this->winiService = new GoodsWinitLian();
+        $this -> params = [
+            'updateStartDate' => date('Y-m-d',strtotime('-1 day')),
+            'updateEndDate' => date('Y-m-d')
+        ];
+    }
+
+    /**
+     * @title 显示列表
+     * @method get
+     * @url goods-list
+     * @throws \think\Exception
+     */
+    public function showGoodsList()
+    {
+            var_dump($this->winiService->getGoodsList($this->winiService->getConf(554)));
+    }
+
+    /**
+     * @title 推送进队列进行数据库操作
+     * @method get
+     * @url goods-list
+     * @throws \think\Exception
+     */
+    public function index()
+    {
+        try {
+            $queue = new UniqueQueuer(GoodsWinitLianQueue::class);
+            $queue->push($this -> params);
+        }catch (Exception $ex){
+            return json(['message' => $ex->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 推送更新所有的商品
+     * @method get
+     * @url all-goods
+     */
+    public function pushAllGoods()
+    {
+//        $this->params = [
+//            'updateStartDate' =>'',
+//            'updateEndDate' => ''
+//        ];
+//        echo 'ass';
+        ini_set('max_execution_time', '0');
+        $ids = $this->winiService->getWarehouseIds();
+        $data = $this->winiService->getGoodsList($this->winiService->getConf(555));
+        $this->winiService->dataHandle($data);
+//        var_dump($data);
+//        var_dump($ids);
+    }
+
+}

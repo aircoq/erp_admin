@@ -1,0 +1,50 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Yu
+ * Date: 2019/4/24
+ * Time: 11:29
+ */
+
+namespace app\goods\controller;
+
+use app\api\controller\Get;
+use app\goods\service\GoodsWinitLian;
+
+/**
+ * @module 商品系统
+ * @title 万邑链商品
+ * @url /goods-winit-lian
+ * @author ZhaiBin
+ * Class Goods
+ * @package app\goods\controller
+ */
+class WinitLianGoods
+{
+    /**
+     * @var GoodsWinitLian
+     */
+    private $winiService;
+
+    public function __construct()
+    {
+        $this->winiService = new GoodsWinitLian();
+    }
+
+    /**
+     * @title 显示列表
+     * @method get
+     * @url goods-list
+     * @throws \think\Exception
+     */
+    public function showGoodsList()
+    {
+            var_dump($this->winiService->getGoodsList($this->winiService->getConf(554)));
+//        $this->winiService->getWarehouseIds();
+    }
+
+    public function index()
+    {
+        $this->winiService->dataHandle();
+    }
+}

@@ -1,0 +1,175 @@
+<?php
+namespace app\index\service;
+
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\service\ChannelAccountConst;
+use think\Db;
+use think\db\Query;
+use think\Exception;
+use think\Model;
+
+class ChannelAccountService
+{
+    /**
+     * 已注册服务
+     * @var Service
+     */
+    private static $service_list = [];
+    private static $model_list = [];
+
+    public function service($channelId = 0)
+    {
+        if (isset(self::$service_list[$channelId])) {
+            return self::$service_list[$channelId];
+        }
+
+        $conf_list = [
+            ChannelAccountConst::channel_amazon => \app\index\service\AmazonAccountService::class,
+            ChannelAccountConst::channel_Joom => \app\index\service\JoomAccountService::class,
+            ChannelAccountConst::channel_Fummart => \app\index\service\FunmartAccountService::class,
+            ChannelAccountConst::channel_Oberlo => \app\index\service\OberloAccountService::class,
+            ChannelAccountConst::channel_Daraz => \app\index\service\DarazAccountService::class,
+            ChannelAccountConst::channel_Vova => \app\index\service\VovaAccountService::class,
+            ChannelAccountConst::channel_Zoodmall => \app\index\service\ZoodmallAccountService::class,
+            ChannelAccountConst::channel_aliExpress => \app\index\service\AliexpressAccountService::class,
+            ChannelAccountConst::Channel_Jumia => \app\index\service\JumiaAccountService::class,
+            ChannelAccountConst::channel_CD => \app\index\service\CdAccountService::class,
+            ChannelAccountConst::channel_Walmart => \app\index\service\WalmartAccountService::class,
+            ChannelAccountConst::channel_Lazada => \app\index\service\LazadaAccountService::class,
+            ChannelAccountConst::channel_Pdd => \app\index\service\PddAccountService::class,
+            ChannelAccountConst::channel_Paytm => \app\index\service\PaytmAccountService::class,
+            ChannelAccountConst::channel_Pandao => \app\index\service\PandaoAccountService::class,
+            ChannelAccountConst::Channel_umka => \app\index\service\UmkaAccountService::class,
+            ChannelAccountConst::channel_Yandex => \app\index\service\YandexAccountService::class,
+            ChannelAccountConst::channel_wish => \app\index\service\WishAccountService::class,
+            ChannelAccountConst::channel_Shopee => \app\index\service\ShopeeAccountService::class,
+            ChannelAccountConst::channel_ebay => \app\index\service\EbayAccountService::class,
+        ];
+
+        if (!$service = $conf_list[$channelId] ?? null) {
+            throw new Exception('未注册' . $channelId);
+        }
+        return self::$service_list[$channelId] = new $service();
+    }
+
+    public function model($channelId = 0): Model
+    {
+        if (isset(self::$model_list[$channelId])) {
+            return self::$model_list[$channelId];
+        }
+
+        $conf_list = [
+            ChannelAccountConst::channel_amazon => \app\common\model\amazon\AmazonAccount::class,
+            ChannelAccountConst::channel_Joom => \app\common\model\joom\JoomAccount::class,
+            ChannelAccountConst::channel_Fummart => \app\common\model\fummart\FummartAccount::class,
+            ChannelAccountConst::channel_Oberlo => \app\common\model\oberlo\OberloAccount::class,
+            ChannelAccountConst::channel_Daraz => \app\common\model\daraz\DarazAccount::class,
+            ChannelAccountConst::channel_Vova => \app\common\model\zoodmall\ZoodmallAccount::class,
+            ChannelAccountConst::channel_Zoodmall => \app\common\model\zoodmall\ZoodmallAccount::class,
+            ChannelAccountConst::channel_aliExpress => \app\common\model\aliexpress\AliexpressAccount::class,
+            ChannelAccountConst::Channel_Jumia => \app\common\model\jumia\JumiaAccount::class,
+            ChannelAccountConst::channel_CD => \app\common\model\cd\CdAccount::class,
+            ChannelAccountConst::channel_Walmart => \app\common\model\walmart\WalmartAccount::class,
+            ChannelAccountConst::channel_Lazada => \app\common\model\lazada\LazadaAccount::class,
+            ChannelAccountConst::channel_Pdd => \app\common\model\pdd\PddAccount::class,
+            ChannelAccountConst::channel_Paytm => \app\common\model\paytm\PaytmAccount::class,
+            ChannelAccountConst::channel_Pandao => \app\common\model\pandao\PandaoAccount::class,
+            ChannelAccountConst::Channel_umka => \app\common\model\umka\UmkaAccount::class,
+            ChannelAccountConst::channel_Yandex => \app\common\model\yandex\YandexAccount::class,
+            ChannelAccountConst::channel_wish => \app\common\model\wish\WishAccount::class,
+            ChannelAccountConst::channel_Shopee => \app\common\model\shopee\ShopeeAccount::class,
+            ChannelAccountConst::channel_ebay => \app\common\model\ebay\EbayAccount::class,
+        ];
+
+        if (!$model = $conf_list[$channelId] ?? null) {
+            throw new Exception('未注册' . $channelId);
+        }
+        return self::$model_list[$channelId] = new $model();
+    }
+
+    /**
+     * @author lingjiawen
+     * @dateTime 2019-05-04
+     * @param    integer     $channelId 平邑id
+     * @param    int|integer $id        账号id
+     * @param    bool        $enable    true|false
+     */
+    public function setStatus($channelId = 0, int $base_account_id = 0, bool $enable)
+    {
+        $ids = $this->getIdByBaseId($channelId, $base_account_id);
+        // 暂不做限制
+        // $this->checkChangeStatus($channelId, $ids);
+        foreach ($ids as $id) {
+            $this->service($channelId)->changeStatus($id, $enable);
+        }
+        return true;
+    }
+
+    /**
+     * @author lingjiawen
+     * @dateTime 2019-05-04
+     * @param    integer     $channelId       平台id
+     * @param    int|integer $base_account_id 基础账号id
+     * @return   array                       [1,2,3]
+     */
+    public function getIdByBaseId($channelId = 0, int $base_account_id = 0): array
+    {
+        return $this->model($channelId)->where(['base_account_id' => $base_account_id])->column('id') ?? [];
+    }
+
+    /**
+     * 限制状态更改
+     * @author lingjiawen
+     * @dateTime 2019-05-04
+     * @param    Model      $model 平台账号model
+     * @param    array      $ids   [1,2,3]
+     * @return   bool       true|false
+     * @return JsonErrorException
+     */
+    public function checkChangeStatus($channelId = 0, array $ids): bool
+    {
+        $list = $this->model($channelId)
+            ->alias('am')
+            ->field('s.account_code,s.site_status')
+            ->where('am.id', 'in', $ids)
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code')
+            ->select();
+        $black_list = [];
+
+        foreach ($list as $v) {
+            !in_array($v['site_status'], [1, 3, 4]) && $black_list[] = $v['account_code'];
+        }
+        if ($black_list) {
+            throw new JsonErrorException(implode(',', $black_list) . ',未分配、已回收、已作废状态不可更改系统状态', 400);
+        }
+
+        return count($list) == count($ids);
+    }
+
+    /**
+     * @author lingjiawen
+     * @dateTime 2019-05-04
+     * @param    integer    $channelId 平台id
+     * @param    string     $ids        ids 1,2,3
+     * @return   bool       true
+     * @return JsonErrorException
+     */
+    public function enableAccount($channelId = 0, string $ids = '')
+    {
+        return true;
+    }
+
+    /**
+     * @author lingjiawen
+     * @dateTime 2019-05-04
+     * @param    integer    $channelId 平台id
+     * @param    string     $ids        ids 1,2,3
+     * @return   bool       true
+     * @return JsonErrorException
+     */
+    public function disenableAccount($channelId = 0, string $ids = '')
+    {
+        return true;
+    }
+}

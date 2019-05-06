@@ -1,0 +1,737 @@
+<?php
+namespace app\index\service;
+/**
+ * Created by PhpStorm.
+ * User: phill
+ * Date: 2019/1/17
+ * Time: 2:21 PM
+ */
+
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\model\pandao\PandaoAccount;
+use app\common\service\ChannelAccountConst;
+use app\index\validate\PandaoValidate;
+use service\pandao\operation\Account;
+use think\Db;
+use think\Exception;
+use think\exception\PDOException;
+use app\common\model\ChannelAccountLog;
+use app\index\service\AccountService;
+use app\common\service\Common;
+use think\Request;
+
+class PandaoAccountService
+{
+    /**
+     * 日志配置
+     * 字段名称[name] 
+     * 格式化类型[type]:空 不需要格式化,time 转换为时间,list
+     * 格式化值[value]:array
+     */
+    public static $log_config = [
+        'sales_company_id' => ['name'=>'运营公司','type'=>null],
+        'base_account_id' => ['name'=>'账号基础资料名','type'=>null],
+        'account_name' => ['name'=>'账号名称','type'=>null],
+        'code' => ['name'=>'账号简称','type'=>null],
+        'email' => ['name'=>'邮箱','type'=>null],
+        'shop_name' => ['name'=>'店铺名称','type'=>null],
+        'seller_id' => ['name'=>'sellerid','type'=>null],
+        'merchant_id' => ['name'=>'商户ID','type'=>null],
+        'email' => ['name'=>'邮箱','type'=>null],
+        'access_token' => ['name'=>'token','type'=>null],
+        'client_id' => ['name'=>'应用程序ID','type'=>null],
+        'client_secret' => ['name'=>'应用程序密钥','type'=>'key'],
+        'status' => [
+            'name'=>'系统状态', 
+            'type'=>'list',
+            'value'=>[
+                0 =>'停用',
+                1 =>'使用' ,
+            ],
+        ],
+        'enabled' => [
+            'name'=>'平台状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'失效',
+                1 =>'有效' ,
+            ],
+        ],
+        'is_invalid' => [
+            'name'=>'系统invalid状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未启用',
+                1 =>'启用' ,
+            ],
+        ],
+        'is_authorization' => [
+            'name'=>'授权状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未授权',
+                1 =>'已授权' ,
+            ],
+        ],
+        'download_listing' => ['name'=>'抓取Listing时间','type'=>'time'],
+        'download_health' => ['name'=>'同步健康数据','type'=>'time'],
+        'download_order' => ['name'=>'抓取订单时间','type'=>'time'],
+        'download_return' => ['name'=>'下载','type'=>'time'],
+        'sync_delivery' => ['name'=>'同步发货状态时间','type'=>'time'],
+        'sync_feedback' => ['name'=>'同步中差评时间','type'=>'time'],
+        'sync_listing' => ['name'=>'同步listing频率','type'=>'time'],
+        'site_status' => [
+            'name'=>'账号状态',
+            'type'=>'list',
+            'value'=>[
+                0 => '未分配',
+                1 => '运营中',
+                2 => '回收中',
+                3 => '冻结中',
+                4 => '申诉中',
+            ]
+        ],
+    ];
+
+    /**
+     * 账号列表
+     * lingjiawen
+     */
+    public function getList(array $req)
+    {
+        /**
+         * 初始化参数
+         */
+        $operator = ['eq' => '=', 'gt' => '>', 'lt' => '<'];
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 50;
+        $time_type = isset($req['time_type']) and in_array($req['time_type'],['register','fulfill']) ? $req['time_type'] : '';
+        $start_time = isset($req['start_time']) ? strtotime($req['start_time']) : 0;
+        $end_time = isset($req['end_time']) ? strtotime($req['end_time']) : 0;
+        $site = $req['site'] ?? '';
+        $status = isset($req['status']) && is_numeric($req['status']) ? intval($req['status']) : -1;
+        $site_status = isset($req['site_status']) && is_numeric($req['site_status']) ? intval($req['site_status']) : -1;
+        $seller_id = isset($req['seller_id']) ? intval($req['seller_id']) : 0;
+        $customer_id = isset($req['customer_id']) ? intval($req['customer_id']) : 0;
+        $is_authorization = isset($req['authorization']) && is_numeric($req['authorization']) ? intval($req['authorization']) : -1;
+        $is_invalid = isset($req['is_invalid']) && is_numeric($req['is_invalid']) ? intval($req['is_invalid']) : -1;
+        $snType = !empty($req['snType']) && in_array($req['snType'], ['account_name', 'code']) ? $req['snType'] : '';
+        $snText = !empty($req['snText']) ? $req['snText'] : '';
+        $taskName = !empty($req['taskName']) && in_array($req['taskName'], ['download_listing', 'download_order', 'sync_delivery', 'download_health']) ? $req['taskName'] : '';
+        $taskCondition = !empty($req['taskCondition']) && isset($operator[trim($req['taskCondition'])]) ? $operator[trim($req['taskCondition'])] : '';
+        $taskTime = isset($req['taskTime']) && is_numeric($req['taskTime']) ? intval($req['taskTime']) : '';
+        //排序
+        $sort_type = !empty($req['sort_type']) && in_array($req['sort_type'], ['account_name', 'code']) ? $req['sort_type'] : '';
+        $sort = !empty($req['sort_val']) && $req['sort_val'] == 2 ? 'desc' : 'asc';
+        $order_by = 'am.id DESC';
+        $sort_type && $order_by = "am.{$sort_type} {$sort},{$order_by}";
+
+        /**
+         * 参数处理
+         */
+        if ($time_type && $end_time && $start_time > $end_time) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+        !$page and $page = 1;
+        if ($page > $pageSize) {
+            $pageSize = $page;
+        }
+
+        /**
+         * where数组条件
+         */
+        $where = [];
+        $seller_id and $where['c.seller_id'] = $seller_id;
+        $customer_id and $where['c.customer_id'] = $customer_id;
+        $is_invalid >= 0 and $where['am.is_invalid'] = $is_invalid;
+        $is_authorization >= 0 and $where['am.is_authorization'] = $is_authorization;
+        $site and $where['am.site'] = $site;
+        $status >= 0 and $where['am.status'] = $status;
+        $site_status >= 0 and $where['s.site_status'] = $site_status;
+
+        if ($taskName && $taskCondition && !is_string($taskTime)) {
+            $where['am.' . $taskName] = [$taskCondition, $taskTime];
+        }
+
+        if ($snType && $snText) {
+            $where['am.' . $snType] = ['like', '%' . $snText . '%'];
+        }
+
+        /**
+         * 需要按时间查询时处理
+         */
+        if ($time_type) {
+            /**
+             * 处理需要查询的时间类型
+             */
+            switch ($time_type) {
+                case 'register':
+                    $time_type = 'a.register_time';
+                    break;
+                case 'fulfill':
+                    $time_type = 'a.fulfill_time';
+                    break;
+
+                default:
+                    $start_time = 0;
+                    $end_time = 0;
+                    break;
+            }
+            /**
+             * 设置条件
+             */
+            if ($start_time && $end_time) {
+                $where[$time_type] = ['between time', [$start_time, $end_time]];
+            } else {
+                if ($start_time) {
+                    $where[$time_type] = ['>', $start_time];
+                }
+                if ($end_time) {
+                    $where[$time_type] = ['<', $end_time];
+                }
+            }
+        }
+
+        $model = new PandaoAccount();
+        $count = $model
+            ->alias('am')
+            ->where($where)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code', 'LEFT')
+            ->count();
+
+        //没有数据就返回
+        if (!$count) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+
+        $field = 'am.id,am.sales_company_id,am.base_account_id,am.code,am.account_name,am.shop_name,am.email,am.enabled,am.is_invalid,am.download_order,am.sync_delivery,am.create_time,am.creator_id,am.update_time,am.updater_id,am.expiry_time,am.is_authorization,am.sync_listing,s.site_status,c.seller_id,c.customer_id,a.register_time,a.fulfill_time';
+        //有数据就取出
+        $list = $model
+            ->alias('am')
+            ->field($field)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code', 'LEFT')
+            ->where($where)
+            ->page($page, $pageSize)
+            ->order($order_by)
+            ->select();
+
+        foreach ($list as &$val) {
+            $seller =  Cache::store('User')->getOneUser($val['seller_id']);
+            $val['seller_name'] = $seller ? $seller['realname'] : '';
+            $val['seller_on_job'] = $seller ? $seller['on_job'] : '';
+            $customer = Cache::store('User')->getOneUser($val['customer_id']);
+            $val['customer_name'] = $customer ? $customer['realname'] : '';
+            $val['customer_on_job'] = $customer ? $customer['on_job'] : '';
+        }
+
+        return [
+            'count' => $count,
+            'data' => $list,
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ];
+    }
+
+    /**
+     * 刷新token
+     * @param $params
+     * @return array
+     * @throws Exception
+     */
+    public static function refressAccessToken($params){
+        if(!isset($params['id']) || empty($params['id'])){
+            throw new Exception("账号id为空");
+        }
+        $id = $params['id'];
+        $response = (new Account())->refreshToken($params);
+        if(isset($response['access_token']) && isset($response['refresh_token']))
+        {
+            $response['expiry_time'] = time()  + $response['expires_in'];
+            $params= array_merge($params,$response);
+            $params['enabled']=$params['is_invalid']=$params['is_authorization']=1;
+            $where['id']=['=',$id];
+            $model = new PandaoAccount();
+            Db::startTrans();
+            try{
+                $model->allowField(true)->isUpdate(true)->save($params,['id'=>$id]);
+                Db::commit();
+                $cache = Cache::store('PandaoAccountCache');
+                foreach($params as $key=>$val) {
+                    $cache->updateTableRecord($id, $key, $val);
+                }
+                return ['message'=>'授权成功'];
+            }catch (PDOException $exp){
+                Db::rollback();
+                throw new Exception($exp->getMessage());
+            }
+        }elseif(isset($response['error_description']) && $response['error_description']=='Invalid refresh token'){
+            $params['username']=$params['account_name'];
+            (new self())->authorization($params);
+        }
+    }
+
+    /**
+     * 授权
+     * @param $params
+     * @param $uid
+     * @return array
+     * @throws Exception
+     */
+    public function authorization($params,$uid=1){
+        $validate = new PandaoValidate();
+        if($error = $validate->checkData($params,'authorization'))
+        {
+            throw new JsonErrorException($error);
+        }
+        $id = $params['id'];
+        $response = (new Account())->authorization($params);
+        if(isset($response['access_token']) && isset($response['refresh_token']))
+        {
+            $response['expiry_time'] = time()  + $response['expires_in'];
+            $params= array_merge($params,$response);
+            $params['enabled']=$params['is_invalid']=$params['is_authorization']=1;
+            $params['updater_id']=$uid;
+            $where['id']=['=',$id];
+            $model = new PandaoAccount();
+            Db::startTrans();
+            try{
+                $model->allowField(true)->isUpdate(true)->save($params,['id'=>$id]);
+                Db::commit();
+                $cache = Cache::store('PandaoAccountCache');
+                foreach($params as $key=>$val) {
+                    $cache->updateTableRecord($id, $key, $val);
+                }
+                return ['message'=>'授权成功'];
+            }catch (PDOException $exp){
+                Db::rollback();
+                throw new Exception($exp->getMessage());
+            }
+        }else{
+            throw new Exception("授权失败:".$response['error_description']);
+        }
+    }
+
+    /**
+     * 更改状态
+     * @author lingjiawen
+     * @dateTime 2019-04-26
+     * @param    int|integer $id     账号id
+     * @param    int|integer $enable 是否启用 0 停用，1 启用
+     * @return   true|string         成功返回true,失败返回string 原因
+     */
+    public function changeStatus(int $id = 0, $enable)
+    {
+        try {
+            $model = new PandaoAccount();
+            $accountInfo = $model->where('id', $id)->find();
+            if (!$accountInfo) {
+                throw new Exception('账号不存在');
+            }
+
+            if ($accountInfo->is_invalid == $enable) {
+                return true;
+            }
+
+            $user = Common::getUserInfo(Request::instance());
+            $operator = [];
+            $operator['operator_id'] = $user['user_id'] ?? 0;
+            $operator['operator'] = $user['realname'] ?? '';
+            $operator['account_id'] = $id;
+
+            $old_data = $accountInfo->toArray();
+
+            $accountInfo->is_invalid = $enable;
+            $accountInfo->updater_id = $operator['operator_id'];
+            $accountInfo->update_time = time();
+
+            $new_data = $accountInfo->toArray();
+
+            if ($accountInfo->save()) {
+                self::addPandaoLog(
+                    $operator,
+                    ChannelAccountLog::UPDATE,
+                    $new_data,
+                    $old_data
+                );
+                //删除缓存
+                Cache::store('PandaoAccountCache')->delAccount($id);
+            }
+
+            return true;
+        } catch (Exception $e) {
+            throw new JsonErrorException($e->getMessage() . $e->getFile() . $e->getLine(), 400);
+        }
+    }
+
+    /**
+     * 获取一条记录
+     * @param $id
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getOne($id){
+        return (new PandaoAccount())->where('id',$id)->find();
+    }
+
+    /**
+     * 更新账号
+     * @param $params
+     * @param $uid
+     * @return array
+     */
+    public function update($params,$uid){
+        $validate =  new PandaoValidate();
+        if($error = $validate->checkData($params,'update_account'))
+        {
+            throw new JsonErrorException($error);
+        }
+        $id = $params['id'];
+
+        $update_data = [];
+        isset($params['account_name']) and $update_data['account_name'] = $params['account_name'];
+        isset($params['sync_listing']) and $update_data['sync_listing'] = intval($params['sync_listing']);
+        isset($params['sync_delivery']) and $update_data['sync_delivery'] = intval($params['sync_delivery']);
+        isset($params['download_order']) and $update_data['download_order'] = intval($params['download_order']);
+
+        if (empty($update_data)) {
+            throw new JsonErrorException('参数错误');
+        }
+
+        $model = new PandaoAccount();
+
+        $old_data = $model::get($id);
+        if (!$old_data) {
+            throw new JsonErrorException('找不到账号');
+        }
+
+        $user = Common::getUserInfo(Request::instance());
+        $operator = [];
+        $operator['operator_id'] = $user['user_id'] ?? 0;
+        $operator['operator'] = $user['realname'] ?? '';
+        $operator['account_id'] = $old_data['id'];
+        $new_data = $update_data;
+
+        Db::startTrans();
+        try {
+            $update_data['creator_id'] = $uid;
+            $res = $model->allowField(true)->isUpdate(true)->save($update_data,['id' => $id]);
+
+            //更新网站状态
+            $new_data['site_status'] = isset($params['site_status']) ? intval($params['site_status']) : 0;
+            if (in_array($new_data['site_status'], [1, 2, 3, 4])) {
+                $old_data['site_status'] = AccountService::setSite(
+                    ChannelAccountConst::channel_Pandao,
+                    $old_data['base_account_id'],
+                    $old_data['code'],
+                    $operator['operator_id'],
+                    $new_data['site_status']
+                );
+            }
+
+            //插入日志
+            $res and self::addPandaoLog(
+                $operator,
+                ChannelAccountLog::UPDATE,
+                $new_data,
+                $old_data
+            );
+
+            Db::commit();
+
+            //更新缓存
+            $cache = Cache::store('PandaoAccountCache');
+            foreach($update_data as $key=>$val) {
+                $cache->updateTableRecord($id, $key, $val);
+            }
+            $data = $cache->getAccountById($id);
+            foreach ($data as $key=>$value){
+                if($key=='enabled' || $key=='is_authorization' || $key=='is_invalid'){
+                    $data[$key]=$value?1:0;
+                }elseif($key=='expiry_time'){
+                    $data[$key]=$value?$value:'';
+                }
+            }
+            return ['message' =>  '更新成功','data'=>$data];
+        } catch (Exception $exp) {
+            Db::rollback();
+            throw new JsonErrorException($exp->getMessage());
+        }
+    }
+
+    /**
+     * 添加账号
+     * @param $params
+     * @param $uid
+     * @return array
+     */
+    public function add($params,$uid){
+        $validate =  new PandaoValidate();
+        if (!param($params, 'basic_sync')) {
+            if($error = $validate->checkData($params,'add_account'))
+            {
+                throw new JsonErrorException($error);
+            }
+        }
+        $where['account_name']=['=',$params['account_name']];
+        //必须要去账号基础资料里备案
+        \app\index\service\BasicAccountService::isHasCode(ChannelAccountConst::channel_Pandao,$params['code']);
+
+        $user = Common::getUserInfo(Request::instance());
+        $old_data = [];
+        $operator = [];
+        $operator['operator_id'] = $user['user_id'] ?? 0;
+        $operator['operator'] = $user['realname'] ?? '';
+
+        Db::startTrans();
+        try {
+            $model = new PandaoAccount();
+            if($has = $model->where($where)->field('id')->find()){
+                $old_data = $has->toArray();
+                $params['updater_id']=$uid;
+                $model->allowField(true)->isUpdate(true)->save($params,['id'=>$has['id']]);
+                $id = $has['id'];
+                $message='更新成功';
+            }else{
+                $params['creator_id']=$uid;
+                $model->allowField(true)->isUpdate(false)->save($params);
+                $id = $model->id;
+                $message='新增成功';
+            }
+
+            $new_data = $params;
+
+            $operator['account_id'] = $id;
+            isset($params['site_status']) and $new_data['site_status'] = intval($params['site_status']);
+            if ($has && isset($new_data['site_status'])) {
+                if (in_array($new_data['site_status'], [1, 2, 3, 4])) {
+                    $old_data['site_status'] = AccountService::setSite(
+                        ChannelAccountConst::channel_Pandao,
+                        $old_data['base_account_id'],
+                        $old_data['code'],
+                        $operator['operator_id'],
+                        $new_data['site_status']
+                    );
+                }
+            }
+
+            $id and self::addPandaoLog(
+                $operator, 
+                $has ? ChannelAccountLog::UPDATE : ChannelAccountLog::INSERT, 
+                $new_data, 
+                $old_data
+            );
+
+            Db::commit();
+            //新增缓存
+            //Cache::store('PandaoAccountCache')->setTableRecord($id);
+            //更新缓存
+            $cache = Cache::store('PandaoAccountCache');
+            foreach($params as $key=>$val) {
+                $cache->updateTableRecord($id, $key, $val);
+            }
+            $data = $cache->getAccountById($id);
+            foreach ($data as $key=>$value){
+                if($key=='enabled' || $key=='is_authorization' || $key=='is_invalid'){
+                    $data[$key]=$value?1:0;
+                }elseif($key=='expiry_time'){
+                    $data[$key]=$value?$value:'';
+                }
+            }
+            //$data = $model->where('id',$id)->find();
+            return ['message' =>  $message,'data'=>$data];
+        } catch (Exception $exp) {
+            Db::rollback();
+            throw new JsonErrorException($exp->getMessage());
+        }
+    }
+
+    /**
+     * 账号列表 (已废弃)2019-4-24
+     * @param $params
+     * @param int $page
+     * @param int $pageSize
+     * @return array
+     * @throws Exception
+     */
+    public function lists($params,$page=1,$pageSize=30){
+        try{
+            $where = [];
+            if (isset($params['is_invalid']) && is_numeric($params['is_invalid'])) {
+                $where['is_invalid'] = ['=', $params['is_invalid']];
+            }
+            if (isset($params['is_authorization']) && is_numeric($params['is_authorization'])) {
+                $where['is_authorization'] = ['=', $params['is_authorization']];
+            }
+            if (isset($params['snType']) && isset($params['snText']) && !empty($params['snText'])) {
+                switch ($params['snType']) {
+                    case 'account_name':
+                        $where['account_name'] = [ '=', $params['snText']];
+                        break;
+                    case 'code':
+                        $where['code'] = [ '=', $params['snText']];
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            $where1 = $this->handleTaskTime($params);
+            if(!empty($where1))
+            {
+                $where = array_merge($where,$where1);
+            }
+
+//            $account_list = Cache::store('PandaoAccountCache')->getTableRecord();
+//
+//            arsort($account_list);
+//            if (isset($where)) {
+//                $account_list = Cache::filter($account_list, $where);
+//            }
+//            //总数
+//            $count = count($account_list);
+//            $accountData = Cache::page($account_list, $page, $pageSize);
+//            $new_array = [];
+            $orderBy = fieldSort($params);
+            $orderBy .= 'create_time desc,update_time desc';
+            $model = new PandaoAccount();
+            $count = $model->where($where)->count();
+            $accountData = $model->where($where)->page($page,$pageSize)->order($orderBy)->select();
+            $new_array = [];
+            foreach ($accountData as $k => $v) {
+                $this->updateEnabled($v);
+                $v['expiry_time'] = !empty($v['expiry_time']) ? date('Y-m-d H:i:s', $v['expiry_time']) : '';
+                $v['is_invalid'] = (int)$v['is_invalid'];
+                $v['id'] = (int)$v['id'];
+                $v['is_authorization'] = (int)$v['is_authorization'];
+                $new_array[$k] = $v;
+            }
+            $result = [
+                'data' => $new_array,
+                'page' => $page,
+                'pageSize' => $pageSize,
+                'count' => $count,
+            ];
+            return $result;
+        }catch (Exception $exp){
+            throw new JsonErrorException("File:{$exp->getFile()};Line:{$exp->getLine()};Message:{$exp->getMessage()}");
+        }
+    }
+
+    private function handleTaskTime($param)
+    {
+        $where = [];
+        $task_time = trim(param($param,'taskTime'));
+        if(is_numeric($task_time))
+        {
+            $taskName = trim(param($param,'taskNameList'));
+            $taskCondition = trim(param($param,'taskCondition'));
+            $allow_task_name = ['sync_listing','download_order','sync_delivery'];
+            $allow_condition = ['lt','gt','eq'];
+
+            if(in_array($taskName,$allow_task_name) && in_array($taskCondition,$allow_condition))
+            {
+                $where[$taskName] = [$taskCondition,$task_time];
+            }
+        }else{
+            return $where;
+        }
+        return $where;
+    }
+    /**
+     * @desc 更新账号是否有效标识
+     * @param array $data 速卖通账号信息
+     * @author Jimmy
+     * @date 2017-11-09 20:03:11
+     */
+    private function updateEnabled(&$data)
+    {
+        try {
+            //授权已失效
+            if ($data['expiry_time'] < time()) {
+                $data['enabled'] = 0;
+                //修改表
+                $model = PandaoAccount::get($data['id']);
+                if ($model) {
+                    $model->enabled = 0;
+                    $model->save();
+                    //更新缓存
+                    $cache = Cache::store('PandaoAccountCache');
+                    foreach($data as $key=>$val) {
+                        $cache->updateTableRecord($data['id'], $key, $val);
+                    }
+                }
+            }
+        } catch (Exception $exp) {
+            throw new JsonErrorException($exp->getMessage());
+        }
+    }
+
+    /**
+     * 添加日志
+     * @author lingjiawen
+     */
+    public static function addPandaoLog(array $base_info = [], int $type = 0, array $new_data = [], $old_data = []): void
+    {
+        $insert_data = [];
+        $remark = [];
+        if (ChannelAccountLog::INSERT == $type) {
+            $insert_data = $new_data;
+        }
+        if (ChannelAccountLog::DELETE == $type) {
+            $insert_data = (array)$old_data;
+        }
+        if (ChannelAccountLog::UPDATE == $type) {
+            foreach ($new_data as $k => $v) {
+                if (isset(self::$log_config[$k]) and isset($old_data[$k]) and $v != $old_data[$k]) {
+                    $remark[] = ChannelAccountLog::getRemark(self::$log_config[$k], $type, $k, $v, $old_data[$k]);
+                    $insert_data[$k] = $old_data[$k];
+                }
+            }
+        }
+        $insert_data and ChannelAccountLog::addLog([
+            'channel_id' => ChannelAccountConst::channel_Pandao,
+            'account_id' => $base_info['account_id'],
+            'type' => $type,
+            'remark' => json_encode($remark, JSON_UNESCAPED_UNICODE),
+            'operator_id' => $base_info['operator_id'],
+            'operator' => $base_info['operator'],
+            'data' => json_encode($insert_data, JSON_UNESCAPED_UNICODE),
+            'create_time' => input('server.REQUEST_TIME'),
+        ]);
+    }
+
+    /**
+     * 获取日志
+     */
+    public function getPandaoLog(array $req = []): array
+    {
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 10;
+        $account_id = isset($req['id']) ? intval($req['id']) : 0;
+
+        return (new ChannelAccountLog)->getLog(
+            ChannelAccountConst::channel_Pandao, 
+            $account_id, 
+            true, 
+            $page, 
+            $pageSize
+        );
+    }
+}

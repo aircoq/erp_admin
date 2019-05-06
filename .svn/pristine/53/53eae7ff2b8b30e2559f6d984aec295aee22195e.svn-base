@@ -1,0 +1,595 @@
+<?php
+namespace app\index\service;
+
+
+use app\common\cache\Cache;
+use app\common\model\ebay\EbayAccount;
+use app\common\model\ebay\EbayAccount as EbayAccountModel;
+use app\common\service\ChannelAccountConst;
+use app\common\service\Common as CommonService;
+use app\common\service\ebay\EbayRestful;
+use DTS\eBaySDK\Trading\Services\TradingService;
+use DTS\eBaySDK\Trading\Types\GetTokenStatusRequestType;
+use erp\AbsServer;
+use think\Db;
+use app\common\model\paypal\PaypalAccount as PaypalAccountModel;
+use app\common\model\ebay\EbaySite as EbaySiteModel;
+use think\Exception;
+use app\common\model\ChannelAccountLog;
+use think\Request;
+use app\common\exception\JsonErrorException;
+
+/**
+ * Created by PhpStorm.
+ * User: tanbin
+ * Date: 2017/7/19
+ * Time: 15:48
+ */
+class EbayAccountService extends AbsServer
+{
+    /**
+     * 日志配置
+     * 字段名称[name] 
+     * 格式化类型[type]:空 不需要格式化,time 转换为时间,list
+     * 格式化值[value]:array
+     */
+    public static $log_config = [
+        'sales_company_id' => ['name'=>'运营公司','type'=>null],
+        'base_account_id' => ['name'=>'账号基础资料名','type'=>null],
+        'account_name' => ['name'=>'账号名称','type'=>null],
+        'email' => ['name'=>'邮箱','type'=>null],
+        'code' => ['name'=>'账号简称','type'=>null],
+        'currency' => ['name'=>'币种','type'=>null],
+        'min_paypal_id' => ['name'=>'小payal账号','type'=>null],
+        'max_paypal_id' => ['name'=>'大paypal账号','type'=>null],
+        'feedback_score' => ['name'=>'信用评价','type'=>null],
+        'feedback_rating_star' => ['name'=>'信用评价星级','type'=>null],
+        'registration_address' => ['name'=>'eBay地址','type'=>null],
+        'first_name' => ['name'=>'名','type'=>null],
+        'last_name' => ['name'=>'姓','type'=>null],
+        'name' => ['name'=>'姓名','type'=>null],
+        'phone_country_prefix' => ['name'=>'电话号码代码','type'=>null],
+        'phone_local_number' => ['name'=>'电话号码的区号','type'=>null],
+        'phone' => ['name'=>'电话号码','type'=>null],
+        'street' => ['name'=>'街道','type'=>null],
+        'city_name' => ['name'=>'城市名','type'=>null],
+        'state_or_province' => ['name'=>'州名','type'=>null],
+        'postal_code' => ['name'=>'邮编','type'=>null],
+        'country_name' => ['name'=>'国家名','type'=>null],
+        'register_time' => ['name'=>'注册日期','type'=>null],
+        'ru_name' => ['name'=>'第三方应用标识','type'=>null],
+        'dev_id' => ['name'=>'开发者id','type'=>null],
+        'app_id' => ['name'=>'开发者应用id','type'=>null],
+        'cert_id' => ['name'=>'开发者证书id','type'=>null],
+        'token' => ['name'=>'安全证书','type'=>null],
+        'seller_fee_discount_percent' => ['name'=>'卖家折扣','type'=>null],
+        'is_developer' => [
+            'name'=>'账号为第三方应用',
+            'type'=>'list',
+            'value'=>[
+                0 =>'否',
+                1 =>'是' ,
+            ],
+        ],
+        'type' => [
+            'name'=>'账号类型',
+            'type'=>'list',
+            'value'=>[
+                0 =>'测试环境',
+                1 =>'正式环境' ,
+            ],
+        ],
+        'is_enable' => [
+            'name'=>'账号状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'有效',
+                1 =>'失效' ,
+            ],
+        ],
+        'is_invalid' => [
+            'name'=>'系统状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'停用',
+                1 =>'启用' ,
+            ],
+        ],
+        'is_authorization' => [
+            'name'=>'授权状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未授权',
+                1 =>'已授权' ,
+            ],
+        ],
+        'download_listing' => ['name'=>'抓取Listing时间','type'=>'time'],
+        'health_monitor' => ['name'=>'同步健康数据','type'=>'time'],
+        'download_order' => ['name'=>'抓取订单时间','type'=>'time'],
+        'download_message' => ['name'=>'下载消息数据','type'=>'time'],
+        'download_evaluate' => ['name'=>'下载评价','type'=>'time'],
+        'sync_delivery' => ['name'=>'同步发货状态时间','type'=>'time'],
+        'sync_feedback' => ['name'=>'同步中差评时间','type'=>'time'],
+        'sync_payment' => ['name'=>'同步付款状态','type'=>'time'],
+        'site_status' => [
+            'name'=>'账号状态',
+            'type'=>'list',
+            'value'=>[
+                0 => '未分配',
+                1 => '运营中',
+                2 => '回收中',
+                3 => '冻结中',
+                4 => '申诉中',
+            ]
+        ],
+    ];
+
+    /**
+     * 获取账号列表
+     * lingjiawen
+     */
+    public function getList(array $req)
+    {
+        /**
+         * 初始化参数
+         */
+        $operator = ['eq' => '=', 'gt' => '>', 'lt' => '<'];
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 50;
+        $time_type = isset($req['time_type']) and in_array($req['time_type'], ['register', 'fulfill']) ? $req['time_type'] : '';
+        $start_time = isset($req['start_time']) ? strtotime($req['start_time']) : 0;
+        $end_time = isset($req['end_time']) ? strtotime($req['end_time']) : 0;
+        $site = $req['site'] ?? '';
+        $token_valid_status = isset($req['token_valid_status']) && is_numeric($req['token_valid_status']) ? intval($req['token_valid_status']) : -1;
+        $account_status = isset($req['account_status']) && is_numeric($req['account_status']) ? intval($req['account_status']) : -1;
+        $site_status = isset($req['site_status']) && is_numeric($req['site_status']) ? intval($req['site_status']) : -1;
+        $seller_id = isset($req['seller_id']) ? intval($req['seller_id']) : 0;
+        $customer_id = isset($req['customer_id']) ? intval($req['customer_id']) : 0;
+        $is_authorization = isset($req['authorization']) && is_numeric($req['authorization']) ? intval($req['authorization']) : -1;
+        $is_invalid = isset($req['is_invalid']) && is_numeric($req['is_invalid']) ? intval($req['is_invalid']) : -1;
+        $snType = !empty($req['snType']) && in_array($req['snType'], ['account_name', 'code']) ? $req['snType'] : '';
+        $snText = !empty($req['snText']) ? $req['snText'] : '';
+        $taskName = !empty($req['taskName']) && in_array($req['taskName'], ['download_listing', 'download_order', 'sync_delivery', 'download_health']) ? $req['taskName'] : '';
+        $taskCondition = !empty($req['taskCondition']) && isset($operator[trim($req['taskCondition'])]) ? $operator[trim($req['taskCondition'])] : '';
+        $taskTime = isset($req['taskTime']) && is_numeric($req['taskTime']) ? intval($req['taskTime']) : '';
+        //排序
+        $order_by = !empty($req['order_by']) && in_array($req['order_by'], ['code', 'account_name', 'site_id', 'token_invalid_time']) ? $req['order_by'] : 'id';
+        $sort = !empty($req['sort']) && $req['sort'] == 'asc' ? $req['sort'] : 'desc';
+
+        /**
+         * 参数处理
+         */
+        if ($time_type && $end_time && $start_time > $end_time) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+        !$page and $page = 1;
+        if ($page > $pageSize) {
+            $pageSize = $page;
+        }
+
+        /**
+         * where数组条件
+         */
+        $where = [];
+        $seller_id and $where['c.seller_id'] = $seller_id;
+        $customer_id and $where['c.customer_id'] = $customer_id;
+        $is_invalid >= 0 and $where['am.is_invalid'] = $is_invalid;
+        $is_authorization >= 0 and $where['am.is_authorization'] = $is_authorization;
+        $site and $where['am.site'] = $site;
+        $token_valid_status >= 0 and $where['am.token_valid_status'] = $token_valid_status;
+        $account_status >= 0 and $where['am.account_status'] = $account_status;
+        $site_status >= 0 and $where['s.site_status'] = $site_status;
+
+        if ($taskName && $taskCondition && !is_string($taskTime)) {
+            $where['am.' . $taskName] = [$taskCondition, $taskTime];
+        }
+
+        if ($snType && $snText) {
+            $where['am.' . $snType] = ['like', '%' . $snText . '%'];
+        }
+
+        /**
+         * 需要按时间查询时处理
+         */
+        if ($time_type) {
+            /**
+             * 处理需要查询的时间类型
+             */
+            switch ($time_type) {
+                case 'register':
+                    $time_type = 'a.register_time';
+                    break;
+                case 'fulfill':
+                    $time_type = 'a.fulfill_time';
+                    break;
+
+                default:
+                    $start_time = 0;
+                    $end_time = 0;
+                    break;
+            }
+            /**
+             * 设置条件
+             */
+            if ($start_time && $end_time) {
+                $where[$time_type] = ['between time', [$start_time, $end_time]];
+            } else {
+                if ($start_time) {
+                    $where[$time_type] = ['>', $start_time];
+                }
+                if ($end_time) {
+                    $where[$time_type] = ['<', $end_time];
+                }
+            }
+        }
+
+        $model = new EbayAccountModel();
+
+        $count = $model
+            ->alias('am')
+            ->where($where)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code', 'LEFT')
+            ->count();
+
+        //没有数据就返回
+        if (!$count) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+
+        $field = 'am.id,am.account_name,am.code,am.site_id,am.download_order,am.download_message,am.download_listing,am.sync_payment,
+            am.sync_delivery,am.sync_feedback,am.feedback_score,am.feedback_rating_star,am.positive_feedback_percent,am.token_invalid_time,am.account_status,
+            am.is_invalid,am.email,am.min_paypal_id,am.max_paypal_id,am.token_valid_status,am.ort_invalid_time,am.health_monitor,s.site_status,c.seller_id,c.customer_id,a.register_time,a.fulfill_time';
+        //有数据就取出
+        $list = $model
+            ->alias('am')
+            ->field($field)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code', 'LEFT')
+            ->where($where)
+            ->page($page, $pageSize)
+            ->order('am.' . $order_by, $sort)
+            ->select();
+
+        $time = time();
+        $site_status_info = new \app\index\service\BasicAccountService();
+        foreach ($list as &$val) {
+            $seller = Cache::store('User')->getOneUser($val['seller_id']);
+            $val['seller_name'] = $seller ? $seller['realname'] : '';
+            $val['seller_on_job'] = $seller ? $seller['on_job'] : '';
+            $customer = Cache::store('User')->getOneUser($val['customer_id']);
+            $val['customer_name'] = $customer ? $customer['realname'] : '';
+            $val['customer_on_job'] = $customer ? $customer['on_job'] : '';
+            /**
+             * 原逻辑，建议以后优化取消这些操作，由前端自行转换
+             */
+            $val['server_name'] = '';
+            $val['server_ip'] = '';
+            if ($val['is_invalid'] == 0) {
+                $val['download_order_str'] = '同步远程订单已关闭';
+                $val['download_message_str'] = '同步远程站内信已关闭';
+                $val['download_listing_str'] = '同步远程刊登数据已关闭';
+                $val['sync_payment_str'] = '同步付款状态已关闭';
+                $val['sync_delivery_str'] = '同步发货状态已关闭';
+                $val['sync_feedback_str'] = '同步远程评论数据已关闭';
+                $val['health_monitor_str'] = '同步健康数据已关闭';
+            } else {
+                $val['download_order_str'] = $val['download_order'] ? '远程订单' . $val['download_order'] . '分钟抓取一次' : '同步远程订单已关闭';
+                $val['download_message_str'] = $val['download_message'] ? '远程站内信' . $val['download_message'] . '分钟抓取一次' : '同步远程站内信已关闭';
+                $val['download_listing_str'] = $val['download_listing'] ? '远程刊登数据' . $val['download_listing'] . '分钟抓取一次' : '同步远程刊登数据已关闭';
+                $val['sync_payment_str'] = $val['sync_payment'] ? '付款状态' . $val['sync_payment'] . '分钟抓取一次' : '同步付款状态已关闭';
+                $val['sync_delivery_str'] = $val['sync_delivery'] ? '发货状态' . $val['sync_delivery'] . '分钟抓取一次' : '同步发货状态已关闭';
+                $val['sync_feedback_str'] = $val['sync_feedback'] ? '远程评论数据' . $val['sync_feedback'] . '分钟抓取一次' : '同步远程评论数据已关闭';
+                $val['health_monitor_str'] = $val['health_monitor'] ? '同步健康数据已开启' : '同步健康数据已关闭';
+            }
+            $val['token_invalid_time'] = !empty($val['token_invalid_time']) ? date('Y-m-d', $val['token_invalid_time']) : '';
+            $val['oauth_token_status'] = $val['ort_invalid_time'] > $time ? 1 : 0;
+            $val['ort_invalid_time'] = !empty($val['ort_invalid_time']) ? date('Y-m-d', $val['ort_invalid_time']) : '';
+            $val['site_id'] = json_decode($val['site_id'], true) ?? [];
+            $val['site_status_str'] = $site_status_info->accountStatusName($val['site_status']);
+        }
+
+        return [
+            'count' => $count,
+            'data' => $list,
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ];
+    }
+
+    /**
+     * 获取ebay账号绑定的大小收款paypal账号
+     * @param number $account_id ebay账号id
+     * @return unknown[][]
+     */
+    function getEbayMapPaypalAccout($account_id = 0){
+        $result = [];
+        $ebay_account = EbayAccountModel::field('min_paypal_id,max_paypal_id')->where(['id'=>$account_id])->find();
+        if(isset($ebay_account['min_paypal_id']) && $ebay_account['min_paypal_id']>0){
+            $paypal_account_min = PaypalAccountModel::field('id,account_name')->where(['id'=>$ebay_account['min_paypal_id']])->find();          
+            $result['min'] = [
+                'id' => $paypal_account_min['id'],
+                'account_name' => $paypal_account_min['account_name']  
+            ];
+        }
+        
+        if(isset($ebay_account['max_paypal_id']) && $ebay_account['max_paypal_id']>0){
+            $paypal_account_max = PaypalAccountModel::field('id,account_name')->where(['id'=>$ebay_account['max_paypal_id']])->find();
+            $result['max'] = [
+                'id' => $paypal_account_max['id'],
+                'account_name' => $paypal_account_max['account_name']
+            ];
+        }
+        return $result;
+    }
+    
+    /**
+     * 通过站点获取币种
+     * @param number $site_id 站点id
+     * @return string
+     */
+    function getSiteCurrency($site_code = 0){
+        $result = EbaySiteModel::field('currency')->where(['country'=>$site_code])->find();
+        if($result){
+            $result = explode(',', $result['currency']);
+            $result = $result[0];
+        }
+        return $result;
+    }
+    
+    /**
+     * 获取ebay id
+     * @param string $name
+     * @return int
+     */
+    public function getIdByName($name)
+    {
+        $info = EbayAccountModel::where('account_name', $name)->field('id')->find();
+        return $info ? $info['id'] : 0;
+    }
+
+    /**
+     * 刷新token
+     * @param $accountIds
+     * @return array
+     */
+    public function refreshToken($accountIds)
+    {
+        try {
+            if (!isset($accountIds[0])) {
+                $accountIds = [$accountIds];
+            }
+            $field = 'id,app_id,cert_id,ru_name,oauth_refresh_token,ort_invalid_time';
+            $accounts = EbayAccount::field($field)->whereIn('id',$accountIds)->select();
+
+            $header['Content-Type'] = 'application/x-www-form-urlencoded';
+            $data['grant_type'] = 'refresh_token';
+            $data['scope'] = 'https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.marketing.readonly https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.inventory.readonly https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.analytics.readonly';
+            $url = 'https://api.ebay.com/identity/v1/oauth2/token';
+
+            $errMsg = [];
+            $successCnt = 0;
+
+            foreach ($accounts as $account) {
+                try {
+                    $header['Authorization'] = 'Basic ' . base64_encode($account['app_id'] . ':' . $account['cert_id']);
+                    $data['refresh_token'] = $account['oauth_refresh_token'];
+                    $response = (new EbayRestful('POST', $header))->sendRequest($url, $data);
+                    $res = json_decode($response, true);
+                    if (isset($res['error'])) {
+                        $errMsg[$account['id']] = $res['error_description'];
+                        continue;
+                    }
+                    $account->oauth_token = $res['access_token'];
+                    $account->ot_invalid_time = time() + $res['expires_in'];
+                    $account->save();
+                    $successCnt++;
+                } catch (\Exception $e) {
+                    $errMsg[$account['id']] = $e->getMessage();
+                }
+            }
+            $extraMsg = empty($errMsg) ? '' : json_encode($errMsg);
+            return ['result'=>true,'message'=> '成功执行'.$successCnt.'条。'.$extraMsg];
+        } catch (\Exception $e) {
+            return ['result'=>false, 'message'=>$e->getFile().'|'.$e->getLine().'|'.$e->getMessage()];
+        }
+    }
+
+    /**
+     *
+     * @param $config
+     */
+    public function checkTokenExpire($account_id,$config)
+    {
+        $service = new TradingService($config);
+        $req = new GetTokenStatusRequestType();
+        $r = $service->getTokenStatus($req)->toArray();
+        //秘钥token已过期
+        if(isset($r['Errors'][0]['ErrorCode']) && $r['Errors'][0]['ErrorCode'] == 931)
+        {
+           EbayAccount::where(['id'=>$account_id])->update(['token_invalid_time' => (time() - 3600),'update_time' => time()]);
+        }
+    }
+
+    public function save($data = [])
+    {
+        $ret = [
+            'msg' => '',
+            'code' => ''
+        ];
+
+        /** #warning 少了type验证 linpeng time 2019/2/20 14:41 */
+        /** || !is_numeric($data['type']) */
+        if (empty($data['code']) || empty($data['account_name'])) {
+            $ret['msg'] = '参数不能为空';
+            $ret['code'] = 400;
+            return $ret;
+        }
+        $site_check = [];
+        //*******************过滤正确的site_id 站点，保存到数据库*********
+        if (param($data, 'site_id')) {
+            $service = new AccountService();
+            $site_check = $service->checkEbaySite(json_decode($data['site_id'], true));
+        }
+        //*******************过滤正确的site_id 站点，保存到数据库*********
+        $data['site_id'] = empty($site_check) ? [] : $site_check;
+        $data['site_id'] = json_encode($data['site_id']);
+
+        /** warning: 重构时记得传created_user_id linpeng 2019-2-19*/
+
+        // if (!param($data, 'created_user_id')) {
+        //     $user = CommonService::getUserInfo($request);
+        //     $data['created_user_id'] = $user['user_id'];
+        // }
+        \app\index\service\BasicAccountService::isHasCode(ChannelAccountConst::channel_ebay, $data['code']);
+        //启动事务
+        $ebayAccount = new EbayAccount();
+        $isHas = $ebayAccount->where('code', $data['code'])->find();
+        if ($isHas) {
+            $ret['msg'] = '该账号已存在';
+            $ret['code'] = 300;
+            return $ret;
+        }
+        Db::startTrans();
+        try {
+            $data['create_time'] = time();
+            $data['update_time'] = time();
+            $ebayAccount->allowField(true)->isUpdate(false)->save($data);
+            //获取最新的数据返回
+            $new_id = $ebayAccount->id;
+            Db::commit();
+            //删除缓存
+            Cache::store('EbayAccount')->setTableRecord($new_id);
+            $ret['msg'] = '新增成功';
+            $ret['code'] = 200;
+            $ret['id'] = $new_id;
+            return $ret;
+        } catch (\Exception $e) {
+            Db::rollback();
+            $ret['msg'] = '新增失败';
+            $ret['code'] = 500;
+            return $ret;
+        }
+    }
+
+    /**
+     * 更改状态
+     * @author lingjiawen
+     * @dateTime 2019-04-26
+     * @param    int|integer $id     账号id
+     * @param    int|integer $enable 是否启用 0 停用，1 启用
+     * @return   true|string         成功返回true,失败返回string 原因
+     */
+    public function changeStatus(int $id = 0, bool $enable)
+    {
+        try {
+            $model = new EbayAccountModel();
+            $accountInfo = $model->where('id', $id)->find();
+            if (!$accountInfo) {
+                throw new Exception('账号不存在');
+            }
+
+            /**
+             * 判断是否可更改状态
+             */
+            (new \app\index\service\ChannelAccountService())->checkChangeStatus(ChannelAccountConst::channel_ebay, [$id]);
+
+            if ($accountInfo->is_invalid == $enable) {
+                return true;
+            }
+
+            $user = CommonService::getUserInfo(Request::instance());
+            $operator = [];
+            $operator['operator_id'] = $user['user_id'] ?? 0;
+            $operator['operator'] = $user['realname'] ?? '';
+            $operator['account_id'] = $id;
+
+            $old_data = $accountInfo->toArray();
+
+            $accountInfo->is_invalid = $enable;
+            $accountInfo->updated_user_id = $operator['operator_id'];
+            $accountInfo->update_time = time();
+
+            $new_data = $accountInfo->toArray();
+
+            if ($accountInfo->save()) {
+                self::addEbayLog(
+                    $operator,
+                    ChannelAccountLog::UPDATE,
+                    $new_data,
+                    $old_data
+                );
+                //删除缓存
+                Cache::store('EbayAccount')->delAccount($id);
+            }
+
+            return true;
+        } catch (Exception $e) {
+            throw new JsonErrorException($e->getMessage() . $e->getFile() . $e->getLine(), 400);
+        }
+    }
+
+    /**
+     * 添加日志
+     * @author lingjiawen
+     */
+    public static function addEbayLog(array $base_info = [], int $type = 0, array $new_data = [], $old_data = []): void
+    {
+        $insert_data = [];
+        $remark = [];
+        if (ChannelAccountLog::INSERT == $type) {
+            $insert_data = $new_data;
+        }
+        if (ChannelAccountLog::DELETE == $type) {
+            $insert_data = (array)$old_data;
+        }
+        if (ChannelAccountLog::UPDATE == $type) {
+            foreach ($new_data as $k => $v) {
+                if (isset(self::$log_config[$k]) and isset($old_data[$k]) and $v != $old_data[$k]) {
+                    $remark[] = ChannelAccountLog::getRemark(self::$log_config[$k], $type, $k, $v, $old_data[$k]);
+                    $insert_data[$k] = $old_data[$k];
+                }
+            }
+        }
+        $insert_data and ChannelAccountLog::addLog([
+            'channel_id' => ChannelAccountConst::channel_ebay,
+            'account_id' => $base_info['account_id'],
+            'type' => $type,
+            'remark' => json_encode($remark, JSON_UNESCAPED_UNICODE),
+            'operator_id' => $base_info['operator_id'],
+            'operator' => $base_info['operator'],
+            'data' => json_encode($insert_data, JSON_UNESCAPED_UNICODE),
+            'create_time' => input('server.REQUEST_TIME'),
+        ]);
+    }
+
+    /**
+     * 获取日志
+     */
+    public function getEbayLog(array $req = [])
+    {
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 10;
+        $account_id = isset($req['id']) ? intval($req['id']) : 0;
+
+        return (new ChannelAccountLog)->getLog(
+            ChannelAccountConst::channel_ebay,
+            $account_id,
+            true,
+            $page,
+            $pageSize
+        );
+    }
+}

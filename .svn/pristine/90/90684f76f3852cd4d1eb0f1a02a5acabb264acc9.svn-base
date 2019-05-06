@@ -1,0 +1,407 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: huangjintao
+ * Date: 2019/3/20
+ * Time: 17:20
+ */
+
+namespace app\index\service;
+
+
+use aliy1688\GetCreditPayUrl;
+use aliy1688\GetCrossBorderPayUrl;
+use aliy1688\GetOrderDetails;
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\model\Ali1688Account;
+use app\common\model\FinancePurchase;
+use app\common\model\PurchaseOrder;
+use app\purchase\service\PurchaseOrderAli1688Service;
+use app\purchase\service\PurchasePayment;
+use think\Db;
+use think\Exception;
+
+class Ali1688PaymentService
+{
+    const ALI_PAYMENT_OPERATION_USER_ID = 'ali1688_payment_operation_userId';
+    public function payment($params)
+    {
+        $purchaseOrderData = $this->validationData($params);
+        $refresh_token = $purchaseOrderData['refresh_token'];
+        $access_token = $purchaseOrderData['access_token'];
+        $app_key = $purchaseOrderData['client_id'];
+        $app_secret = $purchaseOrderData['client_secret'];
+        $order_id = $this->assembleOrderId($purchaseOrderData['external_number_arr']);
+        foreach ($purchaseOrderData['external_number_arr'] as $external_number){
+            Cache::handler()->hSet(self::ALI_PAYMENT_OPERATION_USER_ID,$external_number,$params['user_id']);
+        }
+        /*方便调试
+        $refresh_token = '2b213199-918d-4b36-b7bc-9ef30f4ddf90';
+        $access_token = '50a239f9-99a2-4411-8f90-da0d26063948';
+        $app_key = '6683451';
+        $app_secret= 'FHp29Uo9LjY';
+        //$order_id = "['393389091327427573','393385059334427573','394634720862427573']";
+        //$order_id = "['395717984548427573','395468898544427573']";
+//        */
+        switch ($params['pay_type']){
+            case 'alipay':
+                $getAliPayUrlApi = new \aliy1688\GetAliPayUrl($order_id,$app_key,$app_secret,$refresh_token,$access_token);
+                $result = $getAliPayUrlApi->request();
+                break;
+            case 'creditPay':
+                $getCreditPayUrlApi = new GetCreditPayUrl($order_id,$app_key,$app_secret,$refresh_token,$access_token);
+                $result = $getCreditPayUrlApi->request();
+                break;
+            case 'crossBorderPay':
+                $getCrossBorderPayUrlApi = new GetCrossBorderPayUrl($order_id,$app_key,$app_secret,$refresh_token,$access_token);
+                $result = $getCrossBorderPayUrlApi->request();
+                break;
+            default:
+                throw new JsonErrorException('不合法的支付方式');
+                break;
+        }
+        if (!isset($result['error_message'])){
+            if ($result['success'] == 'true'){
+                $data = [
+                    'success' => $result['success'],
+                    'payUrl' => $result['payUrl'],
+                    'purchase_order_ids' => $purchaseOrderData['purchase_order_id_arr'],
+                ];
+                if (isset($result['cantPayOrderList']) && ($params['pay_type'] == 'creditPay' || $params['pay_type'] == 'crossBorderPay')){
+                    $data['cantPayOrderList'] = $result['cantPayOrderList'];
+                }
+            }else{
+                if (isset($result['errorMsg'])){
+                    throw new JsonErrorException($result['errorMsg']);
+                }elseif(isset($result['erroMsg'])){
+                    throw new JsonErrorException($result['erroMsg']);
+                }else{
+                    throw new JsonErrorException('未知错误');
+                }
+
+            }
+        }else{
+            throw new JsonErrorException($result['error_message']);
+        }
+
+        return $data;
+    }
+
+    public function getPayType($external_number,$account_1688)
+    {
+        $ali1688AccountModel = new Ali1688Account();
+        $account1688Info = $ali1688AccountModel->where(['account_name' => $account_1688])->find();
+        $data = [
+            'payType' => '--',
+            'external_number' => '--',
+            'payFee' => '--',
+            'payWayCode' => [],
+            'call_api' => false,
+        ];
+        if ($account1688Info){
+            $refresh_token = $account1688Info['refresh_token'];
+            $access_token = $account1688Info['access_token'];
+            $app_key = $account1688Info['client_id'];
+            $app_secret = $account1688Info['client_secret'];
+            /*1688账号信息，方便调试
+            $refresh_token = '2b213199-918d-4b36-b7bc-9ef30f4ddf90';
+            $access_token = '50a239f9-99a2-4411-8f90-da0d26063948';
+            $app_key = '6683451';
+            $app_secret= 'FHp29Uo9LjY';
+            //$external_number= '403637347062427573';
+//            */
+            $getAliPayUrlApi = new \aliy1688\GetAliPayWay($external_number,$app_key,$app_secret,$refresh_token,$access_token);
+            $result = $getAliPayUrlApi->request();
+            if (!isset($result['error_message'])){
+                if (isset($result['success']) && $result['success'] == "true"){
+                    $payWays = $payWaysCode = [];
+                    foreach ($result['resultList']['channels'] as $payWay){
+                        if (in_array($payWay['name'],['支付宝','诚e赊','跨境宝'])){
+                            $payWays[] = $payWay['name'];
+                        }
+                        switch ($payWay['code']){
+                            case 1:
+                                $payWaysCode[] = 1;
+                                break;
+                            case 3:
+                                $payWaysCode[] = 2;
+                                break;
+                            case 16:
+                                $payWaysCode[] = 3;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    $payWayText = implode(',',$payWays);
+                    $data = [
+                        'success' => $result['success'],
+                        'payType' => $payWayText,
+                        'payWayCode' => $payWaysCode,
+                        'external_number' => $result['resultList']['orderId'],
+                        'payFee' => $result['resultList']['payFee']/100,
+                        'call_api' => true,
+                    ];
+                }else{
+                    $data['errorMsg'] = $result['errorMsg'];
+                    $data['call_api'] = true;
+                }
+            }else{
+                $data['errorMsg'] = $result['error_message'];
+            }
+
+        }
+        return $data;
+    }
+
+    public function getOrderDetails($external_number,$account1688Info)
+    {
+        $data = [];
+        if ($account1688Info){
+            $refresh_token = $account1688Info['refresh_token'];
+            $access_token = $account1688Info['access_token'];
+            $app_key = $account1688Info['client_id'];
+            $app_secret = $account1688Info['client_secret'];
+            $getOrderDetailsApi = new GetOrderDetails($external_number,$app_key,$app_secret,$refresh_token,$access_token);
+            $result = $getOrderDetailsApi->request();
+            if (isset($result['success']) && $result['success'] == 'true' && $result['result']['baseInfo']){
+                $data = [
+                    'ali_order_status' => $result['result']['baseInfo']['status'],
+                    'ali_pay_fee' => $result['result']['baseInfo']['totalAmount'],
+                    'trade_type_desc' => $result['result']['baseInfo']['tradeTypeDesc'],
+                ];
+                if ($result['result']['tradeTerms']){
+                    $pay_time = $result['result']['tradeTerms'][0]['payTime'];
+                    $data['pay_time'] = $pay_time = strtotime(substr($pay_time, 0,4) .'-'.substr($pay_time, 4,2) .'-'.substr($pay_time, 6,2) .' '. substr($pay_time, 8,2) .':'. substr($pay_time, 10,2) .':'. substr($pay_time, 12,2));
+                }
+
+            }
+        }
+        return $data;
+    }
+
+    public function OrderDetails($params,$purchaseOrderData = [])
+    {
+        Db::startTrans();
+        try{
+            if (empty($purchaseOrderData)){
+                $purchaseOrderData = $this->validationData($params);
+            }
+            $refresh_token = $purchaseOrderData['refresh_token'];
+            $access_token = $purchaseOrderData['access_token'];
+            $app_key = $purchaseOrderData['client_id'];
+            $app_secret = $purchaseOrderData['client_secret'];
+            /*1688账号信息，方便调试
+            $refresh_token = '2b213199-918d-4b36-b7bc-9ef30f4ddf90';
+            $access_token = '50a239f9-99a2-4411-8f90-da0d26063948';
+            $app_key = '6683451';
+            $app_secret= 'FHp29Uo9LjY';
+//            */
+            $payment_data = $finish = $unfinished = [];
+            $purchaseOrderModel = new PurchaseOrder();
+
+            foreach ($purchaseOrderData['external_number_arr'] as $external_number){
+                $purchaseOrderInfo = $purchaseOrderModel->where(['external_number' => $external_number])->find();
+                if ($purchaseOrderInfo['payment_status'] == 7){
+                    $getOrderDetailsApi = new GetOrderDetails($external_number,$app_key,$app_secret,$refresh_token,$access_token);
+                    $result = $getOrderDetailsApi->request();
+                    if ($result['success'] == 'true' && $result['result']['tradeTerms'] && $result['result']['tradeTerms'][0]['payStatus'] == 2){
+                        $pay_time = $result['result']['tradeTerms'][0]['payTime'];
+                        $pay_time = strtotime(substr($pay_time, 0,4) .'-'.substr($pay_time, 4,2) .'-'.substr($pay_time, 6,2) .' '. substr($pay_time, 8,2) .':'. substr($pay_time, 10,2) .':'. substr($pay_time, 12,2));
+                        $purchaseOrderAli1688Service = new PurchaseOrderAli1688Service();
+                        $purchaseOrderAli1688Info = $purchaseOrderAli1688Service->getPurchaseOrderAli1688(['ali_order_id' => $external_number]);
+                        if ($purchaseOrderAli1688Info){
+                            $ali1688PayInfo = [
+                                'pay_time' => $pay_time,
+                                'pay_way' => $result['result']['tradeTerms'][0]['payWayDesc'],
+                                'ali_order_status' => $result['result']['baseInfo']['status'],
+                                'payable_amount' => $result['result']['baseInfo']['totalAmount'],
+                                'ali_pay_fee' => $result['result']['tradeTerms'][0]['phasAmount'],
+                                'update_time' => time(),
+                            ];
+                            $purchaseOrderAli1688Service->update($ali1688PayInfo,$purchaseOrderAli1688Info['id']);
+                        }
+
+                        $financePurchaseService = new \app\finance\service\FinancePurchase();
+                        $finance_purchases = $financePurchaseService->getFinancePurchaseByPurchaseOrderId($purchaseOrderInfo['id']);
+                        if ($finance_purchases){
+                            foreach ($finance_purchases as $finance_purchase){
+                                $payment_data[$finance_purchase['id']] = $finance_purchase['apply_amount'] - $finance_purchase['payment_amount'];
+                            }
+                        }
+                        $finish[] = $purchaseOrderInfo['id'];
+                    }else{
+                        $unfinished[] = $purchaseOrderInfo['id'];}
+                }else{
+                    $unfinished[] = $purchaseOrderInfo['id'];
+                }
+            }
+            if (!empty($payment_data)){
+                $purchasePaymentService = new PurchasePayment();
+                $purchasePaymentService->markPayed($payment_data,$params['user_id']);
+            }
+            foreach ($purchaseOrderData['external_number_arr'] as $external_number){
+                Cache::handler()->hDel(self::ALI_PAYMENT_OPERATION_USER_ID,$external_number);
+            }
+            Db::commit();
+            return [
+                'message' => '操作成功',
+                'code' => 200,
+                'finish' => $finish,
+                'unfinished' => $unfinished,
+            ];
+        }catch (Exception $e){
+            Db::rollback();
+            return ['message' => $e->getMessage(), 500];
+        }
+    }
+
+    public function validationData($params)
+    {
+        $purchase_order_id_arr = $account_1688 = $external_number_arr = [];
+        if (!$params['data'] || !is_array($data = json_decode($params['data'], true)) || empty($data)) {
+            throw new JsonErrorException('传参格式错误');
+        }
+        foreach ($data as $k => $v){
+            $purchase_order_id_arr[] = $v['purchase_order_id'];
+            $account_1688[] = $v['account_1688'];
+        }
+        if (empty($purchase_order_id_arr) || empty($account_1688)){
+            throw new JsonErrorException('采购单,1688账号不能为空');
+        }
+        $purchase_order_id_arr = array_unique($purchase_order_id_arr);
+        if (count(array_unique($account_1688)) != 1){
+            throw new JsonErrorException('不是同一1688账号');
+        }
+        if (empty($params['pay_type'])){
+            throw new JsonErrorException('支付方式不能为空');
+        }
+
+
+
+        $purchaseOrderModel = new PurchaseOrder();
+        $ali1688AccountModel = new Ali1688Account();
+        foreach ($purchase_order_id_arr as $purchase_order_id){
+            $purchaseOrderInfo = $purchaseOrderModel->find($purchase_order_id);
+            if (!$purchaseOrderInfo){
+                throw new JsonErrorException('找不到采购单号对应数据:'.$purchase_order_id);
+            }
+            if ($purchaseOrderInfo['external_number']){
+                $external_number_arr[] = $purchaseOrderInfo['external_number'];
+            }
+        }
+        if (empty($external_number_arr)){
+            throw new JsonErrorException('所有的对应采购单号没有外部流水号,不能进行线上付款');
+        }else{
+            $this->isSamePayWay($external_number_arr,$params,$purchase_order_id);
+        }
+        $account1688Info = $ali1688AccountModel->where(['account_name' => $account_1688[0]])->find();
+        if (!$account1688Info){
+            throw new JsonErrorException('找不到1688账号信息');
+        }
+
+        return [
+            'purchase_order_id_arr' => $purchase_order_id_arr,
+            'account_1688' => $account_1688,
+            'external_number_arr' => $external_number_arr,
+            'refresh_token' => $account1688Info['refresh_token'],
+            'access_token' => $account1688Info['access_token'],
+            'client_id' => $account1688Info['client_id'],
+            'client_secret' => $account1688Info['client_secret'],
+        ];
+    }
+
+    public function isSamePayWay($external_number_arr,$params,$purchase_order_id)
+    {
+        $where['ali_order_id'] = ['in',$external_number_arr];
+        $where['purchase_order_id'] = ['=',$purchase_order_id];
+        $field = 'support_pay_way_code';
+        $purchaseOrderAli1688Service = new PurchaseOrderAli1688Service();
+        $support_pay_ways = $purchaseOrderAli1688Service->getPurchaseOrderAli1688Info($where,$field);
+        if ($support_pay_ways){
+            foreach ($support_pay_ways as $support_pay_way){
+                $support_pay_way_arr = json_decode($support_pay_way['support_pay_way_code'],true);
+                switch ($params['pay_type']){
+                    case 'alipay':
+                        $this->payWayErrorHint(1,$support_pay_way_arr);
+                        break;
+                    case 'creditPay':
+                        $this->payWayErrorHint(2,$support_pay_way_arr);
+                        break;
+                    case 'crossBorderPay':
+                        $this->payWayErrorHint(3,$support_pay_way_arr);
+                        break;
+                    default:
+                        throw new JsonErrorException('不合法的支付方式');
+                        break;
+                }
+            }
+        }
+    }
+
+    public function payWayErrorHint($code,$support_pay_way_arr)
+    {
+        if (!in_array($code,$support_pay_way_arr)){
+            throw new JsonErrorException('请选择有共有支付方式的采购单');
+        }
+    }
+
+    public function assembleOrderId($external_number_arr)
+    {
+        $paramToSign = '';
+        foreach ($external_number_arr as $external_number){
+            $paramToSign = $paramToSign ."'". $external_number."',";
+        }
+        $paramLength = strlen ( $paramToSign );
+        if ($paramLength > 0) {
+            $paramToSign = substr ( $paramToSign, 0, $paramLength - 1 );
+        }
+        $order_id = "[" . $paramToSign ."]";
+        return $order_id;
+    }
+
+    public function getPayTypeList($params)
+    {
+        if (!$params['data'] || !is_array($purchaseOrderAli1688s = json_decode($params['data'], true)) ||
+            empty($purchaseOrderAli1688s)) {
+            throw new JsonErrorException('参数格式错误');
+        }
+        $pay_way = $use_pay_way_text = [];
+        $purchaseOrderAli1688Service = new PurchaseOrderAli1688Service();
+        foreach ($purchaseOrderAli1688s as $purchaseOrderAli1688){
+            $where = [
+                'purchase_order_id' => $purchaseOrderAli1688['purchase_order_id'],
+                'ali_order_id' => $purchaseOrderAli1688['external_number'],
+                ];
+            $info = $purchaseOrderAli1688Service->getPurchaseOrderAli1688($where);
+            if ($info){
+                $pay_way[] = json_decode($info['support_pay_way_code']);
+            }else{
+                throw new JsonErrorException('没有保存到可支持支付方式,采购单ID为:'.$purchaseOrderAli1688['purchase_order_id']);
+            }
+        }
+        //var_dump($pay_way);
+        if (!$pay_way){
+            throw new JsonErrorException('没有可支持支付方式');
+        }
+        //$pay_way_codes = '';
+        $len = count($pay_way);
+        if ($len == 1){
+            $pay_way_codes = $pay_way[0];
+        }else{
+            $pay_way_codes = array_intersect(...$pay_way);
+        }
+        //var_dump($pay_way_codes);
+        $use_pay_way = [
+            ['label' => '支付宝','value' => 'alipay'],
+            ['label' => '诚e赊','value' => 'creditPay'],
+            ['label' => '跨境宝','value' => 'crossBorderPay'],
+        ];
+        foreach ($pay_way_codes as $pay_way_code){
+            $use_pay_way_text[] = $use_pay_way[$pay_way_code-1];
+        }
+        return $use_pay_way_text;
+    }
+
+}

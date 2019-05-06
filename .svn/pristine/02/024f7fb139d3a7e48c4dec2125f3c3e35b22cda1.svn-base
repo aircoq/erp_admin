@@ -1,0 +1,239 @@
+<?php
+
+namespace service\ebay;
+
+use think\Loader;
+use org\EbayXml;
+
+/**
+ *
+ * ebay Api 基础类
+ * @author tanbin
+ *
+ */
+class EbayBaseApi
+{
+    protected $userToken;//用户证书
+    protected $devID;//开发者ID
+    protected $appID;//应用ID
+    protected $certID;//开发者客户端密钥
+    protected $serverUrl = 'https://api.ebay.com/ws/api.dll';//请求服务器地址
+    protected $compatLevel = 957;//兼容级别
+    protected $siteID;//站点ID
+    protected $verb;//callname
+    protected $_session;//
+    protected $_proxy;
+    protected $_appMode = 0;  // 1 是测试环境   ，0 是正式环境
+    protected $_accountId = 0;
+    protected $_modeStatus = 0; // 1-返回测试数据   （主要用于测试服务器：回复，评价、纠纷处理等）
+
+    protected $config;
+
+    /**
+     * EbayBaseApi constructor.
+     * @param array $config ['devID' => '', 'appID' =>'', 'certID => '',...]初始化时config数组,必需传进这三个参数;
+     * @param int $type
+     */
+    public function __construct($config = [], $type = 0)
+    {
+
+        //初始化,附值开发者参数: devID/appID/certID
+        self::ebayConfig($config);
+
+        if (param($config, 'userToken')) {
+            $this->userToken = $config['userToken'];
+        }
+        $this->compatLevel = isset($config['compatLevel']) ? $config['compatLevel'] : '';
+        $this->siteID = isset($config['siteID']) ? $config['siteID'] : '';
+        $this->verb = isset($config['verb']) ? $config['verb'] : '';
+        $this->_appMode = isset($config['appMode']) ? $config['appMode'] : 0;
+        $this->_accountId = param($config, 'account_id');
+
+        if ($type == 1) {
+            //设置公共信息
+            Loader::import('trading.EbatNs_Session');
+            Loader::import('trading.EbatNs_ServiceProxy');
+            $this->_session = new \EbatNs_Session();
+            $this->_session->setSiteId($this->siteID);
+            $this->_session->setUseHttpCompression(1);
+            $this->_session->setDevId($this->devID);
+            $this->_session->setAppId($this->appID);
+            $this->_session->setCertId($this->certID);
+            $this->_session->setAppMode($this->_appMode); // 1 是测试环境   ，0 是正式环境
+            $this->_session->setRequestToken($this->userToken);
+            $this->_session->setTokenUsePickupFile(false);
+            $this->_session->setTokenMode(true);
+            $this->_session->setXmlState(1);
+            $this->_proxy = new \EbatNs_ServiceProxy($this->_session, 'EbatNs_DataConverterUtf8');
+        }
+    }
+
+    /***
+     * ebay 基础配置
+     */
+    private function ebayConfig($config = [])
+    {
+        $this->devID = $config['devID'];
+        $this->appID = $config['appID'];
+        $this->certID = $config['certID'];
+        if ($this->appID == '-Rondaful-SBX-b53c9ee3a-51e9f0bc') {
+            $this->serverUrl = 'https://api.sandbox.ebay.com/ws/api.dll';
+        } else {
+            $this->serverUrl = isset($config['serverUrl']) && !empty($config['serverUrl']) ? $config['serverUrl'] : $this->serverUrl;
+        }
+    }
+
+
+    /**
+     * xml to array 转换
+     * @param unknown $xml
+     */
+    protected function xmlToArraySDK($xml)
+    {
+        if (strstr($xml, '<soapenv:Fault>')) {
+            \think\Log::write('Ebay AccountId:' . $this->_accountId . " get data error! ");
+            return [];
+        }
+
+        $xml = str_replace('<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">', " ", $xml);
+        $xml = str_replace('<soapenv:Body>', " ", $xml);
+        $xml = str_replace('</soapenv:Body>', " ", $xml);
+        $xml = str_replace('</soapenv:Envelope>', " ", $xml);
+
+        return $xml ? $this->xmlToArrayElement(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)) : array();
+    }
+
+
+    /**
+     *
+     * @param unknown $xmlobject
+     * @return unknown[]|unknown[][]
+     */
+    protected function xmlToArrayElement($xmlobject)
+    {
+        $data = array();
+        foreach ((array)$xmlobject as $key => $value) {
+            $data[$key] = !is_string($value) ? $this->xmlToArrayElement($value) : $value;
+        }
+        return $data;
+    }
+
+
+    /**
+     * 转成数组
+     * @param unknown $xml
+     */
+    public function xmlToArray($xml)
+    {
+        //节点属性也存在
+        $xmlObj = new EbayXml($xml);
+        return $xmlObj->xml;
+    }
+
+
+    /**
+     * post order
+     * create header
+     */
+    protected function buildPostOrderHeaders()
+    {
+        $headers = [];
+        $token = $this->userToken;
+        $headers[] = 'Authorization:TOKEN ' . $token;
+        $headers[] = 'Accept:application/json';
+        $headers[] = 'Content-Type:application/json';
+        $headers[] = 'X-EBAY-C-MARKETPLACE-ID:EBAY_US';
+        return $headers;
+    }
+
+    /**
+     * create request body
+     * @param array $request
+     */
+    protected function buildRequestBody(array $request)
+    {
+        return empty($request) ? '{}' : json_encode($request);
+    }
+
+
+    /**
+     * handel time / time to ebay time
+     * */
+    public function setTimeToEbayTime($time_str)
+    {
+        return gmdate("Y-m-d\TH:i:s.000\Z", strtotime($time_str));
+    }
+
+
+    /**    sendHttpRequest
+     * Sends a HTTP request to the server for this session
+     * Input:    $requestBody
+     * Output:    The HTTP Response as a String
+     */
+    public function sendHttpRequest($requestBody)
+    {
+        //build eBay headers using variables passed via constructor
+        $headers = $this->buildEbayHeaders();
+
+        //initialise a CURL session
+        $connection = curl_init();
+        //set the server we are using (could be Sandbox or Production server)
+        curl_setopt($connection, CURLOPT_URL, $this->serverUrl);
+
+        //stop CURL from verifying the peer's certificate
+        curl_setopt($connection, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($connection, CURLOPT_SSL_VERIFYHOST, 0);
+
+        //set the headers using the array of headers
+        curl_setopt($connection, CURLOPT_HTTPHEADER, $headers);
+
+        //set method as POST
+        curl_setopt($connection, CURLOPT_POST, 1);
+
+        //set the XML body of the request
+        curl_setopt($connection, CURLOPT_POSTFIELDS, $requestBody);
+
+        //set it to return the transfer as a string from curl_exec
+        curl_setopt($connection, CURLOPT_RETURNTRANSFER, 1);
+
+        //Send the Request
+        $response = curl_exec($connection);
+
+        //close the connection
+        curl_close($connection);
+
+        //return the response
+        return $response;
+
+    }
+
+
+    /**    buildEbayHeaders
+     * Generates an array of string to be used as the headers for the HTTP request to eBay
+     * Output:    String Array of Headers applicable for this call
+     */
+    private function buildEbayHeaders()
+    {
+        $headers = array(
+            //Regulates versioning of the XML interface for the API
+            'X-EBAY-API-COMPATIBILITY-LEVEL: ' . $this->compatLevel,
+
+            //set the keys
+            'X-EBAY-API-DEV-NAME: ' . $this->devID,
+            'X-EBAY-API-APP-NAME: ' . $this->appID,
+            'X-EBAY-API-CERT-NAME: ' . $this->certID,
+
+            //the name of the call we are requesting
+            'X-EBAY-API-CALL-NAME: ' . $this->verb,
+
+            //SiteID must also be set in the Request's XML
+            //SiteID = 0  (US) - UK = 3, Canada = 2, Australia = 15, ....
+            //SiteID Indicates the eBay site to associate the call with
+            'X-EBAY-API-SITEID: ' . $this->siteID,
+        );
+
+        return $headers;
+    }
+
+
+}

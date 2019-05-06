@@ -1,0 +1,327 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: rondaful_user
+ * Date: 2019/3/21
+ * Time: 9:00
+ */
+
+namespace app\publish\validate;
+
+
+use app\common\model\ebay\EbayCategory;
+use app\common\model\ebay\EbayExcludeShiplocation;
+use think\Validate;
+
+class EbayListingValidate extends Validate
+{
+    protected $rule = [
+        ['list|主表信息','require|array'],
+        ['set|配置信息','require|array'],
+        ['mappingspec|映射属性信息','array'],
+        ['varians|变体信息','array'],
+        ['imgs|刊登图信息','require|array'],
+        ['detail_imgs|详情图信息','array'],
+//        ['code|账号简称','require'],
+    ];
+
+    //listing表验证规则
+    protected $ruleList = [
+//        ['id|主表id','number|gt:0'],
+//        ['goods_id|商品id','number'],
+//        ['listing_type|出售方式','require|in:1,2'],
+//        ['draft_name|名称备注','max:80'],
+//        ['spu|本地SPU','max:7'],
+//        ['listing_sku|平台sku','max:50'],
+        ['account_id|店铺id','require|number|gt:0'],
+        ['site|站点id','require|in:0,,2,3,15,16,71,77,100,101,186'],
+        ['variation|是否多属性','require|in:0,1'],
+        ['paypal_emailaddress|paypal账号','require|max:128','paypal账号必填，请确认账号是否绑定了对应仓库的paypal，并且正确填写了'],
+        ['primary_categoryid|第一分类id','require|number|gt:0'],
+//        ['second_categoryid|第二分类id','number'],
+        ['picture_gallery|橱窗展示','require|in:0,1,2,3'],
+//        ['location|物品所在地','require|max:45'],
+//        ['country|国家','require|max:2'],
+        ['dispatch_max_time|最大备货时间','require|in:0,1,2,3,4,5,10,15,20'],
+        ['listing_duration|刊登天数','require|in:1,2,3,4,5,6,7'],
+//        ['autopay|立即付款','require|in:0,1'],
+//        ['best_offer|是否接受议价','require|in:0,1'],
+        ['sales_tax|销售税率','float','销售税率必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+//        ['sales_tax_state|销售税地区','max:32'],
+//        ['shipping_tax|税费是否包含运费','in:0,1'],
+        ['vat_percent|增值税率','float','增值税率必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+        ['img|主图','require|max:255'],
+        ['title|标题','require|max:80'],
+//        ['sub_title|副标题','max:55'],
+//        ['store_category_id|店铺第一分类','number'],
+//        ['store_category2_id|店铺第二分类','number'],
+//        ['listing_enhancement|标题是否加粗','in:0,1'],
+//        ['disable_buyer|是否开启买家限制','in:0,1'],
+//        ['listing_cate|listing分类','max:32'],
+//        ['mod_style|风格模板','number'],
+//        ['mod_sale|销售说明','number'],
+//        ['replen|是否自动补货','in:0,1'],
+//        ['restart|是否重新刊登','in:0,1'],
+//        ['return_time|接受退货周期','in:1,2,3,4'],
+//        ['assoc_order|是否关联订单','require|in:0,1'],
+//        ['is_virtual_send|是否虚拟仓发货','require|in:0,1'],
+
+    ];
+    protected $ruleListOption = [
+        ['sku|捆绑sku','max:500'],
+        ['local_sku|本地sku','max:20'],
+        ['start_price|一口价','float','一口价必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+        ['quantity|数量','number|gt:0','数量必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+        ['buy_it_nowprice|立即成交价','float','立即成交价必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+        ['reserve_price|最低成交价','float','最低成交价必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+    ];
+
+    //单属性验证规则
+    protected $ruleListSingle = [
+        ['sku|捆绑sku','require|max:500'],
+        ['local_sku|本地sku','require|max:20'],
+        ['start_price|一口价','require|float','一口价必填，必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+        ['quantity|数量','require|number|gt:0','数量必填，必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+        ['buy_it_nowprice|立即成交价','float','立即成交价必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+        ['reserve_price|最低成交价','float','最低成交价必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+    ];
+
+
+    //setting表验证规则
+    protected $ruleSet = [
+//        ['postal_code|邮编','max:32'],
+//        ['local_pickup|是否自提','in:0,1'],
+        ['auto_accept_price|自动接受价格','float'],
+        ['minimum_accept_price|自动拒绝价格','float'],
+        ['custom_exclude|不送达选项','require|in:1,2,3'],
+//        ['exclude_location|不送达地区','string'],
+//        ['ship_location|送达地区','string'],
+        ['international_shipping|国际物流','array'],
+        ['shipping|国内物流','require|array'],
+//        ['payment_method|付款方式','require|array'],
+        ['payment_instructions|付款说明','max:1000'],
+        ['return_policy|是否接受退货','require|in:0,1'],
+        ['variation_image|多属性关联的图片','max:32'],
+        ['compatibility|兼容值','array'],
+        ['specifics|属性','require|array'],
+        ['description|描述','require'],
+        ['condition_id|物品状态','require|in:1000,1500,1750,2000,2750,3000,4000,5000,6000,7000'],
+        ['condition_description|物品状态描述','max:1000'],
+    ];
+
+//    //重上验证规则
+//    protected $ruleRestart = [
+//        ['restart_rule|重上规则','in:1,2,3,4,5'],
+//        ['restart_count|重上规则售出数量','number'],
+//        ['restart_way|重上方式','in:1,2'],
+//        ['restart_time|重上时间','number'],
+////        ['restart_invalid_time|重上规则有效期','number'],
+//    ];
+
+//    //退货模块验证规则
+//    protected $ruleReturn = [
+//        ['return_type|退货方式','require|in:MoneyBack,MoneyBackOrExchange,MoneyBackOrReplacement'],
+//        ['return_shipping_option|运费承担方','require|in:MoneyBack,MoneyBackOrExchange,MoneyBackOrReplacement'],
+//        ['return_description|退货说明','max:5000'],
+//    ];
+    //买家限制验证规则
+    protected $ruleBuyer = [
+        ['registration|主要运送地址在我的运送范围之外','in:0,1'],
+        ['violations|是否开启弃标案限制','in:0,1'],
+        ['violations_count|弃标案个数','in:0,2,3,4,5'],
+        ['violations_period|弃标案周期','in:0,Days_30,Days_180,Days_360'],
+        ['requirements|是否开启购买个数限制','in:0,1'],
+        ['requirements_max_count|限制个数','in:0,1,2,3,4,5,6,7,8,9,10,25,50,75,100'],
+        ['minimum_feedback_score|限制个数适用于的买家信用','in:0,1,2,3,4,5'],
+    ];
+
+    //变体验证规则
+    protected $ruleVar = [
+        ['sku_id|本地sku id','number'],
+        ['v_sku|本地sku','max:20'],
+        ['v_price|sku价格','require|float','sku价格必须是数字类型，请检查是否正确填写，且数字前后没有空格等空白字符'],
+        ['v_qty|sku数量','require|number','sku数量必须是数字类型，请检查是否正确填写，且数字前后没有空格等空白字符'],
+        ['variation|sku属性','require|array'],
+        ['combine_sku|sku捆绑','max:255'],
+    ];
+
+    //物流通用验证规则
+    protected $ruleShippingCommon = [
+        ['shipping_service|物流名称','require'],
+        ['shipping_service_cost|首件运费','require|float','首件运费必填，必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+        ['shipping_service_additional_cost|续件运费','require|float','续件运费必填，必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+    ];
+
+    //国际物流
+    protected $ruleInternationalShipping = [
+        ['shiptolocation|国际物流可送达地区','require|array','国际物流可送达地区必填，且必须是数组形式，请尝试重新设置国际物流后重新操作'],
+    ];
+
+    //国内物流
+    protected $ruleShipping = [
+        ['extra_cost|国内物流额外收费','require|float','国内物流额外收费必填，必须是数字类型，且数字前后不能有空格等空白字符，请检查是否正确填写'],
+    ];
+
+
+    public function checkListing($params)
+    {
+        $this->batch(true);
+        $error = [];
+        //整体验证
+        $res = $this->check($params,$this->rule);
+        if (!$res) {
+            $error = array_merge($error,$this->error);
+        }
+
+        $list = $params['list'];
+        $set = $params['set'];
+        //验证list
+        $res = $this->check($list,$this->ruleList);
+        if (!$res) {
+            $error = array_merge($error,$this->error);
+        }
+        if (EbayCategory:: where(['category_parent_id' => $list['primary_categoryid'], 'site' => $list['site']])->find()) {
+            $error = array_merge($error,['第一分类'=>'所选分类下面还有子分类，请选择最后一级分类']);
+        }
+        if (empty($list['variation'])) {
+            $res = $this->check($list,$this->ruleListSingle);
+            if (!$res) {
+                $error = array_merge($error,$this->error);
+            }
+        } else {
+            $res = $this->check($list,$this->ruleListOption);
+            if (!$res) {
+                $error = array_merge($error,$this->error);
+            }
+            $categorySite = EbayCategory:: where(['category_id' => $list['primary_categoryid'], 'site' => $list['site']])->find();
+            if ($categorySite->variations_enabled == 0) {
+                $error = array_merge($error, ['第一分类' => '所选分类不支持多属性']);
+            }
+        }
+
+        //验证set
+        $res = $this->check($set,$this->ruleSet);
+        if (!$res) {
+            $error = array_merge($error,$this->error);
+        }
+        //验证重上
+//        if ($list['restart'] && !$this->check($set,$this->ruleRestart)) {
+//           $error = array_merge($error,$this->error);
+//        }
+        //验证不运送地区
+        $allLocation = EbayExcludeShiplocation::column('Location');
+        array_push($allLocation,'Worldwide');
+        if ($set['exclude_location']) {
+            $excludeLocation = explode('，', $set['exclude_location']);
+            if ($invalidEx = array_values(array_diff($excludeLocation,$allLocation))) {//如果有不存在于标准里面的地区，说明有错误数据
+                $error = array_merge($error,['不运送地区'=>'以下不运送地区不合法:'.implode('|',$invalidEx).',请重新设置后再操作']);
+            }
+        }
+        //验证运送地区
+        if (!empty($set['ship_location'])) {
+            if (!is_array($set['ship_location'])) {
+                $error = array_merge($error, ['可送达地区'=>'可送达地区必须是数组']);
+            } elseif ($invalidShip = array_values(array_diff($set['ship_location'],$allLocation))) {
+                $error = array_merge($error, ['可送达地区'=>'以下可送达地区不合法:'.implode('|',$invalidShip).'，请尝试重新设置下国际运输方式后再操作']);
+            }
+        }
+        //验证国际物流
+        if ($set['international_shipping']) {
+            $isRule = array_merge($this->ruleShippingCommon,$this->ruleInternationalShipping);
+            foreach ($set['international_shipping'] as $is) {
+                $res = $this->check($is,$isRule);
+                if (!$res) {
+                    $error = array_merge($error,$this->error);
+                }
+            }
+        }
+        //验证国内物流
+        if ($set['shipping']) {
+            $spRule = array_merge($this->ruleShippingCommon,$this->ruleShipping);
+            foreach ($set['shipping'] as $sp) {
+                $res = $this->check($sp,$spRule);
+                if (!$res) {
+                    $error = array_merge($error,$this->error);
+                }
+            }
+        }
+        //验证买家限制
+        if ($list['disable_buyer']) {
+            $res = $this->check($set['buyer_requirment_details'],$this->ruleBuyer);
+            if (!$res) {
+                $error = array_merge($error,$this->error);
+            }
+        }
+        if ((empty($list['disable_buyer']) || empty($set['buyer_requirment_details']['registration']))
+            && $set['exclude_location']) {
+            $error = array_merge($error,['不运送地区只有在开启了买家限制且勾选“主要运送地址在我的运送范围之外”才会生效。请修改后再操作']);
+        }
+
+        //验证变体
+        if ($list['variation']) {
+            $skuImgs = [];
+            $varians = $params['varians'];
+            foreach ($varians as $vk => $varian) {
+                $res = $this->check($varian,$this->ruleVar);
+                if (!$res) {
+                    $error = array_merge($error,$this->error);
+                }
+                $value = $varian['variation'][$set['variation_image']];
+                if ($varian['path']) {
+//                    foreach ($varian['path'] as $vpk => $vp) {
+//                        if (preg_match('/http(s)?:\/\//',$vp) === 0) {
+//                            $vp = 'https://img.rondaful.com/'.$vp;
+//                        }
+//                        $imgSize = getimagesize($vp);
+//                        if ($imgSize[0]<500 || $imgSize[1]<500) {
+//                            $error = array_merge($error,['变体图片'.$vk.$vpk => '变体图片：第'.($vk+1).'个变体的第'.($vp+1).'张图片像素过低']);
+//                        }
+//                    }
+                    $skuImgs[$value] = ($skuImgs[$value]??0) + count($varian['path']);
+                }
+            }
+
+            foreach ($skuImgs as $sik => $siv) {
+                if ($siv > 12) {
+                    $error = array_merge($error,['SKU图片'=>'属性值为'.$sik.'的变体图片总数超过了12张，请减少对应属性图片数量或尝试切换一个属性进行图片关联。']);
+                }
+            }
+        }
+        //验证图片
+        $imgs = $params['imgs'];
+//        foreach ($imgs as $mk => $img) {
+//            if (preg_match('/http(s)?:\/\//',$img) === 0) {
+//                $img = 'https://img.rondaful.com/'.$img;
+//            }
+//            $imgSize = getimagesize($img);
+//            if (($imgSize[0]??0)<500 || ($imgSize[1]??0)<500) {
+//                $error = array_merge($error,['刊登图片'.$mk => '刊登图第'.($mk+1).'张图片像素过低']);
+//            }
+//        }
+        if (count($imgs) > 12) {
+            $error = array_merge($error,['刊登图片'=>'刊登图总数超过了12张，请删除一些图片后再操作。']);
+        }
+        //详情图
+//        if (!empty($params['detail_imgs'])) {
+//            $detailImgs = $params['detail_imgs'];
+//            foreach ($detailImgs as $dmk => $dImg) {
+//                if (preg_match('/http(s)?:\/\//',$dImg) === 0) {
+//                    $dImg = 'https://img.rondaful.com/'.$dImg;
+//                }
+//                $imgSize = getimagesize($dImg);
+//                if (($imgSize[0]??0)<500 || ($imgSize[1]??0)<500) {
+//                    $error = array_merge($error,['详情图片'.$dmk => '详情图第'.($dmk+1).'张图片像素过低']);
+//                }
+//            }
+//        }
+        if (isset($detailImgs) && count($detailImgs) > 20) {
+            $error = array_merge($error,['详情图片'=>'详情图总数超过了20张，请删除一些图片后再操作。']);
+        }
+        if ($error) {
+            $this->error = $error;
+            return false;
+        }
+        return true;
+    }
+
+}

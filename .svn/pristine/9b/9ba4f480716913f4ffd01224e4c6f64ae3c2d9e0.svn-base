@@ -1,0 +1,132 @@
+<?php
+
+namespace service\lazada\operation;
+
+use app\publish\helper\lazada\LazadaUtil;
+use think\Loader;
+
+Loader::import('lazada.LazopSdk');
+
+class Item
+{
+    public $app_key;
+    public $app_secret;
+    public $access_token;
+    public $service_url;
+
+    /**
+     *
+     * @param unknown $appname
+     * @param unknown $appversion
+     * @param unknown $aws_access_key_id
+     * @param unknown $aws_secret_access_key
+     * @param unknown $merchant_id
+     * @param unknown $marketplace_id
+     * @param unknown $serviceUrl
+     * @param unknown $account
+     * @param unknown $site
+     */
+    public function __construct($param = [])
+    {
+        $this->app_key = $param['app_key'] ?? '';
+        $this->app_secret = $param['app_secret'] ?? '';
+        $this->access_token= $param['access_token'] ?? '';
+        $this->service_url = $param['service_url'] ?? '';
+
+    }
+
+    /**
+     * 同步listing 列表
+     * @param $params
+     * @return mixed
+     */
+    public function syncListing($params)
+    {
+        $url = $this->service_url;
+        $client   = new \LazopClient($url,$this->app_key,$this->app_secret);
+        $request = new \LazopRequest('/products/get','GET');
+        $request->addApiParam('options','1');
+        $request->addApiParam('filter','all');
+        if ($params['update_after']) {
+            $request->addApiParam('update_after', LazadaUtil::convertTimeToIso8601($params['update_after']));
+        }
+        $request->addApiParam('offset', $params['page']);
+        $request->addApiParam('limit', $params['page_size']);
+        $result  = $client->execute($request,$this->access_token);
+        $result  = json_decode($result, true);
+        return $result;
+    }
+
+
+    /**
+     * 同步item detailed information
+     * @param $params
+     * @return mixed
+     */
+    public function syncItemInformation($itemId)
+    {
+        $url = $this->service_url;
+        $client   = new \LazopClient($url,$this->app_key,$this->app_secret);
+        $request = new \LazopRequest('/product/item/get','GET');
+        $request->addApiParam('item_id', $itemId);
+        $result  = $client->execute($request,$this->access_token);
+        $result  = json_decode($result, true);
+        return $result;
+    }
+
+    /**
+     * 刊登 create item
+     * @param $params
+     * @return mixed
+     */
+    public function create($data)
+    {
+        $url = $this->service_url;
+        $client   = new \LazopClient($url,$this->app_key,$this->app_secret);
+        $request = new \LazopRequest('/product/create','POST');
+        $xml = LazadaUtil::buildXml($data);
+        print_r($xml);
+//        exit;
+        $request->addApiParam('payload', $xml);
+        $result  = $client->execute($request,$this->access_token);
+        $result  = json_decode($result, true);
+        print_r($result);
+        exit;
+        return $result;
+    }
+
+
+    /**
+     * 刊登 update item
+     * @param $params
+     * @return mixed
+     */
+    public function update($data)
+    {
+        $url = $this->service_url;
+        $client   = new \LazopClient($url,$this->app_key,$this->app_secret);
+        $request = new \LazopRequest('/product/update','POST');
+        $xml = LazadaUtil::buildXml($data);
+        $request->addApiParam('payload', $xml);
+        $result  = $client->execute($request,$this->access_token);
+        $result  = json_decode($result, true);
+        return $result;
+    }
+
+    /**
+     * 刊登 remove item
+     * @param $data array
+     * @return bool|mixed|string
+     * @throws \Exception
+     */
+    public function remove($data)
+    {
+        $url = $this->service_url;
+        $client   = new \LazopClient($url,$this->app_key,$this->app_secret);
+        $request = new \LazopRequest('/product/remove','POST');
+        $request->addApiParam('payload', $data);
+        $result  = $client->execute($request,$this->access_token);
+        $result  = json_decode($result, true);
+        return $result;
+    }
+}

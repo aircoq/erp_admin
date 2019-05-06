@@ -1,0 +1,304 @@
+[ 2019-04-25T14:17:09+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/productInfo?goods_id=100009
+[ log ] www.erp_admin.com/publish/lazada/productInfo?goods_id=100009 [运行时间：0.317000s][吞吐率：3.15req/s] [内存消耗：10,993.69kb] [文件加载：120]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'GetProductInfo',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '3094ec9b-680c-4cc2-a6d1-b2db60cd637f',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productInfo' => '',
+  'goods_id' => '100009',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.040000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->GetProductInfo[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/productInfo' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `p1`.`id`,`p1`.`name`,`p1`.`packing_en_name`,`p1`.`spu`,`p1`.`category_id`,p1.packing_name package_content,p1.weight package_weight,p1.width package_width,p1.height package_height,p1.depth package_length,`p1`.`warehouse_id`,p1.brand_id goods_brand_id,`p1`.`sales_status` FROM `goods` `p1` WHERE  `p1`.`id` = 100009 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_sku` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_sku` WHERE  `goods_id` = 100009 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_gallery` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_gallery` WHERE  `sku_id` IN (100086,100087,100088,100089,100090,100091,100092,100093,100094,100095,100096,100097,100098,100099,100100,100101,100102,100103,100104,100105) [ RunTime:0.074000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `g`.`id`,`g`.`goods_id`,`g`.`channel_id`,`g`.`account_id`,`g`.`site_code`,`g`.`remark`,`g`.`tort_time`,`g`.`tort_type`,`u`.`realname` FROM `goods_tort_description` `g` LEFT JOIN `user` `u` ON `g`.`create_id`=`u`.`id` WHERE  `g`.`goods_id` IN ('100009') [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_lang` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `title`,`description`,`selling_point` FROM `goods_lang` WHERE  `goods_id` = 100009  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.002000s ]
+[ error ] [0]类型错误: Argument 1 passed to think\Cache::connect() must be of the type array, null given, called in C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\Cache.php on line 87[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\Cache.php:36]
+
+---------------------------------------------------------------
+[ 2019-04-25T14:17:53+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/productInfo?goods_id=100009
+[ log ] www.erp_admin.com/publish/lazada/productInfo?goods_id=100009 [运行时间：0.221000s][吞吐率：4.52req/s] [内存消耗：10,990.42kb] [文件加载：120]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'GetProductInfo',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5b19f504-137e-4491-a5b2-bb90032d12bd',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productInfo' => '',
+  'goods_id' => '100009',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.030000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->GetProductInfo[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/productInfo' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `p1`.`id`,`p1`.`name`,`p1`.`packing_en_name`,`p1`.`spu`,`p1`.`category_id`,p1.packing_name package_content,p1.weight package_weight,p1.width package_width,p1.height package_height,p1.depth package_length,`p1`.`warehouse_id`,p1.brand_id goods_brand_id,`p1`.`sales_status` FROM `goods` `p1` WHERE  `p1`.`id` = 100009 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_sku` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_sku` WHERE  `goods_id` = 100009 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_gallery` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_gallery` WHERE  `sku_id` IN (100086,100087,100088,100089,100090,100091,100092,100093,100094,100095,100096,100097,100098,100099,100100,100101,100102,100103,100104,100105) [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `g`.`id`,`g`.`goods_id`,`g`.`channel_id`,`g`.`account_id`,`g`.`site_code`,`g`.`remark`,`g`.`tort_time`,`g`.`tort_type`,`u`.`realname` FROM `goods_tort_description` `g` LEFT JOIN `user` `u` ON `g`.`create_id`=`u`.`id` WHERE  `g`.`goods_id` IN ('100009') [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_lang` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `title`,`description`,`selling_point` FROM `goods_lang` WHERE  `goods_id` = 100009  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ error ] [0]类型错误: Argument 1 passed to think\Cache::connect() must be of the type array, null given, called in C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\Cache.php on line 87[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\Cache.php:36]
+
+---------------------------------------------------------------
+[ 2019-04-25T14:18:30+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/productInfo?goods_id=100009
+[ log ] www.erp_admin.com/publish/lazada/productInfo?goods_id=100009 [运行时间：0.198000s][吞吐率：5.05req/s] [内存消耗：10,993.21kb] [文件加载：120]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'GetProductInfo',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5461ff9f-651c-407c-8701-63d6da393422',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productInfo' => '',
+  'goods_id' => '100009',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.029000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->GetProductInfo[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/productInfo' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `p1`.`id`,`p1`.`name`,`p1`.`packing_en_name`,`p1`.`spu`,`p1`.`category_id`,p1.packing_name package_content,p1.weight package_weight,p1.width package_width,p1.height package_height,p1.depth package_length,`p1`.`warehouse_id`,p1.brand_id goods_brand_id,`p1`.`sales_status` FROM `goods` `p1` WHERE  `p1`.`id` = 100009 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_sku` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_sku` WHERE  `goods_id` = 100009 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_gallery` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_gallery` WHERE  `sku_id` IN (100086,100087,100088,100089,100090,100091,100092,100093,100094,100095,100096,100097,100098,100099,100100,100101,100102,100103,100104,100105) [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `g`.`id`,`g`.`goods_id`,`g`.`channel_id`,`g`.`account_id`,`g`.`site_code`,`g`.`remark`,`g`.`tort_time`,`g`.`tort_type`,`u`.`realname` FROM `goods_tort_description` `g` LEFT JOIN `user` `u` ON `g`.`create_id`=`u`.`id` WHERE  `g`.`goods_id` IN ('100009') [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_lang` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `title`,`description`,`selling_point` FROM `goods_lang` WHERE  `goods_id` = 100009  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ error ] [0]类型错误: Argument 1 passed to think\Cache::connect() must be of the type array, null given, called in C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\Cache.php on line 87[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\Cache.php:36]
+
+---------------------------------------------------------------
+[ 2019-04-25T14:19:18+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/productInfo?goods_id=100009
+[ log ] www.erp_admin.com/publish/lazada/productInfo?goods_id=100009 [运行时间：0.219000s][吞吐率：4.57req/s] [内存消耗：10,977.42kb] [文件加载：119]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'GetProductInfo',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '2f0a00bc-3a72-4545-ae39-161771037fba',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productInfo' => '',
+  'goods_id' => '100009',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.030000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->GetProductInfo[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/productInfo' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `p1`.`id`,`p1`.`name`,`p1`.`packing_en_name`,`p1`.`spu`,`p1`.`category_id`,p1.packing_name package_content,p1.weight package_weight,p1.width package_width,p1.height package_height,p1.depth package_length,`p1`.`warehouse_id`,p1.brand_id goods_brand_id,`p1`.`sales_status` FROM `goods` `p1` WHERE  `p1`.`id` = 100009 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_sku` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_sku` WHERE  `goods_id` = 100009 [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_gallery` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_gallery` WHERE  `sku_id` IN (100086,100087,100088,100089,100090,100091,100092,100093,100094,100095,100096,100097,100098,100099,100100,100101,100102,100103,100104,100105) [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `g`.`id`,`g`.`goods_id`,`g`.`channel_id`,`g`.`account_id`,`g`.`site_code`,`g`.`remark`,`g`.`tort_time`,`g`.`tort_type`,`u`.`realname` FROM `goods_tort_description` `g` LEFT JOIN `user` `u` ON `g`.`create_id`=`u`.`id` WHERE  `g`.`goods_id` IN ('100009') [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_lang` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `title`,`description`,`selling_point` FROM `goods_lang` WHERE  `goods_id` = 100009  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ error ] [0]致命错误: Class 'app\publish\service\Cache' not found[C:\Users\Administrator\Desktop\erp_admin\application\publish\service\LazadaPublishHelper.php:249]
+
+---------------------------------------------------------------
+[ 2019-04-25T14:19:46+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/productInfo?goods_id=100009
+[ log ] www.erp_admin.com/publish/lazada/productInfo?goods_id=100009 [运行时间：0.603000s][吞吐率：1.66req/s] [内存消耗：11,409.96kb] [文件加载：122]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'GetProductInfo',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '55b3db63-9def-440d-b217-d75e770a3eba',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productInfo' => '',
+  'goods_id' => '100009',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.031000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->GetProductInfo[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/productInfo' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `p1`.`id`,`p1`.`name`,`p1`.`packing_en_name`,`p1`.`spu`,`p1`.`category_id`,p1.packing_name package_content,p1.weight package_weight,p1.width package_width,p1.height package_height,p1.depth package_length,`p1`.`warehouse_id`,p1.brand_id goods_brand_id,`p1`.`sales_status` FROM `goods` `p1` WHERE  `p1`.`id` = 100009 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_sku` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_sku` WHERE  `goods_id` = 100009 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_gallery` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_gallery` WHERE  `sku_id` IN (100086,100087,100088,100089,100090,100091,100092,100093,100094,100095,100096,100097,100098,100099,100100,100101,100102,100103,100104,100105) [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `g`.`id`,`g`.`goods_id`,`g`.`channel_id`,`g`.`account_id`,`g`.`site_code`,`g`.`remark`,`g`.`tort_time`,`g`.`tort_type`,`u`.`realname` FROM `goods_tort_description` `g` LEFT JOIN `user` `u` ON `g`.`create_id`=`u`.`id` WHERE  `g`.`goods_id` IN ('100009') [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_lang` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `title`,`description`,`selling_point` FROM `goods_lang` WHERE  `goods_id` = 100009  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `path` FROM `goods_gallery` WHERE  `goods_id` = 100009 GROUP BY path [ RunTime:0.079000s ]
+[ error ] [0]致命错误: Call to undefined method app\common\service\Common::replaceDesriptionHtmlTags()[C:\Users\Administrator\Desktop\erp_admin\application\publish\service\LazadaPublishHelper.php:325]
+
+---------------------------------------------------------------
+[ 2019-04-25T14:21:01+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/productInfo?goods_id=100009
+[ log ] www.erp_admin.com/publish/lazada/productInfo?goods_id=100009 [运行时间：0.614000s][吞吐率：1.63req/s] [内存消耗：11,647.03kb] [文件加载：123]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'GetProductInfo',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'a96b3d10-b0a9-43e7-9bd8-79995b5db687',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productInfo' => '',
+  'goods_id' => '100009',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.031000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->GetProductInfo[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/productInfo' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `p1`.`id`,`p1`.`name`,`p1`.`packing_en_name`,`p1`.`spu`,`p1`.`category_id`,p1.packing_name package_content,p1.weight package_weight,p1.width package_width,p1.height package_height,p1.depth package_length,`p1`.`warehouse_id`,p1.brand_id goods_brand_id,`p1`.`sales_status` FROM `goods` `p1` WHERE  `p1`.`id` = 100009 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_sku` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_sku` WHERE  `goods_id` = 100009 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_gallery` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_gallery` WHERE  `sku_id` IN (100086,100087,100088,100089,100090,100091,100092,100093,100094,100095,100096,100097,100098,100099,100100,100101,100102,100103,100104,100105) [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_tort_description` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `g`.`id`,`g`.`goods_id`,`g`.`channel_id`,`g`.`account_id`,`g`.`site_code`,`g`.`remark`,`g`.`tort_time`,`g`.`tort_type`,`u`.`realname` FROM `goods_tort_description` `g` LEFT JOIN `user` `u` ON `g`.`create_id`=`u`.`id` WHERE  `g`.`goods_id` IN ('100009') [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_lang` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `title`,`description`,`selling_point` FROM `goods_lang` WHERE  `goods_id` = 100009  AND `lang_id` = 2 LIMIT 1 [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT `path` FROM `goods_gallery` WHERE  `goods_id` = 100009 GROUP BY path [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `category_id` FROM `goods` WHERE  `id` = 100009 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods_attribute` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `goods_attribute` WHERE  `goods_id` = 100009 [ RunTime:0.031000s ]
+
+---------------------------------------------------------------

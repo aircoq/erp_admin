@@ -1,0 +1,191 @@
+<?php
+namespace app\publish\controller;
+
+use app\publish\service\AmazonPublishTaskService;
+use think\Request;
+use think\Exception;
+use app\common\controller\Base;
+
+/**
+ * @module 刊登系统
+ * @title Amazon每日刊登
+ * @url /publish/amazon-task
+ * Class AmazonPublishTask
+ * @package app\publish\controller
+ */
+class AmazonPublishTask extends Base
+{
+    protected $lang = 'zh';
+
+    public $service = null;
+
+    public function __construct(Request $request)
+    {
+        parent::__construct($request);
+
+        if (empty($this->service)) {
+            //erp的语言设置，默认是中文，目前可能的值是en:英文；
+            $this->lang = $request->header('Lang', 'zh');
+
+            $this->service = new AmazonPublishTaskService();
+            $this->service->setLang($this->lang);
+        }
+    }
+
+
+    /**
+     * @title 每日刊登列表；
+     * @access public
+     * @method GET
+     * @url /publish/amazon-task
+     * @apiFilter app\publish\filter\AmazonFilter
+     * @apiRelate app\publish\controller\AmazonPublishTask::tags
+     * @apiRelate app\index\controller\Department::departmentUserByChannelId
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function index(Request $request)
+    {
+        try {
+            $params = $request->get();
+            $lists = $this->service->lists($params);
+            return json($lists);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 产品标签；
+     * @access public
+     * @method GET
+     * @url /publish/amazon-task/tags
+     * @apiFilter app\publish\filter\AmazonFilter
+     * @return \think\response\Json
+     */
+    public function tags()
+    {
+        try {
+            $lists = $this->service->getTags();
+            return json($lists);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 取消任务；
+     * @access public
+     * @method DELETE
+     * @url /publish/amazon-task
+     * @apiFilter app\publish\filter\AmazonFilter
+     * @return \think\response\Json
+     */
+    public function cancel(Request $request)
+    {
+        try {
+            $id = $request->delete('id', 0);
+            if (!$id) {
+                if ($this->lang == 'zh') {
+                    return json(['message' => '参数错误'], 400);
+                } else {
+                    return json(['message' => 'Params erorr'], 400);
+                }
+            }
+            $this->service->cancelTask($id);
+            if ($this->lang == 'zh') {
+                return json(['message' => '执行成功']);
+            } else {
+                return json(['message' => 'Success']);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 批量取消任务；
+     * @access public
+     * @method DELETE
+     * @url /publish/amazon-task/batch
+     * @apiFilter app\publish\filter\AmazonFilter
+     * @return \think\response\Json
+     */
+    public function batchCancel(Request $request)
+    {
+        try {
+            $ids = $request->delete('ids', '');
+            $idArr = explode(',', trim($ids));
+            if (empty($idArr) || (count($idArr) == 1) && $idArr[0] == '') {
+                if ($this->lang == 'zh') {
+                    return json(['message' => '参数为空，执行失败'], 400);
+                } else {
+                    return json(['message' => 'Params Error'], 400);
+                }
+            }
+            $this->service->batchCancel($idArr);
+            if ($this->lang == 'zh') {
+                return json(['message' => '执行成功']);
+            } else {
+                return json(['message' => 'Success']);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 转接任务；
+     * @access public
+     * @method POST
+     * @url /publish/amazon-task/transfer
+     * @return \think\response\Json
+     */
+    public function transfer(Request $request)
+    {
+        try {
+            $data = $request->post('data', '[]');
+            $data = json_decode($data, true);
+            if (empty($data)) {
+                if ($this->lang == 'zh') {
+                    return json(['message' => '参数为空，执行失败'], 400);
+                } else {
+                    return json(['message' => 'Params Error'], 400);
+                }
+            }
+
+            $this->service->transfer($data);
+            if ($this->lang == 'zh') {
+                return json(['message' => '执行成功']);
+            } else {
+                return json(['message' => 'Success']);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title 导出任务；
+     * @access public
+     * @method GET
+     * @url /publish/amazon-task/export
+     * @return \think\response\Json
+     */
+    public function export(Request $request)
+    {
+        try {
+            $params = $request->get();
+            $result = $this->service->export($params);
+            return json($result);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+}

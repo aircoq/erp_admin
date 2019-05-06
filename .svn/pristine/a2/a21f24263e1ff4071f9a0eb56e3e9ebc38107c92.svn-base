@@ -1,0 +1,1065 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2019/3/26
+ * Time: 9:36
+ */
+
+namespace app\goods\service;
+
+
+use think\Db;
+use think\Request;
+use think\Exception;
+use app\common\cache\driver\Warehouse;
+use app\common\service\Common;
+use app\common\cache\driver\Goods;
+use app\common\model\GoodsDiscount as Model;
+use app\common\model\Warehouse as WarehouseModel;
+use app\common\model\GoodsDiscountLog as logModel;
+use app\common\model\GoodsSku;
+use app\common\model\User;
+use app\common\service\Excel;
+use app\purchase\service\SupplierOfferService;
+use app\common\service\UniqueQueuer;
+use app\warehouse\service\WarehouseGoods;
+use app\purchase\service\PurchaseOrder;
+use app\index\service\User as userService;
+use app\index\service\DownloadFileService;
+use app\goods\queue\GoodsDiscountImportQueue;
+
+class GoodsDiscount
+{
+
+    const AWAIT_APPROVE = 0;    //等待审核
+    const APPROVE = 1;    //通过审核
+    const NO_APPROVE = 2;    //不通过审核
+    const DISCARD = 3;    //废弃
+    const OVER = 4;    //已结束
+
+    const STATUS_TEXT = [
+        self::AWAIT_APPROVE => '等待审核',
+        self::APPROVE => '通过审核',
+        self::NO_APPROVE => '不通过审核',
+        self::DISCARD => '废弃',
+        self::OVER => '已结束',
+    ];
+
+    //系统自定义常量声明
+    const REPORT_EXPORT_NAME_PREFIX = '跌价报表';
+
+    private static $headers = [
+        '仓库', 'sku', '跌价类型(1跌价金额,2跌价比例)', '跌价金额', '跌价比例', '跌价产品数量', '有效时间(开始)', '有效时间(结束)', '备注', '添加人'
+    ];
+
+    /**
+     * @var creditcard
+     */
+    protected $model;
+    protected $logService;
+
+    public function __construct()
+    {
+        if (is_null($this->model)) {
+            $this->model = new Model();
+        }
+        if (is_null($this->logService)) {
+            $this->logService = new GoodsDiscountLog();
+        }
+    }
+
+    /**
+     * 接收错误并返回,当你调用此类时，如果遇到需要获取错误信息时，请使用此方法。
+     * @return mixed
+     */
+    public function getError()
+    {
+        return $this->error;
+    }
+
+
+    /**
+     * 获取列表
+     * @param array $params
+     * @param $page
+     * @param $pageSize
+     * @return array
+     * @throws \think\exception\DbException
+     */
+    public function getGoodsDiscountList(array $params, $page, $pageSize)
+    {
+        $sort = 'desc';
+        if (isset($params['status']) && $params['status'] == 0) {
+            $sort = 'asc';
+            $order = 'proposer_time';
+        } else {
+            $order = 'audit_time';
+        }
+
+        if (!empty($params['sort']) && in_array($params['sort'], ['asc', 'desc'])) {
+            $sort = $params['sort'];
+        }
+        $where = $this->getWhere($params);
+        $whereOr = $this->getWhereOr($params);
+        $whereStatus = $this->getStatusWhere($params);
+        $field = 'id,sku_id,warehouse_id,inventory_price,last_purchase_price,new_price,discount_type,discount_value,
+        discount_num,sell_num,valid_time,over_time,proposer_id,proposer_time,audit_id,audit_time,status,remark';
+        $count = $this->model->where($where)->where($whereStatus)->whereOr($whereOr)->count();
+        $info = $this->model->where($where)->where($whereStatus)->whereOr($whereOr)->field($field)->order($order, $sort)->page($page, $pageSize)->select();
+
+        $userService = new UserService();
+        $warehouseService = new Warehouse();
+        $goodsCache = new Goods();
+        $time = time();
+        foreach ($info as $key => $item) {
+            if ($item['status'] == 1 && ($item['discount_num'] == $item['sell_num'] || $item['over_time'] < $time)) {
+                if ($item['valid_time'] < $time) {
+                    $info[$key]['status'] = 4;
+                    $info[$key]['discount_value'] = 0;
+                }
+
+            }
+
+            $proposerInfo = $userService->getUser($item['proposer_id']);//申请人
+            $auditInfo = $userService->getUser($item['audit_id']);      //审核人
+            $warehouseInfo = $warehouseService->getWarehouse($item['warehouse_id']);
+            $goodsInfo = $goodsCache->getSkuInfo($item['sku_id']);
+            $info[$key]['sku'] = $goodsInfo['sku'] ?? '';
+            $info[$key]['warehouse'] = $warehouseInfo['name'] ?? '';
+            $info[$key]['proposer'] = $proposerInfo['realname'] ?? '';
+            $info[$key]['audit'] = $auditInfo['realname'] ?? '';
+            $info[$key]['proposer_time'] = date('Y-m-d H:i:s', $item['proposer_time']);
+            $info[$key]['audit_time'] = $item['audit_time'] ? date('Y-m-d H:i:s', $item['audit_time']) : '';
+            $info[$key]['valid_time'] = date('Y-m-d', $item['valid_time']);
+            $info[$key]['over_time'] = date('Y-m-d', $item['over_time']);
+            $info[$key]['status_text'] = self::STATUS_TEXT[$item['status']];
+
+        }
+        $result = [
+            'data' => $info,
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'count' => $count,
+            'time' => date('Y-m-d H:i:s', $time),
+        ];
+        return $result;
+
+    }
+
+
+    /**
+     * 根据条件查询记录
+     * @param array $data
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws \think\exception\DbException
+     */
+    public function read(array $data)
+    {
+        $where = $this->getWhere($data);
+
+        if (count($where) == 0) {
+            $this->error = '无法查询到记录';
+            return null;
+        }
+
+        $field = 'id,sku_id,goods_id,warehouse_id,inventory_price,last_purchase_price,new_price,discount_type,discount_value,
+        discount_num,sell_num,valid_time,over_time,proposer_id,proposer_time,audit_id,audit_time,status,remark';
+
+        $info = $this->model->field($field)->where($where)->find();
+        if (!$info) {
+            $this->error = '无法查询到记录';
+            return $info;
+        }
+        $userService = new UserService();
+        $warehouseService = new Warehouse();
+        $goodsCahce = new Goods();
+        $proposerInfo = $userService->getUser($info['proposer_id']);//申请人
+        $auditInfo = $userService->getUser($info['audit_id']);      //审核人
+        $goodsInfo = $goodsCahce->getSkuInfo($info['sku_id']);
+        $warehouseInfo = $warehouseService->getWarehouse($info['warehouse_id']);
+        $info['sku'] = $goodsInfo['sku'] ?? '';
+        $info['warehouse'] = $warehouseInfo['name'];
+        $info['proposer'] = $proposerInfo['realname'] ?? '';
+        $info['audit'] = $auditInfo['realname'] ?? '';
+        $info['proposer_time'] = date('Y-m-d H:i:s', $info['proposer_time']);
+        $info['audit_time'] = $info['audit_time'] ? date('Y-m-d H:i:s', $info['audit_time']) : '';
+        $info['valid_time'] = date('Y-m-d H:i:s', $info['valid_time']);
+        $info['over_time'] = date('Y-m-d H:i:s', $info['over_time']);
+        return $info;
+    }
+
+
+    /**
+     * @title 根据skuID获取一条最大ID的记录
+     * @param String $skuId
+     * @return array|false|null|\PDOStatement|string|\think\Model
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function readConcise($skuId)
+    {
+        $where['sku_id'] = $skuId;
+        $field = 'id,sku_id,goods_id,warehouse_id,inventory_price,last_purchase_price,new_price,discount_type,discount_value,
+        discount_num,sell_num,valid_time,over_time,proposer_id,proposer_time,audit_id,audit_time,status,remark';
+        $info = $this->model->field($field)->where($where)->order('id desc')->find();
+        return $info;
+    }
+
+
+    /**
+     * @@title 根据skuId,仓库ID检查跌价商品是否允许添加或上传
+     * @param $skuId
+     * @param $warehouseId
+     * @return bool
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function checkOnline($skuId, $warehouseId)
+    {
+        $time = time();
+        $result = $this->model
+            ->field('goods_id,status,discount_num,sell_num,valid_time,over_time')
+            ->where(['sku_id' => $skuId, 'warehouse_id' => $warehouseId])
+            ->order('id desc')
+            ->find();
+
+        if (!$result || $result->status == self::NO_APPROVE || $result->status == self::DISCARD) {
+            return false;//允许添加
+        }
+
+        if ($result->status == 1) {
+            if ($result->discount_num == 0 || $result->discount_num == $result->sell_num || $result->over_time < $time) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 保存提交的
+     * @param $data
+     * @param $user
+     * @return array|bool|false|\PDOStatement|string|\think\Model
+     * @throws \think\exception\DbException
+     */
+    public function save($data, $user)
+    {
+        Db::startTrans();
+        try {
+            $this->model->allowField(true)->isUpdate(false)->save($data);
+            $new_id = $this->model->id;
+            $this->logService->add('')->save($new_id, $user, '添加');
+            Db::commit();
+        } catch (Exception $e) {
+            $this->error = $e->getMessage();
+            Db::rollback();
+            return false;
+        }
+
+        $creditInfo = $this->model->field(true)->where(['id' => $new_id])->find();
+        $creditInfo['create_time'] = date('Y-m-d H:i:s', $creditInfo['create_time']);
+        $creditInfo['update_time'] = date('Y-m-d H:i:s', $creditInfo['update_time']);
+        return $creditInfo;
+    }
+
+    /**
+     * 批量写入
+     * @param array $data
+     * @return bool
+     */
+    public function saveAll(array $data)
+    {
+        try {
+            if (!isset($data['data']) || !isset($data['user'])) {
+                throw new Exception('参数错误');
+            }
+            Db::startTrans();
+            $time = time();
+            foreach ($data['data'] as $key => $list) {
+
+                $list['create_id'] = $data['user'];
+                $list['create_time'] = $time;
+                $list['updater_id'] = $data['user'];
+                $list['update_time'] = $time;
+                $list['proposer_time'] = $time;
+                $list['remark'] = $list['remark'] ?? '';
+
+                $id = $this->model->insertGetId($list);
+                $this->logService->add($list['remark'])->save($id, $data['user'], '添加');
+            }
+            Db::commit();
+            return true;
+        } catch (Exception $e) {
+            $this->error = $e->getMessage();
+            Db::rollback();
+            return false;
+        }
+    }
+
+    /**
+     * 统计总数量
+     * @param $param
+     * @return int|string
+     * @throws \Exception
+     */
+    private function reportCount($params)
+    {
+        $where = $this->getWhere($params);
+        $whereOr = $this->getWhereOr($params);
+        $whereStatus = $this->getStatusWhere($params);
+        $count = $this->model->where($where)->where($whereStatus)->whereOr($whereOr)->count();
+        return $count;
+    }
+
+    /**
+     * 读取日志记录
+     * @param $id
+     * @return false|\PDOStatement|string|\think\Collection
+     * @throws \think\exception\DbException
+     */
+    public function readLog($id)
+    {
+        $info = (new logModel)->where(['discount_id' => $id])->order('id desc')->select();
+        if ($info) {
+            $userService = new UserService();
+            foreach ($info as $k => $v) {
+                $userInfo = $userService->getUser($v['create_id']);//申请人
+                $info[$k]['create_time'] = date('Y-m-d H:i:s', $v['create_time']);
+                $info[$k]['create'] = $userInfo['realname'] ?? '';;
+            }
+        }
+        return $info;
+    }
+
+    /**
+     * @param $id
+     * @param $data
+     * @return bool
+     * @throws \think\exception\DbException
+     */
+    public function update($id, $data)
+    {
+        $info = $this->read(['id' => $id]);
+        if (!$info || $info['status'] == 1) {
+            $this->error = '您已经审批过了';
+            return false;
+        }
+
+        try {
+            Db::startTrans();
+            $val = '';
+            $type = '';
+            $exec = '';
+            $name = '';
+            switch ($info['status']) {
+                case self::AWAIT_APPROVE:
+                    $type = '待审核';
+                    break;
+                case self::APPROVE:
+                    $type = '审核通过';
+                    break;
+                case self::NO_APPROVE:
+                    $type = '审核不通过';
+                    break;
+                case self::DISCARD:
+                    $type = '作废处理';
+                    break;
+                case self::OVER:
+                    $type = '已结束跌价';
+                    break;
+            }
+            switch ($data['status']) {
+                case self::AWAIT_APPROVE:
+                    $name = '重新申请';
+                    break;
+                case self::APPROVE:
+                    $exec = 'agree';
+                    break;
+                case self::NO_APPROVE:
+                    $val = '备注:' . $data['remark'] ?? '';
+                    $exec = 'disagree';
+                    break;
+                case self::DISCARD:
+                    $val = $data['remark'] ?? '';
+                    $exec = 'invalid';
+                    break;
+                case self::OVER:
+                    $name = '已结束跌价.';
+                    break;
+            }
+
+            unset($data['id']);
+            if ($data['status'] != self::AWAIT_APPROVE) {
+                unset($data['remark']);
+            }
+            $this->model->allowField(true)->save($data, ['id' => $id]);
+            $userInfo = Common::getUserInfo();
+            $this->logService->mdf($name, $val, $exec)->save($id, $userInfo['user_id'], $type);
+            Db::commit();
+        } catch (exception $e) {
+            $this->error = $e->getMessage() . $e->getFile() . $e->getLine();
+            Db::rollback();
+            return false;
+        }
+
+        $creditInfo = $this->model->field(true)->where(['id' => $id])->find();
+        $creditInfo['create_time'] = date('Y-m-d H:i:s', $creditInfo['create_time']);
+        $creditInfo['update_time'] = date('Y-m-d H:i:s', $creditInfo['update_time']);
+        return $creditInfo;
+    }
+
+
+    /**
+     * 获取查询条件
+     * @param $params
+     * @return array
+     * @throws \Exception
+     */
+    public function getWhere($params)
+    {
+        $where = [];
+        if (isset($params['id']) && ($params['id'] !== '')) {
+            $where['goods_discount.id'] = $params['id'];
+        }
+
+        if (isset($params['ids']) && ($params['ids'] !== '') && $params['export_type'] == 2) {
+            $where['goods_discount.id'] = ['in', $params['ids']];
+        }
+
+        if (isset($params['status']) && ($params['status'] !== '') && ($params['status'] != 4)) {
+            $where['goods_discount.status'] = $params['status'];
+        }
+
+        if (isset($params['warehouse_id']) && ($params['warehouse_id'] !== '')) {
+            $where['goods_discount.warehouse_id'] = $params['warehouse_id'];
+        }
+
+        if (isset($params['sku_id']) && ($params['sku_id'] !== '')) {
+            $where['goods_discount.sku_id'] = $params['sku_id'];
+        }
+
+        if (isset($params['goods_id']) && ($params['goods_id'] !== '')) {
+            $where['goods_discount.goods_id'] = $params['goods_id'];
+        }
+
+        if (isset($params['proposer']) && ($params['proposer'] !== '')) {
+            $userInfo = (new User())->field(true)->where(['realname' => ['like', '%' . $params['proposer'] . '%']])->column('id');
+            if (!empty($userInfo)) {
+                $where['goods_discount.proposer_id'] = ['in', implode(',', $userInfo)];
+            } else {
+                $where['goods_discount.proposer_id'] = ['lt', 0];
+            }
+        }
+
+        if (isset($params['sku']) && ($params['sku'] !== '')) {
+            $sku_id = (new GoodsSku())->where(['sku' => ['like', '%' . $params['sku'] . '%']])->column('id');
+            if ($sku_id) $where['goods_discount.sku_id'] = ['in', implode(',', $sku_id)];
+        }
+
+        if (isset($params['snType']) && (!empty($params['start_time']) || !empty($params['end_time']))) {
+            switch ($params['snType']) {
+                case 'valid_time':
+
+                    if (isset($params['start_time']) && ($params['start_time'] !== '')) {
+                        $where['goods_discount.valid_time'] = ['egt', strtotime($params['start_time'])];
+                    }
+                    if (isset($params['end_time']) && ($params['end_time'] !== '')) {
+                        $where['goods_discount.over_time'] = ['elt', strtotime($params['end_time'])];
+                    }
+
+                    break;
+                case 'proposer_time':
+                    if (isset($params['start_time']) && isset($params['end_time'])) {
+                        if ($params['start_time'] !== '' && $params['end_time'] !== '') {
+                            $where['goods_discount.proposer_time'] = ['between', [strtotime($params['start_time']), strtotime($params['end_time']) + 86399]];
+
+                        } else if ($params['start_time'] !== '' && $params['end_time'] == '') {
+                            $where['goods_discount.proposer_time'] = ['egt', strtotime($params['start_time'])];
+
+                        } else if ($params['start_time'] == '' && $params['end_time'] !== '') {
+                            $where['goods_discount.proposer_time'] = ['elt', strtotime($params['end_time']) + 86399];
+
+                        }
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        if (isset($params['time']) && ($params['time'] !== '')) {
+            $where['goods_discount.over_time'] = ['egt', $params['time']];
+            $where['goods_discount.valid_time'] = ['elt', $params['time']];
+        }
+
+        return $where;
+
+    }
+
+    public function getStatusWhere($params)
+    {
+        $where = '';
+        if (isset($params['status']) && ($params['status'] !== '') && ($params['status'] == 1)) {
+            $time = time();
+            $where = "discount_num > sell_num and over_time > " . $time;
+        }
+
+        return $where;
+    }
+
+
+    /**
+     * 或查询
+     * @param $params
+     * @return string
+     */
+    public function getWhereOr($params)
+    {
+        $where = '';
+        $time = time();
+        if (isset($params['status']) && $params['status'] !== '' && $params['status'] == '4') {
+            $where = "status = 1 and (discount_num = 0 or discount_num = sell_num or over_time < " . $time . ")";
+        }
+
+        return $where;
+    }
+
+    /**
+     * 获取sku各种报价和库存
+     * @param $id
+     * @param $warehouse
+     * @return mixed
+     * @throws \think\exception\DbException
+     */
+    public function getSkuInfo($id, $warehouse)
+    {
+        $data = [
+            'inventory_price' => 0,          //cost_price 库存成本价
+            'last_purchase_price' => 0,      //最后一次采购价
+            'new_price' => 0,                //供应商最新报价
+            'discount_num' => 0];
+        $data['new_price'] = (new SupplierOfferService())->getGoodsOffer($id);//供应商最新报价
+
+        $lastPurchasePrice = PurchaseOrder::getLastPurchasePrice($id, $warehouse);
+        $price = $lastPurchasePrice['price'] * $lastPurchasePrice['rate'];
+
+        $warehouseModel = new WarehouseGoods();
+        $inventoryPrice = $warehouseModel->getPrice($warehouse, $id, 2);
+
+        if ($inventoryPrice) {
+            $data['inventory_price'] = $inventoryPrice;
+
+        } else if ($lastPurchasePrice) {
+            $data['inventory_price'] = $price;
+
+        } else {
+            $costPrice = (new GoodsSku())->field('cost_price')->where(['id' => $id])->find();
+            $data['inventory_price'] = $costPrice['cost_price'] ?? 0;
+
+        }
+
+        if ($lastPurchasePrice['price'] && $lastPurchasePrice['price'] != 0) {
+            $data['last_purchase_price'] = $price;
+
+        }
+
+        $data['discount_num'] = $warehouseModel->getQuantity($warehouse, $id);
+
+        return $data;
+
+    }
+
+    /**
+     * 批量审核
+     * @param array $idArr
+     * @param $status
+     * @throws Exception
+     */
+    public function batchSave(array $idArr, $status)
+    {
+        try {
+            Db::startTrans();
+            $time = time();
+            $userInfo = Common::getUserInfo();
+            $exec = '';
+            switch ($status) {
+                case self::APPROVE:
+                    $exec = 'agree';
+                    break;
+                case self::NO_APPROVE:
+                    $exec = 'disagree';
+                    break;
+                case self::DISCARD:
+                    $exec = 'invalid';
+                    break;
+            }
+
+            foreach ($idArr as $value) {
+                $temp = [
+                    'status' => $status,
+                    'updater_id' => $userInfo['user_id'],
+                    'update_time' => $time,
+                    'audit_id' => $userInfo['user_id'],
+                    'audit_time' => $time,
+                ];
+
+                $result = $this->model->isUpdate(true)->update($temp, ['id' => $value]);
+
+                if (!$result) {
+                    throw new Exception('审核错误');
+                }
+
+                $this->logService->mdf('批量审核,', '', $exec)->save($value, $userInfo['user_id'], '待审核');
+            }
+            Db::commit();
+        } catch (Exception $e) {
+            Db::rollback();
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * 导出模板
+     * @return mixed
+     */
+    public function importTemplate()
+    {
+        //默认数据；
+        $data = [
+            [
+                'warehouse' => 'xiongUK',
+                'sku' => 'BL9989501',
+                'discount_type' => '1或2',
+                'discount_value' => '0.1',
+                'discount_ratio' => '0.1',
+                'discount_num' => '100',
+                'valid_time' => '2019-01-01',
+                'over_time' => '2019-01-31',
+                'remark' => '这是备注',
+                'create' => '添加人',
+            ]
+        ];
+
+        $header = [
+            ['title' => '仓库', 'key' => 'warehouse', 'width' => 30],
+            ['title' => 'sku', 'key' => 'sku', 'width' => 30],
+            ['title' => '跌价类型(1跌价金额,2跌价比例)', 'key' => 'discount_type', 'width' => 30],
+            ['title' => '跌价金额', 'key' => 'discount_value', 'width' => 30],
+            ['title' => '跌价比例', 'key' => 'discount_ratio', 'width' => 30],
+            ['title' => '跌价产品数量', 'key' => 'discount_num', 'width' => 30],
+            ['title' => '有效时间(开始)', 'key' => 'valid_time', 'width' => 30],
+            ['title' => '有效时间(结束)', 'key' => 'over_time', 'width' => 30],
+            ['title' => '备注', 'key' => 'remark', 'width' => 30],
+            ['title' => '添加人', 'key' => 'create', 'width' => 30],
+        ];
+
+        $file = [
+            'name' => '跌价商品导入模板',
+            'path' => 'goods'
+        ];
+        $ExcelExport = new DownloadFileService();
+        return $ExcelExport->export($data, $header, $file);
+    }
+
+
+    /**
+     * 设置头部名称数组
+     * @return array
+     */
+    private static function getAllExportFields()
+    {
+        $header = [
+            'sku' => ['title' => 'sku', 'key' => 'sku', 'width' => 20, 'need_merge' => 0],
+            'warehouse' => ['title' => '仓库', 'key' => 'warehouse', 'width' => 20, 'need_merge' => 0],
+            'inventory_price' => ['title' => '库存成本价', 'key' => 'inventory_price', 'width' => 20, 'need_merge' => 0],
+            'last_purchase_price' => ['title' => '最后一次采购价', 'key' => 'last_purchase_price', 'width' => 20, 'need_merge' => 0],
+            'discount_type' => ['title' => '跌价类型', 'key' => 'discount_type', 'width' => 20, 'need_merge' => 0],
+            'discount_value' => ['title' => '跌价类型的值', 'key' => 'discount_value', 'width' => 20, 'need_merge' => 0],
+            'discount_num' => ['title' => '跌价产品数量', 'key' => 'discount_num', 'width' => 20, 'need_merge' => 0],
+            'sell_num' => ['title' => '售出数量', 'key' => 'sell_num', 'width' => 20, 'need_merge' => 0],
+            'valid_time' => ['title' => '开始时间', 'key' => 'valid_time', 'width' => 20, 'need_merge' => 0],
+            'over_time' => ['title' => '结束时间', 'key' => 'over_time', 'width' => 20, 'need_merge' => 0],
+            'proposer' => ['title' => '申请人', 'key' => 'proposer', 'width' => 20, 'need_merge' => 0],
+            'proposer_time' => ['title' => '申请时间', 'key' => 'proposer_time', 'width' => 20, 'need_merge' => 0],
+            'audit' => ['title' => '审核人', 'key' => 'audit', 'width' => 20, 'need_merge' => 0],
+            'audit_time' => ['title' => '审核时间', 'key' => 'audit_time', 'width' => 20, 'need_merge' => 0],
+            'status' => ['title' => '状态', 'key' => 'status', 'width' => 20, 'need_merge' => 0],
+            'remark' => ['title' => '备注', 'key' => 'remark', 'width' => 20, 'need_merge' => 0],
+        ];
+        return $header;
+    }
+
+    /**
+     * 列表导出
+     * @return array
+     * @throws Exception
+     * @throws \PHPExcel_Exception
+     * @throws \PHPExcel_Reader_Exception
+     * @throws \PHPExcel_Writer_Exception
+     * @throws \think\exception\DbException
+     */
+    public function reportExport()
+    {
+        $request = Request::instance();
+        $params = $request->param();
+        $exportType = param($params, 'export_type', '');
+
+        if (!$exportType || !in_array($exportType, [1, 2])) {
+            throw new Exception('参数错误');
+        }
+        if ($exportType == 2) {
+            $ids = param($params, 'ids', '');             //导出ID集合
+            if (!$ids || !is_array($idsArr = json_decode($ids, true)) || empty($idsArr)) {
+                throw new Exception('勾选格式错误');
+            }
+            $params['ids'] = $idsArr;
+        }
+
+        $exportFileName = self::REPORT_EXPORT_NAME_PREFIX . '-' . date('Ymd_His');
+        $user = Common::getUserInfo();
+        $result = $this->export($params, $exportFileName, $user);
+        return $result;
+
+    }
+
+
+    /**
+     * 获取导出列表
+     * @param $params
+     * @return array
+     * @throws \think\exception\DbException
+     */
+    public function getExportList($params)
+    {
+        $count = $this->reportCount($params);
+        $pageSize = 1000; //每次最多执行1000条数据
+        $num = ceil($count / $pageSize);
+        $exportList = [];
+        for ($i = 1; $i <= $num; $i++) {
+            $lists = $this->formatExportData(
+                $this->getGoodsDiscountList($params, $i, $pageSize)
+            );
+            $exportList = array_merge($exportList, $lists);
+        }
+
+        return $exportList;
+    }
+
+
+    /**
+     * 导出
+     * @param $params
+     * @param string $fileName
+     * @param int $isQueue
+     * @return array
+     * @throws \PHPExcel_Exception
+     * @throws \PHPExcel_Reader_Exception
+     * @throws \PHPExcel_Writer_Exception
+     * @throws \think\exception\DbException
+     */
+    private function export($params, $fileName = '', $isQueue = 0)
+    {
+        $header = array_values(self::getAllExportFields());
+        $exportList = $this->getExportList($params);
+        $file = [
+            'name' => $fileName ? $fileName : date("YmdHis"),
+            'path' => 'export'
+        ];
+        $result = Excel::exportExcel2007($header, $exportList, $file, $isQueue);
+        return $result;
+    }
+
+    /**
+     * 封装导出数据
+     * @param array $lists
+     * @return array|bool
+     */
+    public function formatExportData($lists = [])
+    {
+        if (empty($lists['data'])) {
+            return false;
+        }
+        $result = [];
+        foreach ($lists['data'] as $k => $v) {
+            $result[$k] = [
+                'sku' => $v['sku'],
+                'warehouse' => $v['warehouse'],
+                'inventory_price' => $v['inventory_price'],
+                'last_purchase_price' => $v['last_purchase_price'],
+                'new_price' => $v['new_price'],
+                'discount_type' => $v['discount_type'],
+                'discount_value' => $v['discount_value'],
+                'discount_num' => $v['discount_num'],
+                'sell_num' => $v['sell_num'],
+                'valid_time' => $v['valid_time'],
+                'over_time' => $v['over_time'],
+                'proposer' => $v['proposer'],
+                'proposer_time' => $v['proposer_time'],
+                'audit' => $v['audit'],
+                'audit_time' => $v['audit_time'],
+                'status' => $v['status_text'],
+                'remark' => $v['remark'],
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * 导入产品
+     * @params array $params
+     * @params int $user
+     * @return bool
+     * @throws Exception
+     */
+    public function import(array $params, $user)
+    {
+        $filename = 'upload/' . uniqid() . '.' . $params['name'];
+        self::saveFile($filename, $params);
+        try {
+            $result = Excel::readExcel($filename);
+            @unlink($filename);
+
+            $len = count($result);
+            if ($len > 2000) {
+                throw new Exception('当前数据超越2千条，请分批处理');
+            }
+
+            $this->checkHeader($result);
+            $lists = $this->convertData($result);
+
+            if ($len <= 2000) {
+                $data['data'] = $lists;
+                $data['user'] = $user;
+                $result = $this->saveAll($data);
+
+                if ($result === false) {
+                    throw new Exception($this->getError());
+                }
+                return ['message' => '导入成功'];
+            } else {
+                //暂时不用，后期开通
+                $queue = new UniqueQueuer(GoodsDiscountImportQueue::class);
+                $temp = [];
+                foreach ($lists as $v) {
+                    if (count($temp) >= 2000) {
+                        $data['data'] = $temp;
+                        $data['user'] = $user;
+                        $queue->push($data);
+                        $temp = [];
+                    } else {
+                        array_push($temp, $v);
+                    }
+
+                }
+                return ['message' => '已将这' . $len . "条记录推至后台处理"];
+            }
+
+        } catch (Exception $ex) {
+            @unlink($filename);
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * 保存文件
+     * @param $filename
+     * @param $params
+     * @return mixed
+     * @throws Exception
+     */
+    public static function saveFile($filename, &$params)
+    {
+        if (empty($params['content'])) {
+            throw new Exception('添加的内容不能为空');
+        }
+        $start = strpos($params['content'], ',');
+        $content = substr($params['content'], $start + 1);
+        file_put_contents($filename, base64_decode(str_replace(" ", "+", $content)));
+        return $filename;
+    }
+
+    /**
+     * 检查头
+     * @params array $result
+     * @$throws Exception
+     */
+    protected function checkHeader($result)
+    {
+        if (!$result) {
+            throw new Exception("未收到该文件的数据");
+        }
+        $row = reset($result);
+        $aRowFiles = array_keys($row);
+        $aDiffRowField = array_diff(self::$headers, $aRowFiles);
+        if (!empty($aDiffRowField)) {
+            throw new Exception("缺少列名[" . implode(';', $aDiffRowField) . "]");
+        }
+    }
+
+    /**
+     * 导入数据转换
+     * @param array $data
+     * @return array
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function convertData(array $data)
+    {
+        $result = [];
+        $warehouseModel = new WarehouseGoods;
+        $userModel = new User();
+        $time = time();
+        foreach ($data as $k => $row) {
+            do {
+                $list = [];
+                $rowTmp = array_filter($row);
+                if (!$rowTmp) {
+                    continue(2);
+                }
+                if (isset($row['仓库']) && $row['仓库']) {
+                    $warehouse = WarehouseModel::where(['name' => $row['仓库']])->find();
+                    if (empty($warehouse)) {
+                        throw new Exception("第" . ($k + 2) . "行仓库不存在");
+                        break;
+                    }
+                    if ($warehouse->status != 1) {
+                        throw new Exception("第" . ($k + 2) . "行仓库已禁用");
+                        break;
+                    }
+                    $list['warehouse_id'] = $warehouse->id;
+                } else {
+                    $list['message'] = "第" . ($k + 2) . "行仓库名称不能为空";
+                    break;
+                }
+
+                if (isset($row['sku']) && $row['sku']) {
+
+                    $GoodsSku = GoodsSku::where(['sku' => $row['sku']])->find();
+                    if (empty($GoodsSku)) {
+                        throw new Exception("第" . ($k + 2) . "行sku不存在");
+                        break;
+                    }
+                    $quantity = $warehouseModel->getQuantity($warehouse->id, $GoodsSku->id);
+                    if ($quantity == 0) {
+                        throw new Exception("第" . ($k + 2) . "行sku库存不足");
+                        break;
+                    }
+
+                    $checkInfo = $this->checkOnline($GoodsSku->id, $warehouse->id);
+
+                    if ($checkInfo === true) {
+                        throw new Exception("第" . ($k + 2) . "行sku正在跌价活动中");
+                    }
+
+                    $list['sku_id'] = $GoodsSku->id;
+                    $list['goods_id'] = $GoodsSku->goods_id;
+
+
+                } else {
+                    throw new Exception("第" . ($k + 2) . "行sku库存不足");
+                    break;
+                }
+
+                if (isset($GoodsSku->id) && isset($warehouse->id)) {
+                    $getSkuInfo = $this->getSkuInfo($GoodsSku->id, $warehouse->id);
+                    $list['inventory_price'] = $getSkuInfo['inventory_price'];
+                    $list['last_purchase_price'] = $getSkuInfo['last_purchase_price'];
+                    $list['new_price'] = $getSkuInfo['new_price'];
+                } else {
+                    throw new Exception("第" . ($k + 2) . "行价格有异常");
+                    break;
+                }
+
+                if (isset($row['跌价类型(1跌价金额,2跌价比例)']) && ($row['跌价类型(1跌价金额,2跌价比例)'] == 1)) {
+
+                    if (isset($row['跌价金额']) && is_numeric($row['跌价金额'])) {
+                        $list['discount_value'] = $row['跌价金额'];
+                    } else {
+                        throw new Exception("第" . ($k + 2) . "行跌价金额不合法");
+                    }
+                    $list['discount_type'] = $row['跌价类型(1跌价金额,2跌价比例)'];
+
+                } else if (isset($row['跌价类型(1跌价金额,2跌价比例)']) && ($row['跌价类型(1跌价金额,2跌价比例)'] == 2)) {
+
+                    if (isset($row['跌价比例']) && is_numeric($row['跌价比例'])) {
+                        $list['discount_value'] = $row['跌价比例'];
+                    } else {
+                        throw new Exception("第" . ($k + 2) . "行跌价比例不合法");
+                    }
+                    $list['discount_type'] = $row['跌价类型(1跌价金额,2跌价比例)'];
+                } else {
+                    throw new Exception("第" . ($k + 2) . "行跌价类型不存在");
+                    break;
+                }
+
+                if (isset($row['跌价产品数量']) && $row['跌价产品数量'] !== 0) {
+                    $list['discount_num'] = $row['跌价产品数量'];
+                    if ($quantity < $list['discount_num']) {
+                        $list['discount_num'] = $quantity;
+                    }
+
+                } else {
+                    throw new Exception("第" . ($k + 2) . "‘行跌价产品数量不能为0");
+                    break;
+                }
+
+                if (isset($row['有效时间(开始)']) && $row['有效时间(开始)']) {
+
+                    if (is_numeric($row['有效时间(开始)'])) {
+                        $t = intval(($row['有效时间(开始)'] - 25569) * 3600 * 24);
+                        $list['valid_time'] = strtotime(gmdate('Y-m-d', $t));
+                    } else {
+                        $list['valid_time'] = strtotime($row['有效时间(开始)']);
+                    }
+
+                } else {
+                    throw new Exception("第" . ($k + 2) . "‘行有效时间(开始)’不存在");
+                    break;
+                }
+
+                if (isset($row['有效时间(结束)']) && $row['有效时间(结束)']) {
+
+                    if (is_numeric($row['有效时间(结束)'])) {
+                        $t = intval(($row['有效时间(结束)'] - 25569) * 3600 * 24);
+                        $list['over_time'] = strtotime(gmdate('Y-m-d', $t));
+                    } else {
+                        $list['over_time'] = strtotime($row['有效时间(结束)']);
+                    }
+
+                } else {
+                    throw new Exception("第" . ($k + 2) . "‘行有效时间(结束)’不存在");
+                    break;
+                }
+
+                if (isset($row['备注']) && $row['备注']) {
+                    $list['remark'] = $row['备注'];
+                }
+
+                if (isset($row['添加人']) && $row['添加人']) {
+                    $userInfo = $userModel->field('id')->where(['realname' => $row['添加人']])->find();
+                    if (!$userInfo) {
+                        throw new Exception("第" . ($k + 2) . "行添加人不存在");
+                    }
+                    $list['proposer_id'] = $userInfo['id'];
+                    $list['proposer_time'] = $time;
+
+                } else {
+                    throw new Exception("第" . ($k + 2) . "行添加人不存在");
+                    break;
+                }
+
+            } while (false);
+            $result[$k + 2] = $list;
+        }
+        return $result;
+    }
+
+
+}

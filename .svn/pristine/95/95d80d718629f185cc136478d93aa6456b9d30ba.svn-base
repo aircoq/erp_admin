@@ -1,0 +1,102 @@
+<?php
+namespace app\report\controller;
+
+use app\common\controller\Base;
+use app\common\service\UniqueQueuer;
+use app\report\queue\GoodsReportSaveQueue;
+use app\report\service\GoodsAnalysisService;
+use think\Request;
+use think\Validate;
+
+/**
+ * @module 报表系统
+ * @title 报表商品销售分析
+ * @url report/goods-analysis
+ * Created by PhpStorm.
+ * User: laiyongfeng
+ * Date: 2017/10/16
+ * Time: 09:58
+ */
+class GoodsAnalysis extends Base
+{
+    protected $goodsAnalysisService;
+
+    const rule = [
+        ['snDate', 'require','时间类型不能为空!'],
+//        ['date_b', 'require','开始时间不能为空!'],
+        ['date_e', 'require', '结束时间不能为空！'],
+    ];
+
+
+    protected function init()
+    {
+        if(is_null($this->goodsAnalysisService)){
+            $this->goodsAnalysisService = new GoodsAnalysisService();
+        }
+    }
+
+    /**
+     * @title 列表详情
+     * @param Request $request
+     * @return \think\response\Json
+     * @apiFilter app\report\filter\GoodsAnalysisByDeveloperFilter
+     */
+    public function index(Request $request)
+    {
+        $page = $request->get('page',1);
+        $pageSize = $request->get('pageSize',10);
+        $params = $request->param();
+        $params['warehouse_id'] = param($params, 'warehouse_id', '');
+        $validate = new Validate();
+        if (!$validate->rule(self::rule)->check($params)) {
+            return json(['message' => $validate->getError()], 400);
+        }
+        $diff_days = (strtotime($params['date_e'])-strtotime($params['date_b']))/86400+1;
+        /*if ($diff_days>60) {
+            return json(['message' => '查询间隔时间不能超过60天'], 400);
+        }*/
+        $result = $this->goodsAnalysisService->lists($page, $pageSize, $params);
+        return json($result);
+    }
+
+    /**
+     * @title 导出
+     * @url export
+     * @param Request $request
+     * @method post
+     * @return \think\response\Json
+     */
+    public function export(Request $request)
+    {
+        $params = $request->param();
+        $params['warehouse_id'] = param($params, 'warehouse_id', '');
+        $validate = new Validate();
+        if (!$validate->rule(self::rule)->check($params)) {
+            return json(['message' => $validate->getError()], 400);
+        }
+        try{
+            $this->goodsAnalysisService->applyExport($params);
+            return json(['message'=> '成功加入导出队列']);
+        } catch (\Exception $ex) {
+            $code = $ex->getCode();
+            $msg  = $ex->getMessage();
+            if (!$code) {
+                $code = 400;
+                $msg  = '程序内部错误';
+            }
+            return json(['message'=>$msg], $code);
+        }
+    }
+
+    /**
+     * @title 同步销量
+     * @url synchronous
+     * @method post
+     * @return \think\response\Json
+     */
+    public function synchronous()
+    {
+        (new UniqueQueuer(GoodsReportSaveQueue::class))->push(1);
+        return json(['message' => '数据正在同步中，请稍后刷新页面查看']);
+    }
+}

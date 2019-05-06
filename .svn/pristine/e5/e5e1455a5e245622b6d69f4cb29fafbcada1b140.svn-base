@@ -1,0 +1,79 @@
+<?php
+
+namespace app\report\filter;
+
+use app\common\cache\Cache;
+use app\common\filter\BaseFilter;
+use app\common\service\Common;
+use app\common\traits\User;
+use app\common\model\User as ModelUser;
+use app\index\service\MemberShipService;
+
+/**
+ * Created by PhpStorm.
+ * User: ZhouFurong
+ * Date: 2019/4/25
+ * Time: 16:20
+ */
+class AccountOperationFilter extends BaseFilter
+{
+    use User;
+    protected $scope = 'AccountChannel';
+
+    public static function getName(): string
+    {
+        return '通过账号过滤账号运营分析数据';
+    }
+
+    public static function config(): array
+    {
+	    $options = ModelUser::where('status',1)->field('id as value, realname as label')->select();
+	    return [
+		    'key' => 'type',
+		    'type' => static::TYPE_SELECT,
+		    'options' => $options
+	    ];
+    }
+
+    public function generate($userId = 0)
+    {
+	    //查询账号
+	    $memberShipService = new MemberShipService();
+	    $channelId = [];
+	    if($userId == 0){
+		    $userInfo = Common::getUserInfo();
+		    $userId = $userInfo['user_id'];
+		    $channelId = $memberShipService->getBelongChannel($userId);
+	    }
+	    $cache = Cache::handler();
+	    $key = 'cache:AccountOperationByUserId:' . $userId;
+	    if ($cache->exists($key)) {
+		    $accountId = $cache->get($key);
+		    return json_decode($accountId,true);
+	    }
+	    $type = $this->getConfig();
+	    //获取自己和下级用户
+	    $userList = $this->getUnderlingInfo($userId);
+	    $accountId = [];
+	    if(!empty($userList)) {
+	    	foreach ($userList as $user_id){
+	    		$accountList = $memberShipService->getAccountIDByUserId($user_id,0,true);
+	    		$accountId = array_merge($accountId,$accountList);
+		    }
+	    	$accountId = array_merge($accountId,$type);
+	    }else{
+		    $accountList = $memberShipService->getAccountIDByUserId($userId, 0, true);
+		    $accountId = array_merge($type, $accountList);
+	    }
+	    $accountId = array_unique($accountId);
+	    if (count($accountId) > 50) {
+		    Cache::handler()->set($key, json_encode($accountId), 60 * 10);
+	    }
+		$data = [
+			'account_id'=>$accountId,
+			'channel_id'=>$channelId
+		];
+	    return $data;
+    }
+}
+

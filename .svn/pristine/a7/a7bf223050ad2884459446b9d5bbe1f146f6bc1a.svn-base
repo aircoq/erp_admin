@@ -1,0 +1,481 @@
+<?php
+
+
+namespace app\common\service;
+
+
+use app\common\cache\Cache;
+use app\common\service\Filter;
+use app\common\service\OrderType;
+use app\common\traits\Export;
+use app\common\traits\User;
+use app\order\filter\OrderByAccountFilter;
+use app\report\model\ReportExportFiles;
+use think\Exception;
+use ZipArchive;
+
+/**
+ * 报表导出基类，主要使用XlSXWriter类来导出Excel
+ * Class BaseExportService
+ * @package app\order\service
+ */
+abstract class BaseExportService
+{
+    use Export;
+    use User;
+
+    /**
+     * "大分页"每页行数，默认100万，因为excel最大只能打开1048576行数据
+     * 如果总行数超过这个值，导出的数据将分成多个excel,每个excel文件行数不大于设置的值
+     * 并且多个excel文件将会压缩在一个zip文件中
+     * @var int
+     */
+    protected $bigPageSize = 1000000;  //1000000
+    /**
+     * 由于如果使用大分页来获取数据，数据量太大，所以大分页内还需要进行分页,
+     * 这是小分页每页行数。默认5000
+     * @var int
+     */
+    protected $smallPageSize = 5000;  //5000
+
+    /**
+     * 导出的字段名数组，字段名是键而不是值
+     * 这样是便于使用isset做判断，而不是使用in_array判断
+     * @var array
+     */
+    protected $requestFields = [];
+    /**
+     * 导出文件的保存相对路径，根路径是public文件夹
+     * @var string
+     */
+    protected $downloadDir = '/download/order_detail/';
+    /**
+     * 保存当前队列参数
+     * @var array
+     */
+    protected static $params = [];
+
+    //缓存国家相关数据
+    protected $countryData = [];
+
+    //保存上一个log的时间
+    private $preLogTime;
+    //保存监控文本
+    public static $logTextArr = [];
+    //申请导出ID
+    public static $applyId;
+
+    public function __construct()
+    {
+        $this->preLogTime = $this->getMicroTime();
+    }
+
+    /**
+     * 导出主函数
+     * 由于excel限制了最大行数为1048576行，超过这个行数将倍截取，所以必须对导出的数据进行分页，每页行数为100万行，这暂称为"大分页",每页页数由类变量bigPageSize设置
+     * 由于不能一下子取出100万数据，因为内存会占用过多，所以还需要对100万行进行分页读取，这暂称为"小分页",每页页数由类变量smallPageSize设置
+     * @param array $params
+     */
+    public function export(array $params)
+    {
+        $zip = new \ZipArchive();
+        self::$logTextArr = [];
+        self::$params = $params;
+        self::$applyId = $params['apply_id'] ?? 0;
+        $this->monitorMem('开始进入');
+        try {
+            opcache_reset();
+            set_time_limit(0);
+
+            //检查参数
+            $this->checkParams($params);
+
+            /*****************
+             * 初始化相关变量
+             *****************/
+            $pathData = $this->getPathData($params);
+            $fullName = $pathData['full_name']; //文件完整路径
+            $downloadDir = $pathData['download_dir'];   //文件导出保存的文件夹目录路径
+            $fields = $params['field'] ?? [];
+            $fields = $this->getRequestFields($fields); //获取最终导出的字段名
+            //反转数组，用key来保存字段名，以便使用isset判断字段是否存在，而不是用in_array来判断
+            $this->requestFields = array_flip($fields);
+            $this->monitorMem("初始化参数结束");
+
+            //准备全局数据
+            $this->prepareData();
+
+            /*******************
+             * 准备分页数据
+             *******************/
+            $count = $this->getCount($params);
+            $this->monitorMem('查询总行数完毕');
+            $loop = ceil($count / $this->bigPageSize);
+
+            //如果"大分页"的页数大于1，则要分成多个excel文件
+            $tempFilenames = []; //分成多个excel导出后，需要重新命名excel文件命令，这个变量用来临时保存这些文件名
+            $isNeedZipPacking = function () use ($loop) {
+                return $loop > 1;
+            };
+
+            if ($isNeedZipPacking()) {
+                $zipFileName = $this->getZipFileName($fullName);
+                $zip->open($zipFileName, ZipArchive::CREATE);
+            }
+
+            /*****************************************
+             * 分页读取数据，进行Excel文件写入
+             * 第一层循环是"大分页"读取数据
+             * 第二层循环是"小分页"读取数据
+             ****************************************/
+            for ($i = 0; $i < $loop; $i ++) {
+                $writer = $this->getXLSXWriterInstance();
+
+                //写入标题行
+                $this->writeSheetHeader($fields, $writer);
+
+                //获取"小分页"相关分页数据
+                $bigOffset = $i*$this->bigPageSize;
+                $smallCount = ($count>($bigOffset+$this->bigPageSize)) ? $this->bigPageSize : ($count-$bigOffset);
+                $lo = ceil($smallCount / $this->smallPageSize);
+
+                for ($j=0; $j<$lo; $j++) {
+                    //查询和准备数据
+                    $this->queryDataBySmallPage($j*$this->smallPageSize, $bigOffset);
+                    if ($j == 0 && $i == 0) {
+                        $this->monitorMem( "查询小分页第一页数据完毕");
+                    }
+
+                    //重组数据
+                    $data = $this->restructData();
+                    if ($j == 0 && $i == 0) {
+                        $this->monitorMem("重组小分页第一页数据完毕");
+                    }
+
+                    //把数据写入导xml文件中
+                    foreach ($data as $a => $r) {
+                        $writer->writeSheetRow('Sheet1', $r);
+                    }
+
+                    unset($ids);
+                    unset($data);
+                }
+
+                if ($isNeedZipPacking()) {
+                    $tempFilename = $this->renameFileName($fullName, $bigOffset, $smallCount<$this->bigPageSize ? $smallCount : $this->bigPageSize);
+                    $tempFilenames[] = $tempFilename;
+                    $writer->writeToFile($tempFilename);
+                }else {
+                    $writer->writeToFile($fullName);
+                }
+            }
+
+            if ($isNeedZipPacking()) {
+                foreach ($tempFilenames as $tempFilename) {
+                    $zip->addFile($tempFilename, basename($tempFilename));
+                }
+                $zip->close();
+
+                //删除源文件
+                foreach ($tempFilenames as $tempFilename) {
+                    if (!empty($tempFilename)) {
+                        @unlink($tempFilename);
+                    }
+                }
+
+                $downloadUrl = $downloadDir.basename($zipFileName);
+                $fullName = $zipFileName;
+            } else {
+                $downloadUrl = $downloadDir.basename($fullName);
+            }
+            $this->monitorMem("excel文件写入完毕");
+
+
+            //写入记录
+            if (is_file($fullName)) {
+                $applyRecord['exported_time'] = time();
+                $applyRecord['download_url'] = $downloadUrl;
+                $applyRecord['status'] = 1;
+                (new ReportExportFiles())->where(['id' => $params['apply_id']])->update($applyRecord);
+            } else {
+                throw new Exception('文件写入失败');
+            }
+        }catch (\Exception $e) {
+            isset($zip) && @$zip->close();
+            Cache::handler()->hset(
+                'hash:report_export',
+                $params['apply_id'].'_'.time(),
+                '申请id: ' . $params['apply_id'] . ',导出失败:' . $e->getMessage() . $e->getFile() . $e->getLine());
+            $applyRecord['status'] = 2;
+            $applyRecord['error_message'] = $e->getMessage();
+            (new ReportExportFiles())->where(['id' => $params['apply_id']])->update($applyRecord);
+        }
+    }
+
+    /**
+     * 获取路径信息
+     * @param array $params
+     * @return array
+     * @throws Exception
+     */
+    private function getPathData(array $params)
+    {
+        $fileName = $params['file_name'];
+        $downLoadDir = $this->downloadDir;
+        $saveDir = ROOT_PATH . 'public' . $downLoadDir;
+        if (!is_dir($saveDir) && !mkdir($saveDir, 0777, true)) {
+            throw new Exception('导出目录创建失败');
+        }
+        $fullName = $saveDir . $fileName;
+
+        return ['full_name'=>$fullName, 'download_dir'=>$downLoadDir];
+    }
+
+    /**
+     * 获取导出的字段
+     * @param $fields 格式['字段名1','字段名2',.....]
+     * @return array
+     */
+    private function getRequestFields($fields)
+    {
+        $titles = $this->title();
+        if (empty($fields)) {
+            foreach ($titles as $k=>$title) {
+                if ($title['is_show'] == 1) {
+                    $fields[] = $title['title'];
+                }
+            }
+        }else{
+            $allFields = array_flip(array_keys($titles));
+            foreach ($fields as $k=>$field) {
+                if (!isset($allFields[$field])) {
+                    unset($fields[$k]);
+                }
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * 构建字段
+     * @param $fields 格式['表名或表别名'=>['字段名1','字段名2'],'....']
+     * @return array
+     */
+    protected function buildFields($fields)
+    {
+        $newFields = [];
+        foreach ($fields as $t => $fs) {
+            foreach ($fs as $f) {
+                $newFields[] = "{$t}.{$f}";
+            }
+        }
+        $newFields = array_unique($newFields);
+
+        return $newFields;
+    }
+
+    /**
+     * 写入excel标题行
+     * @param $fields 格式['字段名1','字段名2',.....]
+     * @param \XLSXWriter $writer
+     */
+    private function writeSheetHeader($fields, \XLSXWriter $writer)
+    {
+        $titles = $this->title();
+        foreach ($fields as $k => $v) {
+            if (isset($titles[$v])) {
+                $titleData[$v] = $titles[$v];
+            }
+        }
+        list($titleMap, $dataMap) = $this->getExcelMap($titleData);
+        $titleOrderData = [];
+        foreach ($titleMap as $k => $title){
+            $titleOrderData[$title['title']] = 'string';
+        }
+        //国家信息
+        $writer->writeSheetHeader('Sheet1', $titleOrderData);
+    }
+
+    /**
+     * 获取账号ID，用于订单模块导出
+     * @param $params
+     * @return array|mixed
+     */
+    protected function getAccountIdByPermissionForOrder($params)
+    {
+        $accountIds = [];
+        if (!$this->isAdmin()) {
+            $object = new Filter(OrderByAccountFilter::class);
+            if (isset($params['user_id']) && $params['user_id'] > 0) {
+                $object->setUserId($params['user_id']);
+            }
+            if ($object->filterIsEffective()) {
+                $accountIds = $object->getFilterContent();
+            }
+
+            if (isset($params['account_id']) && $params['account_id']) {
+                if (isset($params['channel_id']) && $params['channel_id']) {
+                    if (is_json($params['account_id'])) {
+                        $array = json_decode($params['account_id'], true);
+                        foreach ($array as $v) {
+                            $virtual = $params['channel_id'] * OrderType::ChannelVirtual + $v;
+                            array_push($accountIds, $virtual);
+                        }
+                    } else {
+                        $virtual = $params['channel_id'] * OrderType::ChannelVirtual + $params['channel_id'];
+                        array_push($accountIds, $virtual);
+                    }
+                }
+            }
+        }
+
+        return $accountIds;
+    }
+
+    /**
+     * 获取zip文件名称，超过100万行数据后需要分文件,多个文件打包压缩成一个zip文件
+     * @param $xlsxFileName
+     * @return string
+     */
+    private function getZipFileName($xlsxFileName)
+    {
+        $fileNameArr = explode('.', $xlsxFileName);
+        count($fileNameArr)>1 && array_pop($fileNameArr);
+        array_push($fileNameArr, 'zip');
+        $zipFileName = implode('.', $fileNameArr);
+
+        return $zipFileName;
+    }
+
+    /**
+     * 超过100万行数据后需要分文件，需要重命名文件名称
+     * 如原文件
+     * @param $filename
+     * @param $bigOffset
+     * @param $bigPageSize
+     * @return mixed|string
+     */
+    private function renameFileName($filename, $bigOffset, $bigPageSize)
+    {
+        $extention = '.xlsx';
+        $tempFilename = str_replace($extention, '',$filename);
+        $tempFilename = $tempFilename."(".($bigOffset+1)."-".($bigOffset+$bigPageSize).'行)';
+        $tempFilename = $tempFilename.$extention;
+
+        return $tempFilename;
+    }
+
+    /**
+     * 检查参数
+     * @param $params
+     * @throws Exception
+     */
+    protected function checkParams($params)
+    {
+        if (!isset($params['apply_id']) || empty($params['apply_id'])) {
+            throw new Exception('导出申请id获取失败');
+        }
+        if (!isset($params['file_name']) || empty($params['file_name'])) {
+            throw new Exception('导出文件名未设置');
+        }
+    }
+
+    /**
+     * 准备公共数据
+     * @throws Exception
+     */
+    private function prepareData()
+    {
+        $this->countryData = Cache::store('country')->getCountry();
+    }
+
+    /**
+     * 查询导出总数
+     * @param $params
+     * @return int
+     */
+    protected function getCount($params)
+    {
+        return 0;
+    }
+
+    protected function queryDataBySmallPage($smallOffset, $bigOffset)
+    {
+        static $ids;
+        if ($smallOffset==0) {
+            $ids = $this->getIds(self::$params, $bigOffset, $this->bigPageSize);
+            if ($bigOffset == 0) {
+                $this->monitorMem( "查询大分页的第一页ids完毕");
+            }
+        }
+
+        //根据id条件, "小分页"查询数据
+        $tempIds = array_slice($ids, $smallOffset, $this->smallPageSize);
+        $this->queryDataByIds($tempIds);
+    }
+
+    /**
+     * 根据id集合，查询和准备数据
+     * @param $ids
+     * @return array
+     */
+    protected function queryDataByIds($ids)
+    {
+        return [];
+    }
+
+    /**
+     * 所有字段与标题
+     * @return array
+     */
+    public function title()
+    {
+        return [];
+    }
+
+    protected function getIds($params, $offset, $pageSize)
+    {
+        return [];
+    }
+
+    /**
+     * 重组数据
+     * @return array
+     */
+    protected function restructData()
+    {
+        return [];
+    }
+
+    /**
+     * 监控内存和时间，写到redis中，redis键为log:excel_report_queue_execute_log_队列apply_id
+     * 过期时间为一天
+     * @param $step
+     */
+    public function monitorMem($step)
+    {
+        self::$logTextArr[] = "{$step}: "."内存峰值为:".floor(memory_get_peak_usage()/1024/1014)."M". ",时间:". date('Y-m-d H:i:s') . ', 距离上一个监控点时长:'.($this->getMicroTime()-$this->preLogTime).'s';
+        Cache::handler(false, 1)->setex('log:excel_report_queue_execute_log_'.self::$applyId, 86400, json_encode( self::$logTextArr, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+        $this->preLogTime = $this->getMicroTime();
+    }
+
+    /**
+     * 获取当前时间毫秒
+     * @return float|int
+     */
+    protected function getMicroTime()
+    {
+        return array_sum(explode( ' ', microtime()));
+    }
+
+    /**
+     * 获取XLSXWriter实例
+     * @return \XLSXWriter
+     */
+    private function getXLSXWriterInstance()
+    {
+        return new \XLSXWriter();
+    }
+
+}

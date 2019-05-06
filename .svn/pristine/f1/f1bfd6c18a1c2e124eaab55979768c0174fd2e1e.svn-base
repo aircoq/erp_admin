@@ -1,0 +1,339 @@
+<?php
+namespace app\common\service;
+
+use app\common\cache\Cache;
+use app\common\exception\JsonErrorException;
+use app\common\exception\NotLoginException;
+use app\index\service\User;
+use Odan\Jwt\JsonWebToken;
+use think\Config;
+use app\common\model\OrderLog;
+use think\Db;
+use think\Exception;
+use think\Request;
+use app\common\model\User as UserModel;
+
+/**
+ * Created by PhpStorm.
+ * User: PHILL
+ * Date: 2016/12/19
+ * Time: 16:13
+ */
+class Common
+{
+    private static $userInfo = null;
+    private static $debugs = [];
+    private static $debugStatus = null;
+
+    public static function debug($msg)
+    {
+        if(static::$debugStatus === null){
+            $request = Request::instance();
+            if($request->isCli()){
+                static::$debugStatus = false;
+            }else{
+                static::$debugStatus = $request->has('debug');
+            }
+        }
+        if(static::$debugStatus){
+            static::$debugs[] = $msg;
+        }
+    }
+
+    public static function debugMsg()
+    {
+        return static::$debugs;
+    }
+    /** 获取用户信息
+     * @param Request|null $request
+     * @return DataToObjArr
+     */
+    public static function getUserInfo(Request $request = null)
+    {
+        if(defined('RUNTIME_SWOOLE')){
+            return new DataToObjArr([
+                'user_id' => 0,
+                'realname'=> 'swoole',
+                'username'=> 'swoole'
+            ]);
+        }
+        if(static::$userInfo){
+            return static::$userInfo;
+        }
+        if(!$request){
+            $request = Request::instance();
+        }
+        if("api" === strtolower($request->module())){
+            return new DataToObjArr([
+                'user_id' => 0,
+                'realname'=> 'apier',
+                'username'=> 'apier'
+            ]);
+        }
+        if($request->has('test')){
+            return static::$userInfo = new DataToObjArr([
+                'user_id' => 2261,
+                'realname' => '詹老师(test)',
+                'username' => 'starzhan(test)'
+            ]);
+        }
+        if($userId = $request->param('testuser',0)){
+            return static::$userInfo = new DataToObjArr([
+                'user_id' => $userId,
+                'realname' => 'testuser',
+                'username' => 'testuser'
+            ]);
+        }
+        if (!$auth = $request->header('authorization')) {
+            throw new NotLoginException("未登录状态");
+        }
+        $requestModel = $request->get('requestModel','');
+        $key = Config::get('jwt_key');
+        $jwt = new JsonWebToken();
+        $payload = $jwt->decode($auth, $key);
+        $whiteList = (new User())->whiteList();
+        //验证是否是最新的token
+        if(isset($payload['claimset']['user_id']) && !in_array($payload['claimset']['user_id'],$whiteList) && $requestModel != 'DINGTALK'){
+            $token = (new User())->getJwtToken($payload['claimset']['user_id']);
+            if(trim($token) != trim($auth)){
+                throw new JsonErrorException('Error: Token is not valid', 401);
+            }
+        }
+        if(!$payload['valid']){
+            throw new JsonErrorException('Error: Token is not valid', 401);
+        }
+        return static::$userInfo = new DataToObjArr([
+            'user_id' => $payload['claimset']['user_id'],
+            'realname' => $payload['claimset']['realname'],
+            'username' => $payload['claimset']['username']
+        ]);
+    }
+    
+    /** 新增订单日志
+     * @param $order_id 【订单id】
+     * @param $message 【操作内容】
+     * @param $process_id 【状态，处理进程id】
+     * @param $operator_id 【操作者id】
+     * @param $operator 【操作者名称】
+     * @param $package_id 【包裹id】
+     * @return bool
+     * @throws Exception
+     */
+    public static function addOrderLog($order_id, $message = "", $operator = "", $process_id = 0, $operator_id = 0,$package_id = 0)
+    {
+        try{
+            $orderLogModel = new OrderLog();
+            $process_id = !empty($process_id) ? $process_id : 0;
+            if(is_array($order_id)){
+                $orderData = [];
+                foreach($order_id as $k => $v){
+                    $data = [
+                        'order_id' => $v,
+                        'process_id' => $process_id,
+                        'operator_id' => $operator_id,
+                        'package_id' => $package_id,
+                        'operator' => !empty($operator) ? $operator : "",
+                        'remark' => !empty($message) ? $message : '',
+                        'create_time' => time()
+                    ];
+                    array_push($orderData,$data);
+                }
+                $orderLogModel->allowField(true)->isUpdate(false)->saveAll($orderData);
+            }else{
+                if (!is_numeric($order_id)) {
+                    return false;
+                }
+                $data = [
+                    'order_id' => $order_id,
+                    'process_id' => $process_id,
+                    'operator_id' => $operator_id,
+                    'package_id' => $package_id,
+                    'operator' => !empty($operator) ? $operator : "",
+                    'remark' => !empty($message) ? $message : '',
+                    'create_time' => time()
+                ];
+                $orderLogModel->allowField(true)->isUpdate(false)->save($data);
+            }
+            return true;
+        }catch (Exception $e){
+            throw new Exception($e->getMessage().$e->getFile().$e->getLine());
+        }
+    }
+
+    /** 记录用户登录情况
+     * @param Request $request
+     */
+    public static function addLog(Request $request)
+    {
+        if (empty($ip)) {
+            $ip = $request->ip();
+        }
+        $user = self::getUserInfo($request);
+        $data = array(
+            'user_id' => $user['user_id'],
+            'username' => $user['username'],
+            'info' => '',
+            'create_time' => $_SERVER['REQUEST_TIME'],
+            'status' => !empty($uid) ? 1 : 0,
+            'ip' => $ip,
+            'type' => 0,
+            'action' => $request->module() . '/' . $request->controller() . '/' . $request->action(),
+            'params' => '',
+            'referrer' => isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '',
+        );
+        Db::name('system_log')->insert($data); // 记录本次操作
+    }
+
+
+
+    /** 获取用户更新后的token
+     * @return string $token
+     */
+    public static function getUpdateToken()
+    {
+        //更新当前用户的token
+        $user = self::getUserInfo();
+        $userId = $user['user_id'];
+        $token = '';
+        if($userId > 0){
+            $condition  = [
+                'id' => $userId,
+            ];
+            $model = new UserModel();
+            $user = $model->where($condition)->find();
+            $token = $model->createToken($user);
+            $model->save(['token'=>$token],$condition); // 保存
+        }
+        return $token;
+    }
+
+    /** 检查用户token 是否一致
+     * @param Request|null $request
+     * @return boolean 一致返回 true
+     */
+    public static function checkUserToken(Request $request = null)
+    {
+        $user = self::getUserInfo();
+        $userId = $user['user_id'] ?? 0;
+        $model = new UserModel();
+        if($userId > 0){
+            $condition  = [
+                'id' => $userId,
+            ];
+            $nowToken = $request->header('authorization');
+            $dbToken = $model->where($condition)->value('token');
+            if($dbToken == $nowToken){
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    public static function base64DecImg($baseData, $Dir, $fileName, $check = [])
+    {
+        $base_path = ROOT_PATH . 'public/';
+        $imgPath = $base_path  . $Dir;
+        try {
+            if (!is_dir($imgPath) && !mkdir($imgPath, 0777, true)) {
+                throw new Exception('创建目录'.$imgPath.'失败');
+            }
+            $expData = explode(';', $baseData);
+            $postfix = explode('/', $expData[0]);
+            if (strstr($postfix[0], 'image')) {
+                $ext = $postfix[1];
+                $storageDir = $imgPath . '/' . $fileName . '.' . $ext;
+                $export = base64_decode(str_replace("{$expData[0]};base64,", '', $baseData));
+                if($check){
+                    if(isset($check['size']) && strlen($export)>$check['size']){
+                        throw new Exception('图片大小超出');
+                    }
+                    if(isset($check['ext']) && !in_array($ext, $check['ext'])){
+                        throw new Exception('图片类型错误');
+                    }
+                }
+                file_put_contents($storageDir, $export);
+                return [
+                    'status' => 1,
+                    'imgExt' => $ext,
+                    'imgUrl' => $storageDir,
+                    'imgPath' => $Dir . '/' . $fileName . '.' . $ext,
+                ];
+            } else {
+                throw new Exception('上传图片格式错误');
+            }
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+            //return ['status'=>0, 'message'=>$e->getMessage()];
+        }
+    }
+
+    public static function repeatRequestLimit(Request $request, $key, $time, $userLimit = 1)
+    {
+        if($userLimit){
+            $userId = param(self::getUserInfo($request), 'user_id', 0);
+            $key = $key.':'.$userId;
+        }
+        if (Cache::handler()->get($key)){
+            throw new JsonErrorException('请求过于频繁');
+        }else{
+            Cache::handler()->set($key, 1, $time);
+        }
+
+//        if(! Cache::handler()->set($key, 1, ['nx', 'ex'=>$time])){
+//            throw new JsonErrorException('请求过于频繁');
+//        }
+        return $key;
+    }
+
+    public static function getNameByUserId($userId)
+    {
+        return param(Cache::store('user')->getOneUser($userId), 'realname');
+    }
+
+    public static function joinExportQueue($queueName, $params, $exportFileName, $userId = 0)
+    {
+        if(!$userId){
+            $user = self::getUserInfo();
+            $userId = $user['user_id'] ?? 0;
+        }
+        $model = new \app\report\model\ReportExportFiles();
+        $model->applicant_id     = $userId;
+        $model->apply_time       = time();
+        $model->export_file_name = $exportFileName.'.xlsx';
+        $model->status =0;
+        if (!$model->save()) {
+            throw new Exception('导出请求创建失败');
+        }
+        $params['apply_id'] = $model->id;
+        $queue = new CommonQueuer($queueName);
+        $queue->push($params);
+    }
+
+    /**
+     * 转换币种计算
+     * @param $currency [源币种]
+     * @param $currencyCode [目标币种]
+     * @param $data [金额]
+     * @return float|int
+     * @throws \think\Exception
+     */
+    public static function convertCurrency($currency, $currencyCode, $data)
+    {
+        if (trim($currency) == trim($currencyCode)) {
+            return $data;
+        }
+        if (empty($currency)) {
+            $currency = 'CNY';
+        }
+        $currencyData = Cache::store('currency')->getCurrency($currency);
+        $order_amount = $data * $currencyData['system_rate'];   //转换为人民币了
+        //获取货币的金额来转换
+        if (empty($currencyCode)) {
+            $currencyCode = 'CNY';
+        }
+        $currencyData = Cache::store('currency')->getCurrency($currencyCode);
+        $new_order_amount = $order_amount / $currencyData['system_rate'];   //转换为用户设定的币种
+        return $new_order_amount;
+    }
+}

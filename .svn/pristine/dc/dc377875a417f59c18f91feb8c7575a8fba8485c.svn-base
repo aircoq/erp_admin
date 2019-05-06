@@ -1,0 +1,888 @@
+<?php
+
+namespace app\common\cache\driver;
+
+use app\common\cache\Cache;
+use app\common\model\OrderProcess;
+use app\common\model\OrderRuleItem;
+use app\common\model\OrderRuleSet;
+use app\common\model\VirtualRuleItem;
+use app\common\model\VirtualRuleSet;
+use app\common\service\Report;
+use app\order\service\OrderService;
+
+/**
+ * Created by PhpStorm.
+ * User: PHILL
+ * Date: 2016/12/1
+ * Time: 17:17
+ */
+class Order extends Cache
+{
+    private $_order_record = 'hash:orderRecord';    //订单记录
+    private $_order_success_record = 'hash:order_success_record';    //订单成功记录
+    private $_order_rule = 'zset:order:rule_set';  //订单规则
+    private $_order_rule_count = 'hash:order:rule_set:count';  //订单规则总数
+    private $_virtual_rule = 'zset:virtual:rule_set';  //订单规则
+    private $_order_rule_type = 'zset:order:rule_type';  //订单规则类型
+    private $_order_tracking_log = 'hash:tracking:log';  //订单接收跟踪号日志
+    private $_order_tracking_save = 'hash:tracking:save:log';  //订单保存跟踪号日志
+    private $_order_tracking_upload = 'hash:tracking:upload:log';  //订单保存跟踪号日志
+    private $_order_tracking_weight_fee = 'hash:tracking:weight:log';  //获取物流商包裹的重量，运费数据
+    private $_order_delivery = 'hash:delivery:log';  //wms发货推送的记录
+    private $_order_busy = 'cache:order:busy:';  //记录忙碌订单
+    private $_sku_need_log = 'hash:sku:need:log';  //记录sku所需数的变化
+    private $_order_synchronize_log = 'hash:synchronize:log';  //订单同步发货回调
+    private $_order_package_id_log = 'hash:package:log';  //订单包裹id生产记录
+    private $_order_package_merge_log = 'hash:package:merge:log';  //订单包裹合并记录
+    private $_order_tracking_label = 'hash:tracking:label:log';   //面单追踪
+    private $_order_tracking_send = 'hash:tracking:send:log';   //物流商发货
+    private $_order_export_record = 'hash:export';  //正在导出记录
+    private $_order_after_busy = 'hash:order:after:busy';  //记录售后忙碌订单
+    private $_order_sku_change = 'hash:order:sku:change';   //包装后更换包裹sku
+    private $_order_package_shipping = 'hash:order:package:shipping';   //订单包裹使用的物流方式
+    private $_order_default_rule = 'zset:order:default:rule_set';  //订单默认规则
+    private $_order_tracking_number = 'zset:order:tracking:number'; //物流跟踪号
+
+    /** 获取订单状态列表
+     * @return array
+     */
+    public function getStatusList()
+    {
+        if ($this->persistRedis->exists('cache:orderStatusList')) {
+            $new_status = json_decode($this->persistRedis->get('cache:orderStatusList'), true);
+        } else {
+            $processModel = new OrderProcess();
+            $processData = $processModel->field(true)->where(['status' => 0])->select();
+            $new_array = [];
+            foreach ($processData as $key => $data) {
+                if ($data['type'] == 1) {
+                    $new_array[$data['code_prefix']]['name'] = $data['remark'];
+                    $new_array[$data['code_prefix']]['child'] = [];
+                }
+            }
+            foreach ($processData as $k => $v) {
+                if ($v['type'] == 1) {
+                    continue;
+                }
+                if (isset($new_array[$v['code_prefix']])) {
+                    $temp['code'] = $v['code_prefix'] . '_' . $v['code_suffix'];
+                    $temp['remark'] = $v['remark'];
+                    array_push($new_array[$v['code_prefix']]['child'], $temp);
+                } else {
+                    if ($v['code_prefix'] == 1 && $v['code_suffix'] < 4) {
+                        $temp['code'] = $v['code_prefix'] . '_' . $v['code_suffix'];
+                        $temp['remark'] = $v['remark'];
+                        $new_array[1]['name'] = isset($new_array[1]['name']) ? $new_array[1]['name'] : '配货状态';
+                        $new_array[1]['child'] = isset($new_array[1]['child']) ? $new_array[1]['child'] : [];
+                        array_push($new_array[1]['child'], $temp);
+                    } else {
+                        if ($v['code_prefix'] == 3 && $v['code_suffix'] < 64) {
+                            $temp['code'] = $v['code_prefix'] . '_' . $v['code_suffix'];
+                            $temp['remark'] = $v['remark'];
+                            $new_array[1]['name'] = isset($new_array[1]['name']) ? $new_array[1]['name'] : '配货状态';
+                            $new_array[1]['child'] = isset($new_array[1]['child']) ? $new_array[1]['child'] : [];
+                            array_push($new_array[1]['child'], $temp);
+                        } else {
+                            if ($v['code_prefix'] == 65534) {
+                                $temp['code'] = $v['code_prefix'] . '_' . $v['code_suffix'];
+                                $temp['remark'] = $v['remark'];
+                                $new_array[4]['name'] = isset($new_array[4]['name']) ? $new_array[4]['name'] : '作废';
+                                $new_array[4]['child'] = isset($new_array[4]['child']) ? $new_array[4]['child'] : [];
+                                array_push($new_array[4]['child'], $temp);
+                            } else {
+                                $temp['code'] = $v['code_prefix'] . '_' . $v['code_suffix'];
+                                $temp['remark'] = $v['remark'];
+                                $new_array[3]['name'] = isset($new_array[3]['name']) ? $new_array[3]['name'] : '物流商对接状态';
+                                $new_array[3]['child'] = isset($new_array[3]['child']) ? $new_array[3]['child'] : [];
+                                array_push($new_array[3]['child'], $temp);
+                            }
+                        }
+                    }
+                }
+            }
+            $new_status = [];
+            foreach ($new_array as $k => $v) {
+                array_push($new_status, $v);
+            }
+            $this->persistRedis->set('cache:orderStatusList', json_encode($new_status));
+        }
+        return $new_status;
+    }
+
+    /**
+     * 获取订单规则条件
+     * @param int $id
+     * @return array|mixed
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getRuleItem($id = 0)
+    {
+        if ($this->persistRedis->exists('cache:OrderRuleItem')) {
+            if (!empty($id)) {
+                $result = json_decode($this->persistRedis->get('cache:OrderRuleItem'), true);
+                return isset($result[$id]) ? $result[$id] : [];
+            }
+            return json_decode($this->persistRedis->get('cache:OrderRuleItem'), true);
+        }
+        $orderRuleItemModel = new OrderRuleItem();
+        $result = $orderRuleItemModel->order('id asc')->select();
+        $new_array = [];
+        foreach ($result as $k => $v) {
+            $new_array[$v['id']] = $v;
+        }
+        $this->persistRedis->set('cache:OrderRuleItem', json_encode($new_array));
+        if (!empty($id)) {
+            return $new_array[$id];
+        }
+        return $new_array;
+    }
+
+    /**
+     * 获取虚拟订单规则条件
+     * @param int $id
+     * @return array|mixed
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getVirtualRuleItem($id = 0)
+    {
+        if ($this->persistRedis->exists('cache:VirtualRuleItem')) {
+            if (!empty($id)) {
+                $result = json_decode($this->persistRedis->get('cache:VirtualRuleItem'), true);
+                return isset($result[$id]) ? $result[$id] : [];
+            }
+            return json_decode($this->persistRedis->get('cache:VirtualRuleItem'), true);
+        }
+        $orderRuleItemModel = new VirtualRuleItem();
+        $result = $orderRuleItemModel->order('id asc')->select();
+        $new_array = [];
+        foreach ($result as $k => $v) {
+            $new_array[$v['id']] = $v;
+        }
+        $this->persistRedis->set('cache:VirtualRuleItem', json_encode($new_array));
+        if (!empty($id)) {
+            return $new_array[$id];
+        }
+        return $new_array;
+    }
+
+    /**
+     * 订单规则
+     * @param int $type [类型]
+     * @param int $channel_id [平台]
+     * @return array|mixed
+     * @return array|mixed
+     * @throws \think\Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getRuleSet($type, $channel_id)
+    {
+        if (empty($type) || empty($channel_id)) {
+            return [];
+        }
+        $key = $this->_order_rule . '_' . $type . '_' . $channel_id;
+        $countKey = $this->_order_rule_count . '_' . $type . '_' . $channel_id;
+        if ($this->persistRedis->exists($key)) {
+            $result = $this->persistRedis->zRange($key, 0, -1, true);
+            $new_array = [];
+            foreach ($result as $key => $value) {
+                array_push($new_array, json_decode($key, true));
+            }
+            return $new_array;
+        }
+        $orderRuleSetModel = new OrderRuleSet();
+        $where['action_type'] = ['=', $type];
+        $where['status'] = ['=', 0];
+        $result = $orderRuleSetModel->field('id,title,action_type,action_value,start_time,end_time,channel_id,sort,type')->with('items')->where($where)->where('channel_id',
+            ['=', $channel_id], ['=', 0], 'or')->where(['is_default' => 0])->order('action_type asc,sort asc')->select();
+        $recordCount = count($result);
+        $cacheCount = 0;
+        $new_array = [];
+        foreach ($result as $k => $v) {
+            if (!isset($new_array[$v['action_type']])) {
+                $new_array[$v['action_type']] = [];
+            }
+            array_push($new_array[$v['action_type']], $v);
+            $v = $v->toArray();
+            $this->persistRedis->zAdd($key, $v['sort'], json_encode($v, JSON_UNESCAPED_UNICODE));
+            $cacheCount = $this->persistRedis->hIncrBy($countKey, 'count', 1);
+        }
+        if ($cacheCount != $recordCount) {
+            $this->delRuleSet($channel_id, $type);
+        }
+        if (!empty($type)) {
+            return isset($new_array[$type]) ? $new_array[$type] : [];
+        }
+        return $new_array;
+    }
+
+    /**
+     * 获取默认的订单规则设置信息
+     * @param int $type [类型]
+     * @param int $channel_id [平台]
+     * @return array|mixed
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getDefaultRuleSet($channel_id, $type = 2)
+    {
+        if (empty($channel_id)) {
+            return [];
+        }
+        $key = $this->_order_default_rule . '_' . $type . '_' . $channel_id;
+        if ($this->persistRedis->exists($key)) {
+            $result = $this->persistRedis->zRange($key, 0, -1, true);
+            $new_array = [];
+            foreach ($result as $key => $value) {
+                array_push($new_array, json_decode($key, true));
+            }
+            return $new_array;
+        }
+        $orderRuleSetModel = new OrderRuleSet();
+        $where['action_type'] = ['=', $type];
+        $where['status'] = ['=', 0];
+        $result = $orderRuleSetModel->field('id,title,action_type,action_value,start_time,end_time,channel_id,sort,type')->with('items')->where($where)->where('channel_id',
+            ['=', $channel_id], ['=', 0], 'or')->where(['is_default' => 1])->order('action_type asc,sort asc')->select();
+        $new_array = [];
+        foreach ($result as $k => $v) {
+            if (!isset($new_array[$v['action_type']])) {
+                $new_array[$v['action_type']] = [];
+            }
+            array_push($new_array[$v['action_type']], $v);
+            $v = $v->toArray();
+            $this->persistRedis->zAdd($key, $v['sort'], json_encode($v, JSON_UNESCAPED_UNICODE));
+        }
+        if (!empty($type)) {
+            return isset($new_array[$type]) ? $new_array[$type] : [];
+        }
+        return $new_array;
+    }
+
+    /**
+     * 删除规则缓存
+     * @throws \think\Exception
+     */
+    public function delRuleSet($channel_id = 0, $type = 0)
+    {
+        if (!empty($channel_id) && !empty($type)) {
+            $key = $this->_order_rule . '_' . $type . '_' . $channel_id;
+            $countKey = $this->_order_rule_count . '_' . $type . '_' . $channel_id;
+            $this->persistRedis->del($key);
+            $this->persistRedis->del($countKey);
+        } else {
+            $channelList = Cache::store('channel')->getChannel();
+            $ruleType = $this->persistRedis->zRevRange($this->_order_rule_type, 0, -1, true);
+            foreach ($ruleType as $rule => $type) {
+                foreach ($channelList as $channel => $list) {
+                    $key = $this->_order_rule . '_' . $type . '_' . $list['id'];
+                    $countKey = $this->_order_rule_count . '_' . $type . '_' . $channel_id;
+                    $this->persistRedis->del($key);
+                    $this->persistRedis->del($countKey);
+                }
+            }
+            $this->persistRedis->del($this->_order_rule_type);
+        }
+        $this->delDefaultRuleSet();
+    }
+
+    /**
+     * 删除默认规则
+     * @throws \think\Exception
+     */
+    public function delDefaultRuleSet()
+    {
+        $type = 2;
+        $channelList = Cache::store('channel')->getChannel();
+        foreach ($channelList as $channel => $list) {
+            $key = $this->_order_default_rule . '_' . $type . '_' . $list['id'];
+            $this->persistRedis->del($key);
+        }
+    }
+
+
+    /**
+     * 刷单订单规则
+     * @param int $type [类型]
+     * @param int $channel_id [平台]
+     * @return array|mixed
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getVirtualRuleSet($type, $channel_id)
+    {
+        if (empty($type) || empty($channel_id)) {
+            return [];
+        }
+        $key = $this->_virtual_rule . '_' . $type . '_' . $channel_id;
+        if ($this->persistRedis->exists($key)) {
+            $result = $this->persistRedis->zRange($key, 0, -1, true);
+            $new_array = [];
+            foreach ($result as $key => $value) {
+                array_push($new_array, json_decode($key, true));
+            }
+            return $new_array;
+        }
+        $orderRuleSetModel = new VirtualRuleSet();
+        $where['action_type'] = ['=', $type];
+        $where['status'] = ['=', 0];
+        $result = $orderRuleSetModel->field('id,title,action_type,action_value,start_time,end_time,channel_id,sort,type')->with('items')->where($where)->where('channel_id',
+            ['=', $channel_id], ['=', 0], 'or')->order('action_type asc,sort asc')->select();
+        $new_array = [];
+        foreach ($result as $k => $v) {
+            if (!isset($new_array[$v['action_type']])) {
+                $new_array[$v['action_type']] = [];
+            }
+            array_push($new_array[$v['action_type']], $v);
+            $v = $v->toArray();
+            $this->persistRedis->zAdd($key, $v['sort'], json_encode($v, JSON_UNESCAPED_UNICODE));
+        }
+        if (!empty($type)) {
+            return isset($new_array[$type]) ? $new_array[$type] : [];
+        }
+        return $new_array;
+    }
+
+    /**
+     * 删除刷单规则缓存
+     */
+    public function delVirtualRuleSet()
+    {
+        $channelList = Cache::store('channel')->getChannel();
+        $ruleType = $this->persistRedis->zRevRange($this->_virtual_rule, 0, -1, true);
+
+        foreach ($ruleType as $rule => $type) {
+            foreach ($channelList as $channel => $list) {
+                $key = $this->_virtual_rule . '_' . $type . '_' . $list['id'];
+                $this->persistRedis->del($key);
+            }
+        }
+//        $this->persistRedis->del($this->_virtual_rule);
+    }
+
+
+    /** 获取刷单规则类型
+     * @return array
+     */
+    public function getVirtualRuleType()
+    {
+        if ($this->persistRedis->exists($this->_virtual_rule)) {
+            $result = $this->persistRedis->zRange($this->_virtual_rule, 0, -1, true);
+            $new_array = [];
+            foreach ($result as $key => $value) {
+                array_push($new_array, $key);
+            }
+            return $new_array;
+        }
+        $result = [1, 2, 3, 4, 5, 6];
+        foreach ($result as $key => $value) {
+            $this->persistRedis->zAdd($this->_virtual_rule, $value, $value);
+        }
+        return $result;
+    }
+
+
+    /** 获取规则类型
+     * @return array
+     */
+    public function getRuleType()
+    {
+        if ($this->persistRedis->exists($this->_order_rule_type)) {
+            $result = $this->persistRedis->zRange($this->_order_rule_type, 0, -1, true);
+            $new_array = [];
+            foreach ($result as $key => $value) {
+                array_push($new_array, $key);
+            }
+            return $new_array;
+        }
+        //$orderRuleSetModel = new OrderRuleSet();
+        //$result = $orderRuleSetModel->distinct(true)->field('action_type')->order('action_type asc')->select();
+        $result = [1, 2, 3, 4, 5, 6];
+        //$new_array = [];
+        foreach ($result as $key => $value) {
+            //array_push($new_array, $value['action_type']);
+            //$this->persistRedis->zAdd($this->_order_rule_type, $value['action_type'], $value['action_type']);
+            $this->persistRedis->zAdd($this->_order_rule_type, $value, $value);
+        }
+        return $result;
+    }
+
+    /** 获取订单sku所需数量--返回全部
+     * @param int $sku_id
+     * @param int $warehouse_id
+     * @return array|mixed  返回内容【sku_id,quantity 数量,warehouse_id 仓库id,time 时间戳,average 日均销量】
+     */
+    public function orderSkuQuantity($sku_id = 0, $warehouse_id = 0, $goods_id = [])
+    {
+        // $skuList = [];
+        // $key = $sku_id . ':' . $warehouse_id;
+        $skuList = (new OrderService())->rearrange(false, $sku_id, $warehouse_id, true, $goods_id);
+//        if ($this->persistRedis->exists(Report::skuNeed)) {
+//            if (empty($sku_id) || empty($warehouse_id)) {
+//                $skuData = $this->persistRedis->hgetAll(Report::skuNeed);
+//                foreach ($skuData as $k => $v) {
+//                    $temp = $this->persistRedis->hgetAll(Report::skuNeedPrefix . $k);
+//                    array_push($skuList, $temp);
+//                }
+//            } else {
+//                if ($this->persistRedis->hexists(Report::skuNeed, $key)) {
+//                    $skuList = $this->persistRedis->hGetAll(Report::skuNeedPrefix . $key);
+//                }
+//            }
+//        }
+        if ($sku_id && !is_array($sku_id) && $warehouse_id) {
+            $skuList = isset($skuList[0]) ? $skuList[0] : [];
+        }
+        return $skuList;
+    }
+
+    /** 减少sku所需数(退货等操作触发)
+     * @param $sku_id 【sku】
+     * @param $warehouse_id 【仓库】
+     * @param $quantity 【数量】
+     */
+    public function reduceSkuQuantity($sku_id, $warehouse_id, $quantity)
+    {
+        if ($this->persistRedis->exists(Report::skuNeed)) {
+            if (is_numeric($sku_id) && is_numeric($warehouse_id) && !empty($sku_id) && !empty($warehouse_id) && is_numeric($quantity)) {
+                $key = $sku_id . ':' . $warehouse_id;
+                if ($this->persistRedis->exists(Report::skuNeedPrefix . $key)) {
+                    $this->persistRedis->hIncrBy(Report::skuNeedPrefix . $key, 'quantity', $quantity * -1);
+                }
+                //$this->setSkuNeedLog($sku_id, $warehouse_id, ['quantity' => $quantity * -1, 'old' => $old,'new' => $new]);
+            }
+        }
+    }
+
+    /** 获取订单记录
+     * @param $order_number
+     * @param $channel_id
+     * @param $channel_account_id
+     * @return bool
+     */
+    public function getOrder($order_number, $channel_id, $channel_account_id)
+    {
+        $key = $order_number . '_' . $channel_id . '_' . $channel_account_id;
+        if ($this->redis->hExists($this->_order_record, $key)) {
+            return true;
+        }
+        return false;
+    }
+
+    /** 设置订单记录
+     * @param $order_number
+     * @param $channel_id
+     * @param $channel_account_id
+     * @param $order_time
+     */
+    public function setOrder($order_number, $channel_id, $channel_account_id, $order_time)
+    {
+        $key = $order_number . '_' . $channel_id . '_' . $channel_account_id;
+        $this->redis->hSet($this->_order_record, $key, $order_time);
+    }
+
+    /** 批量删除订单记录
+     * @param $order_number
+     * @param $channel_id
+     * @param $channel_account_id
+     */
+    public function delOrder($order_number, $channel_id, $channel_account_id)
+    {
+        $key = $order_number . '_' . $channel_id . '_' . $channel_account_id;
+        $this->redis->hDel($this->_order_record, $key);
+    }
+
+    /**
+     * 批量删除订单记录
+     */
+    public function batchDelOrder()
+    {
+        if ($this->redis->exists($this->_order_record)) {
+            $orderList = $this->redis->hGetAll($this->_order_record);
+            foreach ($orderList as $key => $order) {
+                $interval = time() - intval($order);
+                if ($interval > 24 * 3600 * 4) {
+                    $this->redis->hDel($this->_order_record, $key);
+                }
+            }
+        }
+    }
+
+    /**
+     * 记录跟踪号推送的日志
+     * @param $packageNum
+     * @param $data
+     */
+    public function setTrackingLog($packageNum, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $this->redis->hSet($this->_order_tracking_log . ':' . date('Ymd') . ':' . date('H'),
+            $packageNum . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 物流商下单交运推送的日志
+     * @param $packageNum
+     * @param $data
+     */
+    public function setTrackingUpload($packageNum, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $this->redis->hSet($this->_order_tracking_upload . ':' . date('Ymd') . ':' . date('H'),
+            $packageNum . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * wms发货推送的日志
+     * @param $packageNum
+     * @param $data
+     */
+    public function setDeliveryLog($packageNum, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $this->redis->hSet($this->_order_delivery . ':' . date('Ymd') . ':' . date('H'),
+            $packageNum . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 记录sku所需数的变动
+     * @param $sku_id
+     * @param $warehouse_id
+     * @param $data
+     */
+    public function setSkuNeedLog($sku_id, $warehouse_id, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data);
+        }
+        $key = $sku_id . '-' . $warehouse_id;
+        $this->redis->hSet($this->_sku_need_log . ':' . $key, date('Y-m-d H:i:s'), $data);
+    }
+
+    /**
+     * 记录包裹生产id
+     * @param $order_id
+     * @param $data
+     */
+    public function setPackageIdLog($order_id, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data);
+        }
+        $this->redis->hSet($this->_order_package_id_log . ':' . date('Ymd') . ':' . date('H'),
+            $order_id . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 记录包裹合并记录
+     * @param $order_id
+     * @param $data
+     */
+    public function setPackageMergeLog($order_id, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data);
+        }
+        $this->redis->hSet($this->_order_package_merge_log . ':' . date('Ymd') . ':' . date('H'),
+            $order_id . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 订单同步发货回调
+     * @param $packageNum
+     * @param $data
+     */
+    public function setSynchronizeLog($packageNum, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $this->redis->hSet($this->_order_synchronize_log . ':' . date('Ymd') . ':' . date('H'),
+            $packageNum . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 获取物流商包裹的重量，运费数据
+     * @param $packageNum
+     * @param $data
+     */
+    public function setWeightOrFeeLog($packageNum, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $this->redis->hSet($this->_order_tracking_weight_fee . ':' . date('Ymd') . ':' . date('H'),
+            $packageNum . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 获取物流商面单数据
+     * @param $packageNum
+     * @param $data
+     */
+    public function setTrackingLabelLog($packageNum, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $this->redis->hSet($this->_order_tracking_label . ':' . date('Ymd') . ':' . date('H'),
+            $packageNum . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 获取物流商发货状态
+     * @param $packageNum
+     * @param $data
+     */
+    public function setTrackingSendLog($packageNum, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $this->redis->hSet($this->_order_tracking_send . ':' . date('Ymd') . ':' . date('H'),
+            $packageNum . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 记录跟踪号保存的日志
+     * @param $packageNum
+     * @param $data
+     */
+    public function setTrackingSave($packageNum, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $this->redis->hSet($this->_order_tracking_save . ':' . date('Ymd') . ':' . date('H'),
+            $packageNum . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 记录订单操作中
+     * @param $order_id
+     */
+    public function setBusy($order_id)
+    {
+        $this->redis->set($this->_order_busy . $order_id, $order_id, ['ex' => '20','nx']);
+    }
+
+    /**
+     * 释放记录订单操作中
+     * @param $order_id
+     */
+    public function delBusy($order_id)
+    {
+        $this->redis->del($this->_order_busy . $order_id);
+    }
+
+    /**
+     * 查看订单是否在忙碌状态
+     * @param $order_id
+     * @return bool
+     */
+    public function isBusy($order_id)
+    {
+        if (is_array($order_id)) {
+            return false;
+        }
+        if ($this->redis->exists($this->_order_busy . $order_id)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 记录订单导出中
+     * @param $key
+     */
+    public function setExport($key)
+    {
+        $this->redis->set($this->_order_export_record . $key, 1, 10);
+    }
+
+    /**
+     * 释放记录订单导出中
+     * @param $key
+     */
+    public function delExport($key)
+    {
+        $this->redis->del($this->_order_export_record . $key);
+    }
+
+    /**
+     * 查看是否在导出状态
+     * @param $key
+     * @return bool
+     */
+    public function isExport($key)
+    {
+        if ($this->redis->exists($this->_order_export_record . $key)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 记录成功订单信息
+     * @param $order_number
+     * @param $data
+     */
+    public function setSuccessOrder($order_number, $data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data);
+        }
+        $this->redis->hSet($this->_order_success_record . ':' . date('Ymd') . ':' . date('H'),
+            $order_number . '-' . date('Ymd H:i:s'), $data);
+    }
+
+    /**
+     * 记录售后订单操作中
+     * @param $after_id
+     */
+    public function setAfterBusy($after_id)
+    {
+        $this->redis->set($this->_order_after_busy . $after_id, $after_id, 120);
+    }
+
+    /**
+     * 释放记录售后订单操作中
+     * @param $after_id
+     */
+    public function delAfterBusy($after_id)
+    {
+        $this->redis->del($this->_order_after_busy . $after_id);
+    }
+
+    /**
+     * 查看售后订单是否在忙碌状态
+     * @param $after_id
+     * @return bool
+     */
+    public function isAfterBusy($after_id)
+    {
+        if ($this->redis->exists($this->_order_after_busy . $after_id)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 记录包装后更换sku的包裹信息
+     * @param $package_id
+     */
+    public function setPackingChange($package_id)
+    {
+        $this->persistRedis->hSet($this->_order_sku_change, $package_id, $package_id);
+    }
+
+    /**
+     * 检查包裹是否在包装后更换了sku
+     * @param $package_id
+     * @return bool
+     */
+    public function isPackingChange($package_id)
+    {
+        if ($this->persistRedis->hExists($this->_order_sku_change, $package_id)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 删除缓存记录
+     * @param $package_id
+     */
+    public function delPackingChange($package_id)
+    {
+        $this->persistRedis->hDel($this->_order_sku_change, $package_id);
+    }
+
+    /**
+     * 记录包裹使用过的运输方式
+     * @param $channel_id
+     * @param $channel_order_number
+     * @param $shipping_id
+     */
+    public function setPackageShipping($channel_id, $channel_order_number, $shipping_id)
+    {
+        $key = $channel_id . ':' . $channel_order_number;
+        $this->persistRedis->hSet($this->_order_package_shipping . ':' . $key, $shipping_id, $shipping_id);
+    }
+
+    /**
+     * 获取包裹已存在的运输方式
+     * @param $channel_id
+     * @param $channel_order_number
+     * @param $shipping_id
+     * @return bool
+     */
+    public function getPackageShipping($channel_id, $channel_order_number, $shipping_id)
+    {
+        $key = $channel_id . ':' . $channel_order_number;
+        if ($this->persistRedis->hExists($this->_order_package_shipping . ':' . $key, $shipping_id)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 删除包裹储存的运输方式
+     * @param $channel_id
+     * @param $channel_order_number
+     */
+    public function delPackageShipping($channel_id, $channel_order_number)
+    {
+        $key = $channel_id . ':' . $channel_order_number;
+        $this->persistRedis->del($this->_order_package_shipping . ':' . $key);
+    }
+
+    /**
+     * 缓存物流跟踪号
+     * @param $data
+     */
+    public function setTrackingNumber($data){
+        $key = $this->_order_tracking_number. ':' .$data['channel_id'];
+        $this->persistRedis->zAdd($key, $data['sort_time'], $data['order_id']);
+    }
+
+    /**
+     * 获取要上传物流跟踪号的订单
+     * @param $channel_id
+     * @return array
+     */
+    public function getTrackingNumber($channel_id){
+        $key = $this->_order_tracking_number. ':' .$channel_id;
+        if ($this->persistRedis->exists($key)) {
+            $result = $this->persistRedis->zRange($key, 0, -1, true);
+            $order_ids = [];
+            foreach($result as $key=>$val){
+                $order_ids[] = $key;
+            }
+            return $order_ids;
+        }
+    }
+
+    /**
+     * 删除要上传物流跟踪号的订单
+     * @param $channel_id
+     * @param $order_id
+     */
+    public function deleteTrackingNumber($channel_id, $order_id){
+        $key = $this->_order_tracking_number. ':' .$channel_id;
+        $this->persistRedis->zRem($key, $order_id);
+    }
+}

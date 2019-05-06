@@ -1,0 +1,305 @@
+<?php
+
+namespace app\report\controller;
+
+use app\common\controller\Base;
+use app\common\exception\JsonErrorException;
+use think\Controller;
+use think\Request;
+use app\report\service\PerformanceService;
+
+/**
+ * @module 报表系统
+ * @title 销售利润汇总
+ * @url /report/financial/performance
+ */
+class Performance extends Base
+{
+    /**
+     * @var PerformanceService
+     */
+    protected $performanceService;
+
+    private $channel_id = 0;
+
+    /**
+     * 初始化
+     * @throws \Exception
+     */
+    protected function init()
+    {
+        if (is_null($this->performanceService)) {
+            $this->performanceService = new PerformanceService();
+        }
+    }
+
+
+    /**
+     * @title 平台利润汇总表
+     * @url /report/financial/performance
+     * @method get
+     * @author tanbin
+     * @return \think\response\Json
+     * @apiParam name:account_id type:int desc:账号简称
+     * @apiParam name:saler_id type:int desc:销售员id
+     * @apiParam name:search_time type:string desc:搜索时间
+     * @apiParam name:date_b type:string desc:开始时间
+     * @apiParam name:date_e type:string desc:结束时间
+     * @remark 字段说明:search_time [ 发货时间-shipping_time ] [ 付款时间-paid_time ]
+     * @apiReturn account_code:账号简称
+     * @apiReturn sale_user:销售员
+     * @apiReturn sale_group_leader:销售组长
+     * @apiReturn sale_director:销售主管
+     * @apiReturn order_num:订单数
+     * @apiReturn sale_amount:售价CNY
+     * @apiReturn appraisal_fee:测评费用
+     * @apiReturn actual_fee:实际售价
+     * @apiReturn channel_cost:平台费用CNY
+     * @apiReturn p_fee:P卡费用
+     * @apiReturn shipping_fee:物流费用
+     * @apiReturn package_fee:包装费用
+     * @apiReturn first_fee:头程报关费
+     * @apiReturn goods_cost:商品成本
+     * @apiReturn gross_profit:毛利
+     * @apiReturn refund_amount:退款
+     * @apiReturn shop_fee:店铺费用
+     * @apiReturn ads_fee:广告费用
+     * @apiReturn profits:实际利润
+     * @apiReturn profit_rate:利润率
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function index(Request $request)
+    {
+        $params = $request->param();
+        $params['channel_id'] = $this->channel_id;
+        $params['report_type'] = param($params, 'report_type', 'account');
+        try {
+            $result = $this->performanceService->search($params);
+        } catch (\Exception $ex) {
+            throw new JsonErrorException(['message' => $ex->getMessage()],500);
+        }
+        return json($result);
+    }
+
+    /**
+     * 亚马逊账号利润汇总
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function amazonIndex(Request $request)
+    {
+        $params = $request->param();
+        $params['channel_id'] = $this->channel_id;
+        $params['report_type'] = param($params, 'report_type', 'account');
+        try {
+            $result = $this->performanceService->amazonSearch($params);
+        } catch (\Exception $ex) {
+            throw new JsonErrorException(['message' => $ex->getMessage()],500);
+        }
+        return json($result);
+    }
+
+    /**
+     * fba账号利润汇总
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function fbaIndex(Request $request)
+    {
+        $params = $request->param();
+        $params['channel_id'] = $this->channel_id;
+        $params['report_type'] = param($params, 'report_type', 'account');
+        $params['is_fba'] = 1;
+        try {
+            $result = $this->performanceService->fbaSearch($params);
+        } catch (\Exception $ex) {
+            throw new JsonErrorException(['message' => $ex->getMessage()],500);
+        }
+        return json($result);
+    }
+
+    /**
+     * @title ebay平台利润汇总表
+     * @url /report/financial/performance/ebay
+     * @method get
+     * @author tanbin
+     * @return \think\response\Json
+     * @apiReturn account_code:账号简称
+     * @apiReturn sale_user:销售员
+     * @apiReturn sale_group_leader:销售组长
+     * @apiReturn sale_director:销售主管
+     * @apiReturn order_num:订单数
+     * @apiReturn sale_amount:售价CNY
+     * @apiReturn channel_cost:平台费用CNY
+     * @apiReturn paypal_fee:paypal费用
+     * @apiReturn currency_transform_fee:货币转换费用
+     * @apiReturn shipping_fee:物流费用
+     * @apiReturn package_fee:包装费用
+     * @apiReturn first_fee:头程报关费
+     * @apiReturn goods_cost:商品成本
+     * @apiReturn gross_profit:毛利
+     * @apiReturn refund_amount:退款
+     * @apiReturn shop_fee:店铺费用
+     * @apiReturn profits:实际利润
+     * @apiReturn profit_rate:利润率
+     * @apiReturn cost_subsidy:呆货成本补贴
+     * @apiReturn after_subsidy_profits:补贴后利润
+     * @apiReturn after_subsidy_profits_rate:补贴后利润率
+     * @apiFilter app\report\filter\PerformanceBySellerFilter
+     */
+    public function ebay(Request $request)
+    {
+        $this->channel_id = 1;
+        return $this->index($request);
+    }
+
+
+    /**
+     * @title amazon平台利润汇总表
+     * @url /report/financial/performance/amazon
+     * @method get
+     * @author tanbin
+     * @return \think\response\Json
+     * @apiReturn account_code:账号简称
+     * @apiReturn sale_user:销售员
+     * @apiReturn sale_group_leader:销售组长
+     * @apiReturn sale_director:销售主管
+     * @apiReturn order_num:订单数
+     * @apiReturn sale_amount:售价CNY
+     * @apiReturn appraisal_fee:测评费用
+     * @apiReturn actual_fee:实际售价
+     * @apiReturn channel_cost:平台费用CNY
+     * @apiReturn p_fee:P卡费用
+     * @apiReturn shipping_fee:物流费用
+     * @apiReturn package_fee:包装费用
+     * @apiReturn first_fee:头程报关费
+     * @apiReturn goods_cost:商品成本
+     * @apiReturn gross_profit:毛利
+     * @apiReturn refund_amount:退款
+     * @apiReturn shop_fee:店铺费用
+     * @apiReturn ads_fee:广告费用
+     * @apiReturn profits:实际利润
+     * @apiReturn profit_rate:利润率
+     * @apiFilter app\report\filter\PerformanceBySellerFilter
+     */
+    public function amazon(Request $request)
+    {
+        $this->channel_id = 2;
+        return $this->amazonIndex($request);
+    }
+
+    /**
+     * @title wish平台利润汇总表
+     * @url /report/financial/performance/wish
+     * @method get
+     * @author tanbin
+     * @return \think\response\Json
+     * @apiReturn account_code:账号简称
+     * @apiReturn sale_user:销售员
+     * @apiReturn sale_group_leader:销售组长
+     * @apiReturn order_num:订单数
+     * @apiReturn channel_cost:平台费用CNY
+     * @apiReturn p_fee:P卡费用
+     * @apiReturn shipping_fee:物流费用
+     * @apiReturn package_fee:包装费用
+     * @apiReturn first_fee:头程报关费
+     * @apiReturn goods_cost:商品成本
+     * @apiReturn gross_profit:毛利
+     * @apiReturn refund_amount:退款
+     * @apiReturn ads_fee:推广费用
+     * @apiReturn fine:罚款
+     * @apiReturn cash_rebate:活动现金返利
+     * @apiReturn profits:实际利润
+     * @apiReturn profit_rate:利润率
+     * @apiFilter app\report\filter\PerformanceBySellerFilter
+     */
+    public function wish(Request $request)
+    {
+        $this->channel_id = 3;
+        return $this->index($request);
+    }
+
+
+    /**
+     * @title aliExpress平台利润汇总表
+     * @url /report/financial/performance/ali
+     * @method get
+     * @author tanbin
+     * @return \think\response\Json
+     * @apiReturn account_code:账号简称
+     * @apiReturn sale_user:销售员
+     * @apiReturn sale_group_leader:销售组长
+     * @apiReturn order_num:订单数
+     * @apiReturn sale_amount:售价CNY
+     * @apiReturn shipping_fee:物流费用
+     * @apiReturn package_fee:包装费用
+     * @apiReturn first_fee:头程报关费
+     * @apiReturn goods_cost:商品成本
+     * @apiReturn gross_profit:毛利
+     * @apiReturn refund_amount:退款
+     * @apiReturn account_fee:账号年费
+     * @apiReturn shop_fee:店铺费用
+     * @apiReturn profits:实际利润
+     * @apiReturn profit_rate:利润率
+     * @apiFilter app\report\filter\PerformanceBySellerFilter
+     */
+    public function aliExpress(Request $request)
+    {
+        $this->channel_id = 4;
+        return $this->index($request);
+    }
+
+    /**
+     * @title fba平台利润汇总表
+     * @url /report/financial/performance/fba
+     * @method get
+     * @author laiyongfeng
+     * @return \think\response\Json
+     * @apiReturn account_code:账号简称
+     * @apiReturn sale_user:销售员
+     * @apiReturn sale_group_leader:销售组长
+     * @apiReturn sale_director:销售主管
+     * @apiReturn order_num:订单数
+     * @apiReturn sale_amount:售价CNY
+     * @apiReturn shipping_fee:物流费用
+     * @apiReturn first_fee:头程报关费
+     * @apiReturn goods_cost:商品成本
+     * @apiReturn refund_amount:退款
+     * @apiReturn shop_fee:店铺费用
+     * @apiReturn profits:实际利润
+     * @apiReturn profit_rate:利润率
+     * @apiFilter app\report\filter\PerformanceBySellerFilter
+     */
+    public function fba(Request $request)
+    {
+        return $this->fbaIndex($request);
+    }
+
+
+    /**
+     * @title 销售利润汇总列表导出接口
+     * @url /report/financial/export/performance
+     * @method post
+     * @return \think\response\Json
+     * @param Request $request
+     */
+    public function create(Request $request)
+    {
+        $params = $request->param();
+        $params['report_type'] = param($params, 'report_type', 'account');
+        $params['channel_id'] = param($params, 'channel_id', 0);
+        try {
+            $this->performanceService->applyExport($params);
+            return json(['message' => '申请成功']);
+        } catch (\Exception $ex) {
+            $code = $ex->getCode();
+            $msg = $ex->getMessage();
+            if (!$code) {
+                $code = 500;
+                $msg = '程序内部错误';
+            }
+            return json(['message' => $msg], $code);
+        }
+    }
+}

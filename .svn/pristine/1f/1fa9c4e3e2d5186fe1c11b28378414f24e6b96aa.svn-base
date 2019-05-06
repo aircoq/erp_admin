@@ -1,0 +1,977 @@
+<?php
+namespace app\publish\service;
+
+use app\common\model\amazon\AmazonAccount;
+use app\common\model\amazon\AmazonListingProfit;
+use app\common\model\amazon\AmazonPublishProduct;
+use app\common\model\amazon\AmazonPublishTask;
+use app\common\model\ChannelUserAccountMap;
+use app\common\model\Department;
+use app\common\model\DepartmentUserMap;
+use app\common\model\Goods;
+use app\common\model\GoodsSkuMap;
+use app\common\model\GoodsTortDescription;
+use app\common\model\Order;
+use app\common\model\User;
+use app\common\service\ChannelAccountConst;
+use app\common\service\OrderStatusConst;
+use app\common\service\UniqueQueuer;
+use app\index\service\DownloadFileService;
+use app\publish\queue\AmazonExportListing;
+use app\report\model\ReportExportFiles;
+use app\report\validate\FileExportValidate;
+use think\Exception;
+use app\common\cache\Cache;
+use app\common\service\Common;
+use app\common\model\amazon\AmazonListing;
+use app\common\model\amazon\AmazonListingDetail;
+use \app\common\traits\User as UserTrait;
+
+class AmazonListingService
+{
+    use UserTrait;
+
+    private $lang = 'zh';
+
+    const SEARCH_TYPE_SKU = 1;
+    const SEARCH_TYPE_SPU = 2;
+    const SEARCH_TYPE_SELLER_SKU = 3;
+    const SEARCH_TYPE_TITLE = 4;
+    const SEARCH_TYPE_ASIN = 5;
+    const SEARCH_TYPE_UPC = 6;
+    const AMAZON_CHANNEL_ID = 2;
+    private static $time_search_field = [
+        1 => 'create_time',
+        2 => 'modify_time',
+    ];
+    private $model;
+    /** @var $cacheAccount \app\common\cache\driver\AmazonAccount */
+    private $cacheAccount;
+    private $cacheGoods;
+
+    private $baseUrl;
+    public $departments = null;
+
+    public function __construct()
+    {
+        $this->model = new AmazonListing();
+        $this->baseUrl = Cache::store('configParams')->getConfig('innerPicUrl')['value'] . '/';
+        $this->cacheAccount = Cache::store('AmazonAccount');
+        $this->cacheGoods = Cache::store('Goods');
+    }
+
+
+    public function getLang()
+    {
+        return $this->lang ?? 'zh';
+    }
+
+
+    public function setLang($lang)
+    {
+        $this->lang = $lang;
+    }
+
+    /**
+     * 组合SQL条件
+     * combineWhere
+     * @param array $param
+     * @return array
+     */
+    private function combineWhere(array $param)
+    {
+        $where = [];
+        $join = [];
+        $field = 'al.id,al.amazon_listing_id,al.goods_id,al.spu,al.sku_id,al.sku,al.sku_quantity,al.account_id,al.site,al.seller_sku,al.item_name,al.seller_status,al.seller_type,al.currency,al.price,al.current_cost,al.pre_cost,al.quantity,al.open_date,al.image_url,al.item_is_marketplace,al.product_id_type,al.zshop_shipping_fee,al.item_condition,al.item_note,al.zshop_category1,al.zshop_browse_path,al.zshop_storefront_feature,al.asin1,al.asin2,al.asin3,al.will_ship_internationally,al.expedited_shipping,al.zshop_boldface,al.product_id,al.bid_for_featured_placement,al.add_delete,al.pending_quantity,al.fulfillment_channel,al.merchant_shipping_group,al.create_user_id,al.create_time,al.modify_time,al.view_num,al.fulfillment_type,al.is_action_log,al.publish_detail_id,al.is_virtual_send';
+        $countField = 'al.id';
+
+        $orderBy = 'modify_time';
+        $sort = 'DESC';
+        if (!empty($param['order_by']) && !empty($param['sort'])) {
+            $orderBy = $param['order_by'];
+            $sort = $param['sort'];
+        }
+
+        //已售量排序
+        if ($orderBy == 'sold_quantily') {
+            $join[] = ['amazon_listing_profit ap', 'ap.id=al.id', 'left'];
+            $field .= ',ap.profit,ap.sold_quantily';
+        }
+
+        if (isset($param['tag_id']) && $param['tag_id'] !== '') {
+            $join[] = ['amazon_goods_tag gt', 'gt.goods_id=al.goods_id'];
+            $where['gt.tag_id'] = $param['tag_id'];
+            $field .= ',gt.tag_id';
+        }
+
+        if (isset($param['is_virtual_send']) && in_array($param['is_virtual_send'], ['0', '1'])) {
+            $where['al.is_virtual_send'] = $param['is_virtual_send'];
+        }
+
+        if (isset($param['search_type']) && isset($param['search_content']) && !empty(trim($param['search_content']))) {
+            $search_type = trim($param['search_type']);
+            $content = trim($param['search_content']);
+            $tmp_content = json_decode($content, true);
+            if (is_array($tmp_content) && !empty($tmp_content)) {
+                $search_content = ['in', $tmp_content];
+            } else {
+                $search_content = ['like', $content. '%'];
+            }
+            switch ($search_type) {
+                case self::SEARCH_TYPE_SKU:
+                    $where['al.sku'] = $search_content;
+                    break;
+                case self::SEARCH_TYPE_SPU:
+                    $where['al.spu'] = $search_content;
+                    break;
+                case self::SEARCH_TYPE_SELLER_SKU:
+                    $where['al.seller_sku'] = $search_content;
+                    break;
+                case self::SEARCH_TYPE_TITLE:
+                    $where['al.item_name'] = $search_content;
+                    break;
+                case self::SEARCH_TYPE_ASIN:
+                    $where['al.asin1'] = $search_content;
+                    break;
+                case self::SEARCH_TYPE_UPC:
+                    $where['al.product_id'] = $search_content;
+                    break;
+            }
+        }
+        if (!empty($param['site'])) {
+            $site = $param['site'];
+            if (is_numeric($site)) {
+                $site = AmazonCategoryXsdConfig::getSiteByNum($param['site']);
+            }
+            $where['al.site'] = $site;
+        }
+        if (!empty($param['account_id'])) {
+            $where['al.account_id'] = $param['account_id'];
+        } else if (!empty($param['user_id']) && !$this->isAdmin($param['user_id'])) {
+            $accountIds = $this->getUnderlingAccountIds($param['user_id'], ChannelAccountConst::channel_amazon);
+            if (!empty($accountIds)) {
+                $where['al.account_id'] = ['in', $accountIds];
+            } else {
+                $where['al.id'] = 0;
+            }
+        }
+
+        if (!empty($param['seller_type'])) {
+            $where['al.seller_type'] = $param['seller_type'];
+        }
+
+        if (!empty($param['fulfillment_type'])) {
+            $where['al.fulfillment_type'] = $param['fulfillment_type'];
+        }
+
+        if (!empty($param['seller_status'])) {
+            $where['al.seller_status'] = $param['seller_status'];
+        }
+
+        if (!empty($param['status'])) {
+            //要联商品表；
+            $join[] = ['goods g', "al.goods_id = g.id"];
+            $where['goods_id'] = ['>', 0];
+            $where['g.status'] = trim($param['status']);
+            $field .= ',g.status';
+        }
+
+        //是否从erp刊登出去的；
+        if (!empty($param['is_erp']) && $param['is_erp'] == 1) {
+            $where['al.publish_detail_id'] = ['>', 0];
+        }
+
+        if (!empty($param['time_type'])) {
+            $time_field = self::$time_search_field[$param['time_type']];
+            $start_time = (int)strtotime($param['start_time']);
+            $end_time = !empty($param['end_time']) ? strtotime("{$param['end_time']} +1 day") : 0;
+            if (!empty($param['start_time']) && empty($param['end_time'])) {
+                $where["al.{$time_field}"] = ['>=', $start_time];
+            } else if (empty($param['start_time']) && !empty($param['end_time'])) {
+                $where["al.{$time_field}"] = ['<=', $end_time];
+            } else if (!empty($param['start_time']) && !empty($param['end_time'])) {
+                $where["al.{$time_field}"] = ['between', [$start_time, $end_time]];
+            }
+        }
+
+        if (isset($param['tort_platform']) && $param['tort_platform'] !== '') {
+            $join[] = ['goods_tort_description gd', 'gd.goods_id=al.goods_id'];
+            if ($param['tort_platform'] > 0) {
+                $where['gd.channel_id'] = $param['tort_platform'];
+            }
+            $field = 'DISTINCT '. $field;
+            $countField = 'Distinct al.id';
+        }
+
+        $operateArr = [1 => '>=', '<=', '='];
+        if (!empty($param['adjusted_price']) && isset($operateArr[$param['adjusted_price']])) {
+            $adjusted_range = 0.01;
+            if (isset($param['adjusted_range'])) {
+                if ($param['adjusted_range'] === '' || !is_numeric($param['adjusted_range'])) {
+                    $adjusted_range = 0.01;
+                } else {
+                    $adjusted_range = $param['adjusted_range'];
+                }
+            }
+            switch ($param['adjusted_price']) {
+                case 1:
+                    $where['al.current_cost - al.pre_cost'] = ['>=', $adjusted_range];
+                    break;
+                case 2:
+                    $where['al.pre_cost - al.current_cost'] = ['>=', $adjusted_range];
+                    break;
+                case 3:
+                    $where['al.current_cost - al.pre_cost'] = ['=', 0];
+                default:
+                    break;
+            }
+        }
+
+        //是否开启定时上下架
+        if (isset($param['is_up_lower']) && $param['is_up_lower']) {
+
+            //查询开启定时上下架
+            if ($param['is_up_lower'] == 1) {
+                $where["al.is_up_lower"] = ['=', 1];
+            }
+
+            //查询未开启定时上下架
+            if ($param['is_up_lower'] == 2) {
+                $where['al.is_up_lower'] = ['=', 0];
+            }
+        }
+
+        return ['where' => $where, 'join' => $join, 'field' => $field, 'order_by' => $orderBy, 'sort' => $sort, 'count_field' => $countField];
+    }
+
+    /**
+     * 获取导出列表信息
+     * getList
+     * @param array $param
+     * @param $page
+     * @param $pageSize
+     * @return false|\PDOStatement|string|\think\Collection
+     */
+    public function getList(array $param, $page, $pageSize)
+    {
+        $condition = $this->combineWhere($param);
+        $count = $this->model->alias('al')->field('al.id')->join($condition['join'])->where($condition['where'])->count($condition['count_field']);
+
+        $lists = $this->model->alias('al')
+            ->field($condition['field'])
+            ->join($condition['join'])
+            ->where($condition['where'])
+            ->order([$condition['order_by'] => $condition['sort']])
+            ->page($page, $pageSize)
+            ->select();
+
+        $lists = $this->skuSaledQty($lists);
+
+        $result = [
+            'order_by' => $condition['order_by'],
+            'sort' => $condition['sort'],
+            'count' => $count,
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'data' => $lists,
+        ];
+
+        return $result;
+    }
+
+    /**
+     * 获取导出列表信息
+     * getList
+     * @param array $param
+     * @param $page
+     * @param $pageSize
+     * @return false|\PDOStatement|string|\think\Collection
+     */
+    public function export(array $param, $inqueue = 0, $filename = '')
+    {
+        $condition = $this->combineWhere($param);
+
+        $header = [
+            ['title' => '部门', 'key' => 'department_name', 'width' => 50],
+            ['title' => '主管', 'key' => 'department_leader', 'width' => 50],
+            ['title' => '组长', 'key' => 'group_leader', 'width' => 50],
+            ['title' => '帐号简称', 'key' => 'code', 'width' => 30],
+            ['title' => '销售员', 'key' => 'seller', 'width' => 30],
+            ['title' => '本地SPU', 'key' => 'spu', 'width' => 30],
+            ['title' => '平台SKU', 'key' => 'seller_sku', 'width' => 30],
+            ['title' => 'ASIN', 'key' => 'asin', 'width' => 30],
+            ['title' => '产品标签', 'key' => 'tag', 'width' => 30],
+            ['title' => '预计利润率', 'key' => 'expected_profit', 'width' => 30],
+            ['title' => '订单利润率', 'key' => 'order_profit', 'width' => 30],
+        ];
+
+        $fullname = 'AmazonListing'. date('YmdHis'). $this->buildExportName($param);
+        $count = $this->model->alias('al')->field('al.id')->join($condition['join'])->where($condition['where'])->count($condition['count_field']);
+
+        $file = [
+            'name' => $fullname,
+            'path' => 'amazon',
+            'add_time_ext' => false
+        ];
+
+        if ($count > 500) {
+            //不在队列里执行时，塞进队列；
+            if ($inqueue == 0) {
+                $this->applyExportOrderToQueue($param, $fullname);
+                return ['status' => 2, 'message' => '下载任务已加入执行队列'];
+            } else {
+                if (!empty($fileName)) {
+                    $file['name'] = $fileName;
+                }
+                $modelCondition = [
+                    'service' => \app\publish\service\AmazonListingService::class,
+                    'method' => 'getExportData',
+                    'count' => $count,
+                    'field' => $condition['field'],
+                    'where' => $condition,
+                    'sort' => [$condition['order_by'] => $condition['sort']]
+                ];
+                return DownloadFileService::exportCsvToZipByMethod($modelCondition, $header, $file);
+            }
+        }
+
+        $data = $this->getExportData($condition, $condition['field'], 1, $count);
+        $result = DownloadFileService::exportCsv($data, $header, $file, 1);
+        return $result;
+    }
+
+
+    public function applyExportOrderToQueue($params, $fullname)
+    {
+        $exportFileName = mb_substr($fullname, 0, 70);
+        $user = Common::getUserInfo();
+        $uid = $user['user_id'];
+
+        $model = new ReportExportFiles();
+        $model->applicant_id     = $uid;
+        $model->apply_time       = time();
+        $model->export_file_name = $exportFileName.'.zip';
+        $model->status =0;
+        if (!$model->save()) {
+            throw new Exception('导出请求创建失败');
+        }
+
+        $params['file_name'] = $exportFileName;
+        $params['apply_id'] = $model->id;
+        $params['user_id'] = $uid;
+
+        //(new AmazonExportListing($params))->execute();
+        (new UniqueQueuer(AmazonExportListing::class))->push($params);
+    }
+
+
+    public function allExport($params = [])
+    {
+        try {
+            set_time_limit(0);
+            ini_set('memory_limit','1024M');
+            $validate = new FileExportValidate();
+            if (!$validate->scene('export')->check($params)) {
+                throw new Exception($validate->getError());
+            }
+            $result = $this->export($params, 1, $params['file_name']);
+            if(!$result['status']) {
+                throw new Exception($result['message']);
+            }
+            if(is_file($result['file_path'])){
+                $applyRecord = ReportExportFiles::get($params['apply_id']);
+                $applyRecord->exported_time = time();
+                $applyRecord->download_url = $result['download_url'];
+                $applyRecord->status = 1;
+                $applyRecord->isUpdate()->save();
+            } else {
+                throw new Exception('文件写入失败');
+            }
+        }catch (Exception $e){
+            $applyRecord = ReportExportFiles::get($params['apply_id']);
+            $applyRecord->status = 2;
+            $applyRecord->error_message = $e->getMessage();
+            $applyRecord->isUpdate()->save();
+            throw new Exception($e->getMessage(). '|'. $e->getLine(). '|'. $e->getFile());
+        }
+    }
+
+
+    /**
+     * 导出时获取方法
+     * @param $where
+     * @param $fields
+     * @param $page 状用page方法来分页，而不是limit
+     * @param $pageSize
+     */
+    public function getExportData($where, $field, $page, $pageSize)
+    {
+        $lists = $this->model->alias('al')
+            ->field($field)//->with('sku_saled_qty')
+            ->join($where['join'])
+            ->where($where['where'])
+            ->order([$where['order_by'] => $where['sort']])
+            ->page($page, $pageSize)
+            ->select();
+
+        $ids = [];
+        $account_ids = [0];
+        $goodsIds = [];
+        $whereTasks = '';
+        foreach ($lists as $list) {
+            $ids[] = $list['id'];
+            $account_ids[] = $list['account_id'];
+            $goodsIds[] = $list['goods_id'];
+            if ($whereTasks) {
+                $whereTasks .= ' OR ';
+            }
+            $whereTasks .= '(account_id='. $list['account_id']. ' AND goods_id='. $list['goods_id']. ')';
+        }
+
+        //查已售量
+        $listintQuantitys = [];
+        if (!isset($lists[0]['sold_quantily'])) {
+            $listintQuantitys = AmazonListingProfit::where(['id' => ['in', $ids]])->column('profit,sold_quantily', 'id');
+        }
+
+        //查帐号和销售员
+        $accounts = AmazonAccount::where(['id' => ['in', $account_ids]])->column('code', 'id');
+        $sellers = ChannelUserAccountMap::alias('c')
+            ->join(['user' => 'u'], ['u.id=c.seller_id'])
+            ->where(['channel_id' => ChannelAccountConst::channel_amazon])
+            ->where(['c.account_id' => ['in', $account_ids]])
+            ->column('u.realname,u.id', 'account_id');
+
+        $taskServ = new AmazonPublishTaskService();
+        $tags = $taskServ->getTagsByGoodsIds($goodsIds);
+
+        $tasks = [];
+        if (!empty($whereTasks)) {
+            $tasks = AmazonPublishTask::where($whereTasks)->field('goods_id,account_id,profit')->select();
+        }
+        $sellerIds = [];
+        $newLists = [];
+        foreach ($lists as $l) {
+            $val = $l->toArray();
+
+            $val['asin'] = $val['asin1'];
+            $val['code'] = $accounts[$val['account_id']] ?? '';
+
+            $val['seller_id'] = 0;
+            $val['seller'] = '';
+            if (!empty($sellers[$val['account_id']])) {
+                $sellerIds[] = $val['seller_id'] = $sellers[$val['account_id']]['id'] ?? '';
+                $val['seller'] = $sellers[$val['account_id']]['realname'] ?? '';
+            }
+
+            $val['department_name'] = '';
+            $val['department_leader'] = '';
+            $val['group_leader'] = '';
+
+            $val['tag'] = $tags[(int)$val['goods_id']] ?? '-';
+
+            $val['order_profit'] = $val['profit'] ?? $listintQuantitys['profit'] ?? '-';
+            $val['expected_profit'] = '-';
+            foreach ($tasks as $tval) {
+                $t = $tval->toArray();
+                if ($val['goods_id'] == $t['goods_id'] && $val['account_id'] == $t['account_id']) {
+                    $val['expected_profit'] = $t['profit'];
+                    break;
+                }
+            }
+            $newLists[] = $val;
+        }
+
+        $sellerDepartmentIds = [];
+        if (!empty($sellerIds)) {
+            $sellerDepartmentIds = DepartmentUserMap::where(['user_id' => ['in', $sellerIds]])->column('department_id', 'user_id');
+        }
+
+        foreach ($newLists as &$val) {
+            if (!empty($val['seller_id']) && !empty($sellerDepartmentIds[$val['seller_id']])) {
+                if (!empty($this->exportDepartments[$sellerDepartmentIds[$val['seller_id']]])) {
+                    $department = $this->exportDepartments[$sellerDepartmentIds[$val['seller_id']]];
+                } else {
+                    $department = $this->getDepartmentDetail($sellerDepartmentIds[$val['seller_id']]);
+                }
+                $val['department_name'] = $department['department_name'];
+                $val['department_leader'] = $department['department_leader'];
+                $val['group_leader'] = $department['group_leader'];
+            }
+        }
+        unset($val);
+        return $newLists;
+    }
+
+    private $exportDepartments = [];
+
+    public function getDepartmentDetail($department_id)
+    {
+        //用来装返回的部门信息；
+        $department = [
+            'department_name' => '',
+            'department_leader' => '',
+            'group_leader' => '',
+        ];
+        if (empty($department_id)) {
+            return $department;
+        }
+
+        $oldDepartmentId = $department_id;
+        $tree = $this->getDepartmentTree();
+        $tmp = [];
+        while(true) {
+            $go = false;
+            foreach ($tree as $key=>$val) {
+                if (empty($val['id'])) {
+                    unset($tree[$key]);
+                    continue;
+                }
+                if ($val['id'] == $department_id) {
+                    unset($tree[$key]);
+                    $go = true;
+                    $type = $val['type'];
+                    $tmp[$type] = $val;
+                    $department_id = $val['pid'];
+                    if ($type == 2) {
+                        break 2;
+                    }
+                }
+            }
+            if (!$go) {
+                break;
+            }
+        }
+        $leader_ids = [];
+        if (!empty($tmp[2])) {
+            $department['department_name'] = $tmp[2]['name'];
+            $leader_ids = array_merge($leader_ids, $tmp[2]['leader_id']);
+        }
+        if (!empty($tmp[1])) {
+            $leader_ids = array_merge($leader_ids, $tmp[1]['leader_id']);
+        }
+        $leaders = User::where(['id' => ['in', $leader_ids]])->column('realname', 'id');
+        if (!empty($tmp[2]['leader_id'])) {
+            $tmpDepartmentUser = [];
+            foreach ($tmp[2]['leader_id'] as $uid) {
+                if (!empty($leaders[$uid])) {
+                    $tmpDepartmentUser[] = $leaders[$uid];
+                }
+            }
+            if (!empty($tmpDepartmentUser)) {
+                $department['department_leader'] = implode(',', $tmpDepartmentUser);
+            }
+        }
+        if (!empty($tmp[1]['leader_id'])) {
+            $tmpGroupUser = [];
+            foreach ($tmp[1]['leader_id'] as $uid) {
+                if (!empty($leaders[$uid])) {
+                    $tmpGroupUser[] = $leaders[$uid];
+                }
+            }
+            if (!empty($tmpGroupUser)) {
+                $department['group_leader'] = implode(',', $tmpGroupUser);
+            }
+        }
+        $this->exportDepartments[$oldDepartmentId] = $department;
+        return $department;
+    }
+
+
+    public function getDepartmentTree()
+    {
+        if (empty($this->departments)) {
+            $this->departments = Cache::store('Department')->getDepartment();
+        }
+
+        return $this->departments;
+    }
+
+
+
+    public function buildExportName($params)
+    {
+        $str = '';
+        $snTypeArr = [
+            '1' => '本地SKU',
+            '2' => '本地SPU',
+            '3' => '平台SKU',
+            '4' => '刊登标题',
+            '5' => 'ASIN',
+            '6' => 'UPC'
+        ];
+        if (!empty($params['search_content'])) {
+            $str .= '('. ($snTypeArr[$params['search_type']] ?? '-' ) . '_搜索)';
+        }
+
+        if (!empty($params['site'])) {
+            $str .= '(站点_'. AmazonCategoryXsdConfig::getSiteByNum($params['site']) . ')';
+        }
+
+        if (!empty($params['account_id'])) {
+            $account = Cache::store('AmazonAccount')->getAccount($params['account_id']);
+            $str .= '(帐号简称_'. $account['code'] . ')';
+        }
+        return $str;
+    }
+
+
+    /**
+     * skuSaledQty
+     * @param $lists
+     */
+    public function skuSaledQty($lists)
+    {
+        if (empty($lists)) {
+            return [];
+        }
+
+        $base_url = Cache::store('configParams')->getConfig('innerPicUrl')['value'] . DS;
+        $ids = [];
+        $account_ids = [0];
+        $goodsIds = [];
+        $whereTasks = '';
+        foreach ($lists as $list) {
+            $ids[] = $list['id'];
+            $account_ids[] = $list['account_id'];
+            $goodsIds[] = $list['goods_id'];
+            if ($whereTasks) {
+                $whereTasks .= ' OR ';
+            }
+            $whereTasks .= '(account_id='. $list['account_id']. ' AND goods_id='. $list['goods_id']. ')';
+        }
+
+        //查已售量
+        $listintQuantitys = [];
+        if (!isset($lists[0]['sold_quantily'])) {
+            $listintQuantitys = AmazonListingProfit::where(['id' => ['in', $ids]])->column('profit,sold_quantily', 'id');
+        }
+
+        //查帐号和销售员
+        $accounts = AmazonAccount::where(['id' => ['in', $account_ids]])->column('code', 'id');
+        $sellers = ChannelUserAccountMap::alias('c')
+            ->join(['user' => 'u'], ['u.id=c.seller_id'])
+            ->where(['channel_id' => ChannelAccountConst::channel_amazon])
+            ->where(['c.account_id' => ['in', $account_ids]])
+            ->column('u.realname,u.id', 'account_id');
+
+        //查商品本地状态
+        $goodsStatus = [];
+        if (!isset($lists[0]['status'])) {
+            $goodsStatus = Goods::where(['id' => ['in', $goodsIds]])->column('status', 'id');
+        }
+
+        $taskServ = new AmazonPublishTaskService();
+        $tags = $taskServ->getTagsByGoodsIds($goodsIds);
+
+        $torts = GoodsTortDescription::where(['goods_id' => ['in', $goodsIds]])->group('goods_id')->field('goods_id')->column('goods_id');
+
+        $tasks = [];
+        if (!empty($whereTasks)) {
+            $tasks = AmazonPublishTask::where($whereTasks)->field('goods_id,account_id,profit')->select();
+        }
+
+        $new = [];
+        foreach ($lists as $l) {
+            $val = $l->toArray();
+
+            //***这里比较重要，将amazon_listing_id替换为自增ID，方便listing表批量操作；
+            $val['download_amazon_listing_id'] = $l['amazon_listing_id'];
+            //将amazon_listing_id替换为自增ID，方便listing表批量操作；
+            $val['amazon_listing_id'] = $l['id'];
+
+            //已售量
+            $val['sold_quantily'] = $val['sold_quantily'] ?? $listintQuantitys['sold_quantily'] ?? 0;
+            $val['sku_saled_qty'] = $val['sold_quantily'];
+
+            $val['base_url'] = $base_url;
+            $val['status'] = $val['status'] ?? $goodsStatus[$val['goods_id']] ?? 0;
+            $val['sku_status'] = $val['status'];
+            $val['account_name'] = $accounts[$val['account_id']] ?? '';
+
+            $val['seller_id'] = 0;
+            $val['seller'] = '';
+            if (!empty($sellers[$val['account_id']])) {
+                $val['seller_id'] = $sellers[$val['account_id']]['id'] ?? '';
+                $val['seller'] = $sellers[$val['account_id']]['realname'] ?? '';
+            }
+            $val['tag'] = $tags[(int)$val['goods_id']] ?? '-';
+
+            if (empty($val['goods_id'])) {
+                $val['is_goods_tort'] = 0;
+            } else {
+                $val['is_goods_tort'] = (int)in_array($val['goods_id'], $torts);
+            }
+
+            $val['order_profit'] = $val['profit'] ?? $listintQuantitys['profit'] ?? '-';
+            $val['expected_profit'] = '-';
+            foreach ($tasks as $tval) {
+                $t = $tval->toArray();
+                if ($val['goods_id'] == $t['goods_id'] && $val['account_id'] == $t['account_id']) {
+                    $val['expected_profit'] = $t['profit'];
+                    break;
+                }
+            }
+
+            $val['profit'] = $val['expected_profit']. '/'. $val['order_profit'];
+            $new[] = $val;
+        }
+
+        return $new;
+    }
+
+
+    public function getSingleOrderProfit($goods_id, $account_id)
+    {
+        $order = Order::alias('o')
+            ->join(['order_package' => 'p'], 'o.id=p.order_id')
+            ->join(['order_detail' => 'd'], 'o.id=d.order_id')
+            ->where(['o.channel_id' => ChannelAccountConst::channel_amazon, 'p.type' => 1])
+            ->where([
+                'd.goods_id' => $goods_id,
+                'o.channel_account_id' => $account_id,
+                'o.status' => ['in', [OrderStatusConst::HasBeenShipped, OrderStatusConst::HaveToSignFor]],
+            ])
+            ->order('o.pay_time', 'desc')
+            ->field('o.pay_fee,o.goods_amount,o.channel_shipping_free,o.discount,o.rate,o.channel_cost,o.cost,o.paypal_fee,o.package_fee,o.shipping_fee,o.first_fee,o.tariff')
+            ->find();
+
+        if (empty($order)) {
+            return 0;
+        }
+
+        $fee = ($order['goods_amount'] + $order['channel_shipping_free'] + $order['discount']) * $order['rate'];
+        $pfee = ($order['pay_fee'] - $order['channel_cost']) * $order['rate'] * 0.006;
+        $cost = $pfee + $order['channel_cost'] * $order['rate'] + $order['cost'] + $order['paypal_fee'] + $order['first_fee'] + $order['tariff'] + $order['package_fee'] + $order['shipping_fee'];
+        $profit = round(($fee - $cost) * 100 / $fee, 2);
+        return $profit;
+    }
+
+    public function getDetail($listing_id)
+    {
+        $where = ['listing_id' => $listing_id];
+        $result = (new AmazonListingDetail())->where($where)->find();
+        return $result;
+    }
+
+
+    /**
+     * 删除指定产品
+     * delete
+     * @param string $id
+     * @return $this
+     */
+    public function delete($id = 0)
+    {
+        $where['id'] = ['IN', $id];
+        $result = $this->model->where($where)->update();
+        return $result;
+    }
+
+    /**
+     * 更新映射关系；
+     * @param $listing_id
+     * @return bool
+     * @throws Exception
+     */
+    public function userRelation($listing_id)
+    {
+        try {
+            $listing = $this->model->where(['id' => $listing_id])->find();
+            if (empty($listing)) {
+                throw new Exception('amazonListing自增id不正确');
+            }
+
+            $seller_sku = $listing['seller_sku'];
+            $channel = ChannelAccountConst::channel_amazon;
+            $account_id = $listing['account_id'];
+
+            $skuinfoMap = $this->getSkuInfo($seller_sku, $channel, $account_id);
+            if ($skuinfoMap) {
+                $goodsCache = Cache::store('goods');
+                $skuid = trim($skuinfoMap['sku_id']);
+                $skuInfo = $goodsCache->getSkuInfo($skuid);
+
+                if (empty($skuinfoMap['goods_id'])) {
+                    $goodsId = $skuInfo['goods_id'];
+                } else {
+                    $goodsId = trim($skuinfoMap['goods_id']);
+                }
+                $goodsInfo = $goodsCache->getGoodsInfo($goodsId);
+
+                //找出刊登记录；
+                $pmodel = new AmazonPublishProduct();
+                $publish = $pmodel->alias('ap')
+                    ->join(['amazon_publish_product_detail' => 'ad'], 'ap.id=ad.product_id')
+                    ->where(['ap.account_id' => $account_id, 'ad.publish_sku' => $seller_sku, 'ap.publish_status' => 2])
+                    ->field('ad.id,ad.sku,ad.main_image')
+                    ->find();
+
+                //spu
+                $data['spu'] = isset($goodsInfo['spu']) ? trim($goodsInfo['spu']) : '';
+                $data['goods_id'] = $goodsId;
+                //sku
+                $data['sku_id'] = trim($skuinfoMap['sku_id']);
+                $data['sku'] = isset($skuInfo['sku']) ? $skuInfo['sku'] : '';
+                //是否虚拟仓发货
+                $data['is_virtual_send'] = $skuinfoMap['is_virtual_send'];
+
+                if (!empty($publish)) {
+                    $data['publish_detail_id'] = $publish['id'];
+                    $data['image_url'] = $publish['main_image'];
+                }
+
+                //sku_quantity
+                $sku_quantity = '';
+                $sku_code_quantity = json_decode($skuinfoMap['sku_code_quantity'], true);
+                if (is_array($sku_code_quantity) && !empty($sku_code_quantity)) {
+                    $skuQuantityArr = [];
+                    foreach ($sku_code_quantity as $skuQuantity) {
+                        $skuQuantityArr[] = $skuQuantity['sku_code'] . '*' . $skuQuantity['quantity'];
+                    }
+                    $sku_quantity = implode(',', $skuQuantityArr);
+                } else {
+                    $sku_quantity = $data['sku'];
+                }
+                $data['sku_quantity'] = $sku_quantity;
+                $where = [
+                    'id' => $listing_id
+                ];
+                $this->model->edit($data, $where);
+                return true;
+            }
+        } catch (Exception $exp) {
+            throw new Exception($exp->getMessage() . $exp->getFile() . $exp->getLine());
+        }
+    }
+
+
+    private function getSkuInfo($channel_sku, $channel_id, $account_id)
+    {
+        //匹配本地产品
+        $sku_map = GoodsSkuMap::field('sku_id,sku_code,goods_id,sku_code_quantity,is_virtual_send')->where([
+            'channel_id' => $channel_id,
+            'account_id' => $account_id,
+            'channel_sku' => $channel_sku,
+        ])->find();
+        return $sku_map;
+    }
+
+
+    /**
+     *批量修改价格
+     */
+    public function batchEditPrice($ids)
+    {
+        $ids = explode(',', $ids);
+
+        $amazonListing = new AmazonListing;
+
+        $result = $amazonListing->whereIn('id', $ids)->order(['modify_time' => 'DESC'])->select();
+
+
+        if ($result) {
+            $ruleService = new PricingRuleService;
+
+            foreach ($result as $key => $val) {
+
+                $val = $val->toArray();
+
+                $sku_id = $val['sku_id'];
+                if ($sku_id) {
+
+                    $skuInfo = Cache::store('goods')->getSkuInfo($val['sku_id']);
+
+                    if ($skuInfo) {
+
+                        $detailInfo = [
+                            'weight' => 0,
+                            'goods_id' => $skuInfo['goods_id'],
+                            'sku_id' => $sku_id,
+                            'sku' => $skuInfo['sku'],
+                            'cost_price' => $skuInfo['cost_price']
+                        ];
+
+                        $publishInfo = [
+                            'channel_id' => 2,
+                            'account_id' => $val['account_id'],
+                            'channel_account_id' => $val['account_id'],
+                            'warehouse_id' => 0,
+                            'site_code' => $val['site'],
+                            'category_id' => 0,
+                        ];
+
+                        $priceRule = $ruleService->matchRule($publishInfo, $detailInfo);
+                        $priceRule = $ruleService->againValue($priceRule, $publishInfo['channel_id']);
+
+                        $result[$key]['price'] = isset($priceRule['total_price']) && $priceRule['total_price'] ? $priceRule['total_price'] : $val['price'];
+                    }
+                }
+
+            }
+
+            return $result;
+        }
+
+        return [];
+    }
+
+
+    public function asinExist($asins)
+    {
+        $listingModel = new AmazonListing;
+        $lists = $listingModel->where(['asin1' => ['in', $asins]])->field('asin1 asin,account_id')->select();
+
+        $accountIds = [0];
+        foreach ($lists as $val) {
+            $accountIds[] = $val['account_id'];
+        }
+        $sellers = ChannelUserAccountMap::alias('m')
+            ->join(['user' => 'u'], 'u.id=m.seller_id')
+            ->where([
+                'm.channel_id' => ChannelAccountConst::channel_amazon,
+                'm.account_id' => ['in', $accountIds],
+                'm.seller_id' => ['>', 0]
+            ])
+            ->column('u.realname', 'm.account_id');
+        $accounts = AmazonAccount::where(['id' => ['in', $accountIds]])->column('code', 'id');
+
+        $count = count($asins);
+        $exists = [];
+        foreach ($lists as &$val) {
+            $exists[$val['asin']] = '';
+            $val['account'] = $accounts[$val['account_id']] ?? '-';
+            $val['seller'] = $sellers[$val['account_id']] ?? '-';
+        }
+        unset($val);
+        $exist_total = count($exists);
+
+        $notExist = array_diff($asins, array_keys($exists));
+        $result = [
+            'count' => $count,
+            'exist_total' => $exist_total,
+            'not_exist_total' => $count - $exist_total,
+            'exist_list' => $lists,
+            'not_exist_list' => array_values($notExist)
+        ];
+        return $result;
+    }
+
+
+
+    public function batchDel($ids)
+    {
+        $ids = trim($ids);
+        if (empty($ids)) {
+            if ($this->lang == 'zh') {
+                throw new Exception('参数错误');
+            } else {
+                throw new Exception('System Error');
+            }
+        }
+        $idArr = explode(',', $ids);
+        $listingModel = new AmazonListing;
+        $listingModel->update(['seller_status' => 3], ['id' => ['in', $idArr]]);
+        return true;
+    }
+}

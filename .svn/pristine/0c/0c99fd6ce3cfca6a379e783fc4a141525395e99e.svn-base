@@ -1,0 +1,80 @@
+<?php namespace Waimao\AmazonMws;
+
+use Aws\Sqs\SqsClient;
+use Waimao\AmazonMws\AmazonConfig;
+
+class AmazonSqs extends SqsClient
+{
+    protected $sqsClient;
+
+    /**
+     * AmazonSqs constructor.
+     * 1.SqsClient
+     */
+    public function __construct()
+    {
+        $AmazonSqsConf = AmazonConfig::$AmazonSqsConf;
+        $this->sqsClient = SqsClient::factory($AmazonSqsConf);
+    }
+
+
+    /**
+     * @param $queueUrl
+     * @param array $attributeNames
+     * @param int $maxNumberOfMessages
+     * @return \Aws\Result
+     * 消息队列
+     */
+    public function receive_message($queueUrl, $attributeNames = ['All'], $maxNumberOfMessages = 10)
+    {
+        $sqsClient = $this->sqsClient;
+
+        $response = $sqsClient->receiveMessage(array(
+            'QueueUrl' => $queueUrl,
+            'AttributeNames' => $attributeNames,
+            'MaxNumberOfMessages' => $maxNumberOfMessages,
+            'WaitTimeSeconds' => 2
+        ));
+
+        return $response;
+    }
+
+
+    /**
+     * @param $queueUrl
+     * @param $receiptHandle
+     * @return bool
+     * 删除消息
+     */
+    public function delete_message($queueUrl, $receiptHandle)
+    {
+        $sqsClient = $this->sqsClient;
+
+        $sqsClient->deleteMessage(array(
+            // QueueUrl is required
+            'QueueUrl' => $queueUrl,
+            // ReceiptHandle is required
+            'ReceiptHandle' => $receiptHandle,
+        ));
+
+        return true;
+    }
+
+
+    /**
+     * @param array $queueName
+     * @return \Aws\Result|bool
+     * 创建通知队列
+     */
+    public function createQueue($queueName)
+    {
+        $sqsClient = $this->sqsClient;
+
+        return $sqsClient->createQueue(array(
+            'QueueName' => $queueName,
+            'Attributes' => array(
+                'ReceiveMessageWaitTimeSeconds' => 2
+            )
+        ));
+    }
+}

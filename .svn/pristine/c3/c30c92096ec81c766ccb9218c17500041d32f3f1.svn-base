@@ -1,0 +1,180 @@
+<?php
+
+namespace pandao;
+
+use app\common\cache\Cache;
+use pandao\PandaoBaseApi;
+
+/**
+ * Created by PhpStorm.
+ * User: libaimin
+ * Date: 2018/5/22
+ * Time: 15:51
+ */
+class PandaoOrdersApi extends PandaoBaseApi
+{
+    public function __construct($params)
+    {
+        parent::__construct($params);
+    }
+
+    /**
+     * @title 返回当前需要完成的所有订单。
+     * @param $start 开始点最小为0；
+     * @param $limit 每次拉取的个数；
+     * @param $since 开始时间；
+     * @return mixed
+     */
+    public function getOrderList($start, $limit = 200, $since = '2018-05-01')
+    {
+        $url = 'https://api-merchant.pandao.com/api/v2/order/get-fulfill';
+        $getData = [
+            'start' => $start,
+            'limit' => $limit,
+        ];
+        if (!empty($since)) {
+            $getData['since'] = is_numeric($since) ? date('Y-m-d H:i:s', $since) : $since;
+        }
+
+        $result = $this->authcall($url, 'GET', $getData);
+        return $result;
+    }
+
+
+    /**
+     * 检索最近更改的订单
+     * @param $start 开始点最小为0；
+     * @param $limit 每次拉取的个数；
+     * @param $since 开始时间；
+     * @return mixed
+     */
+    public function getOrders($start, $limit = 200, $since = '2018-05-01')
+    {
+        $url = 'https://mall.my.com/merchant/wish/api/v2/order/multi-get';
+        $getData = [
+            'start' => $start,
+            'limit' => $limit,
+        ];
+        if (!empty($since)) {
+            $getData['since'] = is_numeric($since) ? date('Y-m-d', $since) :  date('Y-m-d', strtotime($since));
+        }
+        $result = $this->authcall($url, 'GET', $getData);
+        if (isset($result['code']) && $result['code'] == 0 && isset($result['data'])) {
+            return $result['data'];
+        }
+        return false;
+
+    }
+
+    /**
+     * 通过订单ID，拿取订单信息用于更新；
+     * @param $order_id 订单ID
+     */
+    public function getOrdersById($order_id)
+    {
+        $url = 'https://mall.my.com/merchant/wish/api/v2/order/';
+        $data = [
+            'id' => $order_id,
+        ];
+
+        $result = $this->authcall($url, 'GET', $data);
+        return $result;
+    }
+
+    /** 发货订单
+     * @param $order_id 订单ID
+     * @param $tracking_provider 跟踪提供商
+     * @param $tracking_number 跟踪号
+     * @param $ship_note 单号备注
+     * @return bool
+     */
+    public function fulfillOne($order_id,  $tracking_provider, $tracking_number='', $ship_note='')
+    {
+        $url = 'https://mall.my.com/merchant/wish/api/v2/order/fulfill-one';
+        $data = [
+            'id' => $order_id,
+            'tracking_provider' => $tracking_provider,
+            'tracking_number' => $tracking_number,
+        ];
+
+        if($ship_note){
+            $data['ship_note'] = $ship_note;
+        }
+
+        $result = $this->authcall($url, 'POST', $data);
+        return $result;
+    }
+
+    /** 订单退款
+     * @param $order_id 订单ID
+     * @param $reason_code 退款代码 1--店无法履行订单 2--产品缺货 3--客户提供错误地址信息
+     * @return bool
+     */
+    public function refund($order_id, $reason_code)
+    {
+
+        $url = 'https://api-merchant.pandao.com/api/v2/refund';
+        $data = [
+            'id' => $order_id,
+            'reason_code' => $reason_code,
+        ];
+
+        $result = $this->authcall($url, 'GET', $data);
+        return $result;
+    }
+    /**
+     * @title 返回采购订单信息。
+     * @param $order_id 订单ID；
+     * @return mixed
+     * @author lsh
+     * @date 2019-05-05
+     */
+    public function getPurchaseOrder($order_id)
+    {
+        $url = 'https://mall.my.com/merchant/api/v1/purchase/order/{'.$order_id.'}';
+        $result = $this->authcall($url, 'GET', []);
+        $meta = param($result, 'meta', []);
+        $data = param($result, 'data', []);
+        if (isset($meta['code']) && $meta['code'] == 200) {
+            return $data;
+        }
+        return [];
+    }
+    /**
+     * @title 批量查询采购订单信息。TODO 暂未使用
+     * @param $start_time 开始时间；
+     * @param $end_time 结束时间；
+     * @param int $offset 开始位置；
+     * @param int $limit 每次查询的个数；
+     * @return mixed
+     * @author lsh
+     * @date 2019-05-05
+     */
+    public function getPurchaseSearch($start_time, $end_time, $offset = 0, $limit = 20)
+    {
+        //Content-Type:application/json
+        $url = 'https://mall.my.com/merchant/api/v1/purchase/order/_search?offset=' . $offset . '&limit=' . $limit;
+        $data = [
+            'filter' => [
+                'fulfilled' => false,
+                "from_created_at" => $start_time,
+                "from_updated_at" => $end_time
+            ]
+        ];
+        //授权信息；
+        $extra = [
+            'header' => [
+                'Authorization' => 'Bearer ' . $this->access_token,
+                'Content-Type' => 'application/json',
+            ]
+        ];
+        $result = $this->authcall($url, 'POST', \GuzzleHttp\json_encode($data), $extra);
+        $meta = param($result, 'meta', []);
+        $data = param($result, 'data', []);
+        if (isset($meta['code']) && $meta['code'] == 200 && isset($data['orders'])) {
+            return $data['orders'];
+        }
+        return [];
+    }
+
+}

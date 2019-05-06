@@ -1,0 +1,1347 @@
+<?php
+namespace service\ebay;
+
+use org\Curl;
+use app\common\cache\Cache;
+use think\Exception;
+
+/**
+ * 新版纠纷[post-order] case、request、cancel、return
+ * 
+ * @author tanbin
+ *        
+ */
+class EbayPostorderApi extends EbayBaseApi
+{
+
+    protected $config;
+
+    /**
+     * 初始化
+     * 
+     * @param array $config            
+     */
+    public function __construct($config = [])
+    {
+        parent::__construct($config);
+    }
+
+    protected $error = '';
+
+    /**
+     * 获取 Case
+     */
+    function serchCaseList($createTimeFrom, $createTimeTo)
+    {
+        set_time_limit(0);
+        $paramTime = '&case_creation_date_range_from=' . gmdate("Y-m-d\TH:i:s.000\Z", $createTimeFrom);
+        $paramTime .= '&case_creation_date_range_to=' . gmdate("Y-m-d\TH:i:s.000\Z", $createTimeTo);
+        $offset = 1;
+        $limit = 100;
+
+        $headers = $this->buildPostOrderHeaders();
+        
+        $curl = new Curl();
+        $datas = [];
+        // 默认返回初始值
+        $response_data = [
+            'state' => false,
+            'datas' => []
+        ];
+        
+        do {
+            $param = '?limit=' . $limit . '&offset=' . $offset. $paramTime; //分页获取条件
+            $url = 'https://api.ebay.com/post-order/v2/casemanagement/search' . $param;
+            $response = $curl->curlGet($url, $headers);
+            $response = json_decode($response, true);
+
+            if (isset($response['members'])) {
+                $response_data['state'] = true; // 设置已经对这个时间段进行了拉取
+            } else {
+                $response_data['state'] = false; // 分页获取，如果中间接口获取有问题直接返回false
+                return $response_data;
+            }
+            $datas = array_merge($datas, $response['members']);
+            $offset += 1;
+        } while (count($response['members']) > 0 && $offset <= $response['paginationOutput']['totalPages']);
+        
+        $response_data['datas'] = $datas;
+        return $response_data;
+    }
+
+    /**
+     * 获取 Case
+     */
+    function serchCaseListByItemId($itemId, $transaction_id = '')
+    {
+        set_time_limit(0);
+        $paramId = '&item_id='. $itemId;
+        if (!empty($transaction_id)) {
+            $paramId .= '&transaction_id='. $transaction_id;
+        }
+        $offset = 1;
+        $limit = 100;
+
+        $headers = $this->buildPostOrderHeaders();
+
+        $curl = new Curl();
+        $datas = [];
+        // 默认返回初始值
+        $response_data = [
+            'state' => false,
+            'datas' => []
+        ];
+
+        do {
+            $param = '?limit=' . $limit . '&offset=' . $offset. $paramId; //分页获取条件
+            $url = 'https://api.ebay.com/post-order/v2/casemanagement/search' . $param;
+            $response = $curl->curlGet($url, $headers);
+            $response = json_decode($response, true);
+
+            if (isset($response['members'])) {
+                $response_data['state'] = true; // 设置已经对这个时间段进行了拉取
+            } else {
+                $response_data['state'] = false; // 分页获取，如果中间接口获取有问题直接返回false
+                return $response_data;
+            }
+            $datas = array_merge($datas, $response['members']);
+            $offset += 1;
+        } while (count($response['members']) > 0 && $offset <= $response['paginationOutput']['totalPages']);
+
+        $response_data['datas'] = $datas;
+        return $response_data;
+    }
+
+    /**
+     * 获取 Cancel
+     */
+    function serchCancelList($createTimeFrom, $createTimeTo)
+    {
+        set_time_limit(0);
+        $paramTime = '&creation_date_range_from=' . $this->setTimeToEbayTime($createTimeFrom);
+        $paramTime .= '&creation_date_range_to=' . $this->setTimeToEbayTime($createTimeTo);
+        $offset = 1;
+        $limit = 100;
+        
+        $headers = $this->buildPostOrderHeaders();
+        
+        $curl = new Curl();
+        $datas = [];
+        // 默认返回初始值
+        $response_data = [
+            'state' => false,
+            'datas' => []
+        ];
+        do {
+            $param = '?limit=' . $limit . '&offset=' . $offset. $paramTime; // 分页获取条件
+            $url = 'https://api.ebay.com/post-order/v2/cancellation/search' . $param;
+            $response = $curl->curlGet($url, $headers);
+            $response = json_decode($response, true);
+
+            if (isset($response['cancellations'])) {
+                $response_data['state'] = true; // 设置已经对这个时间段进行了拉取
+            } else {
+                $response_data['state'] = false; // 分页获取，如果中间接口获取有问题直接返回false
+                return $response_data;
+            }
+            
+            $datas = array_merge($datas, $response['cancellations']);
+            $offset += 1;
+        } while (count($response['cancellations']) > 0 && $offset <= $response['paginationOutput']['totalPages']);
+        
+        $response_data['datas'] = $datas;
+        return $response_data;
+    }
+
+    /**
+     * 获取 Cancel
+     */
+    function serchCancelListByItemId($item_id, $transaction_id)
+    {
+        set_time_limit(0);
+        $paramId = 'item_id='. $item_id;
+        if (!empty($transaction_id)) {
+            $paramId .= 'transaction_id='. $transaction_id;
+        }
+        $offset = 1;
+        $limit = 100;
+
+        $headers = $this->buildPostOrderHeaders();
+
+        $curl = new Curl();
+        $datas = [];
+        // 默认返回初始值
+        $response_data = [
+            'state' => false,
+            'datas' => []
+        ];
+        do {
+            $param = '?limit=' . $limit . '&offset=' . $offset. $paramId; // 分页获取条件
+            $url = 'https://api.ebay.com/post-order/v2/cancellation/search' . $param;
+            $response = $curl->curlGet($url, $headers);
+            $response = json_decode($response, true);
+
+            if (isset($response['cancellations'])) {
+                $response_data['state'] = true; // 设置已经对这个时间段进行了拉取
+            } else {
+                $response_data['state'] = false; // 分页获取，如果中间接口获取有问题直接返回false
+                return $response_data;
+            }
+
+            $datas = array_merge($datas, $response['cancellations']);
+            $offset += 1;
+        } while (count($response['cancellations']) > 0 && $offset <= $response['paginationOutput']['totalPages']);
+
+        $response_data['datas'] = $datas;
+        return $response_data;
+    }
+
+    /**
+     * 获取 Inquiries
+     */
+    function serchInquiriesList($createTimeFrom, $createTimeTo)
+    {
+        set_time_limit(0);
+        $paramTime = '&inquiry_creation_date_range_from=' . gmdate("Y-m-d\TH:i:s.000\Z", $createTimeFrom);
+        $paramTime .= '&inquiry_creation_date_range_to=' . gmdate("Y-m-d\TH:i:s.000\Z", $createTimeTo);
+        $offset = 1;
+        $limit = 100;
+
+        $headers = $this->buildPostOrderHeaders();
+        
+        $curl = new Curl();
+        $datas = [];
+        // 默认返回初始值
+        $response_data = [
+            'state' => false,
+            'datas' => []
+        ];
+        do {
+            $param = '?limit=' . $limit . '&offset=' . $offset. $paramTime; // 分页获取条件
+            $url = 'https://api.ebay.com/post-order/v2/inquiry/search' . $param;
+            $response = $curl->curlGet($url, $headers);
+            $response = json_decode($response, true);
+            if (isset($response['members'])) {
+                $response_data['state'] = true; // 设置已经对这个时间段进行了拉取
+            } else {
+                $response_data['state'] = false; // 分页获取，如果中间接口获取有问题直接返回false
+                return $response_data;
+            }
+            $datas = array_merge($datas, $response['members']);
+            $offset += 1;
+        } while (count($response['members']) > 0 && $offset <= $response['paginationOutput']['totalPages']);
+        
+        $response_data['datas'] = $datas;
+        return $response_data;
+    }
+
+    /**
+     * 获取 Inquiries
+     */
+    function serchInquiriesListByItemId($item_id, $transaction_id)
+    {
+        set_time_limit(0);
+        $paramId = 'item_id='. $item_id;
+        if (!empty($transaction_id)) {
+            $paramId .= 'transaction_id='. $transaction_id;
+
+        }
+        $offset = 1;
+        $limit = 100;
+
+        $headers = $this->buildPostOrderHeaders();
+
+        $curl = new Curl();
+        $datas = [];
+        // 默认返回初始值
+        $response_data = [
+            'state' => false,
+            'datas' => []
+        ];
+        do {
+            $param = '?limit=' . $limit . '&offset=' . $offset. $paramId; // 分页获取条件
+            $url = 'https://api.ebay.com/post-order/v2/inquiry/search' . $param;
+            $response = $curl->curlGet($url, $headers);
+            $response = json_decode($response, true);
+            if (isset($response['members'])) {
+                $response_data['state'] = true; // 设置已经对这个时间段进行了拉取
+            } else {
+                $response_data['state'] = false; // 分页获取，如果中间接口获取有问题直接返回false
+                return $response_data;
+            }
+            $datas = array_merge($datas, $response['members']);
+            $offset += 1;
+        } while (count($response['members']) > 0 && $offset <= $response['paginationOutput']['totalPages']);
+
+        $response_data['datas'] = $datas;
+        return $response_data;
+    }
+
+    /**
+     * 获取 Return
+     */
+    function serchReturnList($createTimeFrom, $createTimeTo)
+    {
+        set_time_limit(0);
+        $paramTime = '&creation_date_range_from=' . gmdate("Y-m-d\TH:i:s.000\Z", $createTimeFrom);
+        $paramTime .= '&creation_date_range_to=' . gmdate("Y-m-d\TH:i:s.000\Z", $createTimeTo);
+        $offset = 1;
+        $limit = 100;
+        $headers = $this->buildPostOrderHeaders();
+        
+        $curl = new Curl();
+        $datas = [];
+        // 默认返回初始值
+        $response_data = [
+            'state' => false,
+            'datas' => []
+        ];
+        do {
+            $param = '?limit=' . $limit . '&offset=' . $offset. $paramTime; // 分页获取条件
+            $url = 'https://api.ebay.com/post-order/v2/return/search' . $param;
+            $response = $curl->curlGet($url, $headers);
+            $response = json_decode($response, true);
+            if (isset($response['members'])) {
+                $response_data['state'] = true; // 设置已经对这个时间段进行了拉取
+            } else {
+                $response_data['state'] = false; // 分页获取，如果中间接口获取有问题直接返回false
+                return $response_data;
+            }
+            $datas = array_merge($datas, $response['members']);
+            $offset += 1;
+        } while (count($response['members']) > 0 && $offset <= $response['paginationOutput']['totalPages']);
+        
+        $response_data['datas'] = $datas;
+        return $response_data;
+    }
+
+    /**
+     * 获取 Case 详细
+     */
+    function getCaseDetail($caseId)
+    {
+        set_time_limit(0);
+        if (empty($caseId)) {
+            $this->setError('case_id为空');
+            return false;
+        }
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/casemanagement/' . $caseId;
+        
+        $curl = new Curl();
+        $response = $curl->curlGet($url, $headers);
+        $response = json_decode($response, true);
+        if (isset($response['error'])) {
+            return false;
+        }
+        return $response;
+    }
+
+    /**
+     * 关闭-升级纠纷
+     * 
+     * @param string $caseId            
+     * @param array $data            
+     */
+    function closeCaes($caseId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+        
+        set_time_limit(0);
+        
+        if (empty($caseId)) {
+            $this->setError('case_id为空');
+            return false;
+        }
+        
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/casemanagement/' . $caseId . '/close';
+        
+        $requestBody = [
+            'closeReason' => $data['reason'],
+            'comments' => [
+                'content' => $data['message']
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+                                                                 
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $caseId;
+        $data['operate'] = 'Case-关闭';
+        $this->setCache('Case', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 升级纠纷 - 全额退款
+     *
+     * @param string $caseId
+     * @param array $data
+     */
+    function refundCaes($caseId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($caseId)) {
+            $this->setError('case_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/casemanagement/' . $caseId . '/issue_refund';
+
+        $requestBody = [
+            'comments' => [
+                'content' => $data['message']
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $caseId;
+        $data['operate'] = 'Case-全额退款';
+        $this->setCache('Case', $data, $response);
+        // ***********e 写入缓存日志********************
+        $result = json_decode($response, true);
+
+        if (isset($result["refundResult"]['refundStatus']) && $result["refundResult"]['refundStatus'] == 'SUCCESS') {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 升级纠纷 - 提供返回地址
+     *
+     * @param string $caseId
+     * @param array $data
+     */
+    function providesAddressCase($caseId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($caseId)) {
+            $this->setError('case_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/casemanagement/' . $caseId . '/provide_return_address';
+
+        $requestBody = [
+            'firstName' => isset($data['name']) ? $data['name'] : '',
+            'returnAddress' => [
+                'addressLine1' => isset($data['street']) ? $data['street'] : '',
+                'addressType' => 'BUSINESS', // BUSINESS / PO_BOX / RESIDENCE
+                'city' => isset($data['city']) ? $data['city'] : '',
+                'country' => isset($data['country']) ? $data['country'] : '',
+                'postalCode' => isset($data['postal_code']) ? $data['postal_code'] : '',
+                'stateOrProvince' => isset($data['province']) ? $data['province'] : ''
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $caseId;
+        $data['operate'] = 'Case-提供返回地址';
+        $this->setCache('Case', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 获取 Cancel 详细
+     */
+    function getCancelDetail($cancelId)
+    {
+        set_time_limit(0);
+        if (empty($cancelId)) {
+            $this->setError('case_id为空');
+            return false;
+        }
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/cancellation/' . $cancelId;
+
+        $curl = new Curl();
+        $response = $curl->curlGet($url, $headers);
+        $response = json_decode($response, true);
+        return $response;
+    }
+
+    /**
+     * 同意取消
+     */
+    function approveCancel($cancelId)
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($cancelId)) {
+            $this->setError('case_id为空');
+            return false;
+        }
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/cancellation/' . $cancelId . '/approve';
+
+        $response = $this->curlPost($url, '{}', $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $cancelId;
+        $data['operate'] = 'Cancel-同意取消';
+        $this->setCache('Cancel', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 拒绝取消
+     *
+     * @param unknown $cancelId
+     * @param array $data
+     *            -> tracking_num | shipment_date
+     */
+    function rejectCancel($cancelId, $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($cancelId)) {
+            $this->setError('cancel_id为空');
+            return false;
+        }
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/cancellation/' . $cancelId . '/reject';
+
+        $requestBody = [
+            'trackingNumber' => isset($data['tracking_num']) ? $data['tracking_num'] : '',
+            'shipmentDate' => [
+                'value' => isset($data['shipment_date']) ? $data['shipment_date'] : ''
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $cancelId;
+        $data['operate'] = 'Cancel-拒绝取消';
+        $this->setCache('Cancel', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 获取 Return 详细
+     *
+     * @param string $returnId
+     * @return boolean|mixed
+     */
+    function getReturnDetail($returnId)
+    {
+        set_time_limit(0);
+        if (empty($returnId)) {
+            $this->setError('return_id为空');
+            return false;
+        }
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId;
+
+        $curl = new Curl();
+        $response = $curl->curlGet($url, $headers);
+        $response = json_decode($response, true);
+        return $response;
+    }
+
+    /**
+     * 获取 Return 文件
+     *
+     * @param string $returnId
+     * @return boolean|mixed
+     */
+    function getReturnFile($returnId)
+    {
+        set_time_limit(0);
+        if (empty($returnId)) {
+            $this->setError('return_id为空');
+            return false;
+        }
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId . '/files';
+
+        $curl = new Curl();
+        $response = $curl->curlGet($url, $headers);
+        $response = json_decode($response, true);
+        return $response;
+    }
+
+    /**
+     * 操作退货退款请求普通纠纷
+     *
+     * @param string $returnId
+     * @param string $decision
+     *            部分退款请求 - OFFER_PARTIAL_REFUND ， 同意退货退款请求 - APPROVE ， 拒绝退货退款请求 - DECLINE
+     * @param array $data
+     */
+    function processReturn($returnId = '', $decision = '', $data = [])
+    {
+        $this->err = '';
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($returnId)) {
+            $this->setError('return_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId . '/decide';
+
+        $requestBody = [
+            'decision' => $decision,
+            'comments' => [
+                'content' => $data['message']
+            ]
+        ];
+        if ($decision == 'OFFER_PARTIAL_REFUND') {
+            $requestBody['partialRefundAmount'] = [
+                'currency' => $data['currency'],
+                'value' => $data['refund_amount']
+            ];
+        }
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $returnId;
+        $data['operate'] = 'Return-' . $decision;
+        $this->setCache('Return', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        //成功调用返回状态码为200；
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    public function getError() {
+        return $this->error;
+    }
+
+    public function setError($response) {
+        if ($response === false) {
+            $this->error = '请求Ebay接口失败，返回数据为FALSE';
+            return;
+        }
+        if ($response === '') {
+            $this->error = '请求Ebay接口失败，返回数据为空';
+            return;
+        }
+        $result = json_decode($response, true);
+        if (empty($result) && is_string($response)) {
+            $this->error = $response;
+            return;
+        }
+        if (is_string($result)) {
+            $this->error = $result;
+            return;
+        }
+        if (!empty($result['error'][0]['message'])) {
+            $this->error = $result['error'][0]['message'];
+        } else if (!empty($result['errors'][0]['message'])) {
+            $this->error = $result['errors'][0]['message'];
+        } else {
+            $this->error = json_encode($result, JSON_UNESCAPED_UNICODE);
+        }
+        if (!is_string($this->error)) {
+            $this->error = json_encode($this->error, JSON_UNESCAPED_UNICODE);
+            if (!is_string($this->error)) {
+                $this->error = '请求失败，无错误提示';
+            }
+        }
+    }
+
+    /**
+     * CURL POST
+     * @param  $url
+     * @param  $data
+     * @param string $header : 请求首部
+     * @return mixed
+     */
+    public static function curlPost($url, $data, $headers = [], &$httpcode = 0)
+    {
+        $ch = curl_init();
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 500);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($ch);
+        $httpcode = curl_getinfo($ch,CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        //返回http code状态码
+
+        return $response;
+    }
+
+    /**
+     * 取消退货退款请求普通纠纷
+     */
+    function cancelReturn($returnId)
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($returnId)) {
+            $this->setError('return_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId . '/cancel';
+
+        $requestBody = [
+            'buyerCloseReason' => '',
+            'comments' => [
+                'content' => '',
+                'language' => '',
+                'translatedFromContent' => '',
+                'translatedFromLanguage' => ''
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $returnId;
+        $data['operate'] = 'Return-取消退货退款';
+        $this->setCache('Return', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 升级退货退款请求普通纠纷
+     *
+     * @param string $returnId
+     * @param array $data
+     */
+    function escalateReturn($returnId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($returnId)) {
+            $this->setError('return_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId . '/escalate';
+
+        $requestBody = [
+            'reason' => $data['reason'],
+            'comments' => [
+                'content' => $data['message']
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $returnId;
+        $data['operate'] = 'Return-升级退货退款';
+        $this->setCache('Return', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        $result = json_decode($response, true);
+        if (isset($result['caseId']) && ! empty($result['caseId'])) {
+            return $result['caseId'];
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 全额退款-退货退款请求普通纠纷
+     * @param string $returnId
+     * @param array $data
+     * @return boolean
+     */
+    function issueRefundReturn($returnId = '', $data = [])
+    {
+        $this->err = '';
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($returnId)) {
+            $this->setError('return_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId . '/issue_refund';
+
+        // ORIGINAL_SHIPPING - 原来的运费 ，RETURN_SHIPPING - 退回货物运费 ， PURCHASE_PRICE - 购买商品价格 ，REFUND_FROM_PAYPAL - paypal退款
+        $requestBody = [
+            'comments' => [
+                'content' => $data['message']
+            ],
+            'refundDetail' => [
+                'itemizedRefundDetail' => [
+                    [
+                        'refundAmount' => [
+                            'currency' => $data['currency'],
+                            'value' => $data['total_refund']
+                        ],
+                        'refundFeeType' => 'PURCHASE_PRICE'
+                    ]
+                ],
+                'totalAmount' => [
+                    'currency' => $data['currency'],
+                    'value' => $data['total_refund']
+                ]
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $returnId;
+        $data['operate'] = 'Return-全额退款';
+        $this->setCache('Return', $data, $response);
+        // ***********e 写入缓存日志********************
+        $result = json_decode($response, true);
+
+        if (isset($result['refundStatus']) && $result['refundStatus'] == 'SUCCESS') {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 发送消息 - 退货退款请求普通纠纷
+     * @param int $returnId
+     * @param array $data
+     * @return bool
+     */
+    function sendMessageReturn($returnId, $data = [ ])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($returnId)) {
+            $this->setError('return_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId . '/send_message';
+
+        $requestBody = [
+            'message' => [
+                'content' => $data['message']
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $returnId;
+        $data['operate'] = 'Return-发送消息';
+        $this->setCache('Return', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        }
+        $this->setError($response);
+        return false;
+    }
+
+    /**
+     * 补发货 - 退货退款请求普通纠纷
+     */
+    function addShippingReturn($returnId)
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($returnId)) {
+            $this->setError('return_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId . '/add_shipping_label';
+
+        $requestBody = [
+            'carrierEnum' => '',
+            'carrierName' => '',
+            'comments' => [
+                'content' => '',
+                'language' => '',
+                'translatedFromContent' => '',
+                'translatedFromLanguage' => ''
+            ],
+            'fileId' => '',
+            'forwardShippingLabelProvided' => '',
+            'labelAction' => '',
+            'labelId' => '',
+            'labelSentDate' => [
+                'value' => ''
+            ],
+            'noLabelReason' => '',
+            'returnLabelCost' => '',
+            'trackingNumber' => ''
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $returnId;
+        $data['operate'] = 'Return-补发货 ';
+        $this->setCache('Return', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        $result = json_decode($response, true);
+        if (isset($result['labelURL'])) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 提供退货运输标签
+     *
+     * @param string $returnId
+     * @param string $email
+     */
+    function sendShippingLabel($returnId = '', $email = '')
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($returnId) || empty($email)) {
+            $this->setError('return_id为空，或邮件地址为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/return/' . $returnId . '/send_shipping_label?to_email_address=' . $email;
+
+        $response = $this->curlPost($url, '', $headers); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $returnId;
+        $data['operate'] = 'Return-提供退货运输标签 ';
+        $this->setCache('Return', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        $result = json_decode($response, true);
+        if (isset($result['labelURL'])) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * getInquiryDetail
+     * 获取 Inquiry 详细
+     */
+    function getInquiryDetail($inquiryId)
+    {
+        set_time_limit(0);
+        if (empty($inquiryId)) {
+            $this->setError('inquiry_id为空');
+            return false;
+        }
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/inquiry/' . $inquiryId;
+
+        $curl = new Curl();
+        $response = $curl->curlGet($url, $headers);
+        $response = json_decode($response, true);
+        return $response;
+    }
+
+    /**
+     * 关闭未收到货普通纠纷
+     *
+     * @param string $inquiryId
+     * @param array $data
+     * @return boolean
+     */
+    function closeInquiry($inquiryId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($inquiryId)) {
+            $this->setError('inquiry_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/inquiry/' . $inquiryId . '/close';
+
+        $requestBody = [
+            'closeReason' => $data['reason'],
+            'comments' => [
+                'content' => $data['message']
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $inquiryId;
+        $data['operate'] = 'Inquir-关闭未收到货';
+        $this->setCache('Inquir', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 升级未收到货普通纠纷
+     *
+     * @param string $inquiryId
+     * @param array $data
+     * @return boolean
+     */
+    function escalateInquiry($inquiryId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($inquiryId)) {
+            $this->setError('inquiry_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/inquiry/' . $inquiryId . '/escalate';
+
+        $requestBody = [
+            'escalationReason' => $data['reason'],
+            'comments' => [
+                'content' => $data['message']
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $inquiryId;
+        $data['operate'] = 'Inquir-升级未收到货';
+        $this->setCache('Inquir', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 发送消息 - 未收到货普通纠纷
+     *
+     * @param string $inquiryId
+     * @param array $data
+     *            -> message
+     */
+    function sendMessageInquiry($inquiryId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($inquiryId)) {
+            $this->setError('inquiry_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/inquiry/' . $inquiryId . '/send_message';
+
+        $requestBody = [
+            'message' => [
+                'content' => $data['message']
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $inquiryId;
+        $data['operate'] = 'Inquir-发送消息';
+        $this->setCache('Inquir', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 全额退款 - 未收到货普通纠纷
+     *
+     * @param string $inquiryId
+     * @param array $data
+     *            -> message
+     */
+    function issueRefundInquiry($inquiryId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($inquiryId)) {
+            $this->setError('inquiry_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/inquiry/' . $inquiryId . '/issue_refund';
+
+        $requestBody = [
+            'comments' => [
+                'content' => $data['message']
+            ]
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $inquiryId;
+        $data['operate'] = 'Inquir-全额退款';
+        $this->setCache('Inquir', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        $result = json_decode($response, true);
+
+        if (isset($result['refundResult']['refundStatus']) && $result['refundResult']['refundStatus'] == 'SUCCESS') {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 提供发货信息 - 未收到货普通纠纷
+     *
+     * @param string $inquiryId
+     * @param array $data
+     *            -> tracking_num | shipment_date | message | carrier_name
+     */
+    function provideShipmentInquiry($inquiryId = '', $data = [])
+    {
+        if ($this->_modeStatus == 1) {
+            return true;
+        }
+
+        set_time_limit(0);
+
+        if (empty($inquiryId)) {
+            $this->setError('inquiry_id为空');
+            return false;
+        }
+
+        $headers = $this->buildPostOrderHeaders();
+        $url = 'https://api.ebay.com/post-order/v2/inquiry/' . $inquiryId . '/provide_shipment_info';
+
+        /*
+         * $params = [
+         * 'trackingNumber' => $data['tracking_num'] ,
+         * 'shipmentDate' => $data['shipment_date'],
+         * 'message' => $data['message'],
+         * 'carrierName' => $data['carrier_name']
+         * ];
+         */
+
+        $requestBody = [
+            'proofOfShipmentUploaded' => true,
+            'sellerComments' => [
+                'content' => $data['message']
+            ],
+            'shippedWithTracking' => true,
+            'shippingCarrierName' => $data['carrier_name'],
+            'shippingDate' => [
+                'value' => $this->setTimeToEbayTime($data['shipment_date'] . ' 00:00:00')
+            ],
+            'trackingNumber' => $data['tracking_num']
+        ];
+        $requestBody = $this->buildRequestBody($requestBody);
+
+        $response = $this->curlPost($url, $requestBody, $headers, $code); // 返回状态码
+
+        // ***********s 写入缓存日志********************
+        $data['operateId'] = $inquiryId;
+        $data['operate'] = 'Inquir-提供发货信息';
+        $this->setCache('Inquir', $data, $response);
+        // ***********e 写入缓存日志********************
+
+        if ($code >= 200 && $code <300) {
+            return true;
+        } else {
+            $this->setError($response);
+            return false;
+        }
+    }
+
+    /**
+     * 写入缓存
+     * 
+     * @param string $operate
+     *            Case、Cancel、Return、Inquir
+     * @param array $data            
+     * @param string $response            
+     */
+    function setCache($operate, $data, $response)
+    {
+        return true;
+        $logs = [
+            'time' => date('Y-m-d H:i:s'),
+            'data' => $data,
+            'response' => $response
+        ];
+        $cache_key = $data['operateId'] . '-' . time();
+        switch ($operate) {
+            case 'Case':
+                $cacheMethod = 'addOperateCaseLogs';
+                break;
+            case 'Cancel':
+                $cacheMethod = 'addOperateCancelLogs';
+                break;
+            case 'Return':
+                $cacheMethod = 'addOperateReturnLogs';
+                break;
+            case 'Inquir':
+                $cacheMethod = 'addOperateInquirLogs';
+                break;
+            default:
+                break;
+        }
+        Cache::store('EbayDispute')->$cacheMethod($cache_key, $logs);
+    }
+}

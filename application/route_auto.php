@@ -7444,4 +7444,7 @@ think\Route::GET('/publish/lazada/unpublishedList', 'publish/LazadaPublish/unpub
 think\Route::GET('/publish/lazada/productInfo', 'publish/LazadaPublish/GetProductInfo',[], []);
 think\Route::GET('/publish/lazada/test', 'publish/LazadaPublish/test',[], []);
 think\Route::POST('/publish/lazada/productsDel', 'publish/LazadaPublish/productsDel',[], []);
+think\Route::GET('/publish/lazada/showLogs', 'publish/LazadaPublish/showLogs',[], []);
+think\Route::get('/publish/shopee/test', 'publish/Shopee/test',[], []);
+think\Route::get('/publish/common/test', 'publish/Common/getPublishedDaily',[], []);
 

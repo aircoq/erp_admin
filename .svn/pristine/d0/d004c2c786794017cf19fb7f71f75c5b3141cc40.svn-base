@@ -1,0 +1,702 @@
+<?php
+namespace app\index\service;
+
+use app\common\model\shopee\ShopeeAccount;
+use app\common\service\ChannelAccountConst;
+use think\Exception;
+use app\common\validate\ShopeeAccount as ValidateShopeeAccount;
+use app\common\cache\Cache;
+use app\common\service\Common;
+use think\Request;
+use app\common\model\ChannelAccountLog;
+use app\index\service\AccountService;
+use app\common\exception\JsonErrorException;
+
+class ShopeeAccountService
+{
+
+    const tokenRule = [
+        'shop_id' => 'require|unique:ShopeeAccount',
+        'partner_id' => 'require',
+        'key' => 'require',
+    ];
+
+    const  msg = [
+        'shop_id.require' => 'shopid不能为空',
+        'shop_id.unique' => 'shopid已存在',
+        'partner_id.require' => 'partnerid不能为空',
+        'key.require' => 'secretKey不能为空'
+    ];
+
+    /**
+     * 日志配置
+     * 字段名称[name] 
+     * 格式化类型[type]:空 不需要格式化,time 转换为时间,list
+     * 格式化值[value]:array
+     */
+    public static $log_config = [
+        'sales_company_id' => ['name'=>'运营公司','type'=>null],
+        'base_account_id' => ['name'=>'账号基础资料名','type'=>null],
+        'name' => ['name'=>'账号名称','type'=>null],
+        'code' => ['name'=>'账号简称','type'=>null],
+        'site' => ['name'=>'站点','type'=>null],
+        'image_url' => ['name'=>'店铺图片地址','type'=>null],
+        'shop_id' => ['name'=>'店铺id','type'=>null],
+        'partner_id' => ['name'=>'partnerId','type'=>null],
+        'email' => ['name'=>'邮箱','type'=>null],
+        'access_token' => ['name'=>'token','type'=>null],
+        'client_id' => ['name'=>'应用程序ID','type'=>null],
+        'key' => ['name'=>'签名key','type'=>'key'],
+        'status' => [
+            'name'=>'系统状态', 
+            'type'=>'list',
+            'value'=>[
+                0 =>'停用',
+                1 =>'使用' ,
+            ],
+        ],
+        'platform_status' => [
+            'name'=>'Shopee状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未启用',
+                1 =>'启用' ,
+            ],
+        ],
+        'is_invalid' => [
+            'name'=>'系统invalid状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未启用',
+                1 =>'启用' ,
+            ],
+        ],
+        'is_TH' => [
+            'name'=>'泰国仓库',
+            'type'=>'list',
+            'value'=>[
+                0 =>'否',
+                1 =>'是' ,
+            ],
+        ],
+        'is_authorization' => [
+            'name'=>'授权状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未授权',
+                1 =>'已授权' ,
+            ],
+        ],
+        'download_listing' => ['name'=>'抓取Listing时间','type'=>'time'],
+        'download_health' => ['name'=>'同步健康数据','type'=>'time'],
+        'download_order' => ['name'=>'抓取订单时间','type'=>'time'],
+        'download_return' => ['name'=>'下载','type'=>'time'],
+        'sync_delivery' => ['name'=>'同步发货状态时间','type'=>'time'],
+        'sync_feedback' => ['name'=>'同步中差评时间','type'=>'time'],
+        'site_status' => [
+            'name'=>'账号状态',
+            'type'=>'list',
+            'value'=>[
+                0 => '未分配',
+                1 => '运营中',
+                2 => '回收中',
+                3 => '冻结中',
+                4 => '申诉中',
+            ]
+        ],
+    ];
+
+    /**
+     * 账号列表
+     * lingjiawen
+     */
+    public function getList(array $req)
+    {
+        /**
+         * 初始化参数
+         */
+        $operator = ['eq' => '=', 'gt' => '>', 'lt' => '<'];
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 50;
+        $time_type = isset($req['time_type']) and in_array($req['time_type'],['register','fulfill']) ? $req['time_type'] : '';
+        $start_time = isset($req['start_time']) ? strtotime($req['start_time']) : 0;
+        $end_time = isset($req['end_time']) ? strtotime($req['end_time']) : 0;
+        $site = $req['site'] ?? '';
+        $status = isset($req['status']) && is_numeric($req['status']) ? intval($req['status']) : -1;
+        $site_status = isset($req['site_status']) && is_numeric($req['site_status']) ? intval($req['site_status']) : -1;
+        $seller_id = isset($req['seller_id']) ? intval($req['seller_id']) : 0;
+        $customer_id = isset($req['customer_id']) ? intval($req['customer_id']) : 0;
+        $is_authorization = isset($req['authorization']) && is_numeric($req['authorization']) ? intval($req['authorization']) : -1;
+        $is_invalid = isset($req['is_invalid']) && is_numeric($req['is_invalid']) ? intval($req['is_invalid']) : -1;
+        $snType = !empty($req['snType']) && in_array($req['snType'], ['name', 'code']) ? $req['snType'] : '';
+        $snText = !empty($req['snText']) ? $req['snText'] : '';
+        $taskName = !empty($req['taskName']) && in_array($req['taskName'], ['download_listing', 'download_order', 'sync_delivery', 'download_health']) ? $req['taskName'] : '';
+        $taskCondition = !empty($req['taskCondition']) && isset($operator[trim($req['taskCondition'])]) ? $operator[trim($req['taskCondition'])] : '';
+        $taskTime = isset($req['taskTime']) && is_numeric($req['taskTime']) ? intval($req['taskTime']) : '';
+        //排序
+        $sort_type = !empty($req['sort_type']) && in_array($req['sort_type'], ['name', 'code']) ? $req['sort_type'] : '';
+        $sort = !empty($req['sort_val']) && $req['sort_val'] == 2 ? 'desc' : 'asc';
+        $order_by = 'am.id DESC';
+        $sort_type && $order_by = "am.{$sort_type} {$sort},{$order_by}";
+
+        /**
+         * 参数处理
+         */
+        if ($time_type && $end_time && $start_time > $end_time) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+        !$page and $page = 1;
+        if ($page > $pageSize) {
+            $pageSize = $page;
+        }
+
+        /**
+         * where数组条件
+         */
+        $where = [];
+        $seller_id and $where['c.seller_id'] = $seller_id;
+        $customer_id and $where['c.customer_id'] = $customer_id;
+        $is_invalid >= 0 and $where['am.is_invalid'] = $is_invalid;
+        $is_authorization >= 0 and $where['am.is_authorization'] = $is_authorization;
+        $site and $where['am.site'] = $site;
+        $status >= 0 and $where['am.status'] = $status;
+        $site_status >= 0 and $where['s.site_status'] = $site_status;
+
+        if ($taskName && $taskCondition && !is_string($taskTime)) {
+            $where['am.' . $taskName] = [$taskCondition, $taskTime];
+        }
+
+        if ($snType && $snText) {
+            $where['am.' . $snType] = ['like', '%' . $snText . '%'];
+        }
+
+        /**
+         * 需要按时间查询时处理
+         */
+        if ($time_type) {
+            /**
+             * 处理需要查询的时间类型
+             */
+            switch ($time_type) {
+                case 'register':
+                    $time_type = 'a.register_time';
+                    break;
+                case 'fulfill':
+                    $time_type = 'a.fulfill_time';
+                    break;
+
+                default:
+                    $start_time = 0;
+                    $end_time = 0;
+                    break;
+            }
+            /**
+             * 设置条件
+             */
+            if ($start_time && $end_time) {
+                $where[$time_type] = ['between time', [$start_time, $end_time]];
+            } else {
+                if ($start_time) {
+                    $where[$time_type] = ['>', $start_time];
+                }
+                if ($end_time) {
+                    $where[$time_type] = ['<', $end_time];
+                }
+            }
+        }
+
+        $model = new ShopeeAccount();
+        $count = $model
+            ->alias('am')
+            ->where($where)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code', 'LEFT')
+            ->count();
+
+        //没有数据就返回
+        if (!$count) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+
+        $field = 'am.id,am.code,am.name,am.shop_id,am.status,am.site,am.platform_status,am.download_listing,am.sync_delivery,am.download_order,am.download_return,am.third_party_delivery,am.is_authorization,s.site_status,c.seller_id,c.customer_id,a.register_time,a.fulfill_time';
+        //有数据就取出
+        $list = $model
+            ->alias('am')
+            ->field($field)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code', 'LEFT')
+            ->where($where)
+            ->page($page, $pageSize)
+            ->order($order_by)
+            ->select();
+
+        foreach ($list as &$val) {
+            $seller =  Cache::store('User')->getOneUser($val['seller_id']);
+            $val['seller_name'] = $seller ? $seller['realname'] : '';
+            $val['seller_on_job'] = $seller ? $seller['on_job'] : '';
+            $customer = Cache::store('User')->getOneUser($val['customer_id']);
+            $val['customer_name'] = $customer ? $customer['realname'] : '';
+            $val['customer_on_job'] = $customer ? $customer['on_job'] : '';
+            $val['site_id'] = $val->site_id;
+            $val['third_party_delivery_txt'] = $val->is_third_txt;
+        }
+
+        return [
+            'count' => $count,
+            'data' => $list,
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ];
+    }
+
+    public function index(int $page = 1, int $pageSize = 50, array $param = [])
+    {
+        $result = ['list' => []];
+        $result['page'] = $page;
+        $result['page_size'] = $pageSize;
+        $result['count'] = $this->getWhere($param)->count();
+        if ($result['count'] == 0) {
+            return $result;
+        }
+        $o = $this->getWhere($param);
+        $ret = $this->getSort($o, $param)->page($page, $pageSize)->select();
+
+        if ($ret) {
+            $result['list'] = $this->indexData($ret);
+        }
+        return $result;
+    }
+
+    private function getSort($o, $param)
+    {
+        if (isset($param['order_field']) && $param['order_field'] && isset($param['order_val']) && $param['order_val']) {
+            $o = $o->order($param['order_field'] . ' ' . $param['order_val']);
+        } else {
+            $o = $o->order('id desc');
+        }
+        return $o;
+    }
+
+    private function indexData($ret)
+    {
+        $result = [];
+        foreach ($ret as $v) {
+            $row = [];
+            $row['id'] = $v['id'];
+            $row['code'] = $v['code'];
+            $row['name'] = $v['name'];
+            $row['shop_id'] = $v['shop_id'];
+            $row['status'] = $v['status'];
+            $row['site'] = $v['site'];
+            $row['site_id'] = $v->site_id;
+            $row['platform_status'] = $v['platform_status'];
+            $row['platform_status_txt'] = $v['platform_status_txt'];
+            $row['download_listing'] = $v['download_listing'];
+            $row['sync_delivery'] = $v['sync_delivery'];
+            $row['download_order'] = $v['download_order'];
+            $row['download_return'] = $v['download_return'];
+            $row['third_party_delivery'] = $v['third_party_delivery'];
+            $row['is_authorization'] = $v['is_authorization'];
+            // $row['third_party_delivery_txt'] = $v->is_TH_txt;
+            $row['third_party_delivery_txt'] = $v->is_third_txt;
+            $result[] = $row;
+        }
+        return $result;
+    }
+
+    /**
+     * @title 注释..
+     * @param $param
+     * @return $this|ShopeeAccount
+     * @author starzhan <397041849@qq.com>
+     */
+    public function getWhere($param)
+    {
+        $o = new ShopeeAccount();
+        if (isset($param['sn_type']) && isset($param['sn_text']) && !empty($param['sn_text'])) {
+            $val = trim($param['sn_text']);
+            switch ($param['sn_type']) {
+                case 'name':
+                    $o = $o->where('name', 'like', "%{$val}%");
+                    break;
+                case 'code':
+                    $o = $o->where('code', 'like', "%{$val}%");
+                    break;
+            }
+        }
+        if (isset($param['download_type']) && !empty($param['download_value'])) {
+            $val = trim($param['download_value']);
+            $execMap = [
+                0 => '=',
+                1 => '>',
+                2 => '<'
+            ];
+            $doExec = $execMap[$param['download_exec']];
+            switch ($param['download_type']) {
+                case 'download_order':
+                    $o = $o->where('download_order', $doExec, $val);
+                    break;
+                case 'download_listing':
+                    $o = $o->where('download_listing', $doExec, $val);
+                    break;
+                case 'sync_delivery':
+                    $o = $o->where('sync_delivery', $doExec, $val);
+                    break;
+            }
+        }
+        if (isset($param['status'])) {
+            $o = $o->where('status', '=', trim($param['status']));
+        }
+        if (isset($param['platform_status'])) {
+            $o = $o->where('platform_status', '=', trim($param['platform_status']));
+        }
+        if(isset($param['site'])&&$param['site']){
+            $o = $o->where('site', '=', trim($param['site']));
+        }
+
+        if (isset($param['is_authorization']) && is_numeric($param['is_authorization'])) {
+            $o = $o->where('is_authorization', '=', $param['is_authorization']);
+        }
+        return $o;
+    }
+
+    /**
+     * @title 注释..
+     * @param $id
+     * @return array
+     * @throws Exception
+     * @author starzhan <397041849@qq.com>
+     */
+    public function getId($id)
+    {
+        $data = Cache::store('ShopeeAccount')->getId($id);
+        if (isset($data['-1'])) {
+            unset($data['-1']);
+        }
+        $data and $data['site_status'] = AccountService::getSiteStatus($data['base_account_id'], $data['code']);
+        return $data;
+    }
+
+    private function buildData($data)
+    {
+        $info = [];
+        isset($data['name']) && $info['name'] = $data['name'];
+        isset($data['code']) && $info['code'] = $data['code'];
+        isset($data['site']) && $info['site'] = $data['site'];
+        /** 单独拉出来授权 linpeng 2019-1-17 15：00 */
+         isset($data['shop_id']) && $info['shop_id'] = $data['shop_id'];
+         isset($data['partner_id']) && $info['partner_id'] = $data['partner_id'];
+         isset($data['key']) && $info['key'] = $data['key'];
+        isset($data['download_order']) && $info['download_order'] = $data['download_order'];
+        isset($data['sync_delivery']) && $info['sync_delivery'] = $data['sync_delivery'];
+        isset($data['download_listing']) && $info['download_listing'] = $data['download_listing'];
+        isset($data['third_party_delivery']) && $info['third_party_delivery'] = $data['third_party_delivery'];
+        isset($data['base_account_id']) && $info['base_account_id'] = $data['base_account_id'];
+        //判断授权；
+        if (!empty($info['shop_id']) && !empty($info['partner_id']) && !empty($info['key'])) {
+            $info['is_authorization'] = 1;
+        } else {
+            $info['is_authorization'] = 0;
+        }
+        return $info;
+    }
+
+    /**
+     * @title 注释..
+     * @param $data
+     * @param $user_id
+     * @return array
+     * @throws Exception
+     * @author starzhan <397041849@qq.com>
+     */
+    public function save($data, $user_id)
+    {
+        $user = Common::getUserInfo(Request::instance());
+        $new_data = [];
+        $old_data = [];
+        $operator = [];
+        $operator['operator_id'] = $user['user_id'] ?? 0;
+        $operator['operator'] = $user['realname'] ?? '';
+
+        if (empty($data['id'])) {
+            //必须要去账号基础资料里备案
+            \app\index\service\BasicAccountService::isHasCode(ChannelAccountConst::channel_Shopee,$data['code'], $data['site']);
+            $infoData = $this->buildData($data);
+
+            $infoData['create_id'] = $user_id;
+            $infoData['create_time'] = time();
+            $validate = new ValidateShopeeAccount();
+
+            $flag = $validate->check($infoData);
+            if ($flag === false) {
+
+                throw new Exception($validate->getError());
+            }
+            $model = new ShopeeAccount();
+            $res = $model->where('code',$infoData['code'])->field('id')->find();
+            if (count($res)) {
+                return ['message' => '该账号简称已存在','data' => $infoData];
+            }
+            $model->allowField(true)->isUpdate(false)->save($infoData);
+            $id = $model->id;
+            $new_data = $infoData;
+        } else {
+            $model = new ShopeeAccount();
+            $aData = $model->where('id', $data['id'])->find();
+            if (!$aData) {
+                throw new Exception('该记录不存在');
+            }
+
+            $old_data = $aData->toArray();
+
+            $updateData = $this->buildData($data);
+            $updateData['update_id'] = $user_id;
+            $updateData['update_time'] = time();
+            $id = $data['id'];
+
+            /**
+             * 禁止修改这些信息，暂时简单过滤，以后再优化
+             */
+            unset($updateData['code'], $updateData['base_account_id'], $updateData['site']);
+
+            $aData->save($updateData);
+
+            /**
+             * 修改基础账号状态
+             */
+            $new_data = $updateData;
+            $new_data['site_status'] = isset($data['site_status']) ? intval($data['site_status']) : 0;
+            if (in_array($new_data['site_status'], [1, 2, 3, 4])) {
+                $old_data['site_status'] = AccountService::setSite(
+                    ChannelAccountConst::channel_Shopee,
+                    $old_data['base_account_id'],
+                    $old_data['code'],
+                    $operator['operator_id'],
+                    $new_data['site_status']
+                );
+            }
+        }
+
+        /**
+         * 记录日志
+         */
+        $operator['account_id'] = $id;
+        self::addShopeeLog(
+            $operator,
+            empty($data['id']) ? ChannelAccountLog::INSERT : ChannelAccountLog::UPDATE,
+            $new_data,
+            $old_data
+        );
+
+        Cache::store('ShopeeAccount')->clearCache($id);
+        return ['message' => '保存成功', 'data' => $this->getId($id)];
+    }
+
+    public function saveToken($data, $user_id)
+    {
+        if (empty($data['id'])) {
+            $infoData = $this->buildData($data);
+
+            $infoData['create_id'] = $user_id;
+            $infoData['create_time'] = time();
+            $validate = new ValidateShopeeAccount();
+
+            $flag = $validate->check($infoData);
+            if ($flag === false) {
+
+                throw new Exception($validate->getError());
+            }
+            $model = new ShopeeAccount();
+            $model->allowField(true)->isUpdate(false)->save($infoData);
+            $id = $model->id;
+        } else {
+            $model = new ShopeeAccount();
+            $aData = $model->where('id', $data['id'])->find();
+            if (!$aData) {
+                throw new Exception('该记录不存在');
+            }
+            $infoData = $this->buildData($data);
+
+            $validate = new ValidateShopeeAccount();
+            $validate->rule(self::tokenRule);
+            $validate->message(self::msg);
+
+            $flag = $validate->check($infoData);
+
+            if (!$flag) {
+                throw new Exception($validate->getError());
+            }
+
+            $infoData['update_id'] = $user_id;
+            $infoData['update_time'] = time();
+            $id = $data['id'];
+            $aData->save($infoData);
+        }
+        Cache::store('ShopeeAccount')->clearCache($id);
+        return ['message' => '保存成功', 'data' => $this->getId($id)];
+    }
+
+    /**
+     * 更改状态
+     * @author lingjiawen
+     * @dateTime 2019-04-26
+     * @param    int|integer $id     账号id
+     * @param    int|integer $enable 是否启用 0 停用，1 启用
+     * @return   true|string         成功返回true,失败返回string 原因
+     */
+    public function changeStatus(int $id = 0, bool $enable)
+    {
+        try {
+            $model = new ShopeeAccount();
+            $accountInfo = $model->where('id', $id)->find();
+            if (!$accountInfo) {
+                throw new Exception('账号不存在');
+            }
+
+            if ($accountInfo->status == $enable) {
+                return true;
+            }
+
+            $user = Common::getUserInfo(Request::instance());
+            $operator = [];
+            $operator['operator_id'] = $user['user_id'] ?? 0;
+            $operator['operator'] = $user['realname'] ?? '';
+            $operator['account_id'] = $id;
+
+            $old_data = $accountInfo->toArray();
+
+            $accountInfo->status = $enable;
+            $accountInfo->update_id = $operator['operator_id'];
+            $accountInfo->update_time = time();
+
+            $new_data = $accountInfo->toArray();
+
+            if ($accountInfo->save()) {
+                self::addShopeeLog(
+                    $operator,
+                    ChannelAccountLog::UPDATE,
+                    $new_data,
+                    $old_data
+                );
+                //删除缓存
+                Cache::store('ShopeeAccount')->clearCache($id);
+            }
+
+            return true;
+        } catch (Exception $e) {
+            throw new JsonErrorException($e->getMessage() . $e->getFile() . $e->getLine(), 400);
+        }
+    }
+
+    public function getSite()
+    {
+        $result = Cache::store('ShopeeAccount')->getSite();
+        $ret = [];
+        foreach ($result as $v) {
+            $ret[] = $v;
+        }
+        return $ret;
+    }
+
+    public function getAccount($site_code = '')
+    {
+        $filter[] = ['status', '==', 1];
+        $res = Cache::filter(Cache::store('ShopeeAccount')->getAllCount(), $filter, 'id,code,name,status,site');
+        $new_list['account'] = [];
+        foreach ($res as $k => $v){
+            $temp['label'] = $v['code'];
+            $temp['value'] = intval($v['id']);
+            $temp['account_name'] = $v['account_name'] ?? $v['shop_name'] ?? $v['name'] ??'';
+            if (!empty($site_code)) {
+                if (isset($v['site_id'])) {
+                    if (is_array($v['site_id'])) {
+                        $siteArray = $v['site_id'];
+                    } else if (is_string($v['site_id'])) {
+                        $siteArray = json_decode($v['site_id'], true);
+                    } else {
+                        $siteArray = [];
+                    }
+                    if (is_array($siteArray)) {
+                        if (in_array($site_code, $siteArray)) {
+                            array_push($new_list['account'], $temp);
+                        }
+                    }
+                }
+
+                if (isset($v['site'])) {
+                    if (strstr($v['site'], $site_code)) {
+                        array_push($new_list['account'], $temp);
+                    }
+                }
+            } else {
+                array_push($new_list['account'], $temp);
+            }
+        }
+        return $new_list;
+    }
+
+    /**
+     * 添加日志
+     * @author lingjiawen
+     */
+    public static function addShopeeLog(array $base_info = [], int $type = 0, array $new_data = [], $old_data = []): void
+    {
+        $insert_data = [];
+        $remark = [];
+        if (ChannelAccountLog::INSERT == $type) {
+            $insert_data = $new_data;
+        }
+        if (ChannelAccountLog::DELETE == $type) {
+            $insert_data = (array)$old_data;
+        }
+        if (ChannelAccountLog::UPDATE == $type) {
+            foreach ($new_data as $k => $v) {
+                if (isset(self::$log_config[$k]) and isset($old_data[$k]) and $v != $old_data[$k]) {
+                    $remark[] = ChannelAccountLog::getRemark(self::$log_config[$k], $type, $k, $v, $old_data[$k]);
+                    $insert_data[$k] = $old_data[$k];
+                }
+            }
+        }
+        $insert_data and ChannelAccountLog::addLog([
+            'channel_id' => ChannelAccountConst::channel_Shopee,
+            'account_id' => $base_info['account_id'],
+            'type' => $type,
+            'remark' => json_encode($remark, JSON_UNESCAPED_UNICODE),
+            'operator_id' => $base_info['operator_id'],
+            'operator' => $base_info['operator'],
+            'data' => json_encode($insert_data, JSON_UNESCAPED_UNICODE),
+            'create_time' => input('server.REQUEST_TIME'),
+        ]);
+    }
+
+    /**
+     * 获取日志
+     */
+    public function getShopeeLog(array $req = []): array
+    {
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 10;
+        $account_id = isset($req['id']) ? intval($req['id']) : 0;
+
+        return (new ChannelAccountLog)->getLog(
+            ChannelAccountConst::channel_Shopee, 
+            $account_id, 
+            true, 
+            $page, 
+            $pageSize
+        );
+    }
+
+}

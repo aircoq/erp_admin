@@ -1,0 +1,58 @@
+<?php
+
+namespace app\goods\task;
+
+use app\index\service\AbsTasker;
+use app\common\service\CommonQueuer;
+use think\Exception;
+use app\common\exception\TaskException;
+use app\common\service\UniqueQueuer;
+use app\goods\queue\GoodsWinitLianQueue;
+
+class GoodsWinitLianSync extends AbsTasker
+{
+
+    private $queue = null;
+
+    public function __construct()
+    {
+        $this->aopTimezone = date_default_timezone_get(); //请求返回的数据要求的时区（本地服务器时区）
+        $this->apiTimeZone = 'Etc/GMT+8'; //太平洋时区（西八区）
+        $this->retime = 43200; //一天 重复抓取的时间，单位为秒
+        $this->queue = new CommonQueuer(GoodsPushIrobotbox::class);
+    }
+
+    public function getCreator()
+    {
+        return 'Yu';
+    }
+
+    public function getDesc()
+    {
+        return '定期更新万邑链商品列表';
+    }
+
+    public function getName()
+    {
+        return '定期更新万邑链商品列表';
+    }
+
+    public function getParamRule()
+    {
+        return [];
+    }
+
+    public function execute()
+    {
+        $params = [
+            'updateStartDate' => \date('Y-m-d',strtotime('-1 day')),
+            'updateEndDate' => \date('Y-m-d'),
+        ];
+        try {
+            $queue = new UniqueQueuer(GoodsWinitLianQueue::class);
+            $queue->push($params);
+        }catch (Exception $ex){
+            return json(['message' => $ex->getMessage()], 400);
+        }
+    }
+}

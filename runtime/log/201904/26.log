@@ -1,0 +1,2574 @@
+[ 2019-04-26T15:17:36+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test
+[ log ] www.erp_admin.com/publish/shopee/test [运行时间：0.756000s][吞吐率：1.32req/s] [内存消耗：10,897.23kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '4c12db43-d2c7-4c4e-a9f4-1b2806a6be33',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.005000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.056000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `item_id` = 0 LIMIT 1 [ RunTime:0.131000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 724 LIMIT 1 [ RunTime:0.102000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.020000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 724 [ RunTime:0.232000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `id`,`category_id`,`spu`,`name`,`alias`,`packing_en_name`,`packing_name`,`declare_name`,`declare_en_name`,`keywords`,`description`,`thumb`,`tags`,`sort`,`type`,`process_id`,`status`,`sales_status`,`developer_id`,`create_time`,`update_time`,`publish_time`,`stop_selling_time`,`unit_id`,`weight`,`width`,`height`,`depth`,`volume_weight`,`is_packing`,`packing_id`,`after_packing_id`,`first_fee`,`second_fee`,`tariff`,`source_url`,`supplier_id`,`cost_price`,`retail_price`,`hs_code`,`brand_id`,`tort_id`,`warehouse_id`,`is_multi_warehouse`,`platform_sale`,`platform_old`,`transport_property`,`developer_group_id`,`net_weight`,`purchaser_id`,`from`,`same_weight`,`dev_platform_id`,`channel_id`,`thumb_path`,`platform`,`pre_sale`,`platform_new` FROM `goods` WHERE  `id` = 186559 LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:18:11+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=440
+[ log ] www.erp_admin.com/publish/shopee/test?id=440 [运行时间：0.238000s][吞吐率：4.20req/s] [内存消耗：10,896.18kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '3c05e19a-893f-46ea-8b69-8e80af8ef3f7',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '440',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.044000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 440 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 440 LIMIT 1 [ RunTime:0.021000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 440 [ RunTime:0.022000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `goods` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `id`,`category_id`,`spu`,`name`,`alias`,`packing_en_name`,`packing_name`,`declare_name`,`declare_en_name`,`keywords`,`description`,`thumb`,`tags`,`sort`,`type`,`process_id`,`status`,`sales_status`,`developer_id`,`create_time`,`update_time`,`publish_time`,`stop_selling_time`,`unit_id`,`weight`,`width`,`height`,`depth`,`volume_weight`,`is_packing`,`packing_id`,`after_packing_id`,`first_fee`,`second_fee`,`tariff`,`source_url`,`supplier_id`,`cost_price`,`retail_price`,`hs_code`,`brand_id`,`tort_id`,`warehouse_id`,`is_multi_warehouse`,`platform_sale`,`platform_old`,`transport_property`,`developer_group_id`,`net_weight`,`purchaser_id`,`from`,`same_weight`,`dev_platform_id`,`channel_id`,`thumb_path`,`platform`,`pre_sale`,`platform_new` FROM `goods` WHERE  `id` = 0 LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:19:30+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=725
+[ log ] www.erp_admin.com/publish/shopee/test?id=725 [运行时间：0.215000s][吞吐率：4.65req/s] [内存消耗：10,838.77kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '6ee04b9d-4232-471a-8c3c-f62c1a7f65c6',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '725',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.053000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.004000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 725 LIMIT 1 [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 725 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 725 [ RunTime:0.003000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:19:46+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.192000s][吞吐率：5.21req/s] [内存消耗：10,838.77kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'd72e6de9-6293-404b-8fcd-2d057d69b655',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.041000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.006000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:21:38+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.129000s][吞吐率：7.75req/s] [内存消耗：10,020.00kb] [文件加载：98]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '3c9d72f9-640b-4be7-b01a-e4fd47f5384e',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.038000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.008000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:22:58+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.190000s][吞吐率：5.26req/s] [内存消耗：10,300.43kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'e75b335d-d801-44ac-887d-f7ae3dd1aadd',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.029000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:23:25+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.188000s][吞吐率：5.32req/s] [内存消耗：10,300.45kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'aba63983-4c7b-46fc-9395-7a80af6e9a62',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.032000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:23:28+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.163000s][吞吐率：6.13req/s] [内存消耗：10,300.45kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '24a6a12e-2605-46db-89d7-883e8e15cd30',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.029000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:23:48+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.187000s][吞吐率：5.35req/s] [内存消耗：10,092.69kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'd8ebe7d3-6da1-42c5-9fa1-43518fb6535e',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.042000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.005000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:24:03+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.217000s][吞吐率：4.61req/s] [内存消耗：10,092.69kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '1793ed8c-6825-4a17-bf79-c8502100c145',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.012000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.047000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:24:11+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.207000s][吞吐率：4.83req/s] [内存消耗：10,255.66kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '74eb1523-b1ed-40bd-8d27-1b17952167fa',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.037000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:24:23+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.211000s][吞吐率：4.74req/s] [内存消耗：10,300.45kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '40d148e0-0028-4820-bb2c-344cd077e979',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.048000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.010000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:25:01+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.225000s][吞吐率：4.44req/s] [内存消耗：10,255.63kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '3c27f846-4f78-46a7-abaa-fd7ed603c844',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.047000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.008000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:25:45+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.226000s][吞吐率：4.42req/s] [内存消耗：10,255.63kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'd0339cc7-544e-456a-a582-44e10d548cf5',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.046000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.005000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.011000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:25:54+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.210000s][吞吐率：4.76req/s] [内存消耗：10,255.63kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'a943b0ea-202f-47c1-a881-4f008e6868a0',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.046000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:26:14+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.157000s][吞吐率：6.37req/s] [内存消耗：10,255.63kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'f5c65974-3719-4000-b67b-bec558b3fc6c',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.028000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:28:30+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.203000s][吞吐率：4.93req/s] [内存消耗：10,255.63kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '53ede1b6-e404-4945-acb4-3a9bd006a35c',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.042000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.008000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:28:48+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.199000s][吞吐率：5.03req/s] [内存消耗：10,255.63kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5b5a7cc4-f0b0-4660-ac1a-cceff052de19',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.028000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.000000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:30:59+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.162000s][吞吐率：6.17req/s] [内存消耗：10,093.75kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5ec441e2-772c-4ee9-a47f-04cfbbd7f10a',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.038000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:31:41+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.206000s][吞吐率：4.85req/s] [内存消耗：10,093.34kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'a81560ca-7544-4b5b-ad2c-974f92c60828',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.045000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:32:19+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.201000s][吞吐率：4.98req/s] [内存消耗：10,255.66kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '7f9a75a2-de11-43ad-a34e-e4264265e294',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.048000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:32:46+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.177000s][吞吐率：5.65req/s] [内存消耗：10,251.49kb] [文件加载：107]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '95fec7cc-77ba-4139-9099-c77b77ed856b',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.035000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:33:07+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.212000s][吞吐率：4.72req/s] [内存消耗：10,251.50kb] [文件加载：107]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '65312f1f-bb39-4c82-8a35-ef1a6a73dbe3',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.046000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:33:16+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.199000s][吞吐率：5.03req/s] [内存消耗：10,251.47kb] [文件加载：107]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'b16f6786-b044-48b3-bb64-889fab3fe39f',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.045000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.009000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:33:44+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.183000s][吞吐率：5.46req/s] [内存消耗：10,251.47kb] [文件加载：107]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '113496fd-f94f-4a64-88ea-84e1f98b6550',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.037000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:34:34+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.192000s][吞吐率：5.21req/s] [内存消耗：10,251.47kb] [文件加载：107]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'fc192bad-73aa-406c-911a-0e378dd3be46',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.032000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:36:22+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.214000s][吞吐率：4.67req/s] [内存消耗：10,251.13kb] [文件加载：107]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'c58378f1-b41d-464d-a2ec-26d4262511f4',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.046000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:37:35+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.362000s][吞吐率：2.76req/s] [内存消耗：10,332.92kb] [文件加载：114]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'b9fc6886-baaf-4839-98ed-bf699d18fc9c',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.047000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.008000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] UPDATE `shopee_product`  SET `publish_message`='error_type:error_param; msg:minLength of variations[0].variation_sku is invalid',`publish_status`=-1  WHERE  `id` = 726 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:38:59+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.305000s][吞吐率：3.28req/s] [内存消耗：10,333.11kb] [文件加载：114]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '67948cad-e4c6-4c32-ac8f-31de691d8fab',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.046000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] UPDATE `shopee_product`  SET `publish_message`='error_type:error_param; msg:minLength of variations[0].variation_sku is invalid',`publish_status`=-1  WHERE  `id` = 726 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:39:34+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.358000s][吞吐率：2.79req/s] [内存消耗：10,333.11kb] [文件加载：114]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'e1a35a93-e14c-4c41-8425-fd343e83960f',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.049000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.014000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.008000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.011000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.011000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.015000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.035000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] UPDATE `shopee_product`  SET `publish_message`='error_type:error_param; msg:minLength of variations[0].variation_sku is invalid',`publish_status`=-1  WHERE  `id` = 726 [ RunTime:0.003000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:39:55+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.308000s][吞吐率：3.25req/s] [内存消耗：10,333.11kb] [文件加载：114]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '00c7c158-3492-4046-ae37-55fdb1126a06',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.033000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] UPDATE `shopee_product`  SET `publish_message`='error_type:error_param; msg:minLength of variations[0].variation_sku is invalid',`publish_status`=-1  WHERE  `id` = 726 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:40:13+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.335000s][吞吐率：2.99req/s] [内存消耗：10,295.96kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '085a1dd9-bef2-47d7-9f13-1e498503e799',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.007000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:40:31+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=726
+[ log ] www.erp_admin.com/publish/shopee/test?id=726 [运行时间：0.231000s][吞吐率：4.33req/s] [内存消耗：10,295.94kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '2b9260a8-6be9-4e30-963c-245110f6b5a9',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '726',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.027000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 726 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 726 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:41:45+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=40456
+[ log ] www.erp_admin.com/publish/shopee/test?id=40456 [运行时间：0.430000s][吞吐率：2.33req/s] [内存消耗：10,299.87kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '95fc2a1a-eecd-4380-a702-d74c8c6e9a72',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '40456',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.005000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.037000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 40456 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 40456 LIMIT 1 [ RunTime:0.037000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 40456 [ RunTime:0.042000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 10 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'th' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 10 LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:42:12+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=738
+[ log ] www.erp_admin.com/publish/shopee/test?id=738 [运行时间：0.363000s][吞吐率：2.75req/s] [内存消耗：10,298.96kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '4e2a1289-e372-478c-9ba0-9e40951943d0',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '738',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.042000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 738 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 738 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 738 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'ph' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 4 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:54:55+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/productsDel?seller_sku_list
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list [运行时间：0.125000s][吞吐率：8.00req/s] [内存消耗：8,159.58kb] [文件加载：66]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'lazada',
+    2 => 'productsDel',
+  ),
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'c90268f2-c27d-40fd-a2d4-6bb761a7e0a2',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '',
+)
+[ info ] [ LOG ] INIT File
+
+---------------------------------------------------------------
+[ 2019-04-26T15:55:17+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list [运行时间：0.150000s][吞吐率：6.67req/s] [内存消耗：9,977.80kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'e55084cb-c465-4522-9ed1-7d75b802530b',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.027000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:55:55+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list [运行时间：0.148000s][吞吐率：6.76req/s] [内存消耗：9,968.31kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'dd0d2a60-c64a-4ebe-94b2-088fc5f9469a',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.038000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:56:12+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[] [运行时间：0.200000s][吞吐率：5.00req/s] [内存消耗：10,159.16kb] [文件加载：105]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'c28cdb1d-b05c-49f2-a7e3-848ffa4c01e6',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.065000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.009000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.005000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:56:42+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[] [运行时间：0.217000s][吞吐率：4.61req/s] [内存消耗：10,159.58kb] [文件加载：105]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '2cbdb705-bb1f-4618-9385-80fe669b3063',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.062000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:57:01+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[] [运行时间：0.164000s][吞吐率：6.10req/s] [内存消耗：9,968.31kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '8f592300-c798-4ba8-bb58-9eb0144c39d8',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.053000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.014000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.005000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:57:57+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]] [运行时间：0.150000s][吞吐率：6.67req/s] [内存消耗：9,968.47kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '8eff3f57-1bff-4162-8986-91cb63435b64',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[[\'account_id\'=>\'31\',\'item_sku\'=>\'BL9989501|5CCC1049BB\']]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.057000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.014000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.004000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:58:30+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]] [运行时间：0.147000s][吞吐率：6.80req/s] [内存消耗：9,968.89kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'eefdc8a7-99ea-4016-94d7-1f10eb4aac7c',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[[\'account_id\'=>\'31\',\'item_sku\'=>\'BL9989501|5CCC1049BB\']]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.028000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:58:46+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]] [运行时间：0.145000s][吞吐率：6.90req/s] [内存消耗：9,968.89kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '37fcdd7d-1c60-43aa-8a14-e970d133624d',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[[\'account_id\'=>\'31\',\'item_sku\'=>\'BL9989501|5CCC1049BB\']]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.029000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:59:01+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]] [运行时间：0.123000s][吞吐率：8.13req/s] [内存消耗：9,968.64kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'ab0c8e9a-b9b8-4cc5-aaed-cc45c1e1ffcf',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[[\'account_id\'=>\'31\',\'item_sku\'=>\'BL9989501|5CCC1049BB\']]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.024000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T15:59:47+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]] [运行时间：0.151000s][吞吐率：6.62req/s] [内存消耗：9,914.63kb] [文件加载：101]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'dc8a4d7a-1ba8-4448-a181-33933e086114',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[[\'account_id\'=>\'31\',\'item_sku\'=>\'BL9989501|5CCC1049BB\']]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.047000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.005000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T16:00:08+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]] [运行时间：0.166000s][吞吐率：6.02req/s] [内存消耗：9,978.01kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'faf540c4-b777-4c70-a76b-0175a30ffb13',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[[\'account_id\'=>\'31\',\'item_sku\'=>\'BL9989501|5CCC1049BB\']]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.039000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T16:00:17+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[[%27account_id%27=%3E%2731%27,%27item_sku%27=%3E%27BL9989501%7C5CCC1049BB%27]] [运行时间：0.229000s][吞吐率：4.37req/s] [内存消耗：9,914.63kb] [文件加载：101]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'f90f5ea0-d36a-4e76-8358-da34d6c7220b',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[[\'account_id\'=>\'31\',\'item_sku\'=>\'BL9989501|5CCC1049BB\']]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.052000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T16:01:44+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D] [运行时间：0.136000s][吞吐率：7.35req/s] [内存消耗：9,914.59kb] [文件加载：101]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'fb0ae7e4-8eaf-4189-8795-37851cc1e5b4',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[{"account_id":"31","item_sku":"BL9989501|5CCC1049BB"}]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.031000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T16:02:00+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D] [运行时间：0.132000s][吞吐率：7.58req/s] [内存消耗：9,915.63kb] [文件加载：101]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5574b295-65f8-4ec1-a76d-ab858823be13',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[{"account_id":"31","item_sku":"BL9989501|5CCC1049BB"}]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.000000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T16:02:22+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D] [运行时间：0.140000s][吞吐率：7.14req/s] [内存消耗：9,915.63kb] [文件加载：101]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '341593f6-1acf-4ae1-beca-a1f6bb41a410',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[{"account_id":"31","item_sku":"BL9989501|5CCC1049BB"}]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.028000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T16:02:36+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D] [运行时间：0.469000s][吞吐率：2.13req/s] [内存消耗：10,347.04kb] [文件加载：119]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '56d638b9-3f1b-4478-a585-de773e7bfecf',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[{"account_id":"31","item_sku":"BL9989501|5CCC1049BB"}]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.024000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `lazada_account` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `site`,`app_key`,`app_secret`,`access_token` FROM `lazada_account` WHERE  `platform_status` = 1  AND `app_key` <> 0  AND `status` = 1  AND `id` = 31 LIMIT 1 [ RunTime:0.000000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T16:02:57+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:%2231%22,%22item_sku%22:%22BL9989501%7C5CCC1049BB%22%7D] [运行时间：0.345000s][吞吐率：2.90req/s] [内存消耗：10,341.95kb] [文件加载：121]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'a6823691-529e-4282-a2ce-7878b225305f',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[{"account_id":"31","item_sku":"BL9989501|5CCC1049BB"}]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.030000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `lazada_account` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `site`,`app_key`,`app_secret`,`access_token` FROM `lazada_account` WHERE  `platform_status` = 1  AND `app_key` <> 0  AND `status` = 1  AND `id` = 31 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T16:29:10+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/shopee/test?id=867215
+[ log ] www.erp_admin.com/publish/shopee/test?id=867215 [运行时间：10.693000s][吞吐率：0.09req/s] [内存消耗：10,328.92kb] [文件加载：117]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Shopee',
+    2 => 'test',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'a6d7e695-5922-4bda-9346-b8b41fc67640',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/shopee/test' => '',
+  'id' => '867215',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.051000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Shopee->test[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Shopee.php ]
+[ info ] [ CACHE ] INIT redisrw
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.20.0.21;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/shopee/test' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product` WHERE  `id` = 867215 LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_product_info` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_product_info` WHERE  `id` = 867215 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_variant` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_variant` WHERE  `pid` = 867215 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_account` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `site`,`shop_id`,`partner_id`,`key` FROM `shopee_account` WHERE  `platform_status` = 1  AND `key` <> ''  AND `shop_id` <> 0  AND `status` = 1  AND `id` = 99 LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `shopee_site` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `shopee_site` WHERE  `code` = 'th' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `code` FROM `shopee_account` WHERE  `id` = 99 LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T19:21:48+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:2,%22item_sku%22:%222a%22%7D,%7B%22account_id%22:2,%22item_sku%22:%222b%22%7D,%7B%22account_id%22:1,%22item_sku%22:%221a%22%7D]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:2,%22item_sku%22:%222a%22%7D,%7B%22account_id%22:2,%22item_sku%22:%222b%22%7D,%7B%22account_id%22:1,%22item_sku%22:%221a%22%7D] [运行时间：0.273000s][吞吐率：3.66req/s] [内存消耗：10,187.93kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'fe671bfe-99cb-4d0b-9b10-d198b7428644',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[{"account_id":2,"item_sku":"2a"},{"account_id":2,"item_sku":"2b"},{"account_id":1,"item_sku":"1a"}]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.043000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `lazada_account` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `site`,`app_key`,`app_secret`,`access_token` FROM `lazada_account` WHERE  `platform_status` = 1  AND `app_key` <> 0  AND `status` = 1  AND `id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-26T19:21:51+08:00 ] 127.0.0.1 127.0.0.1 POST /publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:2,%22item_sku%22:%222a%22%7D,%7B%22account_id%22:2,%22item_sku%22:%222b%22%7D,%7B%22account_id%22:1,%22item_sku%22:%221a%22%7D]
+[ log ] www.erp_admin.com/publish/lazada/productsDel?seller_sku_list=[%7B%22account_id%22:2,%22item_sku%22:%222a%22%7D,%7B%22account_id%22:2,%22item_sku%22:%222b%22%7D,%7B%22account_id%22:1,%22item_sku%22:%221a%22%7D] [运行时间：0.150000s][吞吐率：6.67req/s] [内存消耗：10,187.93kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'productsDel',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'content-length' => '0',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'eb35ff1e-deff-4903-8233-dca712ff41f2',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/productsDel' => '',
+  'seller_sku_list' => '[{"account_id":2,"item_sku":"2a"},{"account_id":2,"item_sku":"2b"},{"account_id":1,"item_sku":"1a"}]',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.032000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->productsDel[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'post'  AND `route` = '/publish/lazada/productsDel' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `lazada_account` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `site`,`app_key`,`app_secret`,`access_token` FROM `lazada_account` WHERE  `platform_status` = 1  AND `app_key` <> 0  AND `status` = 1  AND `id` = 2 LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------

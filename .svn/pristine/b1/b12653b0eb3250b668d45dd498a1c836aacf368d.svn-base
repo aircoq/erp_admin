@@ -1,0 +1,536 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: yangweiquan
+ * Date: 2017-07-25
+ * Time: 17:40
+ */
+
+namespace app\index\service;
+
+use app\common\traits\Export;
+use think\Exception;
+use think\Loader;
+use app\common\model\LogExportDownloadFiles;
+use think\Model;
+
+
+class DownloadFileService
+{
+    use Export;
+
+    const DOWNLOAD_FILES = [
+        'plan_sku' => ['fileName' => '导入采购计划sku模板.xlsx', 'filePath' => 'download/excel_template/purchase_plan_sku.xlsx'],
+        'carriage' => ['fileName' => '导入物流运费设置模板.xlsx', 'filePath' => 'download/excel_template/shipping_carriage.xlsx'],
+        'supplier_offer' => ['fileName' => '导入供应商报价模板.xlsx', 'filePath' => 'download/excel_template/supplier_offer.xlsx'],
+        'good_sku_map' => ['fileName' => '导入商品sku映射模板.xlsx', 'filePath' => 'download/excel_template/map_sku.xlsx'],
+        'save_delivery' => ['fileName' => '导入安全期模板.xlsx', 'filePath' => 'download/excel_template/save_delivery.xlsx'],
+        'virtual_order_apply' => ['fileName' => '导入刷单申请的SKU.xlsx', 'filePath' => 'download/excel_template/virtual_order_apply.xlsx'],
+        'warehouse_cargo' => ['fileName' => '导入仓库货位模板.xlsx', 'filePath' => 'download/excel_template/warehouse_cargo.xlsx'],
+        'goods' => ['fileName' => '导入添加商品模板.xlsx', 'filePath' => 'download/excel_template/goods.xlsx'],
+        'warehouse_goods_init' => ['fileName' => '导入期初库存模板.xlsx', 'filePath' => 'download/excel_template/warehouse_goods_init.xlsx'],
+        'stage_fee' => ['fileName' => '运输方式重量段模版.xlsx', 'filePath' => 'download/excel_template/shipping_stage_fee.xlsx'],
+        'tracking' => ['fileName' => '跟踪号导入模板.xlsx', 'filePath' => 'download/excel_template/tracking.xlsx'],
+        'warehouse_goods_purchase' => ['fileName' => '赛盒采购入库模板.xlsx', 'filePath' => 'download/excel_template/warehouse_goods_purchase.xlsx'],
+        'aliexpress_order_import' => ['fileName' => '速卖通订单导入模板.xlsx', 'filePath' => 'download/excel_template/aliexpress_order_import.xlsx'],
+        'manualOrder' => ['fileName' => '手工订单导入模板.xlsx', 'filePath' => 'download/excel_template/manualOrder.xlsx'],
+        'virtualTaskOrder' => ['fileName' => '手工订单导入模板.xlsx', 'filePath' => 'download/excel_template/virtualTaskOrder.xlsx'],
+        'ebay_draft_import' => ['fileName' => 'eBay范本标准导入模板.xlsx', 'filePath' => 'download/excel_template/ebay_draft_import.xlsx'],
+        'ebay_draft_fast_import' => ['fileName' => 'eBay范本快速导入模板.xlsx', 'filePath' => 'download/excel_template/ebay_draft_fast_import.xlsx'],
+        'third_inventory_import' => ['fileName' => '第三方库存导入.xlsx', 'filePath' => 'download/excel_template/third_inventory_import.xlsx'],
+        'no_api_stock_in' => ['fileName' => '无api仓库入库.xlsx', 'filePath' => 'download/excel_template/no_api_stock_in.xlsx'],
+        'allocation_import_goods' => ['fileName' => '调拨商品模板.xlsx', 'filePath' => 'download/excel_template/allocation_import_goods.xlsx'],
+        'stock_in_import_goods' => ['fileName' => '入库商品模板.xlsx', 'filePath' => 'download/excel_template/stock_in_import_goods.xlsx'],
+        'stock_out_import_goods' => ['fileName' => '出库商品模板.xlsx', 'filePath' => 'download/excel_template/stock_out_import_goods.xlsx'],
+        'import_stage_fee' => ['fileName' => '分段收费模板.xlsx', 'filePath' => 'download/excel_template/import_stage_fee.xlsx'],
+        'ebay_import_update_online_listing' => ['fileName' => '导入在线更新listing模板.csv', 'filePath' => 'download/excel_template/import_update_online_listing.csv'],
+        'import_stock_goods' => ['fileName' => '导入活动备货商品模板.xlsx', 'filePath' => 'download/excel_template/import_stock_goods.xlsx'],
+        'package_return' => ['fileName' => '包裹退回导入模板.xlsx', 'filePath' => 'download/excel_template/package_return.xls'],
+        'shipping_arrive_day' => ['fileName' => '物流可达天数模板.xlsx', 'filePath' => 'download/excel_template/import_shipping_arrive_day.xlsx'],
+        'orders_notes' => ['fileName' => '订单备注导入模板.xlsx', 'filePath' => 'download/excel_template/import_orders_notes.xlsx'],
+        'allocation_import_tracking' => ['fileName' => '调拨导入运费模板.xlsx', 'filePath' => 'download/excel_template/allocation_import_tracking.xlsx'],
+        'sku_stopped' => ['fileName' => '批量停售sku模板.xlsx', 'filePath' => 'download/excel_template/stopped_sku.xlsx'],
+        'import_shift'=>['fileName'=>'批量移库导入模板.xlsx','filePath'=>'download/excel_template/import_shift.xlsx'],
+        'packageCarrier'=>['fileName'=>'批量移库导入模板.xlsx','filePath'=>'download/excel_template/packageCarrier.xlsx'],
+        'tort_record' => ['fileName'=>'侵权记录导入模板.xlsx', 'filePath'=>'download/excel_template/tort_import.xlsx'],
+        'fba_sku_info' => ['fileName'=>'fba仓sku导入模板.xlsx', 'filePath'=>'download/excel_template/fba_sku_info.xlsx'],
+        'sku_brand_link' => ['fileName' => '品连导入sku模板.xlsx', 'filePath' => 'download/excel_template/sku_brand_link.xlsx'],
+        'channel_account' => ['fileName' => '平台账号模板.xlsx', 'filePath' => 'download/excel_template/channel_account.xlsx']
+    ];
+
+    /*根据log_export_download_files的内容*/
+    public static function downExportFile($params)
+    {
+        $result = ['status' => 0, 'message' => 'error'];
+        if (empty($params['file_code'])) {
+            $result['message'] = "文件编号为空。";
+            return $result;
+        }
+
+        $logExportDownloadFiles = new LogExportDownloadFiles();
+        $fileLog = $logExportDownloadFiles->where(['file_code' => $params['file_code']])->find();
+        if (empty($fileLog)) {
+            $result['message'] = "记录不存在。";
+            return $result;
+        }
+        $fileLog = $fileLog->toArray();
+        //$result['file_contents'] = file_get_contents($fileLog['saved_path']);
+        $result['status'] = 1;
+        $result['message'] = 'OK';
+        $result['saved_path'] = $fileLog['saved_path'];
+        $result['download_file_name'] = $fileLog['download_file_name'];
+        return $result;
+    }
+
+
+    /**
+     * 获取模板位置信息
+     * @author tanbin
+     * @param string $code
+     * @return string[]
+     */
+    public function formatData($code = '')
+    {
+        return self::DOWNLOAD_FILES[$code] ? self::DOWNLOAD_FILES[$code] : [];
+    }
+
+
+    /**
+     * 导出excel
+     * @author tanbin
+     * @param array $lists
+     * @param array $hearder
+     * @param array $file
+     */
+    public static function export($lists, $header, $file)
+    {
+        $result = ['status' => 0, 'message' => 'error'];
+        Loader::import('phpExcel.PHPExcel', VENDOR_PATH);
+        $objPHPExcel = new \PHPExcel();
+        $objPHPExcel->getProperties()->setCreator("Rondaful")
+            ->setLastModifiedBy("Rondaful")
+            ->setTitle($file['name'] . "数据")
+            ->setSubject($file['name'] . "数据")
+            ->setDescription($file['name'] . "数据")
+            ->setKeywords($file['name'] . "数据")
+            ->setCategory($file['name'] . "数据");
+        $objPHPExcel->setActiveSheetIndex(0);
+        //本行title有最大31个字符的限制，有的下载要求把下载条件放在名称后面会导致title超长，所以在这里把title分出来；
+        $title = empty($file['title'])? $file['name']. '数据' : $file['title'];
+        $objPHPExcel->getActiveSheet()->setTitle($title);
+
+        /*生成标题*/
+//        $letter = range('A', 'Z');
+//        if (count($header) > 26) {
+//            $letter = array_merge($letter, ['AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AV', 'AW', 'AX', 'AY', 'AZ']);
+//        }
+        $letter = self::getExcelColumn(count($header));
+        $index = 1;
+        for ($i = 0; $i < count($header); $i++) {
+            $objPHPExcel->getActiveSheet()->setCellValue($letter[$i] . "{$index}", $header[$i]['title']);
+            if (isset($header[$i]['width'])) {
+                $objPHPExcel->getActiveSheet()->getColumnDimension($letter[$i])->setWidth($header[$i]['width']);
+            }
+            $objPHPExcel->getActiveSheet()->getStyle($letter[$i])->getNumberFormat()->setFormatCode(\PHPExcel_Style_NumberFormat::FORMAT_TEXT);
+        }
+
+        $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
+        $fileName = $file['name'] . date('YmdHis');
+        $downFileName = $fileName . '.xlsx';
+
+        foreach ($lists as $key => $value) {
+            // halt($value);
+            $index++;
+            for ($i = 0; $i < count($header); $i++) {
+                $objPHPExcel->getActiveSheet()->setCellValue($letter[$i] . "{$index}", $value[$header[$i]['key']]);
+            }
+        }
+        $file = ROOT_PATH . 'public' . DS . 'download' . DS . $file['path'];
+        $filePath = $file . DS . $downFileName;
+        //无文件夹，创建文件夹
+        if (!is_dir($file) && !mkdir($file, 0777, true)) {
+            $result['message'] = '创建文件夹失败。';
+            @unlink($filePath);
+            return $result;
+        }
+        $objWriter->save($filePath);
+        $logExportDownloadFiles = new LogExportDownloadFiles();
+        try {
+            $data = [];
+            $data['file_extionsion'] = 'xlsx';
+            $data['saved_path'] = $filePath;
+            $data['download_file_name'] = $downFileName;
+            $data['type'] = 'supplier_export';
+            $data['created_time'] = time();
+            $data['updated_time'] = time();
+            $logExportDownloadFiles->allowField(true)->isUpdate(false)->save($data);
+            $udata = [];
+            $udata['id'] = $logExportDownloadFiles->id;
+            $udata['file_code'] = date('YmdHis') . $logExportDownloadFiles->id;
+            $logExportDownloadFiles->allowField(true)->isUpdate(true)->save($udata);
+        } catch (\Exception $e) {
+            $result['message'] = '创建导出文件日志失败。' . $e->getMessage();
+            @unlink($filePath);
+            return $result;
+        }
+        $result['status'] = 1;
+        $result['message'] = 'OK';
+        $result['file_code'] = $udata['file_code'];
+        $result['file_name'] = $fileName;
+        return $result;
+    }
+
+    public static function exportCsv($lists, $header, $file=[], int $transCode = 0, $isQueue = 0)
+    {
+        $result = ['status' => 0, 'message' => 'error'];
+        try {
+            $aHeader = [];
+            foreach ($header as $v) {
+                $v['title'] = mb_convert_encoding($v['title'],'gb2312','utf-8');
+                $aHeader[] = $v['title'];
+            }
+            //如果
+            if (isset($file['add_time_ext']) && $file['add_time_ext'] === false) {
+                $fileName = $file['name'];
+            } else {
+                $fileName = $file['name'] . date('YmdHis');
+            }
+            $downFileName = $fileName . '.csv';
+            $downloadUrl = DS . 'download' . DS . $file['path'] . DS .$downFileName;
+            $file = ROOT_PATH . 'public' . DS . 'download' . DS . $file['path'];
+            $filePath = $file . DS . $downFileName;
+            //无文件夹，创建文件夹
+            if (!is_dir($file) && !mkdir($file, 0777, true)) {
+                $result['message'] = '创建文件夹失败。';
+                @unlink($filePath);
+                return $result;
+            }
+            $fp = fopen($filePath, 'a');
+            fputcsv($fp, $aHeader);
+            foreach ($lists as $i => $row) {
+                $rowContent = [];
+                foreach ($header as $h) {
+                    $field = $h['key'];
+                    $value = isset($row[$field]) ? $row[$field] : '';
+                    if ($transCode !== 0) {
+                        $value = mb_convert_encoding($value,'gb2312','utf-8');
+                    }
+                    $rowContent[] = $value . "\t"; // 避免数字过长导致打开变科学计数法
+                }
+                fputcsv($fp, $rowContent);
+            }
+            fclose($fp);
+            try {
+                $logExportDownloadFiles = new LogExportDownloadFiles();
+                $data = [];
+                $data['file_extionsion'] = 'xlsx';
+                $data['saved_path'] = $filePath;
+                $data['download_file_name'] = $downFileName;
+                $data['type'] = 'supplier_export';
+                $data['created_time'] = time();
+                $data['updated_time'] = time();
+                $logExportDownloadFiles->allowField(true)->isUpdate(false)->save($data);
+                $udata = [];
+                $udata['id'] = $logExportDownloadFiles->id;
+                $udata['file_code'] = date('YmdHis') . $logExportDownloadFiles->id;
+                $logExportDownloadFiles->allowField(true)->isUpdate(true)->save($udata);
+            } catch (\Exception $e) {
+                $result['message'] = '创建导出文件日志失败。' . $e->getMessage();
+                @unlink($filePath);
+                return $result;
+            }
+            $result['status'] = 1;
+            $result['message'] = 'OK';
+            $result['file_code'] = $udata['file_code'];
+            $result['file_name'] = $fileName;
+            if ($isQueue) {
+                $result['file_path'] = $filePath;
+                $result['download_url'] = $downloadUrl;
+            }
+            return $result;
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+
+
+    }
+
+    /**
+     * 多个csv(十万以上)压缩为压缩包
+     *
+     * @param array $modelCondition 模型条件 ['model(必有)' => 模型层(model类), 'field(必有)' => '筛选字段', 'where(必有)' => 查询条件数组, 'class' => 要导出的所在服务层]
+     * @param array $header         CSV头部
+     * @param array $file           存储路径
+     *
+     * @return array
+     * @throws Exception
+     */
+    public static function exportCsvToZip(array $modelCondition = [], array $header = [], array $file=[]): array
+    {
+        $result = ['status' => 0, 'message' => 'error'];
+        try {
+            $result['message'] = self::filterModelCondition($modelCondition);
+            if (is_array($result['message']) && !empty($result['message'])) return $result;
+            $model = $modelCondition['model'];
+            $where = $modelCondition['where'];
+            $fieldValue = $modelCondition['field'];
+            if (!defined('MAXIMUM_ROW')) define('MAXIMUM_ROW', 100000);
+            $aHeader = [];
+            foreach ($header as $v) {
+                $v['title'] = mb_convert_encoding($v['title'], 'gb2312', 'utf-8');
+                $aHeader[] = $v['title'];
+            }
+            $dataCount = $model->where($where)->count();
+            $butter = 0;
+            $dataRow = ceil($dataCount / MAXIMUM_ROW);
+            $dir = ROOT_PATH . 'public' . DS . 'download' . DS . $file['path'];
+            // 无文件夹，创建文件夹
+            if (!is_dir($dir) && !mkdir($dir, 0777, true)) {
+                $result['message'] = '创建文件夹失败。';
+                return $result;
+            }
+            $fileArr = [];
+            for ($i = 1; $i <= $dataRow; $i++) {
+                $fileName = $file['name'] . '_part-' . $i . '.csv';
+                $filePath = $dir . DS . $fileName;
+                $fp = fopen($filePath, 'a');
+                $fileArr[] = $filePath;
+                fputcsv($fp, $aHeader);
+                $data = $model->field($fieldValue)->where($where)->page($i, MAXIMUM_ROW)->select();
+                // 根据modelCondition中class值实例化对象来修改字段值，必须定义setFieldValue方法, setFieldValue参数为引用传参
+                if (isset($modelCondition['class']) && method_exists($modelCondition['class'], 'setFieldValue')) {
+                    (new $modelCondition['class']())->setFieldValue($data);
+                }
+                foreach ($data as $datum) {
+                    $content = [];
+                    $butter++;
+                    // 刷新一下输出buffer, 防止由于数据过多造成问题
+                    if ($butter == 10000) {
+                        ob_flush();
+                        flush();
+                        $butter = 0;
+                    }
+                    foreach ($header as $item) {
+                        $headerField = $item['key'];
+                        $value = isset($datum[$headerField]) ? $datum[$headerField] : '';
+                        $value = mb_convert_encoding($value, 'gb2312', 'utf-8');
+                        $content[] = $value . "\t";
+                    }
+                    fputcsv($fp, $content);
+                }
+                fclose($fp);
+            }
+            // 文件压缩
+            $zip = new \ZipArchive();
+            $fileZipName = $dir . DS . $file['name'] . '.zip';
+            // 创建zip文件
+            $zip->open($fileZipName, \ZipArchive::CREATE);
+            // 压缩包添加文件
+            foreach ($fileArr as $item) {
+                $zip->addFile($item, basename($item));
+            }
+            $zip->close();
+            // 删除临时csv文件
+            foreach ($fileArr as $item) {
+                @unlink($item);
+            }
+            try {
+                $logExportDownloadFiles = new LogExportDownloadFiles();
+                $record = [];
+                $record['file_extionsion'] = 'zip';
+                $record['saved_path'] = $fileZipName;
+                $record['download_file_name'] = $file['path'];
+                $record['type'] = $file['name'];
+                $record['create_time'] = time();
+                $record['upload_time'] = time();
+                $logExportDownloadFiles->allowField(true)->isUpdate(false)->save($record);
+                $uData = [];
+                $uData['id'] = $logExportDownloadFiles->id;
+                $uData['file_code'] = date('YmdHis') . $logExportDownloadFiles->id;
+                $logExportDownloadFiles->allowField(true)->isUpdate(true)->save($uData);
+            } catch (\Exception $ex) {
+                $result['message'] = '创建导出文件日志失败.' . $ex->getMessage();
+                @unlink($fileZipName);
+                return $result;
+            }
+            $result['status'] = 1;
+            $result['message'] = 'OK';
+            $result['file_code'] = $uData['file_code'];
+            $result['file_name'] = $file['path'];
+            return $result;
+        } catch (\Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * 判断exportCsvToZip参数$modelCondition 是否符合条件
+     *
+     *
+     * @param array $modelCondition
+     *
+     * @return array
+     */
+    private static function filterModelCondition(array $modelCondition)
+    {
+        $message = [];
+        if (!isset($modelCondition['model']) || !$modelCondition['model'] instanceof Model) {
+            $message[] = '缺少模型对象或者不是模型对象';
+        }
+        if (!isset($modelCondition['field'])) {
+            $message[] = '缺少筛选字段';
+        }
+        if (!isset($modelCondition['where'])) {
+            $message[] = '缺少查询条件';
+        }
+        if (isset($modelCondition['class']) && !class_exists($modelCondition['class'])) {
+            $message[] = '类不存在';
+        }
+        return $message;
+    }
+
+    /**
+     * 多个csv(十万以上)压缩为压缩包
+     *
+     * @param array $modelCondition 模型条件 ['field(必有)' => '筛选字段', 'where(必有)' => 查询条件数组, 'service' => 要导出拿取数据的方法]
+     * @param array $header         CSV头部
+     * @param array $file           存储路径
+     *
+     * @return array
+     * @throws Exception
+     */
+    public static function exportCsvToZipByMethod(array $modelCondition = [], array $header = [], array $file=[]): array
+    {
+        $result = ['status' => 0, 'message' => 'error'];
+        try {
+            $result['message'] = self::filterMethodCondition($modelCondition);
+            if (!empty($result['message'])){
+                return $result;
+            }
+
+            $service = new $modelCondition['service']();
+            $where = $modelCondition['where'];
+            $fieldValue = $modelCondition['field'];
+            $method = $modelCondition['method'];
+            $dataCount = $modelCondition['count'];
+
+            if (!defined('MAXIMUM_ROW')) {
+                define('MAXIMUM_ROW', 100000);
+            }
+
+            $aHeader = [];
+            foreach ($header as $v) {
+                //$v['title'] = mb_convert_encoding($v['title'], 'gb2312', 'utf-8');
+                $aHeader[] = $v['title'];
+            }
+
+            $dataRow = ceil($dataCount / MAXIMUM_ROW);
+            $dir = ROOT_PATH . 'public' . DS . 'download' . DS . $file['path'];
+            // 无文件夹，创建文件夹
+            if (!is_dir($dir) && !mkdir($dir, 0777, true)) {
+                $result['message'] = '创建文件夹失败。';
+                return $result;
+            }
+
+            $fileArr = [];
+            for ($i = 0; $i < $dataRow; $i++) {
+                $fileName = $file['name'] . '_part-' . ($i + 1) . '.csv';
+                $filePath = $dir . DS . $fileName;
+                $fp = fopen($filePath, 'a');
+                //Windows下使用BOM来标记文本文件的编码方式
+                fwrite($fp,chr(0xEF).chr(0xBB).chr(0xBF));
+                $fileArr[] = $filePath;
+                fputcsv($fp, $aHeader);
+                //最大每次取1000条数据，宁愿多查几次；
+                if ($modelCondition['count'] -$i * MAXIMUM_ROW > MAXIMUM_ROW) {
+                    $seachCount = MAXIMUM_ROW / 1000;
+                } else {
+                    $seachCount = ceil(($modelCondition['count'] -$i * MAXIMUM_ROW) / 1000);
+                }
+                for ($n = 1; $n <= $seachCount; $n++) {
+                    $data = call_user_func_array([$service, $method], [$where, $fieldValue, ($i * $seachCount + $n), 1000]);
+                    foreach ($data as $datum) {
+                        $content = [];
+                        foreach ($header as $item) {
+                            $headerField = $item['key'];
+                            $value = isset($datum[$headerField]) ? $datum[$headerField] : '';
+                            //$value = mb_convert_encoding($value, 'gb2312', 'utf-8');
+                            $content[] = $value . "\t";
+                        }
+                        fputcsv($fp, $content);
+                    }
+                }
+                fclose($fp);
+            }
+            // 文件压缩
+            $zip = new \ZipArchive();
+            $fileZipName = $dir . DS . $file['name'] . '.zip';
+            // 创建zip文件
+            $zip->open($fileZipName, \ZipArchive::CREATE);
+            // 压缩包添加文件
+            foreach ($fileArr as $item) {
+                $zip->addFile($item, basename($item));
+            }
+            $zip->close();
+            // 删除临时csv文件
+            foreach ($fileArr as $item) {
+                @unlink($item);
+            }
+            try {
+                $logExportDownloadFiles = new LogExportDownloadFiles();
+                $record = [];
+                $record['file_extionsion'] = 'zip';
+                $record['saved_path'] = $fileZipName;
+                $record['download_file_name'] = $file['name']. 'zip';
+                $record['type'] = $file['name'];
+                $record['create_time'] = time();
+                $record['upload_time'] = time();
+                $logExportDownloadFiles->allowField(true)->isUpdate(false)->save($record);
+                $uData = [];
+                $uData['id'] = $logExportDownloadFiles->id;
+                $uData['file_code'] = date('YmdHis') . $logExportDownloadFiles->id;
+                $logExportDownloadFiles->allowField(true)->isUpdate(true)->save($uData);
+            } catch (\Exception $ex) {
+                $result['message'] = '创建导出文件日志失败.' . $ex->getMessage();
+                @unlink($fileZipName);
+                return $result;
+            }
+            $result['status'] = 1;
+            $result['message'] = 'OK';
+            $result['file_code'] = $uData['file_code'];
+            $result['file_name'] = $file['name']. 'zip';
+            $result['file_path'] = $fileZipName;
+            $result['download_url'] = DS . 'download' . DS . $file['path']. DS. $file['name'] . '.zip';
+            return $result;
+        } catch (\Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    /**
+     * 判断exportCsvToZip参数$modelCondition 是否符合条件
+     *
+     *
+     * @param array $modelCondition
+     *
+     * @return array
+     */
+    private static function filterMethodCondition(array $modelCondition)
+    {
+        $message = [];
+        if (!isset($modelCondition['service']) || !class_exists($modelCondition['service'])) {
+            $message[] = '获取数据的服务类不存在';
+        }
+        if (!isset($modelCondition['method']) || !method_exists($modelCondition['service'], $modelCondition['method'])) {
+            $message[] = '获取数据的服务类的方法不存在';
+        }
+        if (!isset($modelCondition['field'])) {
+            $message[] = '缺少筛选字段';
+        }
+        if (!isset($modelCondition['where'])) {
+            $message[] = '缺少查询条件';
+        }
+        $message = implode('|', $message);
+        return $message;
+    }
+}

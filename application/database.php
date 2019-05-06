@@ -13,8 +13,8 @@ return [
     // 数据库类型
     'type'           => 'mysql',
     // 服务器地址
-    'hostname'       => '172.19.37.9',
-//    'hostname'       => '172.20.0.21',//真
+//    'hostname'       => '172.19.37.9',
+    'hostname'       => '172.20.0.21',//真
     // 数据库名
     'database'       => 'erp-admin',
     // 用户名

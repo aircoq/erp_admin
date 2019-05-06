@@ -1,0 +1,256 @@
+<?php
+namespace app\publish\controller;
+
+use think\Request;
+use think\Exception;
+use app\publish\service\LazadaListingService;
+use app\common\controller\Base;
+use app\common\service\Common;
+
+/**
+ * @module 刊登系统
+ * @title LazadaListing 管理
+ * @author thomas
+ * @url /publish/lazada/listing
+ * Class LazadaListing
+ * @package app\publish\controller
+ */
+class LazadaListing extends Base
+{
+
+    private $service;
+
+    public function __construct(Request $request)
+    {
+        parent::__construct($request);
+        $uid = Common::getUserInfo($request) ? Common::getUserInfo($request)['user_id'] : 0;
+        $this->service = new LazadaListingService($uid);
+    }
+
+    /**
+     * @title listing 列表
+     * @method get
+     * @param  \think\Request $request
+     * @apiFilter app\publish\filter\LazadaFilter
+     * @return \think\response\Json
+     */
+    public function index(Request $request)
+    {
+        try {
+            $param = $request->param();
+            $page = $request->get('page', 1);
+            $pageSize = $request->get('pageSize', 50);
+
+            $result = $this->service->getList($param, $page, $pageSize);
+            return json($result, 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title sellers 列表
+     * @url sellers
+     * @method get
+     * @param  \think\Request $request
+     * @apiFilter app\publish\filter\LazadaFilter
+     * @return \think\response\Json
+     */
+    public function sellers(Request $request)
+    {
+        try {
+
+            $users = $this->service->getSellers();
+            return json($users, 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title accounts 列表
+     * @url accounts
+     * @method get
+     * @param  \think\Request $request
+     * @apiFilter app\publish\filter\LazadaFilter
+     * @return \think\response\Json
+     */
+    public function accounts(Request $request)
+    {
+        try {
+
+            $accounts = $this->service->getAccounts();
+            return json($accounts, 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title 添加账号列表
+     * @url choice-accounts
+     * @method get
+     * @param  \think\Request $request
+     * @apiFilter app\publish\filter\LazadaFilter
+     * @return \think\response\Json
+     */
+    public function choiceAccounts(Request $request)
+    {
+        try {
+            $param = $request->param();
+            $page = $request->get('page', 1);
+            $pageSize = $request->get('pageSize', 50);
+
+            $data = $this->service->choiceAccounts($param, $page, $pageSize);
+            return json($data, 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title listing edit 页面
+     * @method get
+     * @param $id
+     * @return \think\response\Json
+     */
+    public function edit($id)
+    {
+        try {
+            $data = $this->service->editListing($id);
+            return json($data, 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title lazada分类
+     * @url category
+     * @access public
+     * @method GET
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function category(Request $request)
+    {
+        try {
+            $site = $request->param('site','');
+            $categoryId = $request->param('category_id',0);
+
+            $data = $this->service->category($site, $categoryId);
+            return json($data, 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title lazada分类属性
+     * @url attribute
+     * @access public
+     * @method GET
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function attribute(Request $request)
+    {
+        try {
+            $site = $request->param('site','');
+            $categoryId = $request->param('category_id',0);
+
+            $data = $this->service->attribute($site, $categoryId);
+            return json($data, 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title lazada 更新刊登
+     * @access public
+     * @method PUT
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function update(Request $request)
+    {
+        try {
+            $params =$request->param();
+            $this->service->update($params);
+
+            return json(['result'=>true, 'message'=>'更新成功'], 200);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+
+    /**
+     * @title lazada 提交刊登
+     * @access public
+     * @method POST
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function add(Request $request)
+    {
+        try {
+            $params =$request->param();
+            $response = $this->service->add($params);
+            if(is_numeric($response)) {
+                return json(['message'=>'成功提交['.$response.']条']);
+            } else {
+                return json(['message'=>$response],400);
+            }
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * @title lazada 手动同步listing
+     * @url manual-sync-listing
+     * @access public
+     * @method POST
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function manualSyncListing(Request $request)
+    {
+        $params = $request->param();
+        if (!isset($params['id']) || empty($params['id'])) {
+            throw new Exception('参数id不能为空!');
+        }
+        $id = $params['id'];
+        try {
+
+            $response = $this->service->manualSyncListing($id);
+            return json(['message' => '成功提交['.$response.']条']);
+        } catch (Exception $e) {
+            return json(['message' => $e->getMessage()], 400);
+        }
+
+    }
+
+
+    /**
+     * @title lazada 批量刊登
+     * @url batch-publish
+     * @access public
+     * @method POST
+     * @param Request $request
+     * @return \think\response\Json
+     */
+    public function batchPublish(Request $request)
+    {
+        echo 1;
+
+    }
+
+//    public function test()
+//    {
+//        $this->service->test();
+//
+//    }
+}

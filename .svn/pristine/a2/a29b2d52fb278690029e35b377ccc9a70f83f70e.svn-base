@@ -1,0 +1,579 @@
+<?php
+
+namespace app\report\service;
+
+use app\common\model\lazada\LazadaAccount;
+use app\common\model\report\ReportPerformanceByAccount;
+use app\common\model\ChannelUserAccountMap;
+use app\common\model\User;
+use app\index\service\MemberShipService;
+use app\index\service\ChannelUserAccountMap as channelUserAccountMapService;
+use app\order\filter\OrderByAccountFilter;
+use think\Db;
+use think\Exception;
+use think\Loader;
+use app\order\service\AuditOrderService;
+use app\common\service\ChannelAccountConst;
+use app\report\model\ReportExportFiles;
+use app\common\service\CommonQueuer;
+use app\common\traits\Export;
+use app\common\cache\Cache;
+use app\order\service\OrderService;
+use app\common\service\Common;
+use app\report\validate\FileExportValidate;
+use app\report\queue\LazadaAccountReportQueue;
+use app\common\model\WarehouseGoods;
+use app\warehouse\service\WarehouseConfig;
+use app\warehouse\service\StockingAdviceService;
+use app\common\model\LogExportDownloadFiles;
+use app\internalletter\service\InternalLetterService;
+
+Loader::import('phpExcel.PHPExcel', VENDOR_PATH);
+
+/**
+ * Created by PhpStorm.
+ * User: laiyongfeng
+ * Date: 2019/03/29
+ * Time: 19:17
+ */
+class LazadaAccountReportService
+{
+    use Export;
+
+    protected $model = null;
+    protected $where = [];
+    protected $colMap = ['0' => [
+        '账号简称' => 'string',
+        '销售' => 'string',
+        '组长' => 'string',
+        '订单数' => 'string',
+        '发货订单数' => 'string',
+        '发货数' => 'string',
+        '销售额' => 'string',
+        '客单价' => 'string',
+        '利润' => 'string',
+        '利润率' => 'string',
+    ],
+        '1' => [
+            '站点' => 'string',
+            '站点简称' => 'string',
+            '订单数' => 'string',
+            '发货订单数' => 'string',
+            '发货数' => 'string',
+            '销售额' => 'string',
+            '客单价' => 'string',
+            '利润' => 'string',
+            '利润率' => 'string',
+
+        ]
+    ];
+
+    public function __construct()
+    {
+        if (is_null($this->model)) {
+            $this->model = new ReportPerformanceByAccount();
+        }
+    }
+
+    /**
+     * @desc 查询条件
+     * @param array $params
+     */
+    public function where($params)
+    {
+        if (param($params, 'account') && !empty($params['account'])) {
+            $lazadaAccount = new LazadaAccount();
+            $list = $lazadaAccount->where(['lazada_name' => ['like', '%' . $params['account'] . '%']])->select();
+            $id = array_column($list, 'id');
+            if ($id) {
+                $this->where['account_id'] = ['in', $id];
+            }
+        }
+        if (isset($params['snUser']) && isset($params['snName']) && !empty($params['snName'])) {
+
+            switch (trim($params['snUser'])) {
+                case'seller_id':
+                    $accountList = (new ChannelUserAccountMap)->field('channel_id,account_id')->where(['seller_id' => $params['snName'], 'channel_id' => ChannelAccountConst::channel_Lazada])->select();
+                    $account_ids = array_column($accountList, 'account_id');
+                    $this->where['account_id'] = ['in', $account_ids];
+                    break;
+                case'leader_id':
+                    $orderByAccount = new OrderByAccountFilter([]);
+                    $account_id = $orderByAccount->generate($params['snName']);
+                    if (!empty($account_id)) {
+                        $this->where['account_id'] = ['in', $account_id];
+                    }
+                    break;
+                default:
+            }
+        }
+        $date_from = param($params, 'date_from');
+        $date_to = param($params, 'date_to');
+        if ($date_from || $date_to) {
+            $start_time = $date_from ? strtotime($params['date_from']) : 0;
+            $end_time = $date_to ? strtotime($params['date_to']) : 0;
+            if ($start_time && $end_time) {
+                $this->where['dateline'] = [['>=', $start_time], ['<=', $end_time]];
+            } else {
+                if ($start_time) {
+                    $this->where['dateline'] = ['>=', $start_time];
+                }
+                if ($end_time) {
+                    $this->where['dateline'] = ['<=', $end_time];
+                }
+            }
+        }
+    }
+
+    /**
+     * @desc 获取总数
+     */
+    public function getCount()
+    {
+        return $this->model->where($this->where)->count();
+
+    }
+
+    /**
+     * @desc 获取总数
+     *
+     */
+    public function siteCount()
+    {
+        return $this->model->where($this->where)->group('site_code')->count();
+    }
+
+    /**
+     * @desc 获取账号业绩列表
+     * @param int $page
+     * @param int $pageSize
+     * @return array
+     */
+    public function accountIndex($page = 1, $pageSize = 20)
+    {
+        set_time_limit(0);
+        $MembershipService = new MemberShipService();
+        $lists = $this->model->where($this->where)->page($page, $pageSize)->select();
+        $temp = [];
+        $data = [];
+        foreach ($lists as $list) {
+            //获取销售员
+            $list['seller'] = '';
+            $list['sale_group_leader'] = '';
+            $service = new channelUserAccountMapService([]);
+            $user = $service->getChannelAccountSellers($list['channel_id'], $list['account_id']);
+            foreach ($user as $val) {
+                $list['seller'] = $val['realname'];
+                $list['sale_group_leader'] = $val['leader'] ? $val['leader']['realname'] : '';
+//            $seller_id=0;
+//            $member = $MembershipService->member($list['channel_id'], $list['account_id'], 'sales');
+//            if ($member) {
+//                foreach ($member as $mvo) {
+//                    $item['sales'] = param($mvo, 'realname');
+//                    //获取销售员
+//                    if (isset($mvo['realname'])) {
+//                        $list['seller'] = $mvo['realname'];
+//                        $user_id = (new User())->field('id')->where(['realname' => $mvo['realname']])->find();
+//                        if (!empty($user_id)) {
+//                            $seller_id = $user_id['id'];
+//                        }
+//                    } else {
+//                        $list['seller'] = '';
+//                    }
+//                }
+//            }
+//            $user = (new PerformanceService())->getLeaderDirector($seller_id);
+//            if (!empty($user)) {
+//                $list['sale_group_leader'] = $user['sale_group_leader'];
+//            }
+                $cache = Cache::store('LazadaAccount')->getAccount($list['account_id']);
+                $list['account_id'] = !empty($cache) ? $cache['code'] : '';
+                $list['account_name'] = !empty($cache) ? $cache['lazada_name'] : '';
+                $list['customer_price'] = sprintf('%.2f', $list['delivery_sale_amount'] / $list['delivery_order_quantity']);
+                $list['profit_rate'] = sprintf('%.2f', ($list['profit'] / $list['delivery_sale_amount']) * 100) . '%';
+                $data[] = $list;
+            }
+            $result = [];
+            $temp['account_quantity'] = 0;
+            $temp['account_delivery_quantity'] = 0;
+            $temp['account_sku'] = 0;
+            $temp['account_amount'] = 0;
+            $temp['account_profit'] = 0;
+            $temp['account_price'] = 0;
+            $temp['account_leader'] = '';
+            $temp['account_seller'] = '';
+            $temp['account_name'] = '';
+            $item = $this->model->field('sum(order_quantity) as order_total,sum(delivery_order_quantity) as delivery_total,
+        sum(delivery_sku_quantity) as sku_total,sum(profit)as profit_total,sum(delivery_sale_amount) as sale_total')->find();
+            $item['customer_total'] = sprintf('%.2f', ($item['sale_total'] / $item['order_total']));
+            $item['rate_total'] = sprintf('%.2f', ($item['profit_total'] / $item['sale_total']) * 100) . '%';
+            $total['order_total'] = 0;
+            $total['delivery_total'] = 0;
+            $total['sku_total'] = 0;
+            $total['amount_total'] = 0;
+            $total['profit_total'] = 0;
+            $total['customer_total'] = 0;
+            $total['rate_total'] = 0;
+            $total['account_name'] = '汇总';
+            foreach ($data as $ppp) {
+                if (!isset($result[$ppp['account_id']])) {
+                    $temp['account_leader'] = $ppp['sale_group_leader'];
+                    $temp['account_name'] = $ppp['account_name'];
+                    $temp['account_seller'] = $ppp['seller'];
+                    $result[$ppp['account_id']] = $temp;
+                }
+                $result[$ppp['account_id']]['account_name'] = $ppp['account_name'];
+                $result[$ppp['account_id']]['account_quantity'] += $ppp['order_quantity'];
+                $result[$ppp['account_id']]['account_delivery_quantity'] += $ppp['delivery_order_quantity'];
+                $result[$ppp['account_id']]['account_sku'] += $ppp['delivery_sku_quantity'];
+                $result[$ppp['account_id']]['account_amount'] += $ppp['delivery_sale_amount'];
+                $result[$ppp['account_id']]['account_profit'] += $ppp['profit'];
+                $result[$ppp['account_id']]['account_price'] += $ppp['customer_price'];
+                $result[$ppp['account_id']]['account_profit_rate'] = sprintf('%.2f', $result[$ppp['account_id']]['account_profit'] / $result[$ppp['account_id']]['account_amount'] * 100) . '%';
+                $result[$ppp['account_id']]['detial'][] = $ppp;
+                $total['order_total'] = $item['order_total'];
+                $total['delivery_total'] = $item['delivery_total'];
+                $total['sku_total'] = $item['sku_total'];
+                $total['amount_total'] = $item['sale_total'];
+                $total['profit_total'] = $item['profit_total'];
+                $total['customer_total'] = $item['customer_total'];
+                $total['rate_total'] = $item['rate_total'];
+            }
+
+        }
+        return array('data' => $result, 'total' => $item->toArray());
+    }
+
+    /**
+     * @desc 获取站点
+     * @return str
+     */
+    private function siteType($site)
+    {
+        $data = [
+            '印度尼西亚' => 'ID',
+            '菲律宾' => 'PH',
+            '马来西亚' => 'MY',
+            '越南' => 'VN',
+            '新加坡' => 'SG',
+            '泰国' => 'TH',
+
+        ];
+        return array_search($site, $data);
+
+
+    }
+
+    /**
+     * @desc 获取站点业绩列表
+     * @param int $page
+     * @param int $pageSize
+     * @return array
+     */
+    public function siteIndex($page = 1, $pageSize = 20)
+    {
+        $lists = $this->model->where($this->where)->group('site_code')->page($page, $pageSize)->select();
+        $result = [];
+        $item = $this->model->field('sum(order_quantity) as order_total,sum(delivery_order_quantity) as delivery_total,
+        sum(delivery_sku_quantity) as sku_total,sum(profit)as profit_total,sum(delivery_sale_amount) as sale_total')->find();
+        foreach ($lists as $list) {
+            $list['site_name'] = !empty($list['site_code']) ? self::siteType($list['site_code']) : '';
+            $list['customer_price'] = sprintf('%.2f', $list['delivery_sale_amount'] / $list['delivery_order_quantity']);
+            $list['profit_rate'] = sprintf('%.2f', ($list['profit'] / $list['delivery_sale_amount']) * 100) . '%';
+            $item['customer_total'] = sprintf('%.2f', ($item['sale_total'] / $item['order_total']));
+            $item['rate_total'] = sprintf('%.2f', ($item['profit_total'] / $item['sale_total']) * 100) . '%';
+        }
+        return array('data' => $lists, 'total' => $item->toArray());
+    }
+
+    /**
+     * @desc 生成业绩报表
+     * @param $data
+     * @return array
+     * @throws Exception
+     */
+    public function createReport($data = [])
+    {
+        foreach($data as $k=>$v){
+            $this->createReportOne($v);
+        }
+    }
+    public function createReportOne($v=[])
+    {
+        $model = new ReportPerformanceByAccount();
+            $add_data = [
+                'dateline' => $v['dateline'],//统计日期
+                'channel_id' => $v['channel_id'],//渠道id
+                'site_code' => $v['site_code'],//站点
+                'account_id' => $v['account_id'],//账号id
+                'order_quantity' => $v['order_quantity'],//订单数
+                'delivery_order_quantity' => $v['delivery_order_quantity'],//已发货订单数
+                'delivery_sku_quantity' => $v['delivery_sku_quantity'],//已发货sku数量
+                'delivery_sale_amount' => $v['delivery_sale_amount'],//销售额
+                'profit' => $v['profit']//利润
+            ];
+
+            $where['account_id'] = $v['account_id'];
+            $where['channel_id'] = $v['channel_id'];
+            $where['site_code'] = $v['site_code'];
+            Db::startTrans();
+            try {
+                $old_data = $model->where($where)->find();
+                if ($old_data) {
+                    $old_data = $old_data->toArray();
+                    $old_data['order_quantity'] += $v['order_quantity'];//订单数
+                    $old_data['delivery_order_quantity'] += $v['delivery_order_quantity'];//已发货订单数
+                    $old_data['delivery_sku_quantity'] += $v['delivery_sku_quantity'];//已发货sku数量
+                    $old_data['delivery_sale_amount'] += $v['delivery_sale_amount'];//销售额
+                    $old_data['profit'] += $v['profit'];//利润
+                    $model->where($where)->update($old_data);
+                } else {
+                    $model->allowField(true)->save($add_data);
+                }
+                Db::commit();
+            } catch (Exception $e) {
+                Db::rollback();
+                throw new Exception($e->getMessage());
+            }
+
+    }
+
+    /**
+     * @desc 批量导出
+     * @param array $params
+     * @return array
+     * @throws Exception
+     */
+    public function batchExport($params)
+    {
+        foreach ($params as &$param) {
+            $param = trim($param);
+        }
+        if (isset($params['type']) && !empty($params['type'])) {
+            $type = $params['type'];
+        } else {
+            throw new Exception('报表类型未设置');
+        }
+        $page = $params['page'] ?? 1;
+        $pageSize = $params['pageSize'] ?? 20;
+        $downLoadDir = '/download/lazada_report/';
+        $saveDir = ROOT_PATH . 'public' . $downLoadDir;
+        if (!is_dir($saveDir) && !mkdir($saveDir, 0777, true)) {
+            throw new Exception('导出目录创建失败');
+        }
+        $fileName = $this->createExportFileName($type);
+        $fullName = $saveDir . $fileName;
+        //创建excel对象
+        $writer = new \XLSXWriter();
+        if ($params['type'] == 'account') {
+            $title = $this->colMap['0'];
+        } else {
+            $title = $this->colMap['1'];
+        }
+        $writer->writeSheetHeader('sheet1', $title);
+        $where = $this->where($params);
+        $count = $this->model->where($where)->count();
+        if ($count > 500) {
+            Db::startTrans();
+            try {
+                $userId = Common::getUserInfo()->toArray()['user_id'];
+                $cacher = Cache::handler();
+                $lastApplyTime = $cacher->hget('hash:export_performance_apply', $userId);
+                if ($lastApplyTime && time() - $lastApplyTime < 5) {
+                    throw new Exception('请求过于频繁', 400);
+                } else {
+                    $cacher->hset('hash:export_performance_apply', $userId, time());
+                }
+                $model = new ReportExportFiles();
+                $model->applicant_id = $userId;
+                $model->apply_time = time();
+                $model->export_file_name = self::createExportFileName($type);
+                $model->status = 0;
+                if (!$model->save()) {
+                    throw new Exception('导出请求创建失败', 500);
+                }
+                $params['file_name'] = $model->export_file_name;
+                $params['apply_id'] = $model->id;
+                $queuer = new LazadaAccountReportQueue();
+                $queuer->execute($params);
+                Db::commit();
+                return ['join_queue' => 1, 'message' => '已加入导出队列'];
+            } catch (\Exception $ex) {
+                Db::rollback();
+                if ($ex->getCode()) {
+                    throw $ex;
+                } else {
+                    Cache::handler()->hset(
+                        'hash:report_export_apply',
+                        $params['apply_id'] . '_' . time(),
+                        $ex->getMessage());
+                    throw new Exception('导出请求创建失败', 500);
+                }
+            }
+        }
+        $data = $this->getDetail($page, $pageSize, $params, $pagination = 1);
+        //页面导出
+        foreach ($data as $r) {
+            $writer->writeSheetRow('sheet1', $r);
+        }
+        $writer->writeToFile($fullName);
+        $result = (new AuditOrderService)->record($fileName, $fullName);
+        return $result;
+    }
+
+    /**
+     * 导出数据至excel文件
+     * @param $params
+     * @return bool
+     * @throws Exception
+     */
+    public function export($params)
+    {
+        try {
+            ini_set('memory_limit', '1024M');
+            $validate = new FileExportValidate();
+            if (!$validate->scene('export')->check($params)) {
+                throw new Exception($validate->getError());
+            }
+            $downLoadDir = '/download/lazada_report_queue/';
+            $saveDir = ROOT_PATH . 'public' . $downLoadDir;
+            if (!is_dir($saveDir) && !mkdir($saveDir, 0777, true)) {
+                throw new Exception('导出目录创建失败');
+            }
+            $fullName = $saveDir . $params['file_name'];
+            //创建excel对象
+            $writer = new \XLSXWriter();
+            if ($params['type'] == 'account') {
+                $title = $this->colMap['0'];
+            } else {
+                $title = $this->colMap['1'];
+            }
+            $writer->writeSheetHeader('Sheet1', $title);
+            //统计需要导出的数据行
+            $where = $this->where($params);
+            $count = $this->model->where($where)->count();
+            $pageSize = 10000;
+            $loop = ceil($count / $pageSize);
+            //分批导出
+            for ($i = 0; $i < $loop; $i++) {
+                $data = $this->getDetail($i + 1, $pageSize, $params);
+                foreach ($data as $k => $v) {
+                    $writer->writeSheetRow('Sheet1', $v);
+                }
+                $writer->writeToFile($fullName);
+                if (is_file($fullName)) {
+                    $applyRecord = ReportExportFiles::get($params['apply_id']);
+                    $applyRecord->exported_time = time();
+                    $applyRecord->download_url = $downLoadDir . $params['file_name'];
+                    $applyRecord->status = 1;
+                    $applyRecord->isUpdate()->save();
+                } else {
+                    throw new Exception('文件写入失败');
+                }
+            }
+        } catch (\Exception $ex) {
+            $applyRecord = ReportExportFiles::get($params['apply_id']);
+            $applyRecord->status = 2;
+            $applyRecord->error_message = $ex->getMessage();
+            $applyRecord->isUpdate()->save();
+            Cache::handler()->hset(
+                'hash:report_export',
+                $params['apply_id'] . '_' . time(),
+                '申请id: ' . $params['apply_id'] . ',导出失败:' . $ex->getMessage());
+        }
+    }
+
+    /**
+     * @desc 获取导出详情
+     * @param array $params
+     * @param int $pagination
+     * @return array
+     * @throws Exception
+     */
+    public function getDetail($page = 1, $pageSize = 20, $params, $pagination = 0)
+    {
+        $i = 1;
+        date_default_timezone_set('PRC');
+        $where = $this->where($params);
+        $model = new ReportPerformanceByAccount();
+        if ($pagination = 1) {
+            $lists = $model->where($where)->group('account_id')->select();
+        } else {
+            $lists = $model->where($where)->group('site_code')->page($page, $pageSize)->select();
+        }
+        $data = [];
+        foreach ($lists as $item) {
+            //获取销售员
+            $item['seller_id'] = 0;
+            $MembershipService = new MemberShipService();
+            $member = $MembershipService->member($item['channel_id'], $item['account_id'], 'sales');
+            $item['salesman'] = '';
+            if ($member) {
+                foreach ($member as $mvo) {
+                    if (isset($mvo['realname'])) {
+                        $user_id = (new User())->field('id')->where(['realname' => $mvo['realname']])->find();
+                        if (!empty($user_id)) {
+                            $item['seller_id'] = $user_id['id'];
+                        }
+                        $item['salesman'] = $mvo['realname'];
+                    }
+                }
+            }
+
+            $item['sale_group_leader'] = '';
+            $user = (new PerformanceService())->getLeaderDirector($item['seller_id']);
+            if (!empty($user)) {
+                $item['sale_group_leader'] = $user['sale_group_leader'];
+            }
+            $cache = Cache::store('LazadaAccount')->getAccount($item['account_id']);
+            $item['account_id'] = !empty($cache) ? $cache['code'] : '';
+            $item['site_name'] = !empty($item['site_code']) ? self::siteType($item['site_code']) : '';
+            $item['customer_price'] = sprintf('%.2f', $item['delivery_sale_amount'] / $item['delivery_order_quantity']);
+            $item['profit_rate'] = sprintf('%.2f', ($item['profit'] / $item['delivery_sale_amount']) * 100) . '%';
+            if ($params['type'] == 'account') {
+                $data[] = [
+                    'account_id' => $item['account_id'],
+                    'salesman' => $item['salesman'],
+                    'sale_group_leader' => $item['sale_group_leader'],
+                    'delivery_order_quantity' => $item['delivery_order_quantity'],
+                    'delivery_sku_quantity' => $item['delivery_sku_quantity'],
+                    'delivery_sale_amount' => $item['delivery_sale_amount'],
+                    'profit' => $item['profit'],
+                    'customer_price' => $item['customer_price'],
+                    'profit_rate' => $item['profit_rate'],
+                ];
+            } else {
+                $data[] = [
+                    'site_name' => $item['site_name'],
+                    'site_code' => $item['site_code'],
+                    'order_quantity' => $item['order_quantity'],
+                    'delivery_order_quantity' => $item['delivery_order_quantity'],
+                    'delivery_sku_quantity' => $item['delivery_sku_quantity'],
+                    'delivery_sale_amount' => $item['delivery_sale_amount'],
+                    'profit' => $item['profit'],
+                    'customer_price' => $item['customer_price'],
+                    'profit_rate' => $item['profit_rate'],
+                ];
+            }
+        }
+        return $data;
+        $i++;
+
+    }
+
+    /**
+     * @desc 创建导出文件名
+     * @param string $type
+     * @return string
+     */
+    protected function createExportFileName($type)
+    {
+        if ($type = 'account') {
+            $fileName = 'lazada' . '账号业绩报表' . date('YmdHis') . '.xlsx';
+        } else {
+            $fileName = 'lazada' . '站点业绩报表' . date('YmdHis') . '.xlsx';
+        }
+        return $fileName;
+    }
+
+}

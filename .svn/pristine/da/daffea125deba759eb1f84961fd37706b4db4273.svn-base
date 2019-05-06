@@ -1,0 +1,690 @@
+<?php
+
+namespace app\index\service;
+
+use app\common\model\aliexpress\AliexpressAccount;
+use app\common\service\ChannelAccountConst;
+use Exception;
+use app\common\cache\Cache;
+use app\common\model\aliexpress\AliexpressAccount as AliexpressAccountModel;
+use think\Config;
+use service\alinew\AliexpressApi;
+use think\Db;
+use app\common\model\ChannelAccountLog;
+
+/**
+ * @desc 速卖通账号管理
+ * @author Jimmy <554511322@qq.com>
+ * @date 2018-04-10 11:21:11
+ */
+class AliexpressAccountService
+{
+    public static $topicListMap = [
+        'message'=>[
+            1=>['topic'=>'aliexpress_message_Pushnewmsg','status'=>0,'name'=>'站内信新消息主动推送']
+        ],
+        'order'=>[
+            2=>['topic'=>'aliexpress_order_Finish','status'=>0,'name'=>'交易成功'],
+            3=>['topic'=>'aliexpress_order_FundProcessing','status'=>0,'name'=>'资金处理中'],
+            4=>['topic'=>'aliexpress_order_InCancel','status'=>0,'name'=>'取消订单中'],
+            5=>['topic'=>'aliexpress_order_WaitBuyerAcceptGoods','status'=>0,'name'=>'等待买家收货'],
+            6=>['topic'=>'aliexpress_order_SellerPartSendGoods','status'=>0,'name'=>'等待部分发货'],
+            7=>['topic'=>'aliexpress_order_WaitSellerSendGoods','status'=>0,'name'=>'等待卖家发货'],
+            8=>['topic'=>'aliexpress_order_WaitGroupSuccess','status'=>0,'name'=>'等待成团'],
+            9=>['topic'=>'aliexpress_order_WaitSellerExamineMoney ','status'=>0,'name'=>'待卖家验款'],
+            10=>['topic'=>'aliexpress_order_RiskControl','status'=>0,'name'=>'风控24小时'],
+            11=>['topic'=>'aliexpress_order_PlaceOrderSuccess','status'=>0,'name'=>'下单成功']
+        ]
+    ];
+    private $url = 'https://oauth.aliexpress.com/token'; //速卖通获取access_token请求的url
+
+    /**
+     * 日志配置
+     * 字段名称[name] 
+     * 格式化类型[type]:空 不需要格式化,time 转换为时间,list
+     * 格式化值[value]:array
+     */
+    public static $log_config = [
+        'sales_company_id' => ['name'=>'运营公司','type'=>null],
+        'base_account_id' => ['name'=>'账号基础资料名','type'=>null],
+        'account_name' => ['name'=>'账号名称','type'=>null],
+        'site' => ['name'=>'站点','type'=>null],
+        'code' => ['name'=>'账号简称','type'=>null],
+        'login_id' => ['name'=>'速卖通账号','type'=>null],
+        'user_nick' => ['name'=>'用户昵称','type'=>null],
+        'trad_percent' => ['name'=>'交易费比例','type'=>null],
+        'access_token' => ['name'=>'token','type'=>null],
+        'refresh_token' => ['name'=>'授权token','type'=>null],
+        'topics' => ['name'=>'消息类型','type'=>null],
+        'client_id' => ['name'=>'应用程序ID','type'=>null],
+        'client_secret' => ['name'=>'应用程序密钥','type'=>'key'],
+        'aliexpress_enabled' => [
+            'name'=>'Wish状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'失效',
+                1 =>'有效' ,
+            ],
+        ],
+        'is_invalid' => [
+            'name'=>'系统状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'停用',
+                1 =>'启用' ,
+            ],
+        ],
+        'is_authorization' => [
+            'name'=>'授权状态',
+            'type'=>'list',
+            'value'=>[
+                0 =>'未授权',
+                1 =>'已授权' ,
+            ],
+        ],
+        'download_listing' => ['name'=>'抓取Listing时间','type'=>'time'],
+        'download_health' => ['name'=>'同步健康数据','type'=>'time'],
+        'download_order' => ['name'=>'抓取订单时间','type'=>'time'],
+        'download_message' => ['name'=>'下载消息数据','type'=>'time'],
+        'download_evaluate' => ['name'=>'下载评价','type'=>'time'],
+        'sync_delivery' => ['name'=>'同步发货状态时间','type'=>'time'],
+        'sync_feedback' => ['name'=>'同步中差评时间','type'=>'time'],
+        'site_status' => [
+            'name'=>'账号状态',
+            'type'=>'list',
+            'value'=>[
+                0 => '未分配',
+                1 => '运营中',
+                2 => '回收中',
+                3 => '冻结中',
+                4 => '申诉中',
+            ]
+        ],
+    ];
+
+    /**
+     * 获取账号列表
+     * lingjiawen
+     */
+    public function getList(array $req)
+    {
+        /**
+         * 初始化参数
+         */
+        $operator = ['eq' => '=', 'gt' => '>', 'lt' => '<'];
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 50;
+        $time_type = isset($req['time_type']) and in_array($req['time_type'],['register','fulfill','token']) ? $req['time_type'] : '';
+        $start_time = isset($req['start_time']) ? strtotime($req['start_time']) : 0;
+        $end_time = isset($req['end_time']) ? strtotime($req['end_time']) : 0;
+        $site = $req['site'] ?? '';
+        // $status = isset($req['status']) && is_numeric($req['status']) ? intval($req['status']) : -1;
+        $site_status = isset($req['site_status']) && is_numeric($req['site_status']) ? intval($req['site_status']) : -1;
+        $seller_id = isset($req['seller_id']) ? intval($req['seller_id']) : 0;
+        $customer_id = isset($req['customer_id']) ? intval($req['customer_id']) : 0;
+        $is_authorization = isset($req['authorization']) && is_numeric($req['authorization']) ? intval($req['authorization']) : -1;
+        $is_invalid = isset($req['is_invalid']) && is_numeric($req['is_invalid']) ? intval($req['is_invalid']) : -1;
+        $snType = !empty($req['snType']) && in_array($req['snType'], ['name', 'code']) ? $req['snType'] : '';
+        $snText = !empty($req['snText']) ? $req['snText'] : '';
+        $taskName = !empty($req['taskName']) && in_array($req['taskName'], ['download_listing', 'download_order', 'sync_delivery', 'download_health']) ? $req['taskName'] : '';
+        $taskCondition = !empty($req['taskCondition']) && isset($operator[trim($req['taskCondition'])]) ? $operator[trim($req['taskCondition'])] : '';
+        $taskTime = isset($req['taskTime']) && is_numeric($req['taskTime']) ? intval($req['taskTime']) : '';
+
+        /**
+         * 参数处理
+         */
+        if ($time_type && $end_time && $start_time > $end_time) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+        !$page and $page = 1;
+        if ($page > $pageSize) {
+            $pageSize = $page;
+        }
+
+        /**
+         * where数组条件
+         */
+        $where = [];
+        $seller_id and $where['c.seller_id'] = $seller_id;
+        $customer_id and $where['c.customer_id'] = $customer_id;
+        $is_invalid >= 0 and $where['am.is_invalid'] = $is_invalid;
+        $is_authorization >= 0 and $where['am.is_authorization'] = $is_authorization;
+        $site and $where['am.site'] = $site;
+        // $status >= 0 and $where['am.status'] = $status;
+        $site_status >= 0 and $where['s.site_status'] = $site_status;
+
+        if ($taskName && $taskCondition && !is_string($taskTime)) {
+            $where['am.' . $taskName] = [$taskCondition, $taskTime];
+        }
+
+        if ($snType && $snText) {
+            $where['am.' . $snType] = ['like', '%' . $snText . '%'];
+        }
+
+        /**
+         * 需要按时间查询时处理
+         */
+        if ($time_type) {
+            /**
+             * 处理需要查询的时间类型
+             */
+            switch ($time_type) {
+                case 'register':
+                    $time_type = 'a.register_time';
+                    break;
+                case 'fulfill':
+                    $time_type = 'a.fulfill_time';
+                    break;
+                case 'token':
+                    $time_type = 'am.expiry_time';
+                    break;
+
+                default:
+                    $start_time = 0;
+                    $end_time = 0;
+                    break;
+            }
+            /**
+             * 设置条件
+             */
+            if ($start_time && $end_time) {
+                $where[$time_type] = ['between time', [$start_time, $end_time]];
+            } else {
+                if ($start_time) {
+                    $where[$time_type] = ['>', $start_time];
+                }
+                if ($end_time) {
+                    $where[$time_type] = ['<', $end_time];
+                }
+            }
+        }
+
+        $model = new AliexpressAccountModel();
+
+        $count = $model
+            ->alias('am')
+            ->where($where)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code', 'LEFT')
+            ->count();
+
+        //没有数据就返回
+        if (!$count) {
+            return [
+                'count' => 0,
+                'data' => [],
+                'page' => $page,
+                'pageSize' => $pageSize,
+            ];
+        }
+
+        $field = 'am.*,s.site_status,c.seller_id,c.customer_id,a.register_time,a.fulfill_time';
+        //有数据就取出
+        $list = $model
+            ->alias('am')
+            ->field($field)
+            ->join('__ACCOUNT__ a', 'a.id=am.base_account_id', 'LEFT')
+            ->join('__CHANNEL_USER_ACCOUNT_MAP__ c', 'c.account_id=am.id AND c.channel_id=a.channel_id', 'LEFT')
+            ->join('__ACCOUNT_SITE__ s', 's.base_account_id=am.base_account_id AND s.account_code=am.code', 'LEFT')
+            ->where($where)
+            ->page($page, $pageSize)
+            ->order('am.id DESC')
+            ->select();
+
+        foreach ($list as &$val) {
+            $seller =  Cache::store('User')->getOneUser($val['seller_id']);
+            $val['seller_name'] = $seller ? $seller['realname'] : '';
+            $val['seller_on_job'] = $seller ? $seller['on_job'] : '';
+            $customer = Cache::store('User')->getOneUser($val['customer_id']);
+            $val['customer_name'] = $customer ? $customer['realname'] : '';
+            $val['customer_on_job'] = $customer ? $customer['on_job'] : '';
+        }
+
+        return [
+            'count' => $count,
+            'data' => $list,
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ];
+    }
+
+    /**
+     * @desc 获取access_token
+     * @param arrray $params  前端提交过来的数据信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-04-10 11:25:11
+     */
+    public function getToken($params)
+    {
+        //验证用户提交过来的数据信息
+        $this->checkParams($params);
+        //组装请求数据
+        $data = $this->getData($params);
+        //curl 请求数据
+        $res = $this->getAccessToken($data);
+        //更新数据库表及缓存
+        $this->updateAccount($params, $res);
+    }
+
+    /**
+     * @desc 更新account的数据库及缓存信息
+     * @param array $params 用户请求的数据信息
+     * @param array $res curl获取到的数据信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-04-10 11:45:11
+     */
+    private function updateAccount($params, $res)
+    {
+        //组装更新数据
+        $data = [];
+        $data['client_id'] = $params['client_id'];
+        $data['client_secret'] = $params['client_secret'];
+        $data['access_token'] = $res['access_token'];
+        $data['refresh_token'] = $res['refresh_token'];
+        $data['expiry_time'] = $res['expire_time']/1000;//微妙转化为秒
+        $data['user_nick'] = $res['user_nick'];
+        $data['update_time'] = time();
+        $data['is_authorization'] = 1;
+        $data['aliexpress_enabled'] = 1;
+        //获取数据model
+        $model = AliexpressAccountModel::get(['id' => $params['id']]);
+
+        $old_data = $model->toArray();
+        $new_data = $data;
+
+        $model->allowField(true)->save($data);
+
+        $operator = [];
+        $operator['operator_id'] = $params['user_id'];
+        $operator['operator'] = $params['realname'];
+        $operator['account_id'] = $params['id'];
+        self::addAliexpressLog($operator, ChannelAccountLog::UPDATE, $new_data, $old_data);
+
+        //更新缓存
+        $cache = Cache::store('AliexpressAccount');
+        foreach ($old_data as $key => $val) {
+            $cache->updateTableRecord($model->id, $key, $val);
+        }
+    }
+
+    /**
+     * @desc curl 请求数据信息
+     * @param type $data
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-04-10 11:36:11
+     */
+    private function getAccessToken($data)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        //指定post数据
+        curl_setopt($ch, CURLOPT_POST, true);
+        //添加变量
+        curl_setopt($ch, CURLOPT_POSTFIELDS, substr($data, 0, -1));
+        $output = curl_exec($ch);
+        $res = json_decode($output, true);
+        //如果授权成功
+        if (param($res, 'error_msg') && param($res, 'error_code')) {
+            throw new Exception($res['error_msg']);
+        }
+        return $res;
+    }
+
+    /**
+     * @desc 组装用户请求的数据
+     * @param array $params 用户请求的数据信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-04-10 11:32:11
+     */
+    private function getData($params)
+    {
+        //组装请求参数
+        $data = [
+            'grant_type' => 'authorization_code',
+            'client_id' => $params['client_id'],
+            'client_secret' => $params['client_secret'],
+            'code' => $params['authorization_code'],
+            'sp' => 'se',
+            'redirect_uri' => Config::get('redirect_uri'),
+        ];
+        $res = '';
+        foreach ($data as $key => $value) {
+            $res .= $key . '=' . urlencode($value) . '&';
+        }
+        return $res;
+    }
+
+    /**
+     * @desc 验证授权时提交过来的数据信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-04-10 11:27:11
+     */
+    private function checkParams($params)
+    {
+        if (empty($params['id'])) {
+            throw new Exception('参数错误:ID不能为空!');
+        }
+        if (empty($params['client_id'])) {
+            throw new Exception('参数错误:账号ID client_id不能为空!');
+        }
+        if (empty($params['client_secret'])) {
+            throw new Exception('参数错误:账号秘钥 client_secret不能为空!');
+        }
+        if (empty($params['authorization_code'])) {
+            throw new Exception('参数错误:授权码 authorization_code不能为空!');
+        }
+    }
+
+    /**
+     * @desc 处理响应数据
+     * @param string $data 执行api请求返回的订单数据json字符串
+     * @return array 结果集
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-19 15:20:11
+     */
+    public function dealResponse($data)
+    {
+        //已经报错了,抛出异常信息
+        if (isset($data->error_response) && $data->error_response) {
+            throw new Exception($data->sub_msg, $data->code);
+        }
+        //如果没有result
+        if (!isset($data->result)) {
+            throw new Exception(json_encode($data));
+        }
+        return json_decode($data->result, true);
+    }
+
+
+    /**
+     * @desc 获取账号的配置信息
+     * @param int $id 账号对应的数据库表ID
+     * @return array $config 账号配置信息
+     * @author Jimmy <554511322@qq.com>
+     * @date 2018-03-13 15:03:11
+     */
+    public function getConfig($id)
+    {
+        $info = Cache::store('AliexpressAccount')->getTableRecord($id);
+        if (!$info || !isset($info['id'])) {
+            //throw new Exception('账号信息缺失');
+            return ['message' => '账号信息缺失'];
+        }
+        if (!param($info, 'client_id')) {
+            //throw new Exception('账号ID缺失,请先授权!');
+            return ['message' => '账号ID缺失,请先授权!'];
+        }
+        if (!param($info, 'client_secret')) {
+           // throw new Exception('账号秘钥缺失,请先授权!');
+            return ['message' => '账号秘钥缺失,请先授权!'];
+        }
+        if (!param($info, 'access_token')) {
+           // throw new Exception('access token缺失,请先授权!');
+            return ['message' => 'access token缺失,请先授权!'];
+        }
+        $config['id'] = $info['id'];
+        $config['client_id'] = $info['client_id'];
+        $config['client_secret'] = $info['client_secret'];
+        $config['token'] = $info['access_token'];
+        return $config;
+    }
+
+    public function batchUpdate($ids, $data)
+    {
+        $updateData = [];
+        isset($data['is_invalid']) && $updateData['is_invalid'] = intval($data['is_invalid']) ? 1 : 0;
+        isset($data['download_listing']) && $updateData['download_listing'] = intval($data['download_listing']);
+        isset($data['download_order']) && $updateData['download_order'] = intval($data['download_order']);
+        isset($data['download_message']) && $updateData['download_message'] = intval($data['download_message']);
+        isset($data['sync_delivery']) && $updateData['sync_delivery'] = intval($data['sync_delivery']);
+        isset($data['download_health']) && $updateData['download_health'] = intval($data['download_health']);
+
+        $new_data = $updateData;
+        isset($data['site_status']) && $new_data['site_status'] = intval($data['site_status']);
+
+        $operator = [];
+        $operator['operator_id'] = $data['user_id'];
+        $operator['operator'] = $data['realname'];
+
+        $model = new AliexpressAccount();
+
+        // $idArr = array_merge(array_filter(array_unique(explode(',', $ids))));
+        $old_data_list = $model->where('id', 'in', $ids)->select();
+        if (empty($old_data_list)) {
+            return []; 
+        }
+        $model->allowField(true)->where('id', 'in', $ids)->update($updateData);
+
+        //删除缓存
+        $cache = Cache::store('AliexpressAccount');
+        $aliexpressServ = new AliexpressAccountHealthService();
+        foreach ($old_data_list as $old_data) {
+            if (isset($updateData['download_health'])) {
+                $aliexpressServ->openHealth($old_data['id'], $updateData['download_health']);
+            }
+            if (in_array($new_data['site_status'], [1, 2, 3, 4])) {
+                $old_data['site_status'] = AccountService::setSite(
+                    ChannelAccountConst::channel_aliExpress,
+                    $old_data['base_account_id'],
+                    $old_data['code'],
+                    $operator['operator_id'],
+                    $new_data['site_status']
+                );
+            }
+            $operator['account_id'] = $old_data['id'];
+            self::addAliexpressLog($operator, ChannelAccountLog::UPDATE, $new_data, $old_data);
+            $cache->delAccount($old_data['id']);
+        }
+        return $new_data;
+    }
+    
+    /**
+     * @desc 为单个速卖通卖家账号开启消息通知
+     * @author wangwei
+     * @date 2018-9-28 19:35:34
+     * @param int $account_id
+     * @param array $topics_ids
+     * @return number[]|string[]
+     */
+    public function notificationUserPermit($account_id, $topics_ids=[])
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'userPermitBatch error',
+        ];
+        try {
+            //简单校验
+            if(!$account_id){
+                throw new Exception('account_id not empty');
+            }
+            //获取接口所需授权信息
+            $config = $this->getConfig($account_id);
+            if (!isset($config['id'])){
+                throw new Exception('getConfig is empty');
+            }
+            
+            //获取接口对象
+            $api = AliexpressApi::instance($config)->loader('MessageNotification');
+//             $api instanceof \service\alinew\operation\MessageNotification;
+
+            //查询已有授权信息
+            $model = new AliexpressAccountModel();
+            $val = $model::where(['id'=>$account_id])->field('topics')->find();
+            if(empty($val['topics'])){//如果数据库消息主题为空，则取默认的数据
+                $data = AliexpressAccountService::$topicListMap;//取得默认数据
+            }else{
+                $data = json_decode($val['topics'], true);
+            }
+            
+            $topic_arr = [];
+            //处理当前操作的授权
+            foreach ($data as $group_name =>$topics){
+                foreach ($topics as $topic_id => $topic){
+                    if(empty($topics_ids)){
+                        $data[$group_name][$topic_id]['status'] = 1;
+                    }else if(in_array($topic_id, $topics_ids)){
+                        $topic_arr[] = $topic['topic'];
+                        $data[$group_name][$topic_id]['status'] = 1;
+                    }else{
+                        $data[$group_name][$topic_id]['status'] = 0;
+                    }
+                }
+            }
+            $res = $api->userPermit($topic_arr);//调用接口给相应的消息主题开通服务
+            $res = $this->dealResponse($res);
+            if(!(isset($res['is_success']) && $res['is_success'])){
+                throw new Exception('操作失败:' . ($res['sub_msg'] ? $res['sub_msg'] : ''));
+            }
+            
+            $topics = json_encode($data);
+            $model->save(['topics'=>$topics], ['id'=>$account_id]);//更新数据
+            
+            $return['ask'] = 1;
+            $return['message'] = '操作成功';
+            
+        } catch (Exception $e) {
+            $return['message'] = $e->getMessage();
+        }
+        
+        return $return;
+    }
+    
+    /**
+     * @desc 为多个速卖通卖家账号开启消息通知
+     * @author wangwei
+     * @date 2018-9-28 19:35:34
+     * @param int $account_id
+     * @param array $topics_ids
+     * @return number[]|string[]
+     */
+    public function notificationUserPermitBatch($account_ids, $topics_ids=[])
+    {
+        $return = [
+            'ask'=>0,
+            'message'=>'userPermitBatch error',
+            'errors'=>[],
+            'ids'=>[]
+        ];
+        if(!($account_ids && is_array($account_ids))){
+            $return['message'] = 'account_ids not empty';
+            return $return;
+        }
+        //批量处理
+        foreach ($account_ids as $account_id){
+            $nupRe = $this->notificationUserPermit($account_id, $topics_ids);
+            if(!$nupRe['ask']){
+                $accInfo = Cache::store('AliexpressAccount')->getTableRecord($account_id);
+                $return['errors'][] = "账号:{$accInfo['code']},开启消息通知错误:{$nupRe['message']}";
+            }else{
+                $return['ids'][] = $account_id;
+            }
+        }
+        if(empty($return['errors'])){
+            $return['ask'] = 1;
+            $return['message'] = '批量操作成功';
+        }
+        return $return;
+    }
+
+    public function save($data)
+    {
+        $ret = [
+            'msg' => '',
+            'code' => ''
+        ];
+        $aliexpressAccountModel = new AliexpressAccount();
+        $res = $aliexpressAccountModel->where('code', $data['code'])->field('id')->find();
+        if (count($res)) {
+            $ret['msg'] = '账户名重复';
+            $ret['code'] = 400;
+            return $ret;
+        }
+        \app\index\service\BasicAccountService::isHasCode(ChannelAccountConst::channel_aliExpress,$data['code']);
+        //启动事务
+        Db::startTrans();
+        try {
+            $data['create_time'] = time();
+            $aliexpressAccountModel->allowField(true)->isUpdate(false)->save($data);
+            //获取最新的数据返回
+            $new_id = $aliexpressAccountModel->id;
+            Db::commit();
+            //删除缓存
+            //Cache::handler()->del('cache:AliexpressAccount');
+            //开通后立即加一条数据；
+            if (isset($data['download_health'])) {
+                (new AliexpressAccountHealthService())->openHealth($new_id, $data['download_health']);
+            }
+            $data['id'] = $new_id;
+            //$account = \app\common\model\aliexpress\AliexpressAccount::get($new_id);
+            Cache::store('AliexpressAccount')->setTableRecord($new_id);
+            $ret = [
+                'msg' => '新增成功',
+                'code' => 200,
+                'id' => $new_id
+            ];
+            return $ret;
+        } catch (\Exception $e) {
+            Db::rollback();
+            $ret = [
+                'msg' => $e->getMessage(),
+                'code' => 500,
+            ];
+            return $ret;
+        }
+    }
+
+    /**
+     * 添加日志
+     * @author lingjiawen
+     */
+    public static function addAliexpressLog(array $base_info = [], int $type = 0, array $new_data = [], $old_data = []): void
+    {
+        $insert_data = [];
+        $remark = [];
+        if (ChannelAccountLog::INSERT == $type) {
+            $insert_data = $new_data;
+        }
+        if (ChannelAccountLog::DELETE == $type) {
+            $insert_data = (array)$old_data;
+        }
+        if (ChannelAccountLog::UPDATE == $type) {
+            foreach ($new_data as $k => $v) {
+                if (isset(self::$log_config[$k]) and isset($old_data[$k]) and $v != $old_data[$k]) {
+                    $remark[] = ChannelAccountLog::getRemark(self::$log_config[$k], $type, $k, $v, $old_data[$k]);
+                    $insert_data[$k] = $old_data[$k];
+                }
+            }
+        }
+        $insert_data and ChannelAccountLog::addLog([
+            'channel_id' => ChannelAccountConst::channel_aliExpress,
+            'account_id' => $base_info['account_id'],
+            'type' => $type,
+            'remark' => json_encode($remark, JSON_UNESCAPED_UNICODE),
+            'operator_id' => $base_info['operator_id'],
+            'operator' => $base_info['operator'],
+            'data' => json_encode($insert_data, JSON_UNESCAPED_UNICODE),
+            'create_time' => input('server.REQUEST_TIME'),
+        ]);
+    }
+
+    /**
+     * 获取日志
+     */
+    public function getAliexpressLog(array $req = [])
+    {
+        $page = isset($req['page']) ? intval($req['page']) : 1;
+        $pageSize = isset($req['pageSize']) ? intval($req['pageSize']) : 10;
+        $account_id = isset($req['id']) ? intval($req['id']) : 0;
+
+        return (new ChannelAccountLog)->getLog(ChannelAccountConst::channel_aliExpress, $account_id, true, $page, $pageSize);
+    }
+}

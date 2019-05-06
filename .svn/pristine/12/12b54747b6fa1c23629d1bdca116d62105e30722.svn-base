@@ -1,0 +1,59 @@
+<?php
+namespace app\index\service;
+
+use app\common\cache\Cache;
+use app\common\service\ChannelAccountConst;
+use think\Db;
+use think\db\Query;
+use think\Exception;
+
+class ChannelAccountService
+{
+    /**
+     * 已注册服务
+     * @var Service
+     */
+    private static $serviceList = [];
+
+    /**
+     * 服务列表
+     */
+    private const SERVICE_LIST = [
+        ChannelAccountConst::channel_amazon => \app\index\service\AmazonAccountService::class,
+        ChannelAccountConst::channel_Joom => \app\index\service\JoomAccountService::class,
+        ChannelAccountConst::channel_Fummart => \app\index\service\FunmartAccountService::class,
+        ChannelAccountConst::channel_Oberlo => \app\index\service\OberloAccountService::class,
+        ChannelAccountConst::channel_Daraz => \app\index\service\DarazAccountService::class,
+        ChannelAccountConst::channel_Vova => \app\index\service\VovaAccountService::class,
+        ChannelAccountConst::channel_Zoodmall => \app\index\service\ZoodmallAccountService::class,
+        ChannelAccountConst::channel_aliExpress => \app\index\service\AliexpressAccountService::class,
+        ChannelAccountConst::Channel_Jumia => \app\index\service\JumiaAccountService::class,
+        ChannelAccountConst::channel_CD => \app\index\service\CdAccountService::class,
+        ChannelAccountConst::channel_Walmart => \app\index\service\WalmartAccountService::class,
+        ChannelAccountConst::channel_Lazada => \app\index\service\LazadaAccountService::class,
+        ChannelAccountConst::channel_Pdd => \app\index\service\PddAccountService::class,
+        ChannelAccountConst::channel_Paytm => \app\index\service\PaytmAccountService::class,
+        ChannelAccountConst::channel_Pandao => \app\index\service\PandaoAccountService::class,
+        ChannelAccountConst::Channel_umka => \app\index\service\UmkaAccountService::class,
+        ChannelAccountConst::channel_Yandex => \app\index\service\YandexAccountService::class,
+        ChannelAccountConst::channel_wish => \app\index\service\WishAccountService::class,
+        ChannelAccountConst::channel_Shopee => \app\index\service\ShopeeAccountService::class,
+        ChannelAccountConst::channel_ebay => \app\index\service\EbayAccountService::class,
+    ];
+
+    public function service($channelId = 0)
+    {
+        if (isset(self::$serviceList[$channelId])) {
+            return self::$serviceList[$channelId];
+        }
+        if (!$service = self::SERVICE_LIST[$channelId] ?? null) {
+            throw new Exception('未注册' . $channelId);
+        }
+        return self::$serviceList[$channelId] = new $service();
+    }
+
+    public function setStatus($channelId = 0, int $id = 0, bool $enable)
+    {
+        return self::service($channelId)->changeStatus($id, $enable);
+    }
+}

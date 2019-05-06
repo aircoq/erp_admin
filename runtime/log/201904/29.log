@@ -1,0 +1,214 @@
+[ 2019-04-29T17:57:31+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/showLogs
+[ log ] www.erp_admin.com/publish/lazada/showLogs [运行时间：0.221000s][吞吐率：4.52req/s] [内存消耗：9,986.38kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'showLogs',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5d7867cb-abc1-46f6-b182-529fe0741bca',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/showLogs' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.008000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.053000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->showLogs[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/showLogs' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-29T17:57:58+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/showLogs?product_id=2898
+[ log ] www.erp_admin.com/publish/lazada/showLogs?product_id=2898 [运行时间：0.162000s][吞吐率：6.17req/s] [内存消耗：10,073.72kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'showLogs',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5b2cdcb4-12bd-4e0e-bdab-a852897126ea',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/showLogs' => '',
+  'product_id' => '2898',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.025000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->showLogs[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/showLogs' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `lazada_action_log` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(*) AS tp_count FROM `lazada_action_log` WHERE  `product_id` = '2898' LIMIT 1 [ RunTime:0.020000s ]
+[ sql ] [ SQL ] SELECT * FROM `lazada_action_log` WHERE  `product_id` = '2898' ORDER BY create_time Desc LIMIT 0,50 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `id`,`realname` FROM `user` WHERE  ( `user`.`delete_time` IS NULL AND `user`.`delete_time` IS NULL )  AND `id` IN (0) [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-29T17:58:32+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/showLogs?product_id=2898
+[ log ] www.erp_admin.com/publish/lazada/showLogs?product_id=2898 [运行时间：0.148000s][吞吐率：6.76req/s] [内存消耗：10,073.81kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'showLogs',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '361d9f14-d34c-4a29-93b3-a34f0259be40',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/showLogs' => '',
+  'product_id' => '2898',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->showLogs[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/showLogs' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `lazada_action_log` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(*) AS tp_count FROM `lazada_action_log` WHERE  `product_id` = '2898' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `lazada_action_log` WHERE  `product_id` = '2898' ORDER BY create_time Desc LIMIT 0,50 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `id`,`realname` FROM `user` WHERE  ( `user`.`delete_time` IS NULL AND `user`.`delete_time` IS NULL )  AND `id` IN (2) [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-29T17:58:44+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/showLogs?product_id=2898
+[ log ] www.erp_admin.com/publish/lazada/showLogs?product_id=2898 [运行时间：0.141000s][吞吐率：7.09req/s] [内存消耗：10,073.72kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'showLogs',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '71951a5e-286d-4849-91d0-d004ad529ca2',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/showLogs' => '',
+  'product_id' => '2898',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.027000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->showLogs[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.001000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/showLogs' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `lazada_action_log` [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT COUNT(*) AS tp_count FROM `lazada_action_log` WHERE  `product_id` = '2898' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT * FROM `lazada_action_log` WHERE  `product_id` = '2898' ORDER BY create_time Desc LIMIT 0,50 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `id`,`realname` FROM `user` WHERE  ( `user`.`delete_time` IS NULL AND `user`.`delete_time` IS NULL )  AND `id` IN (10) [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-29T17:58:52+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/lazada/showLogs?product_id=2898
+[ log ] www.erp_admin.com/publish/lazada/showLogs?product_id=2898 [运行时间：0.154000s][吞吐率：6.49req/s] [内存消耗：10,073.80kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'LazadaPublish',
+    2 => 'showLogs',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '27b416e5-6afd-49d3-97e6-cf8298dc5cb9',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/lazada/showLogs' => '',
+  'product_id' => '2898',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.001000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\LazadaPublish->showLogs[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\LazadaPublish.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/lazada/showLogs' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `lazada_action_log` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT COUNT(*) AS tp_count FROM `lazada_action_log` WHERE  `product_id` = '2898' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `lazada_action_log` WHERE  `product_id` = '2898' ORDER BY create_time Desc LIMIT 0,50 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `user` [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `id`,`realname` FROM `user` WHERE  ( `user`.`delete_time` IS NULL AND `user`.`delete_time` IS NULL )  AND `id` IN (12) [ RunTime:0.001000s ]
+
+---------------------------------------------------------------

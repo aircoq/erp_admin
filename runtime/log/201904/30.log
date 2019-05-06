@@ -1,0 +1,2294 @@
+[ 2019-04-30T19:45:36+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test
+[ log ] www.erp_admin.com/publish/common/test [运行时间：0.171000s][吞吐率：5.85req/s] [内存消耗：8,108.95kb] [文件加载：65]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'controller',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '7647b3b3-6d0e-4528-9045-e5c9e1666265',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+)
+[ info ] [ LOG ] INIT File
+
+---------------------------------------------------------------
+[ 2019-04-30T19:47:03+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test
+[ log ] www.erp_admin.com/publish/common/test [运行时间：0.233000s][吞吐率：4.29req/s] [内存消耗：10,150.88kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '800d6b1d-e3fe-476b-85e3-11de859dd939',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.011000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.064000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ error ] [0]方法参数错误:dateFormat[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\App.php:294]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:51:24+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=
+[ log ] www.erp_admin.com/publish/common/test?dateFormat= [运行时间：0.167000s][吞吐率：5.99req/s] [内存消耗：10,151.27kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'dffc8f78-40b0-473c-b09f-0089a7f6381d',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.033000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+[ error ] [0]方法参数错误:channelId[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\App.php:294]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:51:39+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId= [运行时间：0.199000s][吞吐率：5.03req/s] [内存消耗：10,160.55kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '0c485741-0614-4875-ba72-1b87055855fd',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.041000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ error ] [2]array_values() expects parameter 1 to be array, object given[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:197]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:52:07+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId= [运行时间：0.158000s][吞吐率：6.33req/s] [内存消耗：10,156.28kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'c3b6cd06-678a-44fd-8259-f2e450757422',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.040000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.003000s ]
+[ error ] [2]array_values() expects parameter 1 to be array, object given[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:197]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:53:09+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId= [运行时间：0.161000s][吞吐率：6.21req/s] [内存消耗：10,156.28kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '832650a9-1745-419e-a6f1-669ca98040fc',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.044000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ error ] [2]array_values() expects parameter 1 to be array, object given[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:197]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:53:32+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId= [运行时间：0.174000s][吞吐率：5.75req/s] [内存消耗：10,070.23kb] [文件加载：103]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '4c244a66-1a1d-4ca7-ad25-6e7f846980f6',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.046000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.003000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:55:36+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId= [运行时间：0.187000s][吞吐率：5.35req/s] [内存消耗：10,156.28kb] [文件加载：109]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'd07528e2-7b87-4d37-837b-e9400654228f',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.045000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ error ] [2]array_values() expects parameter 1 to be array, object given[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:197]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:57:03+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId= [运行时间：0.161000s][吞吐率：6.21req/s] [内存消耗：10,117.15kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '27225585-fe18-4e51-9642-62feb2b0b977',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.044000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.004000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:57:09+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=0
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId=0 [运行时间：0.140000s][吞吐率：7.14req/s] [内存消耗：10,117.15kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '941f701c-9277-4a97-b50d-a8cb242700c8',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '0',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.033000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:57:18+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=-1
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId=-1 [运行时间：0.182000s][吞吐率：5.49req/s] [内存消耗：10,117.16kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5d0d3007-e822-4b0a-bf63-442576c50977',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '-1',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.053000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:57:23+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=&channelId=1
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=&channelId=1 [运行时间：0.144000s][吞吐率：6.94req/s] [内存消耗：10,117.15kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '7f5d2bc3-d320-4111-9e2e-c49c28e01bf7',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '',
+  'channelId' => '1',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.033000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:57:35+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-1-2&channelId=1
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-1-2&channelId=1 [运行时间：0.158000s][吞吐率：6.33req/s] [内存消耗：10,117.18kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '9a102d04-285e-4ce3-a2c5-dd0e9180a34b',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-1-2',
+  'channelId' => '1',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:57:42+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-01-02&channelId=1
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-01-02&channelId=1 [运行时间：0.167000s][吞吐率：5.99req/s] [内存消耗：10,117.18kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '99c0cfd7-a496-42e6-8281-aeec5637df56',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-01-02',
+  'channelId' => '1',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.044000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:57:48+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-01-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-01-02&channelId=2 [运行时间：0.145000s][吞吐率：6.90req/s] [内存消耗：10,117.18kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'd936dd62-9140-4933-afda-42c6c536ca4f',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-01-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.033000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:58:30+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-01-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-01-02&channelId=2 [运行时间：0.142000s][吞吐率：7.04req/s] [内存消耗：10,117.18kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'e8256da7-3d7c-4512-8113-74af4dadd511',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-01-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.041000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:58:39+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-01-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-01-02&channelId=2 [运行时间：0.172000s][吞吐率：5.81req/s] [内存消耗：10,117.18kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '1aeea4ee-2ee1-4fb7-83dc-4d3b82ffcd5f',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-01-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.041000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:58:57+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-01-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-01-02&channelId=2 [运行时间：0.157000s][吞吐率：6.37req/s] [内存消耗：10,117.43kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '2452070a-0c5e-4133-872f-7adc5dab26c1',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-01-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:59:07+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-01-0&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-01-0&channelId=2 [运行时间：0.167000s][吞吐率：5.99req/s] [内存消耗：10,117.43kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '3ef31d14-7248-4ab6-866b-581d6ebee300',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-01-0',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.041000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:59:12+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-0-0&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-0-0&channelId=2 [运行时间：0.151000s][吞吐率：6.62req/s] [内存消耗：10,117.43kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '9719cb62-9db1-47e7-8dc3-849afed92454',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-0-0',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T19:59:17+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2452&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2452&channelId=2 [运行时间：0.163000s][吞吐率：6.13req/s] [内存消耗：10,117.43kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'a1eb5441-1b07-4473-949c-774b4c03185a',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2452',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.042000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:01:44+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019&channelId=2 [运行时间：0.164000s][吞吐率：6.10req/s] [内存消耗：10,117.47kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '5930c172-6ba4-436b-95c9-7f1cb4f2c2a0',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:01:51+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-2-2&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-2-2&channelId=2 [运行时间：0.152000s][吞吐率：6.58req/s] [内存消耗：10,117.47kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'e2aacc58-2a00-4312-a07e-1c169721b2b8',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-2-2',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.033000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:01:58+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.143000s][吞吐率：6.99req/s] [内存消耗：10,117.47kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '1b3607e5-a6a0-4e9b-a666-e5dc1b1bf67c',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.042000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:05:51+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.169000s][吞吐率：5.92req/s] [内存消耗：10,117.51kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'c72adbb6-017a-4efd-9e00-98be8a983d79',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.005000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.038000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:06:29+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.179000s][吞吐率：5.59req/s] [内存消耗：10,117.45kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '77c070d3-d17e-41e0-a133-4cf594d07937',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.049000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:06:34+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.174000s][吞吐率：5.75req/s] [内存消耗：10,117.45kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'a539ab55-5f11-45b9-8b1a-7670747cd070',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.050000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:06:48+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.200000s][吞吐率：5.00req/s] [内存消耗：10,154.13kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'a4031c22-edf1-497b-a0b9-5f28348ee9af',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.047000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.003000s ]
+[ error ] [2]preg_match(): Delimiter must not be alphanumeric or backslash[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:193]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:07:10+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.173000s][吞吐率：5.78req/s] [内存消耗：10,154.13kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '8262fccf-9768-45a5-a88b-09a8ff5af6b3',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.041000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ error ] [2]preg_match(): Delimiter must not be alphanumeric or backslash[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:193]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:07:43+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.206000s][吞吐率：4.85req/s] [内存消耗：10,117.51kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '0d8c2edd-e40d-4b64-871d-df6441279d89',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.059000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.004000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.004000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:07:54+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02%2000:00&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02%2000:00&channelId=2 [运行时间：0.209000s][吞吐率：4.78req/s] [内存消耗：10,117.51kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '6c111cb0-9951-4ea2-8c67-fbc0aa4f45fd',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02 00:00',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.054000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.004000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:08:12+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02%2000:00&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02%2000:00&channelId=2 [运行时间：0.226000s][吞吐率：4.42req/s] [内存消耗：10,117.22kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '7863d412-2123-4a73-afe3-493d5a17dac9',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02 00:00',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.061000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.012000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:08:22+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.168000s][吞吐率：5.95req/s] [内存消耗：10,117.22kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '741615d0-09d8-41ad-b0bd-79b207e4938c',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.044000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:08:46+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.140000s][吞吐率：7.14req/s] [内存消耗：10,117.47kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '97907eaf-6c97-4168-a3c2-ae822c4b4ec6',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:09:04+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.158000s][吞吐率：6.33req/s] [内存消耗：10,117.47kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'ca6210ed-1bb4-477c-8aa3-b4a06fe98069',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.045000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:09:13+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.148000s][吞吐率：6.76req/s] [内存消耗：10,117.47kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '442ee6d9-2894-4c04-a2e4-667b862502f4',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.035000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.004000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:10:53+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.315000s][吞吐率：3.17req/s] [内存消耗：10,126.64kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '8d9d9fd6-bc4a-4d60-87b3-1bcc35edcd66',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.060000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.009000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.007000s ]
+[ error ] [10501]SQLSTATE[42S22]: Column not found: 1054 Unknown column 'a.channel_id' in 'where clause'[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\db\Connection.php:401]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:11:06+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=0
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=0 [运行时间：0.144000s][吞吐率：6.94req/s] [内存消耗：10,117.52kb] [文件加载：104]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '605dbd71-bf5f-4b22-ba59-d8b5fb3a9166',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '0',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.039000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:11:11+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=fsdf
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=fsdf [运行时间：0.172000s][吞吐率：5.81req/s] [内存消耗：10,151.68kb] [文件加载：107]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '70be49aa-0078-4e64-92f3-d7b3d2e61d4f',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => 'fsdf',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.048000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.008000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.003000s ]
+[ error ] [0]类型错误: Argument 2 passed to app\publish\controller\Common::getPublishedDailyByChannelId() must be of the type integer, string given[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:187]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:11:35+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.174000s][吞吐率：5.75req/s] [内存消耗：10,126.64kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '8209618e-7bfa-4e5b-af4d-b7b12845f708',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.032000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.003000s ]
+[ error ] [10501]SQLSTATE[42S22]: Column not found: 1054 Unknown column 'a.channel_id' in 'where clause'[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\db\Connection.php:401]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:11:53+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.231000s][吞吐率：4.33req/s] [内存消耗：10,126.39kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '63f360a8-c7a2-49d3-9d87-cd1260ed5cdf',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.048000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.004000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+[ error ] [10501]SQLSTATE[42S22]: Column not found: 1054 Unknown column 'a.channel_id' in 'where clause'[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\db\Connection.php:401]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:13:00+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=2
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=2 [运行时间：0.185000s][吞吐率：5.41req/s] [内存消耗：10,126.31kb] [文件加载：111]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '3df32456-f900-4e7a-95ae-0b45913680c0',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '2',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.007000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.044000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+[ error ] [10501]SQLSTATE[42S22]: Column not found: 1054 Unknown column 'a.channel_id' in 'where clause'[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\db\Connection.php:401]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:13:42+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.199000s][吞吐率：5.03req/s] [内存消耗：10,192.27kb] [文件加载：108]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'd8613949-a3b9-4a53-8ed1-8c9c3db361ea',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.020000s ]
+[ error ] [42S02]SQLSTATE[42S02]: Base table or view not found: 1146 Table 'erp-admin.think_profile' doesn't exist[C:\Users\Administrator\Desktop\erp_admin\thinkphp\library\think\db\connector\Mysql.php:65]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:14:45+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.201000s][吞吐率：4.98req/s] [内存消耗：10,170.05kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '698c361d-6e87-4472-97c5-c424638ddfff',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.038000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.004000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `channel_user_account_map` `a` LEFT JOIN `aliexpress_account` `b` ON `a`.`account_id`=`b`.`id` WHERE  `a`.`channel_id` = 4  AND ( `b`.`id` IN ( SELECT `id` FROM `aliexpress_product` `c` WHERE  `c`.`status` = 1  AND ( `c`.`create_time` >= 1549036800 AND `c`.`create_time` < 1549123200 ) ) AND `b`.`id` IN ( SELECT `id` FROM `aliexpress_product` `c` WHERE  `status` = 1  AND `c`.`create_time` < 1549123200 ) ) [ RunTime:0.046000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:15:43+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.182000s][吞吐率：5.49req/s] [内存消耗：10,170.05kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'd610b25d-b846-4ec7-ab04-5d7859dbfa25',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.001000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `channel_user_account_map` `a` LEFT JOIN `aliexpress_account` `b` ON `a`.`account_id`=`b`.`id` WHERE  `a`.`channel_id` = 4  AND ( `b`.`id` IN ( SELECT `id` FROM `aliexpress_product` `c` WHERE  `c`.`status` = 1  AND ( `c`.`create_time` >= 1549036800 AND `c`.`create_time` < 1549123200 ) ) AND `b`.`id` IN ( SELECT `id` FROM `aliexpress_product` `c` WHERE  `status` = 1  AND `c`.`create_time` < 1549123200 ) ) [ RunTime:0.013000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:15:56+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.165000s][吞吐率：6.06req/s] [内存消耗：10,151.97kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '53ee99ee-0367-4f80-b698-1f6833aedb76',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.050000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.009000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:20:18+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.159000s][吞吐率：6.29req/s] [内存消耗：10,150.36kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '210367ae-e074-427f-b361-af177db6ef5c',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.034000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.006000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:20:31+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.159000s][吞吐率：6.29req/s] [内存消耗：10,167.95kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'c6127746-c76d-4630-8941-74d30739901c',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.002000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.040000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.007000s ]
+[ sql ] [ SQL ] SELECT * FROM `channel_user_account_map` `a` LEFT JOIN `aliexpress_account` `b` ON `a`.`account_id`=`b`.`id` WHERE  `a`.`channel_id` = 4  AND `b`.`id` IN ( SELECT `id` FROM `aliexpress_product` `c` WHERE  `c`.`status` = 1  AND ( `c`.`create_time` >= 1549036800 AND `c`.`create_time` < 1549123200 ) ) [ RunTime:0.009000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:20:59+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.195000s][吞吐率：5.13req/s] [内存消耗：10,150.36kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '0a5cd18e-6603-40d4-8697-698beb06c868',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.035000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.006000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:22:26+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：2.096000s][吞吐率：0.48req/s] [内存消耗：10,186.30kb] [文件加载：110]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '66224234-ea5e-4364-9521-1f171b13062b',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.046000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `a`.`id` FROM `channel_user_account_map` `a` LEFT JOIN `aliexpress_account` `b` ON `a`.`account_id`=`b`.`id` WHERE  `a`.`channel_id` = 4  AND `b`.`id` IN ( SELECT `subject` FROM `aliexpress_product` `c` WHERE  `c`.`status` = 1  AND ( `c`.`create_time` >= 1549036800 AND `c`.`create_time` < 1549123200 ) ) [ RunTime:1.894000s ]
+[ error ] [8]Array to string conversion[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:234]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:23:13+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.391000s][吞吐率：2.56req/s] [内存消耗：10,186.30kb] [文件加载：110]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '892b6b10-13ac-49d8-8a1f-d7ab6a2ae7c1',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.003000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.009000s ]
+[ sql ] [ SQL ] SELECT `a`.`id` FROM `channel_user_account_map` `a` LEFT JOIN `aliexpress_account` `b` ON `a`.`account_id`=`b`.`id` WHERE  `a`.`channel_id` = 4  AND `b`.`id` IN ( SELECT `subject` FROM `aliexpress_product` `c` WHERE  `c`.`status` = 1  AND ( `c`.`create_time` >= 1549036800 AND `c`.`create_time` < 1549123200 ) ) [ RunTime:0.217000s ]
+[ error ] [8]Array to string conversion[C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php:234]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:23:35+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.383000s][吞吐率：2.61req/s] [内存消耗：10,149.63kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '79bf63eb-54d3-437e-b7aa-93f8e346ad12',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.035000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.006000s ]
+[ sql ] [ SQL ] SELECT `a`.`id` FROM `channel_user_account_map` `a` LEFT JOIN `aliexpress_account` `b` ON `a`.`account_id`=`b`.`id` WHERE  `a`.`channel_id` = 4  AND `b`.`id` IN ( SELECT `subject` FROM `aliexpress_product` `c` WHERE  `c`.`status` = 1  AND ( `c`.`create_time` >= 1549036800 AND `c`.`create_time` < 1549123200 ) ) [ RunTime:0.208000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:25:10+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.158000s][吞吐率：6.33req/s] [内存消耗：10,150.38kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'fe5a973e-023f-4ea5-9bd5-0b0ada98fa53',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.004000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.036000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.006000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:25:39+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.286000s][吞吐率：3.50req/s] [内存消耗：10,130.42kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '7e455a3f-1d00-4d77-9d77-e7dabde09b41',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.009000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.061000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.004000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.011000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:25:46+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.211000s][吞吐率：4.74req/s] [内存消耗：10,462.30kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => 'f0144d23-f84e-4010-b391-5d3b4da8ac88',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.040000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.002000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.005000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `a`.`id` FROM `channel_user_account_map` `a` LEFT JOIN `aliexpress_account` `b` ON `a`.`account_id`=`b`.`id` WHERE  `a`.`channel_id` = 4 [ RunTime:0.007000s ]
+
+---------------------------------------------------------------
+[ 2019-04-30T20:26:25+08:00 ] 127.0.0.1 127.0.0.1 GET /publish/common/test?dateFormat=2019-02-02&channelId=4
+[ log ] www.erp_admin.com/publish/common/test?dateFormat=2019-02-02&channelId=4 [运行时间：0.158000s][吞吐率：6.33req/s] [内存消耗：10,150.42kb] [文件加载：106]
+[ info ] [ LANG ] C:\Users\Administrator\Desktop\erp_admin\thinkphp\lang\zh-cn.php
+[ info ] [ ROUTE ] array (
+  'type' => 'module',
+  'module' => 
+  array (
+    0 => 'publish',
+    1 => 'Common',
+    2 => 'getPublishedDailyByChannelId',
+  ),
+  'convert' => false,
+)
+[ info ] [ HEADER ] array (
+  'connection' => 'close',
+  'accept-encoding' => 'gzip, deflate',
+  'host' => 'www.erp_admin.com',
+  'postman-token' => '611a7d9d-14dc-41f5-a519-05aa92a8f1bc',
+  'cache-control' => 'no-cache',
+  'accept' => '*/*',
+  'user-agent' => 'PostmanRuntime/7.11.0',
+)
+[ info ] [ PARAM ] array (
+  '/publish/common/test' => '',
+  'dateFormat' => '2019-02-02',
+  'channelId' => '4',
+)
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\CheckAuth @action_begin [ RunTime:0.003000s ]
+[ info ] [ DB ] INIT mysql
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\AccessVisit @action_begin [ RunTime:0.041000s ]
+[ info ] [ BEHAVIOR ] Run \app\common\behavior\ValidateCheck @action_begin [ RunTime:0.000000s ]
+[ info ] [ RUN ] app\publish\controller\Common->getPublishedDailyByChannelId[ C:\Users\Administrator\Desktop\erp_admin\application\publish\controller\Common.php ]
+[ info ] [ LOG ] INIT File
+[ sql ] [ DB ] CONNECT:[ UseTime:0.010000s ] mysql:dbname=erp-admin;host=172.19.37.9;port=3306;charset=utf8
+[ sql ] [ SQL ] SHOW COLUMNS FROM `role_user` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.001000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `mca_node` [ RunTime:0.004000s ]
+[ sql ] [ SQL ] SELECT * FROM `mca_node` WHERE  `method` = 'get'  AND `route` = '/publish/common/test' LIMIT 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SELECT `RoleUser`.* FROM `role_user` `RoleUser` INNER JOIN `role` `Role` ON `RoleUser`.`role_id`=`Role`.`id` WHERE  `Role`.`status` = 1  AND `user_id` = 1 [ RunTime:0.002000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `channel_user_account_map` [ RunTime:0.003000s ]
+[ sql ] [ SQL ] SHOW COLUMNS FROM `aliexpress_product` [ RunTime:0.008000s ]
+
+---------------------------------------------------------------

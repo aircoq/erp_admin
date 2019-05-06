@@ -1,0 +1,568 @@
+<?php
+/**
+ * Created by NetBeans.
+ * User: joy
+ * Date: 2017-3-15
+ * Time: 上午10:19
+ */
+
+namespace app\publish\service;
+
+use think\Db;
+use erp\AbsServer;
+use app\common\cache\Cache;
+use app\common\model\GoodsGallery;
+use app\common\model\GoodsTortDescription;
+use app\common\model\Goods;
+use app\common\model\Brand;
+use app\common\model\GoodsLang;
+use app\common\model\GoodsPublishMap;
+use think\Exception;
+use app\goods\service\GoodsImage;
+use think\exception\DbException;
+use think\exception\PDOException;
+use app\common\exception\JsonErrorException;
+use app\common\model\GoodsDiscount;
+use app\goods\service\GoodsHelp as GoodsHelpService;
+use app\publish\helper\lazada\LazadaHelper;
+use app\goods\service\GoodsPublishMapService;
+use app\common\model\lazada\LazadaDraft;
+
+/**
+ * @node lazada刊登助手
+ * Class LazadaPublishHelper
+ * packing app\publish\service
+ */
+class LazadaPublishHelper extends AbsServer
+{
+
+    /**
+     * @title常用数据
+     * LazadaPublishHelper constructor.
+     * @param Request|null $request
+     * @throws \Exception
+     */
+    public function __construct(Request $request = null)
+    {
+        parent::__construct($request);
+    }
+    /**
+     * @title 未刊登列表
+     * @param array $params
+     * @param $page
+     * @param $pageSize
+     * @return array
+     * @throws DbException
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     */
+    public function getUnpublishedListByChannelId(array $params,$page, $pageSize)
+    {
+        $where = [];
+        $join = [];
+        $channel_id = empty($params['channelId']) ? 6 : $params['channelId'];//默认lazada
+        $channel_id = 3;//测试用
+
+        $fields='distinct(m.goods_id),g.developer_id,m.publish_status,m.platform_sale,m.spu,g.thumb,g.category_id,g.name,g.publish_time,g.packing_name name_cn, g.packing_en_name, g.warehouse_id';
+
+        $where['channel_id'] = ['eq', $channel_id];
+        $where['g.sales_status'] = ['IN', array(1,4,6)];
+        $where2 = "platform&{$channel_id}=$channel_id";//平台是否可售
+
+        $post = $params;
+        if (isset($post['snType']) && $params['snType'] == 'spu' && $post['snText']) {
+            $where['m.' . $post['snType']] = array('IN', $post['snText']);
+        }
+
+        if (isset($post['snType']) && $post['snType'] == 'id' && $post['snText']) {
+            $where['m.goods_id'] = array('eq', $post['snText']);
+        }
+
+        if (isset($post['snType']) && $post['snType'] == 'name' && $post['snText']) {
+            $where['name'] = array('like', '%' . $post['snText'] . '%');
+        }
+        if (isset($post['snType']) && $post['snType'] == 'alias' && $post['snText']) {
+            $where['alias'] = array('like', '%' . $post['snText'] . '%');
+        }
+
+        if (isset($post['snType']) && $post['snType'] == 'sku' && $post['snText']) {
+            $where['sku'] = array('IN', $post['snText']);
+            $join[] = ['goods_sku gs','gs.goods_id=g.id'];
+        }
+
+        if (isset($post['developer_id']) && $post['developer_id'] ) {
+            $where['g.developer_id'] = array('=', $post['developer_id']);
+        }
+
+        if (isset($post['category_id']) && $post['category_id'] ) {
+            $category_id = (int)$post['category_id'];
+
+            $categories = CommonService::getSelfAndChilds($category_id);
+
+            $where['g.category_id'] = array('IN', $categories);
+        }
+        if (!empty($post['warehouse_id'])) {//仓库
+            $where['g.warehouse_id'] = $post['warehouse_id'];
+        }
+
+        if (isset($post['accountVal']) && is_numeric($post['accountVal'])) {
+            $map = " JSON_SEARCH(m.publish_status,'one', " . $post['accountVal'] . ") IS NULL ";
+        } elseif(isset($post['account_id']) && is_numeric($post['account_id'])){
+            $map = " JSON_SEARCH(m.publish_status,'one', " . $post['account_id'] . ") IS NULL ";
+        }else {
+            $map = [];
+        }
+
+
+        if(!empty($join))
+        {
+            $count = (new GoodsPublishMap())->alias('m')
+                ->join('goods g', 'm.goods_id=g.id', 'LEFT')
+                ->join($join)
+                ->where($where)
+                ->where($where2)
+                ->where($map)->count('m.id');
+
+            $data = (new GoodsPublishMap())->alias('m')
+                ->join('goods g', 'm.goods_id=g.id', 'LEFT')
+                ->join($join)
+                ->order('publish_time desc')->field($fields)
+                ->where($map)->where($where)->where($where2)
+                ->page($page, $pageSize)->select();
+
+        }else{
+            $count = (new GoodsPublishMap())->alias('m')->join('goods g', 'm.goods_id=g.id', 'LEFT')->where($where)->where($where2)->where($map)->count('m.id');
+
+            $data = (new GoodsPublishMap())->order('publish_time desc')->field($fields)->alias('m')->join('goods g', 'm.goods_id=g.id', 'LEFT')->where($map)->where($where)->where($where2)->page($page, $pageSize)->select();
+        }
+        $goodsModel = new Goods();
+        $discountIds = [];
+        if ($data) {
+            $data = collection($data)->toArray();
+            $goodsIds = array_column($data,'goods_id');
+            $tortGoodsIds = GoodsTortDescription::distinct(true)->whereIn('goods_id',$goodsIds)->column('goods_id');
+            //获取降价ids
+            $discountIds = (new GoodsDiscount())->whereIn('goods_id',$goodsIds)->where('valid_time','<',time())->where('over_time','>',time())->where('status',1)->column('goods_id');
+        }
+
+        foreach ($data as $k => &$d) {
+
+            $d['id'] = $d['goods_id'];
+            $d['tort_flag'] = in_array($d['goods_id'],$tortGoodsIds) ? 1 : 0;//侵权
+            $category = $goodsModel->getCategoryAttr("",$d);
+            if($category)
+            {
+                $d['category'] = $category;
+            }else{
+
+                $d['category'] = '';
+            }
+
+            $lang = GoodsLang::where(['goods_id' => $d['goods_id'], 'lang_id' => 2])->field('title')->find();
+
+            if ($lang) {
+                $d['packing_en_name'] = $lang['title'];
+            }
+
+            $d['thumb'] = GoodsImage::getThumbPath($d['thumb'], 60, 60);
+
+            $d['is_discounting'] = in_array($data[$k]['goods_id'],$discountIds) ? 1 : 0;
+
+        }
+
+        return ['data' => $data, 'count' => $count, 'page' => $page, 'pageSize' => $pageSize];
+    }
+
+    /**
+     * @title 根据商品id获取商品信息
+     * @param int $goodsId
+     * @return array|false|\PDOStatement|string|\think\Model
+     * @throws DbException
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function GetProductInfoByGoodId(int $goodsId)
+    {
+        $arrGoodsField = [
+            'p1.id',//商品ID
+            'p1.name',//产品名称
+            'p1.packing_en_name',//英文名称
+            'p1.spu',//SPU
+            'p1.category_id',//本地分类ID
+            'p1.packing_name package_content',//包裹简称(g)
+            'p1.weight package_weight',//重量(g)
+            'p1.width package_width',//宽度(mm)
+            'p1.height package_height',//高度(mm)
+            'p1.depth package_length',//'深度(mm)'
+            'p1.warehouse_id',//默认发货仓库ID
+            'p1.brand_id goods_brand_id',
+            'p1.sales_status',
+            //'p2.title',//'描述'
+            //'p2.description',//'描述'
+        ];
+        $objGoods = Goods::alias('p1')->where(['p1.id'=>$goodsId])
+            ->with([
+                'sku' => function($query){
+                    $query->withField('id')->with('image');
+                }
+            ])
+            ->field($arrGoodsField)
+            ->find();
+
+        if(empty($objGoods)){
+            throw new Exception('商品不存在');
+        }
+
+        //是否平台侵权
+        $goodsHelpService = new GoodsHelpService();
+        $goods_tort = $goodsHelpService->getGoodsTortDescriptionByGoodsId($objGoods['id']);
+        $objGoods['is_tort'] = $goods_tort ? 1 : 0;
+
+        //物流属性
+        $objGoods['transport_property'] = $goodsHelpService->getPropertiesTextByGoodsId($objGoods['id']);
+        $objGoods = $objGoods->toArray();
+        $goods_lang = GoodsLang::where(['goods_id'=>$goodsId,'lang_id'=>2])->field('title,description,selling_point')->find();
+
+        $objGoods['title'] = '';
+        $objGoods['description'] = '';
+        $sellingPoint = '';
+        if(!empty($goods_lang)){
+            $objGoods['title'] = $goods_lang['title'];
+            $objGoods['description'] = $goods_lang['description'];
+
+            //获取产品卖点描述 //2英文;1.中文
+            $goodsSellingPoint = \GuzzleHttp\json_decode($goods_lang['selling_point'],true);
+
+            if($goodsSellingPoint){
+
+                $i = 1;
+                foreach ($goodsSellingPoint as $val){
+                    if($val){
+                        $sellingPoint.=$i.'、'.$val."\n";
+                    }
+                    $i++;
+                }
+
+                if($sellingPoint){
+                    $sellingPoint = 'Bullet Points:'."\n".$sellingPoint."\n";
+                }
+            }
+        }
+        $objGoods['base_url']=Cache::store('configParams')->getConfig('innerPicUrl')['value'].DS;
+
+
+        $arrImgs = GoodsGallery::where(['goods_id'=>$goodsId])->field('path')->group('path')->select();
+        if(!empty($arrImgs))
+        {
+            foreach ($arrImgs as &$img)
+            {
+                $img['path'] = \app\goods\service\GoodsImage::getImagePath($img['path']);
+            }
+
+        }
+
+        $goodsServer = $this->invokeServer(\app\goods\service\GoodsHelp::class);
+        $objGoods['category_name'] = $goodsServer->mapCategory($objGoods['category_id']);
+
+
+        $objGoods['brand']='';
+        if($objGoods['goods_brand_id'])
+        {
+            $brand = Brand::where('id',$objGoods['goods_brand_id'])->find();
+            if($brand)
+            {
+                $objGoods['brand']=$brand['name'];
+            }
+        }
+        foreach ($objGoods['sku'] as $k=>$v){
+            $objGoods['sku'][$k]['package_width'] = $v['width']/10;
+            unset($objGoods['sku'][$k]['width']);
+            $objGoods['sku'][$k]['package_height'] = $v['height']/10;
+            unset($objGoods['sku'][$k]['height']);
+            $objGoods['sku'][$k]['package_weight'] = $v['weight'];
+            unset($objGoods['sku'][$k]['weight']);
+            $objGoods['sku'][$k]['package_length'] = $v['length']/10;
+            unset($objGoods['sku'][$k]['length']);
+            $objGoods['sku'][$k]['price'] = $v['retail_price'];
+            unset($objGoods['sku'][$k]['retail_price']);
+            $objGoods['sku'][$k]['price'] = $v['retail_price'];
+            unset($objGoods['sku'][$k]['retail_price']);
+            $objGoods['sku'][$k]['pid'] = '';
+            $objGoods['sku'][$k]['item_id'] = '';
+            $objGoods['sku'][$k]['variant_attribute'] = $goodsHelpService->getAttrbuteInfoBySkuAttributes(json_decode($objGoods['sku'][$k]['sku_attributes'],true),$goodsId);
+            $objGoods['sku'][$k]['image']['image_url'] = $objGoods['base_url']. $objGoods['sku'][$k]['image']['path'];
+            $objGoods['sku'][$k]['variant_images'] = $objGoods['sku'][$k]['image'];
+            unset( $objGoods['sku'][$k]['image']);
+        }
+
+        $objGoods['package_width']=$objGoods['package_width']/10;
+        $objGoods['package_height']=$objGoods['package_height']/10;
+        $objGoods['package_length']=$objGoods['package_length']/10;
+        $objGoods['virtual_send'] = 0;
+        $objGoods['region_group_id'] = '';
+        $objGoods['region_template_id'] = '';
+        $objGoods['site'] = '';
+        $objGoods['is_market_image'] = 0;
+
+        $objGoods['goods_info'] = $goodsHelpService->getGoodsInfo($goodsId);
+        $objGoods['goods_info']['transport_property'] =  $objGoods['transport_property'];
+        $objGoods['goods_info']['category_name'] =  $objGoods['category_name'];
+        $objGoods['goods_info']['brand'] = '';
+        $objGoods['goods_info']['package_weight'] = $objGoods['goods_info']['weight'];
+        unset($objGoods['goods_info']['weight']);
+        $objGoods['goods_info']['package_width'] = $objGoods['goods_info']['width'];
+        unset($objGoods['goods_info']['width']);
+        $objGoods['goods_info']['package_height'] = $objGoods['goods_info']['height'];
+        unset($objGoods['goods_info']['height']);
+        $objGoods['goods_info']['package_length'] = $objGoods['goods_info']['depth'];
+        unset($objGoods['goods_info']['depth']);
+
+        //卖点描述+描述
+        $objGoods['product_info']['short_description'] = $sellingPoint;
+        $objGoods['product_info']['short_description_en'] = null;
+        $objGoods['product_info']['id'] = '';
+        $objGoods['product_info']['pid'] = '';
+        $objGoods['product_info']['description_en'] = null;
+        $objGoods['product_info']['short_description'] = $sellingPoint;
+        $objGoods['product_info']['description'] = $sellingPoint.CommonService::replaceDesriptionHtmlTags($objGoods['description']);
+
+        $objGoods['product_attribute'] = $goodsHelpService->getAttributeInfo($goodsId);
+
+        $objGoods['market_images'] = [];
+
+
+
+        $objGoods['variant'] = $objGoods['sku'];
+        unset( $objGoods['sku']);
+
+        $objGoods['imgs'] = $arrImgs;
+
+        //分组模板
+        return $objGoods;
+    }
+
+    /**
+     *  根据spu获取sku的id
+     * @param string $spu
+     * @param $spu
+     * @return string
+     * @throws DbException
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function getGoodsSKuIdBySpu($spu)
+    {
+        $data = Goods::where(['spu' => $spu])->with(['sku'])->find();
+        if ($data && is_object($data)) {
+            $data = $data->toArray();
+            if (count($data['sku']) == 1) {
+                return $data['sku'][0]['id'];
+            } else {
+                return '';
+            }
+        } else {
+            return '';
+        }
+
+    }
+
+    /**
+     * @param $parameters
+     * @return bool
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     */
+    public function productsDel($parameters)
+    {
+        # 1.数据处理，合并相同账号下的item_sku并转化为json
+        $data = [];
+        foreach ($parameters as $k=>$v){
+            if(in_array($v['account_id'],array_keys($data)) ){
+                $data[$v['account_id']] = array_merge($data[$v['account_id']],[$v['item_sku']]);
+            }else{
+                $data[$v['account_id']][] = $v['item_sku'];
+            }
+        }
+        # 2.删除该Listing在平台上的记录,单个记录不能超过50条;3.上传状态修改为已下架
+        $lazadaHelper = new LazadaHelper();
+        do{
+
+            foreach ($data as $k=>$v){
+                if(count($v)>50){
+                    break;
+                }
+                $tf1 = $lazadaHelper->removeProductsByAccountId($k,json_encode($v));//平台删除
+                if($tf1){
+                    Db::startTrans();
+                    try{
+                        $goods_ids = DB::table('lazada_product')->where('account_id',$k)->whereIn('item_sku',$v)->column('goods_id');
+                        if(!empty($goods_ids)){//删除单属性
+                            foreach ($goods_ids as $goods_id){
+                                $goodsInfo =Cache::store('Goods')->getGoodsInfo($goods_id);
+                                if($goodsInfo)
+                                {
+                                    $spu = $goodsInfo['spu'];
+                                    GoodsPublishMapService::update(6, $spu, $k, 0);//清除关联关系
+                                }
+                            }
+                            DB::table('lazada_product')->where('account_id',$k)->whereIn('item_sku',$v)->isUpdate(true)->save(['status'=>2]);
+                        }
+                        if(DB::table('lazada_variant')->whereIn('variation_sku',$v)->isUpdate(true)->find()){
+                            DB::table('lazada_variant')->whereIn('variation_sku',$v)->isUpdate(true)->save(['status'=>3]);//删除多属性
+                        }
+                        Db::commit();
+                    } catch (\Exception $e) {
+                        Db::rollback();
+                        break;
+                    }
+                }else{
+                    break;
+                }
+            }
+        }while(false);
+        return true;
+    }
+
+    /**
+     * @title Lazada刊登保存为草稿
+     * @param $post
+     * @return bool
+     */
+    public function draftsSave($post)
+    {
+        $response = false;
+        try {
+            $model = new LazadaDraft();
+            if (isset($post['vars']) && $post['vars']) {
+                $skus = json_decode($post['vars'], true);
+
+                foreach ($skus as $key => $sku) {
+
+                    $where['goods_id'] = $post['goods_id'];
+                    $where['uid'] = $post['uid'];
+                    $where['account_id'] = $skus[$key]['accountid'];
+
+                    $data['spu'] = $post['parent_sku'];
+                    $data['goods_id'] = $post['goods_id'];
+                    $data['uid'] = $post['uid'];
+                    $data['account_id'] = $skus[$key]['accountid'];
+                    $data['name'] = $skus[$key]['name'];
+                    Db::startTrans();
+                    try{
+                        if ($model->get($where)) {
+                            $data['update_time'] = time();
+                            $model->isUpdate(true)->save($data, $where);
+                        } else {
+                            $data['create_time'] = time();
+                            $model->isUpdate(false)->save($data);
+                        }
+                        Db::commit();
+                    }catch (\Exception $exp){
+                        Db::rollback();
+                        throw new JsonErrorException($exp->getMessage());
+                    }
+                }
+                $response = true;
+            }
+            return $response;
+        } catch (JsonErrorException $exp) {
+            throw new JsonErrorException($exp->getMessage());
+        }
+    }
+
+    /**
+     * @title 获取草稿列表
+     * @param $param
+     * @param $page
+     * @param $pageSize
+     * @param $uid
+     * @return array
+     * @throws DbException
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function getDaftListByUserId($param, $page, $pageSize, $uid)
+    {
+        $where = [];
+        if (isset($param['type']) && $param['type'] == 'spu' && $param['content']) {
+            $where['spu'] = ['=', $param['content']];
+        }
+
+        if (isset($param['type']) && $param['type'] == 'name' && $param['content']) {
+            $where['name'] = ['like', '%' . $param['content'] . '%'];
+        }
+
+        if (isset($param['account_id']) && $param['account_id']) {
+            $where['account_id'] = ['=', $param['account_id']];
+        }
+        //更新时间
+        if (isset ($param['start_time']) && isset ($param['end_time']) && $param['end_time'] && $param['start_time']) {
+            if ($param['end_time'] == $param['start_time']) //同一个时间
+            {
+                $param['start_time'] = $param['start_time'] . ' 00:00:00';
+                $param['end_time'] = $param['end_time'] . ' 23:59:59';
+            }
+            $where['create_time'] = ['between time', [strtotime($param['start_time']), strtotime($param['end_time'])]];
+        } elseif (isset ($param['end_time']) && $param['end_time']) {
+            $where['create_time'] = array('<=', strtotime($param['end_time']));
+        } elseif (isset($param['start_time']) && $param['start_time']) {
+            $where['create_time'] = array('>=', strtotime($param['start_time']));
+        }
+
+        $where['uid'] = ['=', $uid];
+
+        $count = LazadaDraft::where($where)->count('id');
+
+        $data = LazadaDraft::where($where)->with(['goods', 'user', 'account'])->order('create_time desc')->page($page, $pageSize)->select();
+
+        if ($data) {
+            foreach ($data as &$d) {
+                $d['thumb'] = GoodsImage::getThumbPath($d['goods']['thumb'], 0);
+            }
+        }
+
+        return ['data' => $data, 'page' => $page, 'pageSize' => $pageSize, 'count' => $count];
+    }
+
+    /**
+     * @title 删除草稿箱
+     * @param $uid
+     * @param $where
+     * @return int
+     * @throws DbException
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function draftDel($uid, $where)
+    {
+        $drafts = LazadaDraft::where($where)->field('goods_id')->select();
+        $goodsIds = array_column($drafts,'goods_id');
+
+        $num=0;
+        $options['type'] = 'file';
+        if($goodsIds)
+        {
+
+            foreach ($goodsIds as $goods_id)
+            {
+                \think\Cache::connect($options);
+                if (\think\Cache::has('wishPublishCache:' . $goods_id . '_' . $uid))
+                {
+                    \think\Cache::rm('wishPublishCache:' . $goods_id . '_' . $uid);
+                    ++$num;
+                }
+            }
+        }
+        Db::startTrans();
+        try{
+            LazadaDraft::destroy($where);
+            Db::commit();
+            return $num;
+        }catch (PDOException $exp){
+            Db::rollback();
+            throw new JsonErrorException("F:{$exp->getFile()};L:{$exp->getLine()};M:{$exp->getMessage()}");
+        }
+    }
+
+}

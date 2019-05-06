@@ -1,0 +1,348 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: Administrator
+ * Date: 2019/4/24
+ * Time: 11:00
+ */
+
+namespace app\goods\service;
+
+use app\common\cache\Cache;
+use app\common\model\GoodsGallery as GoodsGalleryModel;
+use app\common\model\GoodsLang as GoodsLangModel;
+use app\common\model\GoodsSkuAlias as GoodsSkuAliasModel;
+use org\Curl;
+use phpDocumentor\Reflection\Types\Boolean;
+use service\shipping\ShippingApi;
+use app\common\model\Carrier as CarrierModel;
+use app\common\model\Goods as GoodsModel;
+use app\common\model\GoodsSku as GoodsSkuModel;
+use app\goods\service\GoodsHelp;
+use think\Config;
+use think\Exception;
+use app\warehouse\service\Warehouse;
+use think\Db;
+use org\Ftp;
+
+class GoodsWinitLian
+{
+    const LANG_CN = 1;//语言为中文
+    const LANG_EN = 2;//语言为英文
+    const ON_SALE = 1;//状态为在售
+    const CATEGORY_ID = 243;//分类id
+    const G_TO_KG = 1000;//千克对克转换
+    const MM_TO_CM = 10;//厘米对毫米转换
+    const PLATFORM = '{"ebay": 1, "joom": 1, "wish": 1, "amazon": 1, "aliExpress": 1}';//万邑链产品的发布平台
+    const DEFAULT_CHANNEL_ID = 0;//goods_gallery默认的channel_id为零
+    const DEFAULT_DEVELOPER = 0;//默认开发员id
+    const PLATFORM_ID = 31;//平台id
+
+    /**
+     * @param $warehouseId int 可以由getWarehouseIds获取
+     * 获取万邑链登陆的相关配置
+     * @return array
+     * @throws Exception
+     */
+    public function getConf($warehouseId)
+    {
+        $warehouse = Cache::store('warehouse')->getWarehouse($warehouseId);
+        $config = (new CarrierModel())->getById($warehouse['carrier_id'])->toArray();
+        $configure = [
+            'index' => $config['index'],
+            'accessToken'  =>$config['interface_token'],
+            'client_secret'=>'rondaful',
+            'carrier_code' =>$config['code'],
+        ];
+        return $configure;
+    }
+
+    /**
+     * @param $configure可以由getconf方法获取
+     * 获取产品列表
+     * @return mixed
+     * @throws Exception
+     */
+    public function getGoodsList($configure,$updateStartDate='',$updateEndDate='',$pageIndex = 1,$pageSize = 200)
+    {
+        $param = [
+            'sku'=>'',
+            'updateEndDate'=>$updateEndDate,
+            'updateStartDate'=>$updateStartDate
+        ];
+        $server = ShippingApi::instance()->loader($configure['index']);
+        $result = $server->getProductLists($configure,'Y',$param,$pageIndex,$pageSize);
+
+        if (isset($result['error'])){
+            return [];
+        }else{
+            return $result;
+        }
+    }
+
+    /**
+     * 商品信息存数据库
+     * @throws Exception
+     */
+    public function dataHandle($data,$warehouseId)
+    {
+//        Db::startTrans();
+//        try {
+//            echo 'handle';
+
+
+            if (empty($data)){
+                return json_encode([
+                    'code'=>1,
+                    'message'=>"仓库{$warehouseId}没有更新数据",
+                ]);
+            }
+
+            if (is_array($data['data']['SPUList']) && !empty($data['data']['SPUList'])){
+                $data = $data['data']['SPUList'];
+            }
+
+            array_walk($data, function ($attr) use($warehouseId) {
+                //处理goods
+                if (!is_array($attr)){
+                    return json_encode([
+                        'code'=>2,
+                        'message'=>"数据错误",
+                    ]);
+                }
+
+                var_dump($this->spuValidate($attr));
+                //检测数据的有效性
+                if ($this->spuValidate($attr) == false){
+                    return json_encode([
+                        'code'=>3,
+                        'message'=>"没有标题或者图片或者描述的历史遗留数据,不写入数据库",
+                    ]);
+                }
+
+                $goodsModel = new GoodsModel();
+                $goodsData = [
+                    'category_id' => self::CATEGORY_ID,
+                    'name' => $attr['chineseName'] . '-' . $attr['SPU'],
+                    'alias' => 'B-' . $attr['SPU'],
+                    'publish_time' => time(),
+                    'platform_sale' => self::PLATFORM,
+                    'status' => 1,
+                    'sales_status' => 1,
+//                    'platform' => self::PLATFORM_ID,
+                    'platform_old' => '[]',
+                    'warehouse_id' => $warehouseId,
+                    'developer_id' => self::DEFAULT_DEVELOPER,
+                    'declare_name' => ($attr['chineseName'] == NULL)?'':$attr['chineseName'],
+                    'declare_en_name' => ($attr['englishName'] == NULL)?'':$attr['englishName'],
+                ];
+
+                $goodsModelData = $goodsModel->where('alias', $goodsData['alias'])->find();
+                //如果没有，则插入新的数据
+                if (empty($goodsModelData)) {
+                    $goodsData['spu'] = (new GoodsHelp)->createSpu(self::CATEGORY_ID);
+                    $goodsModel->save($goodsData);
+                    $goodsModelData = $goodsModel;
+                }
+
+                $goodsLang = new GoodsLangModel();
+                $goodsDataLang1 = [
+                    'goods_id' => $goodsModelData->id,
+                    'description' => $attr['description'],
+//                    'seo_keywords' => str_replace(',', '\n', $attr['keywords']), //存在长度问题，舍弃掉
+                    'tags' => str_replace(',', '\n', $attr['keywords']),
+                    'title' => $goodsData['name'],
+                    'lang_id' => self::LANG_CN,
+                    'selling_point' => '[]',
+                ];
+                $goodsDataLang = [$goodsDataLang1];
+                $englishTitle = $attr['englishName'] ?? $attr['title'];
+                if ($englishTitle) {
+                    $goodsDataLang2 = $goodsDataLang1;
+                    $goodsDataLang2['lang_id'] = self::LANG_EN;
+                    $goodsDataLang2['title'] = $englishTitle;
+                    $goodsDataLang[] = $goodsDataLang2;
+                }
+
+                //                如果重复，则更新数据
+                //                if (empty($goodsLang->where('goods_id',$goodsModel->id)->find())){
+                $goodsLangData = $goodsLang->where('goods_id', $goodsModelData->id)->find();
+                if (empty($goodsLangData)) {
+                    $goodsLang->saveAll($goodsDataLang);
+                }
+
+                //                }
+
+                //保存图片，并将图片信息插入
+                //TODO 上线时开启
+                /**
+                 * array_walk($attr['imgList'], function ($url, $key) use ($goodsModelData){
+                 * $isDefault = $key== 0?true:false;
+                 * $data = $this->saveImage($url, $goodsModelData, $isDefault);
+                 * });**/
+                array_walk($attr['SKUList'], function ($sku) use ($goodsModelData) {
+                    $skuModel = new GoodsSkuModel();
+                    $skuAlias = new GoodsSkuAliasModel();
+                    // skucode 是我们的sku，alias 是 给我搜索用，言下之意，我们的 sku 和他的 各一条放在这，通过 type 来区分，我们的为1，他的为2
+                    $skuData = [
+                        //                    'sku' => (new GoodsHelp()) -> createSku($goodsModel->spu, [], $goodsModel->id),
+                        'cost_price' => $sku['supplyPrice'],//供货价格
+                        'length' => $sku['length'] * self::MM_TO_CM,
+                        'weight' => $sku['weight'] * self::G_TO_KG,
+                        'width' => $sku['width'] * self::MM_TO_CM,
+                        'height' => $sku['height'] * self::MM_TO_CM,
+                        'goods_id' => $goodsModelData->id,
+                        'alias_sku' => $sku['randomSKU'],
+                        'sku_attributes' => '[]',
+                        'spu_name' => $goodsModelData->name,
+                        'status' => self::ON_SALE,
+                    ];
+
+                    $skuModelData = $skuModel->where('alias_sku', $sku['randomSKU'])->find();
+                    if (empty($skuModelData)) {
+                        $skuData['sku'] = (new GoodsHelp())->createSku($goodsModelData->spu, [], $goodsModelData->id);
+                        $skuModel->save($skuData);
+                        $skuModelData = $skuModel;
+                    } else {
+                        $skuModel->allowField(['cost_price','length','width','height'])->save($skuData, ['id' => $skuModelData->id]);
+                    }
+                    $skuAliasData = [
+                        [
+                            'sku_id' => $skuModelData->id,
+                            'sku_code' => $skuModelData->sku,
+                            'create_time' => time(),
+                            'type' => self::LANG_CN,
+                            'alias' => $skuModelData->sku,
+                        ],
+                        [
+                            'sku_id' => $skuModelData->id,
+                            'sku_code' => $skuModelData->sku,
+                            'create_time' => time(),
+                            'type' => self::LANG_EN,
+                            'alias' => $sku['randomSKU'],
+                        ]
+                    ];
+                    //先查看是否已经插入了相关的数据，没有，则插入
+                    $aliasData = $skuAlias->where('sku_id',$skuModelData->id)->find();
+                    if (empty($aliasData)) {
+                        $skuAlias = new GoodsSkuAliasModel();
+                        $skuAlias->isUpdate(false)->save($skuAliasData[0]);
+                        $skuAlias->isUpdate(false)->save($skuAliasData[1]);
+                    }
+                });
+            });
+//            Db::commit();
+//        }catch(Exception $ex){
+//            Db::rollback();
+//            return json(['message' => $ex->getMessage()], 400);
+//        }
+    }
+
+    /**
+     * 获取warehouse的组成的数组
+     * @return array
+     */
+    public function getWarehouseIds()
+    {
+        $result = Warehouse::getWarehousesByType(Warehouse::TYPE_WILIAN);
+        $warehouseIds = array_map(function ($value){
+                return $value->id;
+            },$result);
+        return $warehouseIds;
+    }
+
+    /**
+     * 保存图片
+     * @param $url string 图片地址
+     * @param Goods goodsModel 图片对应的goods
+     * @param $isDefault boolean 是否主图
+     * @throws Exception
+     */
+//    private function saveImage($url,Goods $goodsModel,$isDefault)
+//    {
+//        $imgHandler = new GoodsImageDownloadNewService();
+//        $goodsInfo = [
+//            'goods_id' => $goodsModel->id,
+//            'channelId' => self::DEFAULT_CHANNEL_ID//channel取默认值0就可以了
+//        ];
+//        $fileName = implode(array_pop(explode('.',substr(strrchr($url, '/'), 1))));
+//        $file = [
+//            'file_name'=>$fileName,
+//            'file_ext'=>substr(strrchr($url, '.'), 1),
+//            'file'=>$url,
+//            'is_default'=>$isDefault,
+//            'defaultSpuThumb'=>$isDefault//指定主图是哪个
+//        ];
+//        $channelId = self::DEFAULT_CHANNEL_ID;
+//        return $imgHandler->saveImage($goodsInfo, $file, $isSingleThumb = true, $channelId);
+////        return $this->uploadImage($goodsInfo, $file, $isSingleThumb = true, $channelId);
+//    }
+
+    /**
+     * 获取图片信息
+     * @throws Exception
+     */
+    public function saveImage($url,Goods $goodsModel,$isDefault)
+    {
+        $fileName = implode(array_pop(explode('.',substr(strrchr($url, '/'), 1))));
+        $file = [
+            'file_name'=>$fileName,
+            'file_ext'=>substr(strrchr($url, '.'), 1),
+            'file'=>$url,
+            'is_default'=>$isDefault,
+            'defaultSpuThumb'=>$isDefault//指定主图是哪个
+        ];
+
+        $host = config('image_ftp_host');
+        $user = config('image_ftp_user');
+        $pwd = config('image_ftp_pwd');
+
+        $ftpServer = new Ftp($host, 21, $user, $pwd);
+
+        $content = $ftpServer->getFileStream($file['file']);
+        $path = substr($goodsModel->id, 0, 3) . '/' . substr($goodsModel->id, 3);
+        $unique_code = md5($content);
+        $image_path = $image_path = $path . '/' . $unique_code . '.' . $file['file_ext'];
+        $channelId = self::DEFAULT_CHANNEL_ID;
+        $data = [
+            'goods_id' => $goodsModel->id,
+            'attribute_id' => 0,
+            'value_id' => 0,
+            'sku_id' => 0,
+            'path' => $image_path,
+            'sort' => 98,
+            'unique_code' => $unique_code,
+            'original_path' => $file['file'],
+            'is_default' => $file['is_default'],
+            'channel_id' => $channelId,
+            'alt' => $file['file_name'] . "." . $file['file_ext']
+        ];
+
+        $goodsGallery = new GoodsGalleryModel();
+//        只有当图片没有被存储的时候，才插入图片，并上传图片
+        if (empty($goodsGallery->where('unique_code',$unique_code)->find())){
+            $imageHandle = new GoodsImageDownloadNewService();
+            $imageHandle -> uploadFile($goodsModel->id, $content, $file['file_ext'], $unique_code);
+            $goodsGallery->save($data);
+            //如果是主图，则更新goods表的thumb
+            if ($file['defaultSpuThumb'] === true) {
+                Goods::update(['id' => $goodsModel->id, 'thumb' => $image_path]);
+                Cache::store('goods')->delGoodsInfo($goodsModel->id);
+            }
+        }
+    }
+
+    /**
+     *过滤接口中的历史遗留数据，没有标题 图片 或者描述的
+     * @param $spu array 接口中获取的spu的数据
+     */
+    private function spuValidate($spu):bool
+    {
+        //没有标题 描述 图片 的 要过滤掉
+        if (empty($spu['chineseName']) || empty($spu['description']) || empty($spu['imgList'])){
+            return false;
+        }else{
+            return true;
+        }
+    }
+}
